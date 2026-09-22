@@ -21,6 +21,7 @@ import { getSafeCardImageUrl } from '@/lib/card-image';
 import { ARTIST_PROFILES } from '@/lib/artist-data';
 import { CardDetailView } from '@/components/CardDetailView';
 import { useSettings } from '@/context/SettingsContext';
+import { addCardToLocalBinder } from '@/lib/user-collection';
 
 interface CardItem {
   id: string;
@@ -175,27 +176,53 @@ function CardsContent() {
 
     setSavingCollection(true);
     try {
-      const res = await fetch('/api/collection', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cardId: addModalCard.id,
-          quantity: addQuantity,
-          condition: addCondition,
-          isFoil: addIsFoil,
-          language: 'jp',
-          purchasePrice: purchasePriceUSD,
-        }),
+      // 1. Always save immediately to local binder (guaranteed offline & multi-user device safety)
+      addCardToLocalBinder({
+        cardId: addModalCard.id,
+        card: {
+          id: addModalCard.id,
+          name: addModalCard.name,
+          category: addModalCard.category,
+          colors: addModalCard.colors,
+          cost: addModalCard.cost,
+          power: addModalCard.power,
+          rarity: addModalCard.rarity,
+          imageUrl: addModalCard.imageUrl,
+          marketPrice: addModalCard.marketPrice,
+          yuyuPrice: addModalCard.yuyuPrice,
+          pack: addModalCard.pack ? { code: addModalCard.pack.code, name: addModalCard.pack.name } : undefined,
+        },
+        quantity: addQuantity,
+        condition: addCondition,
+        isFoil: addIsFoil,
+        language: 'jp',
+        purchasePrice: purchasePriceUSD,
       });
 
-      if (res.ok) {
-        setSavedSuccess(true);
-        setTimeout(() => {
-          setSavedSuccess(false);
-          setAddModalCard(null);
-          fetchCards();
-        }, 800);
+      // 2. Also sync to API if available
+      try {
+        await fetch('/api/collection', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cardId: addModalCard.id,
+            quantity: addQuantity,
+            condition: addCondition,
+            isFoil: addIsFoil,
+            language: 'jp',
+            purchasePrice: purchasePriceUSD,
+          }),
+        });
+      } catch {
+        // Safe to ignore on serverless or offline
       }
+
+      setSavedSuccess(true);
+      setTimeout(() => {
+        setSavedSuccess(false);
+        setAddModalCard(null);
+        fetchCards();
+      }, 800);
     } catch (e) {
       console.error(e);
     } finally {

@@ -12,11 +12,22 @@ import {
   Settings as SettingsIcon,
   ListFilter,
   LayoutGrid,
-  X
+  X,
+  Upload,
+  Download
 } from 'lucide-react';
 import { getSafeCardImageUrl } from '@/lib/card-image';
 import { useSettings } from '@/context/SettingsContext';
 import { CardDetailView } from '@/components/CardDetailView';
+import { 
+  getLocalBinder, 
+  removeCardFromLocalBinder, 
+  getLocalBinderStats, 
+  exportBinderToJSON,
+  importBinderFromJSON,
+  saveLocalBinder,
+  LocalUserCard 
+} from '@/lib/user-collection';
 
 interface UserCardRecord {
   id: string;
@@ -73,14 +84,27 @@ export default function CollectionPage() {
   async function loadCollection() {
     setLoading(true);
     try {
-      const res = await fetch('/api/collection');
-      const data = await res.json();
-      if (data.userCards) {
-        setItems(data.userCards);
-        setStats(data.stats);
+      const local = getLocalBinder();
+      if (local.length > 0) {
+        setItems(local as any);
+        setStats(getLocalBinderStats(local));
+      } else {
+        const res = await fetch('/api/collection');
+        const data = await res.json();
+        if (data.userCards && data.userCards.length > 0) {
+          setItems(data.userCards);
+          setStats(data.stats);
+          saveLocalBinder(data.userCards);
+        } else {
+          setItems([]);
+          setStats(null);
+        }
       }
     } catch (e) {
-      console.error(e);
+      console.error('Error loading collection:', e);
+      const local = getLocalBinder();
+      setItems(local as any);
+      setStats(getLocalBinderStats(local));
     } finally {
       setLoading(false);
     }
@@ -89,14 +113,13 @@ export default function CollectionPage() {
   async function handleDelete(id: string, cardName: string) {
     if (!confirm(`Remove ${cardName} from your collection?`)) return;
 
+    removeCardFromLocalBinder(id);
     try {
-      const res = await fetch(`/api/collection?id=${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        loadCollection();
-      }
-    } catch (e) {
-      console.error(e);
+      await fetch(`/api/collection?id=${id}`, { method: 'DELETE' });
+    } catch {
+      // Ignore API failure on offline/serverless
     }
+    loadCollection();
   }
 
   const filteredItems = items.filter((it) => {
@@ -253,12 +276,39 @@ export default function CollectionPage() {
           <p className="text-xs text-gray-400 mt-1 mb-4">
             {searchTerm ? `No cards match "${searchTerm}"` : 'Your collection is empty. Start adding cards from the database!'}
           </p>
-          <Link
-            href="/cards"
-            className="px-4 py-2 rounded-xl bg-[#e76d78] text-white text-xs font-bold hover:bg-[#d45b66] transition inline-block shadow"
-          >
-            Browse Cards Catalog
-          </Link>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Link
+              href="/cards"
+              className="px-4 py-2 rounded-xl bg-[#e76d78] text-white text-xs font-bold hover:bg-[#d45b66] transition inline-block shadow cursor-pointer"
+            >
+              Browse Cards Catalog
+            </Link>
+            <label className="px-4 py-2 rounded-xl bg-[#242836] border border-[#343a4c] hover:bg-[#2c3142] text-xs font-bold text-gray-200 transition inline-flex items-center gap-1.5 cursor-pointer shadow">
+              <Upload className="w-3.5 h-3.5 text-[#3b82f6]" />
+              <span>Import Backup</span>
+              <input
+                type="file"
+                accept=".json,application/json"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (event) => {
+                    const text = event.target?.result as string;
+                    const ok = importBinderFromJSON(text);
+                    if (ok) {
+                      loadCollection();
+                    } else {
+                      alert('Invalid backup file');
+                    }
+                  };
+                  reader.readAsText(file);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+          </div>
         </div>
       ) : viewMode === 'list' ? (
         /* RESPONSIVE MOBILE-OPTIMIZED CARD LIST (NO CUT-OFF ELEMENTS) */

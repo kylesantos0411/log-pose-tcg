@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
@@ -43,6 +43,27 @@ export function CleanHomeView({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [displayCount, setDisplayCount] = useState(userCardsCount);
+
+  useEffect(() => {
+    const updateCount = () => {
+      try {
+        const raw = localStorage.getItem('logpose_user_binder');
+        if (raw) {
+          const list = JSON.parse(raw);
+          const total = Array.isArray(list) ? list.reduce((acc, c) => acc + (c.quantity || 1), 0) : 0;
+          setDisplayCount(total);
+        } else {
+          setDisplayCount(userCardsCount);
+        }
+      } catch {
+        setDisplayCount(userCardsCount);
+      }
+    };
+    updateCount();
+    window.addEventListener('logpose_collection_updated', updateCount);
+    return () => window.removeEventListener('logpose_collection_updated', updateCount);
+  }, [userCardsCount]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -193,7 +214,7 @@ export function CleanHomeView({
           {/* Bottom of Card: Live Stats */}
           <div className="pt-3 border-t border-white/10 relative z-10 space-y-0.5">
             <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              {userCardsCount}
+              {displayCount}
             </div>
             <p className="text-[11px] text-gray-300 font-medium">
               Cards in Collection

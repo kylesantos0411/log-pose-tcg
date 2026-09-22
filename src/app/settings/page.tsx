@@ -15,6 +15,8 @@ import {
   ExternalLink,
   Star,
   Download,
+  Upload,
+  FileJson,
   Bug,
   ChevronRight,
   LogIn,
@@ -29,6 +31,7 @@ import Link from 'next/link';
 import { useSettings, CURRENCIES, CurrencyCode } from '@/context/SettingsContext';
 import { SupportModal } from '@/components/SupportModal';
 import { AccountModal } from '@/components/AccountModal';
+import { exportBinderToJSON, importBinderFromJSON, getLocalBinder } from '@/lib/user-collection';
 
 export default function SettingsPage() {
   const { 
@@ -478,6 +481,77 @@ export default function SettingsPage() {
               <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition flex-shrink-0" />
             )}
           </button>
+
+          {/* Export Collection Backup (JSON) */}
+          <button
+            type="button"
+            onClick={() => {
+              const binder = getLocalBinder();
+              if (binder.length === 0) {
+                showToast('Your collection is currently empty');
+                return;
+              }
+              exportBinderToJSON();
+              showToast(`Exported ${binder.length} cards to backup file`);
+            }}
+            className="w-full bg-[#242836] hover:bg-[#2c3244] border border-[#343a4c] p-4 rounded-2xl flex items-center justify-between transition cursor-pointer text-left group shadow-sm"
+          >
+            <div className="flex items-center gap-3.5 min-w-0 pr-2">
+              <div className="w-7 h-7 flex items-center justify-center text-[#f59e0b] flex-shrink-0">
+                <FileJson className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm font-bold text-white group-hover:text-[#f59e0b] transition">
+                  Export Collection Backup
+                </div>
+                <div className="text-xs text-gray-400 mt-0.5 truncate sm:whitespace-normal">
+                  Save your cards and binder as a portable JSON file
+                </div>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition flex-shrink-0" />
+          </button>
+
+          {/* Import Collection Backup (JSON) */}
+          <label
+            className="w-full bg-[#242836] hover:bg-[#2c3244] border border-[#343a4c] p-4 rounded-2xl flex items-center justify-between transition cursor-pointer text-left group shadow-sm"
+          >
+            <input
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                  const text = event.target?.result as string;
+                  const success = importBinderFromJSON(text);
+                  if (success) {
+                    showToast('Collection restored successfully!');
+                  } else {
+                    showToast('Invalid backup file format');
+                  }
+                };
+                reader.readAsText(file);
+                e.target.value = '';
+              }}
+            />
+            <div className="flex items-center gap-3.5 min-w-0 pr-2">
+              <div className="w-7 h-7 flex items-center justify-center text-[#3b82f6] flex-shrink-0">
+                <Upload className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm font-bold text-white group-hover:text-[#3b82f6] transition">
+                  Import Collection Backup
+                </div>
+                <div className="text-xs text-gray-400 mt-0.5 truncate sm:whitespace-normal">
+                  Restore saved cards from a backup JSON file
+                </div>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-white transition flex-shrink-0" />
+          </label>
 
           {/* Share the crash reports with the developers */}
           <div className="w-full bg-[#242836] border border-[#343a4c] p-4 rounded-2xl flex items-center justify-between shadow-sm">

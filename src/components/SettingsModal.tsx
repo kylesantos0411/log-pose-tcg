@@ -16,6 +16,8 @@ import {
   EyeOff,
   Star,
   Download,
+  Upload,
+  FileJson,
   Bug,
   ChevronRight,
   LogIn,
@@ -27,6 +29,7 @@ import Link from 'next/link';
 import { useSettings, CURRENCIES, CurrencyCode, PriceSource } from '@/context/SettingsContext';
 import { SupportModal } from '@/components/SupportModal';
 import { AccountModal } from '@/components/AccountModal';
+import { exportBinderToJSON, importBinderFromJSON, getLocalBinder } from '@/lib/user-collection';
 
 export function SettingsModal() {
   const { 
@@ -522,6 +525,80 @@ export function SettingsModal() {
                   <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-white transition flex-shrink-0" />
                 )}
               </button>
+
+              {/* Export Collection Backup (JSON) */}
+              <button
+                type="button"
+                onClick={() => {
+                  const binder = getLocalBinder();
+                  if (binder.length === 0) {
+                    setCopiedNotification('Your binder is empty');
+                    setTimeout(() => setCopiedNotification(null), 2000);
+                    return;
+                  }
+                  exportBinderToJSON();
+                  setCopiedNotification(`Exported ${binder.length} cards`);
+                  setTimeout(() => setCopiedNotification(null), 2000);
+                }}
+                className="w-full bg-[#1e212c] hover:bg-[#282c3a] border border-[#32384a] p-3 rounded-2xl flex items-center justify-between transition cursor-pointer text-left group"
+              >
+                <div className="flex items-center gap-3 min-w-0 pr-2">
+                  <div className="w-6 h-6 flex items-center justify-center text-[#f59e0b] flex-shrink-0">
+                    <FileJson className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-white group-hover:text-[#f59e0b] transition">
+                      Export Collection Backup
+                    </div>
+                    <div className="text-[10px] text-gray-400 mt-0.5 truncate">
+                      Save your cards and binder as a portable JSON file
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-white transition flex-shrink-0" />
+              </button>
+
+              {/* Import Collection Backup (JSON) */}
+              <label
+                className="w-full bg-[#1e212c] hover:bg-[#282c3a] border border-[#32384a] p-3 rounded-2xl flex items-center justify-between transition cursor-pointer text-left group"
+              >
+                <input
+                  type="file"
+                  accept=".json,application/json"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      const text = event.target?.result as string;
+                      const success = importBinderFromJSON(text);
+                      if (success) {
+                        setCopiedNotification('Collection restored successfully!');
+                      } else {
+                        setCopiedNotification('Invalid backup file');
+                      }
+                      setTimeout(() => setCopiedNotification(null), 2500);
+                    };
+                    reader.readAsText(file);
+                    e.target.value = '';
+                  }}
+                />
+                <div className="flex items-center gap-3 min-w-0 pr-2">
+                  <div className="w-6 h-6 flex items-center justify-center text-[#3b82f6] flex-shrink-0">
+                    <Upload className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-white group-hover:text-[#3b82f6] transition">
+                      Import Collection Backup
+                    </div>
+                    <div className="text-[10px] text-gray-400 mt-0.5 truncate">
+                      Restore saved cards from a backup JSON file
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-white transition flex-shrink-0" />
+              </label>
 
               {/* Share the crash reports with the developers */}
               <div className="w-full bg-[#1e212c] border border-[#32384a] p-3 rounded-2xl flex items-center justify-between">

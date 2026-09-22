@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { getSafeCardImageUrl, getEditionCardImageUrl } from '@/lib/card-image';
 import { useSettings } from '@/context/SettingsContext';
+import { addCardToLocalBinder } from '@/lib/user-collection';
 
 export default function ScannerPage() {
   const router = useRouter();
@@ -134,18 +135,47 @@ export default function ScannerPage() {
   const handleAddToBinder = async () => {
     if (!detectedCard) return;
     try {
-      await fetch('/api/collection', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cardId: detectedCard.id,
-          quantity: 1,
-          condition: 'NM',
-          language: 'jp',
-          purchasePrice: detectedCard.marketPrice || 20,
-          notes: 'Added via AI Card Lens Scanner',
-        }),
+      // 1. Immediately save to local binder for guaranteed offline/multi-device persistence
+      addCardToLocalBinder({
+        cardId: detectedCard.id,
+        card: {
+          id: detectedCard.id,
+          name: detectedCard.name,
+          category: detectedCard.category,
+          colors: detectedCard.colors || '',
+          cost: detectedCard.cost ?? null,
+          power: detectedCard.power ?? null,
+          rarity: detectedCard.rarity,
+          imageUrl: detectedCard.imageUrl,
+          marketPrice: detectedCard.marketPrice ?? null,
+          yuyuPrice: detectedCard.yuyuPrice ?? null,
+          pack: detectedCard.pack ? { code: detectedCard.pack.code, name: detectedCard.pack.name } : undefined,
+        },
+        quantity: 1,
+        condition: 'NM',
+        language: 'jp',
+        purchasePrice: detectedCard.marketPrice || 20,
+        notes: 'Added via AI Card Lens Scanner',
       });
+
+      // 2. Also attempt server sync if available
+      try {
+        await fetch('/api/collection', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cardId: detectedCard.id,
+            quantity: 1,
+            condition: 'NM',
+            language: 'jp',
+            purchasePrice: detectedCard.marketPrice || 20,
+            notes: 'Added via AI Card Lens Scanner',
+          }),
+        });
+      } catch {
+        // Safe to ignore in offline or serverless
+      }
+
       setAddedSuccess(true);
       setTimeout(() => {
         setAddedSuccess(false);
