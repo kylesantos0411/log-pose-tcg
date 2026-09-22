@@ -36,8 +36,6 @@ export default function ScannerPage() {
   const [isRequestingCamera, setIsRequestingCamera] = useState(false);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [isScanning, setIsScanning] = useState(false);
-  const [remainingScans, setRemainingScans] = useState(9);
-  const [totalScans] = useState(10);
 
   // Modals & Panels
   const [showHelp, setShowHelp] = useState(false);
@@ -166,7 +164,6 @@ export default function ScannerPage() {
       if (data.cards && data.cards.length > 0) {
         const card = data.cards[0];
         setDetectedCard(card);
-        setRemainingScans((prev) => Math.max(0, prev - 1));
       } else {
         // Fallback demo card if search yields nothing
         setDetectedCard({
@@ -393,10 +390,10 @@ export default function ScannerPage() {
 
       {/* ================= BOTTOM BAR & HUD ================= */}
       <footer className="relative z-20 w-full pb-10 sm:pb-12 px-6 flex items-center justify-between">
-        {/* Left: Remaining Scans Pill */}
-        <div className="bg-[#242836]/85 backdrop-blur-md text-gray-200 text-xs font-black tracking-wider px-3.5 py-2 rounded-xl border border-white/10 shadow-lg flex items-center gap-1.5">
-          <span>Remaining:</span>
-          <span className="text-[#f4727d] font-mono">{remainingScans}/{totalScans}</span>
+        {/* Left: Unlimited Live Scanner Badge */}
+        <div className="bg-[#242836]/85 backdrop-blur-md text-gray-200 text-xs font-black tracking-wider px-3.5 py-2 rounded-xl border border-white/10 shadow-lg flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-white font-bold text-[11px] uppercase tracking-wider">Unlimited</span>
         </div>
 
         {/* Center: Bold Pink Shutter Button with Aperture Icon */}
