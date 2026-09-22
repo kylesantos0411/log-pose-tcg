@@ -65,35 +65,35 @@ export default function RecommendedDecksPage() {
   }, [searchQuery, activeMeta, activeColor]);
 
   return (
-    <div className="min-h-screen pb-24 font-sans text-gray-100 max-w-lg mx-auto">
+    <div className="min-h-screen pb-24 font-sans text-gray-100 max-w-lg mx-auto w-full">
       {/* Top App Bar matching reference: [←] Recommended Decks */}
-      <header className="sticky top-0 z-30 bg-[#1e212b]/95 backdrop-blur-md px-4 py-3 border-b border-[#2d3242] flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-30 bg-[#1e212b]/95 backdrop-blur-md px-3 sm:px-4 py-2.5 sm:py-3 border-b border-[#2d3242] flex items-center justify-between">
+        <div className="flex items-center gap-2.5 sm:gap-3">
           <Link
             href="/"
-            className="w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center text-white transition active:scale-95"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full hover:bg-white/10 flex items-center justify-center text-white transition active:scale-95 shrink-0"
             aria-label="Back to Home"
           >
             <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
           </Link>
-          <div>
-            <h1 className="text-base sm:text-lg font-black text-white tracking-wide">
+          <div className="min-w-0">
+            <h1 className="text-sm sm:text-lg font-black text-white tracking-wide truncate">
               Recommended Decks
             </h1>
-            <p className="text-[10px] text-gray-400 font-medium leading-none mt-0.5">
+            <p className="text-[10px] text-gray-400 font-medium leading-none mt-0.5 truncate">
               OnePieceTopDecks &amp; Tournament Meta
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#f4727d]/15 border border-[#f4727d]/30 text-[#f4727d] text-[11px] font-black uppercase tracking-wider shadow-sm">
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#f4727d]/15 border border-[#f4727d]/30 text-[#f4727d] text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-sm shrink-0">
           <Flame className="w-3.5 h-3.5 fill-[#f4727d]" />
           <span>{filteredDecks.length} Decks</span>
         </div>
       </header>
 
       {/* Main Content Area */}
-      <main className="p-4 space-y-3.5">
+      <main className="p-1 sm:p-3 space-y-3">
         {/* Search Bar */}
         <div className="relative">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -214,12 +214,12 @@ export default function RecommendedDecksPage() {
                 <Link
                   key={deck.id}
                   href={`/decks/${deck.id}`}
-                  className="group bg-[#242735] hover:bg-[#2c3042] border border-[#343a4c] hover:border-[#f4727d]/60 rounded-2xl p-3 sm:p-3.5 flex items-center justify-between transition-all duration-200 shadow-md hover:shadow-xl active:scale-[0.98] cursor-pointer"
+                  className="group bg-[#242735] hover:bg-[#2c3042] border border-[#343a4c] hover:border-[#f4727d]/60 rounded-2xl p-2.5 sm:p-3.5 flex items-center justify-between transition-all duration-200 shadow-md hover:shadow-xl active:scale-[0.98] cursor-pointer min-w-0 w-full"
                 >
                   {/* Left Column: Leader Art + Text Info */}
-                  <div className="flex items-center gap-3.5 min-w-0 pr-2">
+                  <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1 pr-1.5 sm:pr-2">
                     {/* Leader Artwork Thumbnail */}
-                    <div className="w-14 sm:w-16 aspect-[2.5/3.5] bg-[#1a1d27] rounded-xl overflow-hidden border border-white/10 shadow-lg flex-shrink-0 relative group-hover:scale-105 transition-transform">
+                    <div className="w-13 sm:w-16 aspect-[2.5/3.5] bg-[#1a1d27] rounded-xl overflow-hidden border border-white/10 shadow-lg flex-shrink-0 relative group-hover:scale-105 transition-transform">
                       <img
                         src={getEditionCardImageUrl(deck.leaderId, 'jp', deck.leaderImage)}
                         alt={deck.name}
@@ -236,28 +236,28 @@ export default function RecommendedDecksPage() {
                     </div>
 
                     {/* Deck Title & Leader Subtitles */}
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
                         <h3 className="text-sm sm:text-base font-black text-white tracking-tight truncate group-hover:text-[#f4727d] transition-colors">
                           {deck.name}
                         </h3>
                       </div>
 
-                      <div className="text-xs text-gray-300 font-medium truncate mt-0.5">
+                      <div className="text-[11px] sm:text-xs text-gray-300 font-medium truncate mt-0.5">
                         {deck.subname}
                       </div>
 
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="font-mono text-xs font-bold text-gray-400">
+                      <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                        <span className="font-mono text-[10px] sm:text-xs font-bold text-gray-400">
                           {deck.leaderId}
                         </span>
                         {isTier1 && (
-                          <span className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-[10px] font-black text-amber-300">
+                          <span className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-[9px] sm:text-[10px] font-black text-amber-300 whitespace-nowrap">
                             TIER 1
                           </span>
                         )}
                         {deck.winrate && deck.winrate !== '0%' && (
-                          <span className="text-[10px] font-bold text-emerald-400">
+                          <span className="text-[9px] sm:text-[10px] font-bold text-emerald-400 whitespace-nowrap">
                             {deck.winrate} WR
                           </span>
                         )}
@@ -266,16 +266,16 @@ export default function RecommendedDecksPage() {
                   </div>
 
                   {/* Right Column: Color Dot (Top) + Date Pill (Bottom) */}
-                  <div className="flex flex-col items-end justify-between self-stretch flex-shrink-0 py-0.5">
+                  <div className="flex flex-col items-end justify-between self-stretch flex-shrink-0 py-0.5 pl-1">
                     {/* Color Dot Indicator */}
                     <div
-                      className="w-5 h-5 sm:w-6 sm:h-6 rounded-full shadow-md border border-white/20 flex items-center justify-center text-[10px] font-black text-white/80"
+                      className="w-4 h-4 sm:w-5 sm:h-5 rounded-full shadow-md border border-white/20 flex items-center justify-center text-[9px] font-black text-white/80"
                       style={{ backgroundColor: deck.colorDot }}
                       title={`${deck.color} Deck`}
                     />
 
                     {/* Tournament / Release Date Pill */}
-                    <div className="px-2.5 py-1 rounded-xl bg-[#1b1e2a] border border-[#313648] text-[11px] font-bold font-mono text-gray-300 shadow-inner mt-4 group-hover:border-gray-500 transition-colors">
+                    <div className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl bg-[#1b1e2a] border border-[#313648] text-[10px] sm:text-[11px] font-bold font-mono text-gray-300 shadow-inner mt-2 sm:mt-4 group-hover:border-gray-500 transition-colors whitespace-nowrap">
                       {deck.date}
                     </div>
                   </div>

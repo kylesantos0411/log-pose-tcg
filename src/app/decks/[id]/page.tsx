@@ -104,28 +104,28 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
   };
 
   return (
-    <div className="min-h-screen pb-24 font-sans text-gray-100 max-w-lg mx-auto">
+    <div className="min-h-screen pb-24 font-sans text-gray-100 max-w-lg mx-auto w-full">
       {/* Top Header Bar matching Screenshot 2 */}
-      <header className="sticky top-0 z-30 bg-[#1e212b]/95 backdrop-blur-md px-4 py-3.5 border-b border-[#2d3242] flex items-center justify-between">
+      <header className="sticky top-0 z-30 bg-[#1e212b]/95 backdrop-blur-md px-3 sm:px-4 py-2.5 sm:py-3 border-b border-[#2d3242] flex items-center justify-between gap-1.5">
         {/* Left: Back button */}
         <button
           type="button"
           onClick={() => router.push('/decks')}
-          className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center text-white transition active:scale-95 cursor-pointer"
+          className="w-8 h-8 sm:w-9 sm:h-9 rounded-full hover:bg-white/10 flex items-center justify-center text-white transition active:scale-95 cursor-pointer shrink-0"
           aria-label="Back to Recommended Decks"
         >
-          <ArrowLeft className="w-6 h-6 stroke-[2.5]" />
+          <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
         </button>
 
         {/* Right: Download, Fullscreen, and COPY DECK button */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             type="button"
             onClick={handleDownload}
             title="Download Deck Text"
-            className="w-9 h-9 rounded-xl hover:bg-white/10 text-gray-300 hover:text-white flex items-center justify-center transition cursor-pointer"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl hover:bg-white/10 text-gray-300 hover:text-white flex items-center justify-center transition cursor-pointer"
           >
-            <Download className="w-5 h-5" />
+            <Download className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
 
           <button
@@ -138,7 +138,7 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
               }
             }}
             title="Toggle Fullscreen"
-            className="w-9 h-9 rounded-xl hover:bg-white/10 text-gray-300 hover:text-white flex items-center justify-center transition cursor-pointer"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl hover:bg-white/10 text-gray-300 hover:text-white flex items-center justify-center transition cursor-pointer"
           >
             <Maximize2 className="w-4 h-4" />
           </button>
@@ -147,7 +147,7 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
           <button
             type="button"
             onClick={handleCopyDeck}
-            className="px-3.5 py-1.5 rounded-xl bg-[#2b3040] hover:bg-[#383f54] text-white border border-[#3e445b] text-xs font-black tracking-wider uppercase flex items-center gap-1.5 shadow-sm active:scale-95 transition cursor-pointer"
+            className="px-2.5 py-1.5 sm:px-3.5 sm:py-1.5 rounded-xl bg-[#2b3040] hover:bg-[#383f54] text-white border border-[#3e445b] text-[11px] sm:text-xs font-black tracking-wider uppercase flex items-center gap-1.5 shadow-sm active:scale-95 transition cursor-pointer shrink-0"
           >
             {copied ? (
               <>
@@ -165,10 +165,10 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
       </header>
 
       {/* Main Deck Hero Card matching Screenshot 2 */}
-      <section className="p-4">
-        <div className="bg-[#242735] border border-[#34384c] rounded-3xl p-4 shadow-xl flex items-start gap-4">
+      <section className="p-1 sm:p-3">
+        <div className="bg-[#242735] border border-[#34384c] rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-xl flex items-start gap-3 sm:gap-4">
           {/* Big Leader Card Art on Left */}
-          <div className="w-28 sm:w-32 aspect-[2.5/3.5] bg-[#1a1d27] rounded-2xl overflow-hidden border-2 border-yellow-400/50 shadow-2xl flex-shrink-0 relative">
+          <div className="w-24 sm:w-28 md:w-32 aspect-[2.5/3.5] bg-[#1a1d27] rounded-xl sm:rounded-2xl overflow-hidden border-2 border-yellow-400/50 shadow-2xl flex-shrink-0 relative">
             <img
               src={getEditionCardImageUrl(deck.leaderId, 'jp', deck.leaderImage)}
               alt={deck.name}
@@ -184,25 +184,25 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
             <div>
               {/* Header row: Title + Rank Badge */}
               <div className="flex items-start justify-between gap-1">
-                <h2 className="text-sm sm:text-base font-black text-white leading-tight tracking-tight">
+                <h2 className="text-sm sm:text-base font-black text-white leading-tight tracking-tight truncate">
                   {deck.name}
                 </h2>
-                <span className="text-sm font-black text-white">
+                <span className="text-xs sm:text-sm font-black text-white shrink-0">
                   {deck.rank}
                 </span>
               </div>
 
               {/* Subtitle & Leader ID */}
-              <div className="text-xs text-gray-300 font-medium mt-0.5">
+              <div className="text-[11px] sm:text-xs text-gray-300 font-medium mt-0.5 truncate">
                 {deck.subname}
               </div>
               <div className="flex items-center justify-between mt-0.5">
-                <span className="font-mono text-xs font-bold text-gray-400">
+                <span className="font-mono text-[11px] sm:text-xs font-bold text-gray-400">
                   {deck.leaderId}
                 </span>
                 {/* Colored circle dot */}
                 <div
-                  className="w-4 h-4 rounded-full border border-white/20 shadow-sm"
+                  className="w-4 h-4 rounded-full border border-white/20 shadow-sm shrink-0"
                   style={{ backgroundColor: deck.colorDot }}
                 />
               </div>
@@ -210,31 +210,31 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
 
             {/* Middle row: Winrate pill */}
             <div className="flex items-center justify-end mt-2">
-              <span className="px-2.5 py-0.5 rounded-full bg-[#1b1e2a] border border-[#313648] text-xs font-bold text-gray-300">
+              <span className="px-2 py-0.5 sm:px-2.5 sm:py-0.5 rounded-full bg-[#1b1e2a] border border-[#313648] text-[10px] sm:text-xs font-bold text-gray-300">
                 {deck.winrate}
               </span>
             </div>
 
             {/* Bottom row: SHOW PRICE toggle & 50/50 pill */}
-            <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-white/10">
+            <div className="flex items-center justify-between gap-1.5 sm:gap-2 mt-2.5 pt-2 border-t border-white/10 flex-wrap">
               {/* SHOW PRICE [ P ] Button */}
               <button
                 type="button"
                 onClick={() => setShowPrice(!showPrice)}
-                className={`px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer ${
+                className={`px-2.5 py-1 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider flex items-center gap-1 transition cursor-pointer shrink-0 ${
                   showPrice 
                     ? 'bg-[#f4727d] text-white shadow-md shadow-[#f4727d]/30' 
                     : 'bg-[#2e3344] text-gray-300 hover:text-white border border-[#3d445a]'
                 }`}
               >
                 <span>SHOW PRICE</span>
-                <span className="w-4 h-4 rounded bg-white/20 text-[10px] flex items-center justify-center font-bold">
+                <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded bg-white/20 text-[9px] sm:text-[10px] flex items-center justify-center font-bold">
                   P
                 </span>
               </button>
 
               {/* 50/50 Card Count Pill */}
-              <div className="px-3 py-1 rounded-xl bg-[#2e3344] border border-[#3d445a] text-xs font-bold text-white">
+              <div className="px-2.5 py-1 rounded-lg sm:rounded-xl bg-[#2e3344] border border-[#3d445a] text-[10px] sm:text-xs font-bold text-white shrink-0">
                 {totalCards}/50
               </div>
             </div>
@@ -266,12 +266,12 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
       </section>
 
       {/* Subtabs matching Screenshot 2: CARDS | ANALYSE | STATS */}
-      <section className="px-4">
+      <section className="px-1 sm:px-3">
         <div className="flex items-center border-b border-[#313648] text-xs font-black tracking-wider uppercase">
           <button
             type="button"
             onClick={() => setActiveTab('CARDS')}
-            className={`flex-1 py-3 text-center transition cursor-pointer relative ${
+            className={`flex-1 py-2.5 sm:py-3 text-center transition cursor-pointer relative ${
               activeTab === 'CARDS'
                 ? 'text-white'
                 : 'text-gray-400 hover:text-gray-200'
@@ -286,7 +286,7 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
           <button
             type="button"
             onClick={() => setActiveTab('ANALYSE')}
-            className={`flex-1 py-3 text-center transition cursor-pointer relative ${
+            className={`flex-1 py-2.5 sm:py-3 text-center transition cursor-pointer relative ${
               activeTab === 'ANALYSE'
                 ? 'text-white'
                 : 'text-gray-400 hover:text-gray-200'
@@ -301,7 +301,7 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
           <button
             type="button"
             onClick={() => setActiveTab('STATS')}
-            className={`flex-1 py-3 text-center transition cursor-pointer relative ${
+            className={`flex-1 py-2.5 sm:py-3 text-center transition cursor-pointer relative ${
               activeTab === 'STATS'
                 ? 'text-white'
                 : 'text-gray-400 hover:text-gray-200'
@@ -317,8 +317,8 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
 
       {/* ================= TAB 1: CARDS (3-COLUMN ART GRID MATCHING SCREENSHOT 2) ================= */}
       {activeTab === 'CARDS' && (
-        <section className="p-4">
-          <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+        <section className="p-1 sm:p-3">
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5">
             {deck.cards.map((cardItem: DeckCardItem) => {
               const unitPrice = cardItem.yuyuPrice || 100;
 
@@ -339,38 +339,38 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
 
                     {/* Top Left: Cost */}
                     {cardItem.cost !== null && cardItem.cost !== undefined && (
-                      <div className="absolute top-1 left-1 bg-black/75 backdrop-blur-xs text-white font-black text-[11px] sm:text-xs w-5 h-5 rounded-md flex items-center justify-center shadow-md border border-white/20">
+                      <div className="absolute top-1 left-1 bg-black/75 backdrop-blur-xs text-white font-black text-[10px] sm:text-xs w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-md flex items-center justify-center shadow-md border border-white/20">
                         {cardItem.cost}
                       </div>
                     )}
 
                     {/* Top Right Power Badge */}
                     {cardItem.power && (
-                      <div className="absolute top-1 right-7 bg-black/75 backdrop-blur-xs text-white font-black text-[9px] px-1 py-0.5 rounded-md shadow-md border border-white/20">
+                      <div className="absolute top-1 right-6 sm:right-7 bg-black/75 backdrop-blur-xs text-white font-black text-[8.5px] sm:text-[9px] px-1 py-0.5 rounded-md shadow-md border border-white/20">
                         {cardItem.power}
                       </div>
                     )}
 
                     {/* Top Right: Yellow Quantity Badge matching Screenshot 2 (e.g. 4) */}
-                    <div className="absolute top-1 right-1 w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-full bg-yellow-400 text-slate-950 font-black text-xs flex items-center justify-center shadow-lg border border-yellow-200">
+                    <div className="absolute top-1 right-1 w-4.5 h-4.5 sm:w-5.5 sm:h-5.5 rounded-full bg-yellow-400 text-slate-950 font-black text-[11px] sm:text-xs flex items-center justify-center shadow-lg border border-yellow-200">
                       {cardItem.quantity}
                     </div>
 
                     {/* Price tag overlay if SHOW PRICE is toggled on */}
                     {showPrice && (
-                      <div className="absolute bottom-7 inset-x-1 py-0.5 px-1 rounded-md bg-black/85 backdrop-blur-sm border border-emerald-500/40 text-center shadow-md">
-                        <span className="text-[10px] font-black text-emerald-400 font-mono">
+                      <div className="absolute bottom-6 sm:bottom-7 inset-x-1 py-0.5 px-1 rounded-md bg-black/85 backdrop-blur-sm border border-emerald-500/40 text-center shadow-md">
+                        <span className="text-[9px] sm:text-[10px] font-black text-emerald-400 font-mono">
                           {formatPrice(cardItem.marketPrice || 1, { source: 'yuyutei' }).full}
                         </span>
                       </div>
                     )}
 
                     {/* Bottom Label Bar matching Screenshot 2 */}
-                    <div className="absolute bottom-0 inset-x-0 bg-[#facc15] text-slate-950 p-1 flex flex-col items-center justify-center text-center shadow-md">
-                      <span className="font-mono text-[9px] font-black tracking-tight leading-none">
+                    <div className="absolute bottom-0 inset-x-0 bg-[#facc15] text-slate-950 px-1 py-0.5 sm:p-1 flex flex-col items-center justify-center text-center shadow-md">
+                      <span className="font-mono text-[8px] sm:text-[9px] font-black tracking-tight leading-none truncate w-full">
                         {cardItem.cardId}
                       </span>
-                      <span className="text-[8.5px] font-extrabold truncate w-full leading-tight mt-0.5">
+                      <span className="text-[7.5px] sm:text-[8.5px] font-extrabold truncate w-full leading-tight mt-0.5">
                         {cardItem.name}
                       </span>
                     </div>
@@ -384,9 +384,9 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
 
       {/* ================= TAB 2: ANALYSE (COST CURVE & DISTRIBUTIONS) ================= */}
       {activeTab === 'ANALYSE' && (
-        <section className="p-4 space-y-4">
+        <section className="p-1 sm:p-3 space-y-3 sm:space-y-4">
           {/* DON!! Cost Curve Bar Chart */}
-          <div className="bg-[#242735] border border-[#34384c] rounded-2xl p-4 shadow-lg">
+          <div className="bg-[#242735] border border-[#34384c] rounded-2xl p-3 sm:p-4 shadow-lg">
             <h3 className="text-xs font-black text-white uppercase tracking-wider mb-3 flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-[#f4727d]" />
               <span>DON!! Cost Curve Distribution</span>
@@ -418,61 +418,61 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
           </div>
 
           {/* Counter Breakdown */}
-          <div className="grid grid-cols-3 gap-2.5">
-            <div className="bg-[#242735] border border-[#34384c] rounded-2xl p-3 text-center">
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+          <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+            <div className="bg-[#242735] border border-[#34384c] rounded-2xl p-2.5 sm:p-3 text-center">
+              <span className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
                 +2000 Counter
               </span>
-              <span className="text-xl font-black text-emerald-400 font-mono mt-1 block">
+              <span className="text-lg sm:text-xl font-black text-emerald-400 font-mono mt-1 block">
                 {deck.stats.counters2000}
               </span>
-              <span className="text-[10px] text-gray-500">Defense Grails</span>
+              <span className="text-[9px] sm:text-[10px] text-gray-500">Defense Grails</span>
             </div>
 
-            <div className="bg-[#242735] border border-[#34384c] rounded-2xl p-3 text-center">
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+            <div className="bg-[#242735] border border-[#34384c] rounded-2xl p-2.5 sm:p-3 text-center">
+              <span className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
                 +1000 Counter
               </span>
-              <span className="text-xl font-black text-sky-400 font-mono mt-1 block">
+              <span className="text-lg sm:text-xl font-black text-sky-400 font-mono mt-1 block">
                 {deck.stats.counters1000}
               </span>
-              <span className="text-[10px] text-gray-500">Mid Guards</span>
+              <span className="text-[9px] sm:text-[10px] text-gray-500">Mid Guards</span>
             </div>
 
-            <div className="bg-[#242735] border border-[#34384c] rounded-2xl p-3 text-center">
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+            <div className="bg-[#242735] border border-[#34384c] rounded-2xl p-2.5 sm:p-3 text-center">
+              <span className="text-[9px] sm:text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
                 No Counter
               </span>
-              <span className="text-xl font-black text-amber-400 font-mono mt-1 block">
+              <span className="text-lg sm:text-xl font-black text-amber-400 font-mono mt-1 block">
                 {deck.stats.noCounter}
               </span>
-              <span className="text-[10px] text-gray-500">High Impact</span>
+              <span className="text-[9px] sm:text-[10px] text-gray-500">High Impact</span>
             </div>
           </div>
 
           {/* Card Category Distribution */}
-          <div className="bg-[#242735] border border-[#34384c] rounded-2xl p-4 shadow-lg">
+          <div className="bg-[#242735] border border-[#34384c] rounded-2xl p-3 sm:p-4 shadow-lg">
             <h3 className="text-xs font-black text-white uppercase tracking-wider mb-2.5 flex items-center gap-2">
               <PieChart className="w-4 h-4 text-[#3b82f6]" />
               <span>Card Composition</span>
             </h3>
 
             <div className="grid grid-cols-3 gap-2 pt-1 text-center">
-              <div className="bg-[#1b1e2a] p-2.5 rounded-xl border border-[#313648]">
-                <div className="text-[10px] text-gray-400 font-bold">Characters</div>
-                <div className="text-lg font-black text-white font-mono mt-0.5">
+              <div className="bg-[#1b1e2a] p-2 sm:p-2.5 rounded-xl border border-[#313648]">
+                <div className="text-[9px] sm:text-[10px] text-gray-400 font-bold">Characters</div>
+                <div className="text-base sm:text-lg font-black text-white font-mono mt-0.5">
                   {deck.stats.charactersCount}
                 </div>
               </div>
-              <div className="bg-[#1b1e2a] p-2.5 rounded-xl border border-[#313648]">
-                <div className="text-[10px] text-gray-400 font-bold">Events</div>
-                <div className="text-lg font-black text-white font-mono mt-0.5">
+              <div className="bg-[#1b1e2a] p-2 sm:p-2.5 rounded-xl border border-[#313648]">
+                <div className="text-[9px] sm:text-[10px] text-gray-400 font-bold">Events</div>
+                <div className="text-base sm:text-lg font-black text-white font-mono mt-0.5">
                   {deck.stats.eventsCount}
                 </div>
               </div>
-              <div className="bg-[#1b1e2a] p-2.5 rounded-xl border border-[#313648]">
-                <div className="text-[10px] text-gray-400 font-bold">Stages</div>
-                <div className="text-lg font-black text-white font-mono mt-0.5">
+              <div className="bg-[#1b1e2a] p-2 sm:p-2.5 rounded-xl border border-[#313648]">
+                <div className="text-[9px] sm:text-[10px] text-gray-400 font-bold">Stages</div>
+                <div className="text-base sm:text-lg font-black text-white font-mono mt-0.5">
                   {deck.stats.stagesCount}
                 </div>
               </div>
@@ -483,7 +483,7 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
 
       {/* ================= TAB 3: STATS (TOURNAMENT RECORD & STRATEGY) ================= */}
       {activeTab === 'STATS' && (
-        <section className="p-4 space-y-3.5">
+        <section className="p-1 sm:p-3 space-y-3">
           {/* Tournament Placement Summary */}
           <div className="bg-[#242735] border border-[#34384c] rounded-2xl p-4 shadow-lg space-y-2">
             <div className="flex items-center gap-2 text-[#f59e0b] font-black text-xs uppercase tracking-wider">
