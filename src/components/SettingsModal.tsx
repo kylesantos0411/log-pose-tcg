@@ -22,7 +22,8 @@ import {
   LogIn,
   LogOut,
   AlertTriangle,
-  Heart
+  Heart,
+  Smartphone
 } from 'lucide-react';
 import { useSettings, CURRENCIES, CurrencyCode, PriceSource } from '@/context/SettingsContext';
 import { SupportModal } from '@/components/SupportModal';
@@ -630,6 +631,31 @@ export function SettingsModal() {
                   />
                 </button>
               </div>
+
+              {/* Install Log Pose App (PWA) */}
+              <button
+                type="button"
+                onClick={() => {
+                  closeSettings();
+                  window.dispatchEvent(new CustomEvent('open_install_prompt'));
+                }}
+                className="w-full bg-gradient-to-r from-[#e76d78]/15 to-[#f59e0b]/15 hover:from-[#e76d78]/25 hover:to-[#f59e0b]/25 border border-[#e76d78]/30 p-3 rounded-2xl flex items-center justify-between transition cursor-pointer text-left group"
+              >
+                <div className="flex items-center gap-3 min-w-0 pr-2">
+                  <div className="w-6 h-6 flex items-center justify-center text-[#e76d78] flex-shrink-0">
+                    <Smartphone className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-white group-hover:text-[#e76d78] transition">
+                      Install Log Pose App
+                    </div>
+                    <div className="text-[10px] text-gray-400 mt-0.5 truncate">
+                      Add to your home screen for quick launch and offline access
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-white transition flex-shrink-0" />
+              </button>
             </div>
           </div>
 
