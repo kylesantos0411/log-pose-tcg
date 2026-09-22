@@ -92,7 +92,7 @@ export default function FriendsPage() {
   const [toastNotice, setToastNotice] = useState<string | null>(null);
 
   // My Collector Code
-  const myCode = user?.tag || 'PIRATE-KYLE-7721';
+  const myCode = user?.tag || '';
   const [copiedCode, setCopiedCode] = useState(false);
   const [newFriendInput, setNewFriendInput] = useState('');
   const [addSuccessMessage, setAddSuccessMessage] = useState<string | null>(null);
@@ -356,23 +356,26 @@ export default function FriendsPage() {
               </span>
             </div>
             <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5 font-mono">
-              <span className="text-amber-400 font-bold truncate">{myCode}</span>
-              <button 
-                type="button" 
-                onClick={handleCopyMyCode} 
-                className="hover:text-purple-300 transition cursor-pointer flex-shrink-0"
-                title="Copy Friend Code"
-              >
-                {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400 stroke-[3]" /> : <Copy className="w-3.5 h-3.5" />}
-              </button>
-
-              {!user && (
+              {myCode ? (
+                <>
+                  <span className="text-amber-400 font-bold truncate">{myCode}</span>
+                  <button 
+                    type="button" 
+                    onClick={handleCopyMyCode} 
+                    className="hover:text-purple-300 transition cursor-pointer flex-shrink-0"
+                    title="Copy Friend Code"
+                  >
+                    {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400 stroke-[3]" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </>
+              ) : (
                 <button
                   type="button"
                   onClick={() => setShowAccountModal(true)}
-                  className="text-[10px] font-bold text-[#f45d6a] hover:underline cursor-pointer ml-1 flex-shrink-0"
+                  className="text-[11px] font-bold text-[#f45d6a] hover:underline cursor-pointer flex items-center gap-1"
                 >
-                  Claim Tag &rarr;
+                  <LogIn className="w-3 h-3" />
+                  <span>Claim / Set Collector Tag &rarr;</span>
                 </button>
               )}
             </div>
@@ -1117,14 +1120,27 @@ export default function FriendsPage() {
             </p>
 
             <div className="pt-4 flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleCopyMyCode}
-                className="flex-1 py-2.5 rounded-xl bg-[#1a1d27] border border-[#3b4156] text-white text-xs font-bold hover:bg-[#252938] transition flex items-center justify-center gap-1.5"
-              >
-                {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedCode ? 'Copied!' : 'Copy Code'}</span>
-              </button>
+              {myCode ? (
+                <button
+                  type="button"
+                  onClick={handleCopyMyCode}
+                  className="flex-1 py-2.5 rounded-xl bg-[#1a1d27] border border-[#3b4156] text-white text-xs font-bold hover:bg-[#252938] transition flex items-center justify-center gap-1.5"
+                >
+                  {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedCode ? 'Copied!' : 'Copy Code'}</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMyQrModal(false);
+                    setShowAccountModal(true);
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-[#f45d6a] hover:bg-[#e04c59] text-white text-xs font-bold transition"
+                >
+                  Sign In to Claim Tag
+                </button>
+              )}
 
               <button
                 type="button"

@@ -96,21 +96,6 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
     }, 1400);
   };
 
-  const handleQuickDemo = () => {
-    register({
-      name: 'Kyle Santos',
-      email: 'kyle@logpose.tcg',
-      avatar: '🧭',
-      crew: 'Straw Hat Pirates',
-      tag: 'PIRATE-KYLE-7721',
-    });
-    setSuccessMsg('Signed in as Kyle Santos (PIRATE-KYLE-7721)!');
-    setTimeout(() => {
-      setSuccessMsg(null);
-      onClose();
-    }, 1400);
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
       <div className="fixed inset-0" onClick={onClose} />
@@ -200,7 +185,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
                   type="text"
                   required
                   maxLength={24}
-                  placeholder="e.g. Kyle, ZoroHunter, ShanksCollector"
+                  placeholder="e.g. ZoroHunter, ShanksCollector, PirateKing"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition shadow-inner font-medium"
@@ -299,7 +284,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
                 <input
                   type="text"
                   required
-                  placeholder="e.g. PIRATE-KYLE-7721 or user@mail.com"
+                  placeholder="e.g. PIRATE-LUFFY-1234 or your@email.com"
                   value={loginIdentifier}
                   onChange={(e) => setLoginIdentifier(e.target.value)}
                   className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#3b82f6] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition font-medium"
@@ -324,18 +309,6 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
                 <LogIn className="w-4 h-4" />
                 <span>Sign In to Account</span>
               </button>
-
-              {/* Quick Demo Fill */}
-              <div className="pt-2 border-t border-[#343a4c]">
-                <button
-                  type="button"
-                  onClick={handleQuickDemo}
-                  className="w-full bg-[#1b1e2a] hover:bg-[#252a3a] border border-[#343a4c] text-gray-300 hover:text-white font-bold text-xs uppercase tracking-wider py-2.5 rounded-xl transition cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Quick Demo Sign In (Kyle Santos)</span>
-                </button>
-              </div>
             </form>
           )}
 
