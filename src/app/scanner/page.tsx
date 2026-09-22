@@ -17,11 +17,13 @@ import {
   RefreshCw,
   Camera,
   SwitchCamera,
-  Layers
+  Layers,
+  AlertCircle
 } from 'lucide-react';
 import { getSafeCardImageUrl, getEditionCardImageUrl } from '@/lib/card-image';
 import { useSettings } from '@/context/SettingsContext';
 import { addCardToLocalBinder } from '@/lib/user-collection';
+import { recognizeTextFromCanvas, preprocessCanvas, extractOnePieceCode } from '@/lib/card-ocr';
 
 export default function ScannerPage() {
   const router = useRouter();
@@ -36,6 +38,9 @@ export default function ScannerPage() {
   const [isRequestingCamera, setIsRequestingCamera] = useState(false);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [isScanning, setIsScanning] = useState(false);
+  const [scanMessage, setScanMessage] = useState<string | null>(null);
+  const [scanNotFound, setScanNotFound] = useState(false);
+  const [unrecognizedText, setUnrecognizedText] = useState<string | null>(null);
 
   // Modals & Panels
   const [showHelp, setShowHelp] = useState(false);
@@ -43,10 +48,6 @@ export default function ScannerPage() {
   const [manualInput, setManualInput] = useState('');
   const [detectedCard, setDetectedCard] = useState<any | null>(null);
   const [addedSuccess, setAddedSuccess] = useState(false);
-
-  // Preset Cards for Demo/Offline Simulation
-  const sampleCodes = ['OP01-001', 'OP05-119', 'OP01-120', 'OP01-016', 'OP02-013', 'ST01-012'];
-  const [sampleIndex, setSampleIndex] = useState(0);
 
   // Start / restart camera with cross-platform mobile support
   const startCamera = async (targetMode: 'environment' | 'user' = facingMode) => {
@@ -152,50 +153,90 @@ export default function ScannerPage() {
     };
   }, []);
 
-  // Fetch card from API by code
+  // Fetch card from API by exact code or name
   async function performCardLookup(cardCode: string) {
     const clean = cardCode.trim().toUpperCase();
     if (!clean) return;
 
     setIsScanning(true);
+    setScanMessage(`Looking up ${clean}...`);
     try {
       const res = await fetch(`/api/cards?q=${encodeURIComponent(clean)}&limit=1`);
       const data = await res.json();
       if (data.cards && data.cards.length > 0) {
-        const card = data.cards[0];
-        setDetectedCard(card);
+        setDetectedCard(data.cards[0]);
+        setScanNotFound(false);
       } else {
-        // Fallback demo card if search yields nothing
-        setDetectedCard({
-          id: clean,
-          name: clean === 'OP01-001' ? 'Roronoa Zoro' : 'Monkey.D.Luffy',
-          rarity: 'L',
-          category: 'Leader',
-          color: 'Red',
-          marketPrice: 38.5,
-          imageUrl: 'https://en.onepiece-cardgame.com/images/cardlist/card/OP01-001.png',
-          pack: { name: 'Romance Dawn [OP-01]' }
-        });
+        // If not found in database, do not invent fake cards
+        setUnrecognizedText(clean);
+        setScanNotFound(true);
       }
     } catch (e) {
       console.error('Scan lookup error:', e);
+      setScanNotFound(true);
     } finally {
       setIsScanning(false);
+      setScanMessage(null);
     }
   }
 
-  // Trigger Shutter Capture
-  const handleShutter = () => {
+  // Trigger Real Shutter Capture with OCR
+  const handleShutter = async () => {
     if (isScanning) return;
     setIsScanning(true);
+    setScanNotFound(false);
+    setDetectedCard(null);
+    setScanMessage('Capturing camera frame...');
 
-    // Pick next sample card or active target
-    const nextCode = sampleCodes[sampleIndex % sampleCodes.length];
-    setSampleIndex((prev) => prev + 1);
+    if (!videoRef.current || videoRef.current.readyState < 2) {
+      setScanMessage('Camera is initializing...');
+      setTimeout(() => {
+        setIsScanning(false);
+        setScanMessage(null);
+      }, 1200);
+      return;
+    }
 
-    setTimeout(() => {
-      performCardLookup(nextCode);
-    }, 900);
+    try {
+      const video = videoRef.current;
+      const vw = video.videoWidth || 1280;
+      const vh = video.videoHeight || 720;
+
+      // 1. Pass 1: Target the bottom-right serial area (where OP05-119, ST01-001 is printed)
+      const cropX = Math.floor(vw * 0.42);
+      const cropY = Math.floor(vh * 0.58);
+      const cropW = Math.floor(vw * 0.56);
+      const cropH = Math.floor(vh * 0.40);
+
+      const serialCanvas = preprocessCanvas(video, { x: cropX, y: cropY, width: cropW, height: cropH });
+      setScanMessage('Analyzing card serial code...');
+
+      let rawText = await recognizeTextFromCanvas(serialCanvas);
+      let detectedCode = extractOnePieceCode(rawText);
+
+      // 2. Pass 2: If bottom-right crop didn't find a code, scan the full card frame
+      if (!detectedCode) {
+        setScanMessage('Scanning full card frame...');
+        const fullCanvas = preprocessCanvas(video);
+        rawText = await recognizeTextFromCanvas(fullCanvas);
+        detectedCode = extractOnePieceCode(rawText);
+      }
+
+      if (detectedCode) {
+        setScanMessage(`Recognized: ${detectedCode}!`);
+        await performCardLookup(detectedCode);
+      } else {
+        // No valid card code found - be transparent
+        setUnrecognizedText(rawText?.trim() || null);
+        setScanNotFound(true);
+      }
+    } catch (err) {
+      console.error('OCR scanning error:', err);
+      setScanNotFound(true);
+    } finally {
+      setIsScanning(false);
+      setScanMessage(null);
+    }
   };
 
   // Add detected card to binder
@@ -252,11 +293,43 @@ export default function ScannerPage() {
     }
   };
 
-  // Handle Photo File Upload as alternate scan
+  // Handle Photo File Upload with real OCR
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    handleShutter();
+
+    setIsScanning(true);
+    setScanNotFound(false);
+    setDetectedCard(null);
+    setScanMessage('Processing uploaded card image...');
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = async () => {
+        try {
+          const fullCanvas = preprocessCanvas(img);
+          const rawText = await recognizeTextFromCanvas(fullCanvas);
+          const detectedCode = extractOnePieceCode(rawText);
+
+          if (detectedCode) {
+            await performCardLookup(detectedCode);
+          } else {
+            setUnrecognizedText(rawText?.trim() || null);
+            setScanNotFound(true);
+          }
+        } catch (err) {
+          console.error('File OCR error:', err);
+          setScanNotFound(true);
+        } finally {
+          setIsScanning(false);
+          setScanMessage(null);
+        }
+      };
+      img.src = ev.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   return (
@@ -360,14 +433,23 @@ export default function ScannerPage() {
           <div className="absolute -bottom-1 -left-1 w-5 h-5 border-b-4 border-l-4 border-[#f4727d] rounded-bl-xl pointer-events-none" />
           <div className="absolute -bottom-1 -right-1 w-5 h-5 border-b-4 border-r-4 border-[#f4727d] rounded-br-xl pointer-events-none" />
 
-          {/* Center Instruction Label: PLACE A CARD */}
-          <div className="text-center">
-            <h2 className="text-white font-black text-base sm:text-lg tracking-wider uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
-              PLACE A CARD
-            </h2>
-            <p className="text-[11px] text-gray-300 font-medium tracking-wide mt-1 drop-shadow-md">
-              Align card inside white frame
-            </p>
+          {/* Center Instruction Label: PLACE A CARD / Live Scan Progress */}
+          <div className="text-center px-2">
+            {isScanning && scanMessage ? (
+              <div className="bg-black/80 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-[#f4727d]/40 shadow-xl flex items-center gap-2.5 animate-fadeIn">
+                <RefreshCw className="w-4 h-4 text-[#f4727d] animate-spin flex-shrink-0" />
+                <span className="text-xs font-bold text-white tracking-wide">{scanMessage}</span>
+              </div>
+            ) : (
+              <>
+                <h2 className="text-white font-black text-base sm:text-lg tracking-wider uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
+                  PLACE A CARD
+                </h2>
+                <p className="text-[11px] text-gray-300 font-medium tracking-wide mt-1 drop-shadow-md">
+                  Align card inside white frame
+                </p>
+              </>
+            )}
           </div>
 
           {/* Bottom Right Target Box for Card ID Serial (OP01-001) */}
@@ -528,6 +610,101 @@ export default function ScannerPage() {
               >
                 <span>View Card</span>
                 <ExternalLink className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= SCAN NOT DETECTED BOTTOM SHEET ================= */}
+      {scanNotFound && !detectedCard && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm animate-fadeIn p-0 sm:p-4">
+          <div 
+            className="w-full max-w-sm sm:max-w-md bg-[#232634] border-t sm:border border-[#353a4e] rounded-t-[32px] sm:rounded-[32px] p-5 sm:p-6 shadow-2xl animate-slideUp text-left"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-black uppercase tracking-wider">
+                <AlertCircle className="w-3.5 h-3.5 stroke-[3]" />
+                Card Not Recognized
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setScanNotFound(false);
+                  setUnrecognizedText(null);
+                }}
+                className="w-8 h-8 rounded-full bg-[#2d3143] hover:bg-[#383d54] text-gray-300 hover:text-white flex items-center justify-center transition cursor-pointer"
+              >
+                <X className="w-4 h-4 stroke-[2.5]" />
+              </button>
+            </div>
+
+            <h3 className="text-base font-black text-white mb-1">
+              Could not read card code
+            </h3>
+            <p className="text-xs text-gray-300 leading-relaxed mb-3">
+              Hold your card steady and make sure the bottom-right number (e.g. <strong className="text-white font-mono">OP01-001</strong>) is well-lit and aligned inside the pink target box.
+            </p>
+
+            {unrecognizedText && (
+              <div className="mb-3 px-3 py-2 rounded-xl bg-[#1b1e29] border border-[#31364a] text-xs">
+                <span className="text-gray-400 block text-[10px] uppercase font-bold tracking-wider mb-0.5">Read from frame:</span>
+                <span className="font-mono text-gray-200 break-all">{unrecognizedText}</span>
+              </div>
+            )}
+
+            {/* Quick search input */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (manualInput.trim()) {
+                  const q = manualInput.trim();
+                  setScanNotFound(false);
+                  performCardLookup(q);
+                }
+              }}
+              className="flex gap-2 mb-3"
+            >
+              <input
+                type="text"
+                value={manualInput}
+                onChange={(e) => setManualInput(e.target.value)}
+                placeholder="Or type code (e.g. OP05-119)..."
+                className="flex-1 bg-[#1a1d27] border border-[#3b4156] focus:border-[#f4727d] rounded-xl px-3 py-2.5 text-xs text-white uppercase font-mono placeholder-gray-500 focus:outline-none"
+              />
+              <button
+                type="submit"
+                className="px-4 py-2.5 rounded-xl bg-[#f4727d] text-white text-xs font-black uppercase tracking-wider hover:brightness-110 active:scale-95 transition cursor-pointer"
+              >
+                Find
+              </button>
+            </form>
+
+            {/* Action buttons */}
+            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[#31364a]">
+              <button
+                type="button"
+                onClick={() => {
+                  setScanNotFound(false);
+                  setUnrecognizedText(null);
+                  handleShutter();
+                }}
+                className="py-3 px-4 rounded-xl bg-gradient-to-r from-[#f4727d] to-[#e44d5b] text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md hover:brightness-105 active:scale-95 transition cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Retry Scan</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setScanNotFound(false);
+                  setShowManual(true);
+                }}
+                className="py-3 px-4 rounded-xl bg-[#2b3040] hover:bg-[#363c50] text-white text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 border border-[#3e445b] active:scale-95 transition cursor-pointer"
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span>Manual List</span>
               </button>
             </div>
           </div>
