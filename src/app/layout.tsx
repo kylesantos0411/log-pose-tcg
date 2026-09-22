@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Providers } from '@/components/Providers';
 import { AppShell } from '@/components/AppShell';
-import { PwaRegister } from '@/components/PwaRegister';
 import { AppSyncLoadingScreen } from '@/components/AppSyncLoadingScreen';
 
 export const viewport: Viewport = {
@@ -17,7 +16,6 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: 'Log Pose TCG | One Piece TCG Collection Manager',
   description: 'Manage cards, track real-time prices, build decks, and scan cards.',
-  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -56,7 +54,6 @@ export default function RootLayout({
         <Providers>
           <AppSyncLoadingScreen />
           <AppShell>{children}</AppShell>
-          <PwaRegister />
         </Providers>
       </body>
     </html>
