@@ -3,7 +3,6 @@ import './globals.css';
 import { Providers } from '@/components/Providers';
 import { AppShell } from '@/components/AppShell';
 import { PwaRegister } from '@/components/PwaRegister';
-import { AppSplashScreen } from '@/components/AppSplashScreen';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -44,7 +43,6 @@ export default function RootLayout({
       </head>
       <body className="bg-[#1e212b] text-[#f8fafc] antialiased min-h-screen selection:bg-[#e76d78] selection:text-white">
         <Providers>
-          <AppSplashScreen />
           <AppShell>{children}</AppShell>
           <PwaRegister />
         </Providers>
