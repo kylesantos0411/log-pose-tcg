@@ -92,30 +92,14 @@ export function CleanHomeView({
           </Link>
           <button
             onClick={openSettings}
-            title="Open Settings"
-            className="text-gray-300 hover:text-white p-2 rounded-full hover:bg-white/10 transition duration-200 active:scale-90 cursor-pointer"
+            title={user ? `${user.name} (${user.tag})` : 'Open Settings'}
+            className="text-gray-300 hover:text-white p-2 rounded-full hover:bg-white/10 transition duration-200 active:scale-90 cursor-pointer relative"
           >
             <SettingsIcon className="w-5 h-5" />
+            {user && (
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#1e202a]" />
+            )}
           </button>
-
-          {user ? (
-            <button
-              onClick={openSettings}
-              title={`${user.name} (${user.tag})`}
-              className="w-8 h-8 rounded-full bg-[#272b3b] border border-[#3b4056] text-white flex items-center justify-center text-sm shadow-sm hover:scale-105 transition cursor-pointer ml-0.5"
-            >
-              {user.avatar}
-            </button>
-          ) : (
-            <button
-              onClick={() => setShowAccountModal(true)}
-              title="Create Account / Sign In"
-              className="px-2.5 py-1.5 rounded-full bg-[#f45d6a]/15 hover:bg-[#f45d6a]/25 text-[#f45d6a] border border-[#f45d6a]/30 text-[11px] font-black uppercase tracking-wider transition cursor-pointer flex items-center gap-1 ml-0.5"
-            >
-              <User className="w-3.5 h-3.5" />
-              <span>Join</span>
-            </button>
-          )}
         </div>
       </div>
 
