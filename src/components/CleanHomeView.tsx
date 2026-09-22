@@ -11,7 +11,7 @@ import {
   Boxes,
   FolderHeart, 
   Users, 
-  Camera, 
+  Swords, 
   Settings as SettingsIcon,
   Crown,
   Check,
@@ -250,27 +250,27 @@ export function CleanHomeView({
             </div>
           </Link>
 
-          {/* Tile 2: AI Card Scanner */}
+          {/* Tile 2: Recommended Decks */}
           <Link
-            href="/scanner"
-            className="group flex-1 rounded-3xl bg-[#252838] hover:bg-[#2e3246] border border-[#383d52] hover:border-[#10b981]/60 p-3.5 sm:p-4 flex flex-col justify-between transition-all duration-300 shadow-md hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] cursor-pointer relative overflow-hidden"
+            href="/decks"
+            className="group flex-1 rounded-3xl bg-[#252838] hover:bg-[#2e3246] border border-[#383d52] hover:border-[#f4727d]/60 p-3.5 sm:p-4 flex flex-col justify-between transition-all duration-300 shadow-md hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] cursor-pointer relative overflow-hidden"
           >
             <div className="flex items-start justify-between">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#10b981]/15 border border-[#10b981]/30 flex items-center justify-center text-[#10b981] group-hover:scale-110 transition-transform relative">
-                <Camera className="w-5 h-5 stroke-[2]" />
-                <span className="w-2 h-2 rounded-full bg-[#10b981] absolute top-1.5 right-1.5 animate-ping" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#f4727d]/15 border border-[#f4727d]/30 flex items-center justify-center text-[#f4727d] group-hover:scale-110 transition-transform relative">
+                <Swords className="w-5 h-5 stroke-[2]" />
+                <span className="w-2 h-2 rounded-full bg-[#f4727d] absolute top-1.5 right-1.5 animate-ping" />
               </div>
-              <div className="px-1.5 py-0.5 rounded-full bg-[#10b981]/20 border border-[#10b981]/30 text-[9px] font-black text-[#10b981] uppercase">
-                AI Lens
+              <div className="px-1.5 py-0.5 rounded-full bg-[#f4727d]/20 border border-[#f4727d]/30 text-[9px] font-black text-[#f4727d] uppercase">
+                Meta
               </div>
             </div>
 
             <div className="mt-2">
               <h4 className="font-bold text-sm sm:text-base text-white tracking-wide leading-snug">
-                Card Scan
+                Decks
               </h4>
               <p className="text-[11px] text-gray-400">
-                Instant Camera ID
+                Recommended Builds
               </p>
             </div>
           </Link>

@@ -40,7 +40,7 @@ const PRESET_PAGES = [
   { label: 'Cards',        icon: '🗂️', url: '/cards' },
   { label: 'Sets',         icon: '📦', url: '/sets' },
   { label: 'Collection',   icon: '💼', url: '/collection' },
-  { label: 'Scanner',      icon: '📷', url: '/scanner' },
+  { label: 'Decks',        icon: '⚔️', url: '/decks' },
   { label: 'Settings',     icon: '⚙️', url: '/settings' },
   { label: 'Home',         icon: '🏠', url: '/' },
 ];

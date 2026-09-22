@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { 
   Layers, 
   FolderHeart, 
-  Camera, 
+  Swords, 
   TrendingUp, 
   ChevronRight, 
   Boxes, 
@@ -86,11 +86,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
 
           <Link
-            href="/scanner"
+            href="/decks"
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-[#2c3140] transition"
           >
-            <Camera className="w-4 h-4 text-purple-400" />
-            AI Card Scanner
+            <Swords className="w-4 h-4 text-[#f4727d]" />
+            Recommended Decks
           </Link>
 
           <Link
