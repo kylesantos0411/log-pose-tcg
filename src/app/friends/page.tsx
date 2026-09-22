@@ -22,7 +22,8 @@ import {
   Clock,
   Award,
   Trash2,
-  LogIn
+  LogIn,
+  UserMinus
 } from 'lucide-react';
 import { getSafeCardImageUrl, getEditionCardImageUrl } from '@/lib/card-image';
 import { useSettings } from '@/context/SettingsContext';
@@ -87,6 +88,8 @@ export default function FriendsPage() {
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [proposingTrade, setProposingTrade] = useState<TradeMatch | null>(null);
   const [tradeProposedSuccess, setTradeProposedSuccess] = useState(false);
+  const [unfriendingTarget, setUnfriendingTarget] = useState<FriendProfile | null>(null);
+  const [toastNotice, setToastNotice] = useState<string | null>(null);
 
   // My Collector Code
   const myCode = user?.tag || 'PIRATE-KYLE-7721';
@@ -306,10 +309,21 @@ export default function FriendsPage() {
     saveRequests(pendingRequests.filter((r) => r.id !== id));
   };
 
-  const handleRemoveFriend = (id: string) => {
-    if (!confirm('Remove this collector from your crew?')) return;
-    saveFriends(friendsList.filter((f) => f.id !== id));
-    setInspectingFriend(null);
+  const handleConfirmUnfriend = () => {
+    if (!unfriendingTarget) return;
+    const targetName = unfriendingTarget.name;
+    const targetId = unfriendingTarget.id;
+
+    const updated = friendsList.filter((f) => f.id !== targetId);
+    saveFriends(updated);
+
+    if (inspectingFriend?.id === targetId) {
+      setInspectingFriend(null);
+    }
+    setUnfriendingTarget(null);
+
+    setToastNotice(`Unfriended ${targetName}.`);
+    setTimeout(() => setToastNotice(null), 3000);
   };
 
   const handleConfirmTrade = () => {
@@ -587,6 +601,16 @@ export default function FriendsPage() {
                   >
                     <ArrowLeftRight className="w-3.5 h-3.5 stroke-[2.5]" />
                     <span>Trade</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setUnfriendingTarget(friend)}
+                    title={`Unfriend ${friend.name}`}
+                    className="px-2.5 sm:px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/25 hover:border-red-500/40 text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer active:scale-95"
+                  >
+                    <UserMinus className="w-3.5 h-3.5 stroke-[2.2]" />
+                    <span className="hidden xs:inline">Unfriend</span>
                   </button>
                 </div>
               </div>
@@ -899,11 +923,11 @@ export default function FriendsPage() {
             <div className="pt-3 border-t border-[#31364a] flex items-center justify-between gap-2 flex-shrink-0">
               <button
                 type="button"
-                onClick={() => handleRemoveFriend(inspectingFriend.id)}
-                className="px-3 py-2 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-400 text-xs font-bold transition cursor-pointer flex items-center gap-1"
+                onClick={() => setUnfriendingTarget(inspectingFriend)}
+                className="px-3.5 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/25 text-xs font-bold transition cursor-pointer flex items-center gap-1.5 active:scale-95"
               >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Remove</span>
+                <UserMinus className="w-3.5 h-3.5 stroke-[2.2]" />
+                <span>Unfriend</span>
               </button>
 
               <button
@@ -1180,7 +1204,75 @@ export default function FriendsPage() {
         </div>
       )}
 
-      {/* ================= MODAL 5: ACCOUNT MODAL ================= */}
+      {/* ================= MODAL 5: UNFRIEND CONFIRMATION MODAL ================= */}
+      {unfriendingTarget && (
+        <div 
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn"
+          onClick={() => setUnfriendingTarget(null)}
+        >
+          <div 
+            className="w-full max-w-sm bg-[#232634] border border-red-500/30 rounded-[28px] p-5 sm:p-6 shadow-2xl text-left relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header Icon */}
+            <div className="w-14 h-14 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-400 flex items-center justify-center mx-auto mb-3.5 shadow-inner">
+              <UserMinus className="w-7 h-7 stroke-[2.2]" />
+            </div>
+
+            {/* Title & Friend Details */}
+            <h3 className="text-base sm:text-lg font-black text-white text-center">
+              Unfriend {unfriendingTarget.name}?
+            </h3>
+
+            <div className="mt-3 p-3 rounded-2xl bg-[#1b1e2a] border border-[#31364a] flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#25293a] flex items-center justify-center text-xl flex-shrink-0">
+                {unfriendingTarget.avatar}
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm font-bold text-white truncate">
+                  {unfriendingTarget.name}
+                </div>
+                <div className="text-xs font-mono text-gray-400 truncate">
+                  {unfriendingTarget.tag} &bull; {unfriendingTarget.cardCount} cards
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-400 text-center mt-3.5 leading-relaxed">
+              Are you sure you want to remove this collector from your crew? You will no longer see their showcase binder or be able to initiate peer trades.
+            </p>
+
+            {/* Action Buttons */}
+            <div className="mt-5 flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setUnfriendingTarget(null)}
+                className="flex-1 py-2.5 rounded-xl bg-[#1e212c] hover:bg-[#2b3042] text-gray-300 hover:text-white border border-[#343a4c] text-xs font-bold transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmUnfriend}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 active:scale-95 text-white text-xs font-black uppercase tracking-wider transition shadow-lg shadow-red-600/25 cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <UserMinus className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Unfriend</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification Banner */}
+      {toastNotice && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[70] px-4 py-2.5 rounded-2xl bg-[#1e212c] border border-red-500/40 text-red-300 text-xs font-bold shadow-2xl flex items-center gap-2 animate-bounce">
+          <UserMinus className="w-4 h-4 text-red-400" />
+          <span>{toastNotice}</span>
+        </div>
+      )}
+
+      {/* ================= MODAL 6: ACCOUNT MODAL ================= */}
       <AccountModal
         isOpen={showAccountModal}
         onClose={() => setShowAccountModal(false)}
