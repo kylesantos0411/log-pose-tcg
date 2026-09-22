@@ -90,3 +90,17 @@ model CardPrice {
 
   @@index([cardId, timestamp])
 }
+
+model Donation {
+  id              String   @id @default(uuid())
+  donorName       String
+  donorEmail      String?
+  amount          String?
+  referenceNumber String?
+  message         String?
+  paymentMethod   String   @default("QR Payment")
+  createdAt       DateTime @default(now())
+
+  @@index([createdAt])
+}
+
