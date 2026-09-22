@@ -1,0 +1,92 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Pack {
+  id          String   @id // e.g. "569001"
+  code        String?  // e.g. "ST-01", "OP-01"
+  name        String   // e.g. "STARTER DECK -Straw Hat Crew-"
+  seriesType  String?  // e.g. "STARTER DECK", "BOOSTER PACK"
+  language    String   @default("en")
+  cardsCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  cards       Card[]
+
+  @@index([code])
+}
+
+model Card {
+  id           String      @id // e.g. "ST01-001" or "OP05-119"
+  packId       String
+  pack         Pack        @relation(fields: [packId], references: [id], onDelete: Cascade)
+  name         String
+  category     String      // "Leader", "Character", "Event", "Stage"
+  colors       String      // Comma-separated: "Red" or "Red,Green"
+  cost         Int?
+  power        Int?
+  counter      Int?
+  attributes   String?     // Comma-separated: "Slash", "Strike", etc.
+  types        String?     // Comma-separated traits: "Straw Hat Crew,Supernovas"
+  rarity       String      // "Leader", "Common", "Uncommon", "Rare", "SuperRare", "SecretRare", "Special"
+  effect       String?
+  trigger      String?
+  imageUrl     String?
+  blockNumber  Int?
+  isAltArt     Boolean     @default(false)
+  baseCardId   String?     // Base card reference if alternate art
+  marketPrice  Float?      // Latest cached market price in USD
+  yuyuPrice    Float?      // Authentic Japanese market price in JPY (Yuyu-tei)
+  promoSource  String?     // Event or tournament source, e.g. "Flagship Battle Winner", "25th Anniversary"
+  hasJpPrint   Boolean     @default(true) // False if English-exclusive with no Japanese print
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  userCards    UserCard[]
+  priceHistory CardPrice[]
+
+  @@index([name])
+  @@index([packId, category])
+  @@index([colors])
+  @@index([rarity])
+  @@index([promoSource])
+}
+
+model UserCard {
+  id            String   @id @default(uuid())
+  cardId        String
+  card          Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  quantity      Int      @default(1)
+  condition     String   @default("NM") // "NM", "LP", "MP", "HP", "Graded"
+  isFoil        Boolean  @default(false)
+  language      String   @default("en") // "en", "jp"
+  purchasePrice Float?
+  purchaseDate  DateTime?
+  notes         String?
+  isWishlist    Boolean  @default(false)
+  forTrade      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([cardId])
+  @@index([isWishlist])
+}
+
+model CardPrice {
+  id        String   @id @default(uuid())
+  cardId    String
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  source    String   // "TCGPlayer", "Cardmarket", "eBay"
+  currency  String   @default("USD")
+  price     Float
+  lowPrice  Float?
+  trend     Float?
+  timestamp DateTime @default(now())
+
+  @@index([cardId, timestamp])
+}
