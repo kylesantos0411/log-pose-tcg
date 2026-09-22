@@ -10,7 +10,7 @@ import {
   Check, 
   Coffee,
   ArrowLeft,
-  Copy,
+  Download,
   QrCode,
   Sparkles
 } from 'lucide-react';
@@ -22,22 +22,14 @@ interface SupportModalProps {
 
 export function SupportModal({ isOpen, onClose }: SupportModalProps) {
   const [showQR, setShowQR] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [hasCompleted, setHasCompleted] = useState(false);
 
   if (!isOpen) return null;
 
   const handleClose = () => {
     setShowQR(false);
-    setCopied(false);
     setHasCompleted(false);
     onClose();
-  };
-
-  const handleCopy = () => {
-    navigator.clipboard?.writeText?.('0917-000-0000');
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleFinish = () => {
@@ -221,138 +213,40 @@ export function SupportModal({ isOpen, onClose }: SupportModalProps) {
               Send a Coffee ☕
             </h3>
             <p className="text-xs text-gray-300 font-medium mt-0.5 mb-3.5">
-              Scan with <strong className="text-white">GCash, Maya, or any QRPh app</strong>. Any amount will do!
+              Scan with any banking or e-wallet app. Any amount will do!
             </p>
 
             {/* High-Contrast White QR Card */}
-            <div className="w-full max-w-[260px] bg-white rounded-3xl p-4 shadow-2xl flex flex-col items-center text-slate-900 mb-3.5 border-4 border-[#2f3448]">
-              {/* Wallet Badges Header */}
-              <div className="w-full flex items-center justify-center gap-2 mb-2">
-                <span className="px-2 py-0.5 rounded-md bg-[#0057e3] text-white text-[10px] font-black tracking-wide uppercase shadow-sm">
-                  GCash
-                </span>
-                <span className="px-2 py-0.5 rounded-md bg-[#16c784] text-white text-[10px] font-black tracking-wide uppercase shadow-sm">
-                  Maya
-                </span>
-                <span className="px-2 py-0.5 rounded-md bg-[#f43f5e] text-white text-[10px] font-black tracking-wide uppercase shadow-sm">
-                  QRPh
-                </span>
-              </div>
-
-              {/* Crisp Stylized QR Code SVG */}
-              <div className="relative w-48 h-48 bg-white p-2 rounded-2xl flex items-center justify-center shadow-inner border border-gray-200">
-                <svg
-                  viewBox="0 0 200 200"
-                  className="w-full h-full text-slate-900"
-                  fill="currentColor"
-                >
-                  {/* Top-Left Position Marker */}
-                  <rect x="10" y="10" width="50" height="50" rx="8" fill="none" stroke="currentColor" strokeWidth="10" />
-                  <rect x="25" y="25" width="20" height="20" rx="3" fill="currentColor" />
-
-                  {/* Top-Right Position Marker */}
-                  <rect x="140" y="10" width="50" height="50" rx="8" fill="none" stroke="currentColor" strokeWidth="10" />
-                  <rect x="155" y="25" width="20" height="20" rx="3" fill="currentColor" />
-
-                  {/* Bottom-Left Position Marker */}
-                  <rect x="10" y="140" width="50" height="50" rx="8" fill="none" stroke="currentColor" strokeWidth="10" />
-                  <rect x="25" y="155" width="20" height="20" rx="3" fill="currentColor" />
-
-                  {/* Timing patterns */}
-                  <rect x="68" y="25" width="10" height="10" rx="2" />
-                  <rect x="88" y="25" width="10" height="10" rx="2" />
-                  <rect x="108" y="25" width="10" height="10" rx="2" />
-                  <rect x="123" y="25" width="8" height="10" rx="2" />
-
-                  <rect x="25" y="68" width="10" height="10" rx="2" />
-                  <rect x="25" y="88" width="10" height="10" rx="2" />
-                  <rect x="25" y="108" width="10" height="10" rx="2" />
-                  <rect x="25" y="123" width="10" height="8" rx="2" />
-
-                  {/* Data modules pattern */}
-                  <rect x="70" y="45" width="12" height="12" rx="2" />
-                  <rect x="90" y="45" width="10" height="10" rx="2" />
-                  <rect x="110" y="45" width="12" height="12" rx="2" />
-                  <rect x="140" y="70" width="12" height="12" rx="2" />
-                  <rect x="160" y="70" width="10" height="10" rx="2" />
-                  <rect x="175" y="70" width="12" height="12" rx="2" />
-
-                  <rect x="45" y="70" width="12" height="12" rx="2" />
-                  <rect x="45" y="90" width="10" height="10" rx="2" />
-                  <rect x="45" y="110" width="12" height="12" rx="2" />
-
-                  <rect x="140" y="90" width="14" height="14" rx="2" />
-                  <rect x="165" y="90" width="12" height="12" rx="2" />
-                  <rect x="140" y="115" width="10" height="10" rx="2" />
-                  <rect x="160" y="115" width="14" height="14" rx="2" />
-                  <rect x="180" y="115" width="8" height="10" rx="2" />
-
-                  <rect x="70" y="140" width="12" height="12" rx="2" />
-                  <rect x="90" y="140" width="10" height="10" rx="2" />
-                  <rect x="110" y="140" width="12" height="12" rx="2" />
-                  <rect x="70" y="160" width="10" height="10" rx="2" />
-                  <rect x="90" y="160" width="14" height="14" rx="2" />
-                  <rect x="115" y="160" width="10" height="10" rx="2" />
-                  <rect x="140" y="140" width="14" height="14" rx="2" />
-                  <rect x="165" y="140" width="12" height="12" rx="2" />
-                  <rect x="140" y="165" width="10" height="10" rx="2" />
-                  <rect x="160" y="165" width="14" height="14" rx="2" />
-                  <rect x="180" y="165" width="8" height="10" rx="2" />
-
-                  {/* Center Badge Cutout */}
-                  <rect x="76" y="76" width="48" height="48" rx="12" fill="white" stroke="#e2e8f0" strokeWidth="2" />
-                </svg>
-
-                {/* Center Cute Coffee Cup Pin */}
-                <div className="absolute w-10 h-10 rounded-xl bg-gradient-to-tr from-[#f4727d] to-[#e44d5b] text-white flex items-center justify-center shadow-md">
-                  <Coffee className="w-5 h-5 stroke-[2.5]" />
-                </div>
+            <div className="w-full max-w-[270px] bg-white rounded-3xl p-4 sm:p-5 shadow-2xl flex flex-col items-center text-slate-900 mb-3.5 border-4 border-[#2f3448]">
+              {/* General QR Code Image */}
+              <div className="relative w-52 h-52 sm:w-56 sm:h-56 bg-white p-1 rounded-2xl flex items-center justify-center">
+                <img
+                  src="/donation-qr.png"
+                  alt="Donation QR Code"
+                  className="w-full h-full object-contain rounded-xl select-none"
+                />
               </div>
 
               {/* Account Label */}
-              <div className="text-center mt-2">
-                <div className="text-[13px] font-black text-slate-900 tracking-tight">
+              <div className="text-center mt-2.5">
+                <div className="text-sm font-black text-slate-900 tracking-tight">
                   Kyle Santos
                 </div>
-                <div className="text-[11px] font-semibold text-slate-500">
+                <div className="text-[11px] font-semibold text-slate-500 mt-0.5">
                   Log Pose Server Maintenance
                 </div>
               </div>
             </div>
 
-            {/* Tap to Copy Account Number (Ideal for Mobile Users on Device) */}
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="w-full bg-[#2a2d3d] hover:bg-[#34384c] border border-[#3e4358] rounded-2xl py-2.5 px-3 flex items-center justify-between text-left mb-3 transition cursor-pointer group"
+            {/* Save QR Image Button (ideal for single mobile device users) */}
+            <a
+              href="/donation-qr.png"
+              download="log-pose-donation-qr.png"
+              className="w-full bg-[#2a2d3d] hover:bg-[#34384c] border border-[#3e4358] rounded-2xl py-2.5 px-3 flex items-center justify-center gap-2 text-center text-xs font-bold text-gray-200 hover:text-white mb-3 transition cursor-pointer"
             >
-              <div className="min-w-0 flex-1">
-                <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">
-                  Mobile / E-Wallet Number
-                </div>
-                <div className="text-sm font-extrabold text-white font-mono tracking-wider mt-0.5">
-                  0917-000-0000
-                </div>
-              </div>
-
-              <div className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
-                copied 
-                  ? 'bg-green-500/20 text-green-400 border border-green-500/40' 
-                  : 'bg-white/10 text-gray-300 group-hover:text-white'
-              }`}>
-                {copied ? (
-                  <>
-                    <Check className="w-3.5 h-3.5 stroke-[3]" />
-                    <span>Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Copy</span>
-                  </>
-                )}
-              </div>
-            </button>
+              <Download className="w-4 h-4 text-[#f4727d]" />
+              <span>Save QR to Photos</span>
+            </a>
 
             {/* Action Confirmation Button */}
             <button
