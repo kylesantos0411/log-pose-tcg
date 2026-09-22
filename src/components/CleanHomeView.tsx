@@ -44,6 +44,7 @@ export function CleanHomeView({
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [displayCount, setDisplayCount] = useState(userCardsCount);
+  const [homeSearch, setHomeSearch] = useState('');
 
   useEffect(() => {
     const updateCount = () => {
@@ -124,7 +125,47 @@ export function CleanHomeView({
         </div>
       </div>
 
-      {/* 2. HERO SHOWCASE CARD: "Explore Cards" / "View the cards" */}
+      {/* 2. Permanent Quick Card Search Bar (Always visible for fast searching) */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (homeSearch.trim()) {
+            router.push(`/cards?q=${encodeURIComponent(homeSearch.trim())}`);
+          } else {
+            router.push('/cards');
+          }
+        }}
+        className="relative px-0.5"
+      >
+        <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <input
+          type="text"
+          value={homeSearch}
+          onChange={(e) => setHomeSearch(e.target.value)}
+          placeholder="Search card name, code, or leader (e.g. Luffy, OP05-119)..."
+          className="w-full bg-[#242836] border border-[#343a4c] focus:border-[#3b82f6] rounded-2xl pl-10 pr-20 py-2.5 sm:py-3 text-xs sm:text-sm text-gray-100 placeholder-gray-400 focus:outline-none transition shadow-inner"
+        />
+        <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+          {homeSearch && (
+            <button
+              type="button"
+              onClick={() => setHomeSearch('')}
+              className="text-gray-400 hover:text-white p-1 rounded-full hover:bg-white/10 cursor-pointer"
+              title="Clear"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <button
+            type="submit"
+            className="px-2.5 py-1 rounded-xl bg-[#3b82f6] hover:bg-[#2563eb] text-white text-xs font-bold transition shadow active:scale-95 cursor-pointer"
+          >
+            Search
+          </button>
+        </div>
+      </form>
+
+      {/* 3. HERO SHOWCASE CARD: "Explore Cards" / "View the cards" */}
       <Link
         href="/cards"
         className="group relative block rounded-3xl bg-gradient-to-br from-[#2a2e40] via-[#222533] to-[#1c1e2b] border border-[#3b4056] hover:border-[#e76d78]/60 p-4 sm:p-5 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.015] active:scale-[0.99] overflow-hidden cursor-pointer"

@@ -120,6 +120,11 @@ function CardsContent() {
       setSelectedSet(setParam);
       setPage(1);
     }
+    const queryParam = searchParams.get('q');
+    if (queryParam !== null && queryParam !== undefined) {
+      setSearch(queryParam);
+      setPage(1);
+    }
   }, [searchParams]);
 
   useEffect(() => {
@@ -230,13 +235,14 @@ function CardsContent() {
     }
   }
 
-  const activeFilterCount = 
+  const activeDetailedFilterCount = 
     (selectedColor !== 'All' ? 1 : 0) +
     (selectedCategory !== 'All' ? 1 : 0) +
     (selectedRarity !== 'All' ? 1 : 0) +
     (selectedSet !== 'All' ? 1 : 0) +
-    (selectedArtist !== 'All' ? 1 : 0) +
-    (search.trim() ? 1 : 0);
+    (selectedArtist !== 'All' ? 1 : 0);
+
+  const activeFilterCount = activeDetailedFilterCount + (search.trim() ? 1 : 0);
 
   const resetFilters = () => {
     setSelectedColor('All');
@@ -262,94 +268,123 @@ function CardsContent() {
 
   return (
     <div className="w-full max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-5xl mx-auto pb-16 select-none">
-      {/* 1. Sleek Top Bar (Matching media_1790063450672.jpg) */}
-      <header className="sticky top-0 z-30 bg-[#1e202a]/95 backdrop-blur-md border-b border-[#2d3140]/60 px-2 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between shadow-sm">
-        {/* Left: Back Arrow & Page Title */}
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <Link
-            href="/"
-            className="p-1 text-white hover:text-gray-300 transition-transform active:scale-90"
-            title="Go to Home"
-          >
-            <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
-          </Link>
-          <h1 className="text-base sm:text-lg font-bold text-white tracking-tight truncate">
-            {pageTitle}
-          </h1>
+      {/* 1. Sleek Top Bar with Permanent Always-Visible Search Bar */}
+      <header className="sticky top-0 z-30 bg-[#1e202a]/95 backdrop-blur-md border-b border-[#2d3140]/60 px-2 sm:px-4 py-2 sm:py-2.5 shadow-sm space-y-2">
+        {/* Top Row: Navigation, Page Title, and Quick Actions */}
+        <div className="flex items-center justify-between">
+          {/* Left: Back Arrow & Page Title */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <Link
+              href="/"
+              className="p-1 text-white hover:text-gray-300 transition-transform active:scale-90"
+              title="Go to Home"
+            >
+              <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+            </Link>
+            <h1 className="text-base sm:text-lg font-bold text-white tracking-tight truncate">
+              {pageTitle}
+            </h1>
+          </div>
+
+          {/* Right: Actions (Collection, Grid View Toggle) */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            {/* Diamond / Collection Icon */}
+            <Link
+              href="/collection"
+              className="p-1.5 sm:p-2 text-gray-300 hover:text-white hover:bg-white/5 rounded-xl transition cursor-pointer"
+              title="Collection"
+            >
+              <svg
+                className="w-5 h-5 sm:w-6 sm:h-6"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M6 3h12l4 6-10 12L2 9l4-6z" />
+                <path d="M12 21L8 9" />
+                <path d="M12 21l4-12" />
+                <path d="M2 9h20" />
+                <path d="M7 3l3 6" />
+                <path d="M17 3l-3 6" />
+              </svg>
+            </Link>
+
+            {/* Grid Layout Toggle Button (▦) */}
+            <button
+              type="button"
+              onClick={() => setGridCols(gridCols === 3 ? 2 : 3)}
+              className="p-1.5 sm:p-2 text-gray-300 hover:text-white hover:bg-white/5 rounded-xl transition cursor-pointer"
+              title={`Toggle between 2 and 3 columns (Current: ${gridCols})`}
+            >
+              {gridCols === 3 ? (
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M4 4h4v4H4zM10 4h4v4h-4zM16 4h4v4h-4zM4 10h4v4H4zM10 10h4v4h-4zM16 10h4v4h-4zM4 16h4v4H4zM10 16h4v4h-4zM16 16h4v4h-4z" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
 
-        {/* Right: Actions (Filter, Diamond/Collection, Grid View Toggle) */}
-        <div className="flex items-center gap-1 sm:gap-2">
-          {/* Filter Toggle Button */}
+        {/* Bottom Row: ALWAYS-VISIBLE SEARCH BAR + FILTERS BUTTON */}
+        <div className="flex items-center gap-2">
+          {/* Main Search Input */}
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Search card or code (e.g. OP05-119, Luffy)..."
+              className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#3b82f6] rounded-xl pl-9.5 pr-8 py-2 text-xs sm:text-sm text-gray-100 placeholder-gray-400 focus:outline-none transition shadow-inner"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => { setSearch(''); setPage(1); }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-1 rounded-full hover:bg-white/10 cursor-pointer"
+                title="Clear Search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Filters Toggle Button */}
           <button
             type="button"
             onClick={() => setShowFilters(!showFilters)}
-            className={`p-1.5 sm:p-2 rounded-xl transition relative cursor-pointer ${
-              showFilters || activeFilterCount > 0
-                ? 'bg-[#3b82f6]/20 text-[#3b82f6] border border-[#3b82f6]/40'
-                : 'text-gray-300 hover:text-white hover:bg-white/5'
+            className={`px-3 py-2 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+              showFilters || activeDetailedFilterCount > 0
+                ? 'bg-[#3b82f6]/20 text-[#3b82f6] border-[#3b82f6]/50 shadow-sm'
+                : 'bg-[#181a24] text-gray-300 border-[#343a4c] hover:border-gray-500'
             }`}
-            title="Toggle Filter & Search"
+            title="Toggle Detailed Filters"
           >
-            <SlidersHorizontal className="w-4 h-4 sm:w-5 sm:h-5" />
-            {activeFilterCount > 0 && !showFilters && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#e76d78] text-white text-[9px] font-black flex items-center justify-center shadow">
-                {activeFilterCount}
+            <SlidersHorizontal className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="text-xs">Filter</span>
+            {activeDetailedFilterCount > 0 && (
+              <span className="w-4 h-4 rounded-full bg-[#e76d78] text-white text-[9px] font-black flex items-center justify-center shadow">
+                {activeDetailedFilterCount}
               </span>
-            )}
-          </button>
-
-          {/* Diamond / Collection Icon */}
-          <Link
-            href="/collection"
-            className="p-1.5 sm:p-2 text-gray-300 hover:text-white hover:bg-white/5 rounded-xl transition cursor-pointer"
-            title="Collection"
-          >
-            <svg
-              className="w-5 h-5 sm:w-6 sm:h-6"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M6 3h12l4 6-10 12L2 9l4-6z" />
-              <path d="M12 21L8 9" />
-              <path d="M12 21l4-12" />
-              <path d="M2 9h20" />
-              <path d="M7 3l3 6" />
-              <path d="M17 3l-3 6" />
-            </svg>
-          </Link>
-
-          {/* Grid Layout Toggle Button (▦) */}
-          <button
-            type="button"
-            onClick={() => setGridCols(gridCols === 3 ? 2 : 3)}
-            className="p-1.5 sm:p-2 text-gray-300 hover:text-white hover:bg-white/5 rounded-xl transition cursor-pointer"
-            title={`Toggle between 2 and 3 columns (Current: ${gridCols})`}
-          >
-            {gridCols === 3 ? (
-              <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5 sm:w-6 sm:h-6" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M4 4h4v4H4zM10 4h4v4h-4zM16 4h4v4h-4zM4 10h4v4H4zM10 10h4v4h-4zM16 10h4v4h-4zM4 16h4v4H4zM10 16h4v4h-4zM16 16h4v4h-4z" />
-              </svg>
             )}
           </button>
         </div>
       </header>
 
-      {/* 2. Collapsible Filter Drawer (Hidden by default to keep the screen ultra-clean) */}
+      {/* 2. Collapsible Filter Drawer for Advanced Filters (Categories, Rarities, Sets, Colors) */}
       {showFilters && (
-        <div className="mx-2 sm:mx-3 mt-2 mb-3 p-4 rounded-2xl bg-[#242836] border border-[#343a4c] shadow-xl space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="mx-2 sm:mx-3 mt-2 mb-3 p-3.5 rounded-2xl bg-[#242836] border border-[#343a4c] shadow-xl space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center justify-between pb-2 border-b border-[#32384a]">
-            <span className="text-xs font-bold text-gray-300">Filter & Search</span>
+            <span className="text-xs font-bold text-gray-300">Advanced Filters</span>
             <div className="flex items-center gap-2">
-              {activeFilterCount > 0 && (
+              {activeDetailedFilterCount > 0 && (
                 <button
                   type="button"
                   onClick={resetFilters}
@@ -370,32 +405,12 @@ function CardsContent() {
               <button
                 type="button"
                 onClick={() => setShowFilters(false)}
-                className="p-1 text-gray-400 hover:text-white rounded-lg hover:bg-white/5"
+                className="p-1 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 cursor-pointer"
+                title="Close Filters"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
-          </div>
-
-          {/* Search Input */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              placeholder="Search card or code (e.g. OP05-119, Luffy)..."
-              className="w-full bg-[#1e212c] border border-[#32384a] focus:border-[#3b82f6] rounded-xl pl-9 pr-3 py-2 text-xs text-gray-200 placeholder-gray-500 focus:outline-none transition shadow-inner"
-            />
-            {search && (
-              <button
-                type="button"
-                onClick={() => setSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
           </div>
 
           {/* Dropdown Filters */}
