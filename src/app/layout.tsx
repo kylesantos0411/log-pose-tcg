@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Providers } from '@/components/Providers';
 import { AppShell } from '@/components/AppShell';
+import { PwaRegister } from '@/components/PwaRegister';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -43,6 +44,7 @@ export default function RootLayout({
       <body className="bg-[#1e212b] text-[#f8fafc] antialiased min-h-screen selection:bg-[#e76d78] selection:text-white">
         <Providers>
           <AppShell>{children}</AppShell>
+          <PwaRegister />
         </Providers>
       </body>
     </html>
