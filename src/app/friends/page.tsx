@@ -107,7 +107,18 @@ export default function FriendsPage() {
     try {
       const savedFriends = localStorage.getItem(FRIENDS_STORAGE_KEY);
       if (savedFriends) {
-        setFriendsList(JSON.parse(savedFriends));
+        const parsed = JSON.parse(savedFriends);
+        const cleaned = Array.isArray(parsed)
+          ? parsed.filter(
+              (f: any) =>
+                f.id !== 'friend-marco' &&
+                f.id !== 'friend-zoro' &&
+                f.tag !== 'PIRATE-MARCO-1001' &&
+                f.tag !== 'PIRATE-ZORO-1080'
+            )
+          : [];
+        setFriendsList(cleaned);
+        localStorage.setItem(FRIENDS_STORAGE_KEY, JSON.stringify(cleaned));
       }
       const savedReqs = localStorage.getItem(REQUESTS_STORAGE_KEY);
       if (savedReqs) {
@@ -225,56 +236,6 @@ export default function FriendsPage() {
       setAddSuccessMessage(null);
       setShowAddModal(false);
     }, 1500);
-  };
-
-  const handleAddDemoFriend = () => {
-    const demoFriends: FriendProfile[] = [
-      {
-        id: 'friend-marco',
-        name: 'Marco The Phoenix',
-        tag: 'PIRATE-MARCO-1001',
-        avatar: '🦅',
-        rank: 'Yonko Collector',
-        rankBadge: '👑',
-        status: 'online',
-        statusText: 'Online now',
-        cardCount: 512,
-        binderValueUSD: 4950,
-        showcaseCards: [
-          { id: 'OP05-119_p2', name: 'Monkey.D.Luffy (Manga Rare)', rarity: 'SEC-SP', priceUSD: 2400 },
-          { id: 'OP01-120', name: 'Shanks (Secret Rare)', rarity: 'SEC', priceUSD: 1400 },
-          { id: 'OP01-016', name: 'Nami (Parallel)', rarity: 'R-P', priceUSD: 450 },
-          { id: 'OP02-013', name: 'Portgas.D.Ace (Super Rare)', rarity: 'SR', priceUSD: 380 },
-        ],
-      },
-      {
-        id: 'friend-zoro',
-        name: 'Wano Swordsman',
-        tag: 'PIRATE-ZORO-1080',
-        avatar: '⚔️',
-        rank: 'Wano Champion',
-        rankBadge: '🗡️',
-        status: 'recent',
-        statusText: 'Active 20m ago',
-        cardCount: 340,
-        binderValueUSD: 2470,
-        showcaseCards: [
-          { id: 'OP01-001', name: 'Roronoa Zoro (Alt Art Leader)', rarity: 'L-P', priceUSD: 600 },
-          { id: 'OP01-070', name: 'Dracule Mihawk', rarity: 'SR', priceUSD: 420 },
-          { id: 'OP02-013', name: 'Portgas.D.Ace', rarity: 'SR', priceUSD: 380 },
-        ],
-      }
-    ];
-
-    const merged = [...friendsList];
-    for (const df of demoFriends) {
-      if (!merged.some(f => f.tag === df.tag)) {
-        merged.push(df);
-      }
-    }
-    saveFriends(merged);
-    setAddSuccessMessage('Added Marco & Wano Swordsman demo mates!');
-    setTimeout(() => setAddSuccessMessage(null), 1800);
   };
 
   const handleAcceptRequest = (id: string) => {
@@ -497,22 +458,14 @@ export default function FriendsPage() {
                   Connect with fellow One Piece collectors to inspect their binders, compare wishlists, and trade rare Japanese cards!
                 </p>
               </div>
-              <div className="pt-2 flex flex-wrap items-center justify-center gap-2.5">
+              <div className="pt-2 flex items-center justify-center">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(true)}
-                  className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md transition cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md transition cursor-pointer active:scale-95"
                 >
                   <UserPlus className="w-4 h-4" />
                   <span>Add Friend by Tag</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAddDemoFriend}
-                  className="px-4 py-2.5 rounded-xl bg-[#1d202c] hover:bg-[#282c3c] border border-[#343a4c] text-purple-300 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer"
-                >
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span>Add Demo Mates (Marco &amp; Zoro)</span>
                 </button>
               </div>
             </div>
@@ -640,25 +593,17 @@ export default function FriendsPage() {
               <div className="space-y-1">
                 <h3 className="text-base font-black text-white">No Active Trade Matches</h3>
                 <p className="text-xs text-gray-400 max-w-sm mx-auto leading-relaxed">
-                  Add friends to your crew or try the demo friends to see live matching trade proposals!
+                  Add friends to your crew to see live matching trade proposals based on your collection and wishlist!
                 </p>
               </div>
-              <div className="pt-2 flex flex-wrap items-center justify-center gap-2.5">
+              <div className="pt-2 flex items-center justify-center">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(true)}
-                  className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md transition cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md transition cursor-pointer active:scale-95"
                 >
                   <UserPlus className="w-4 h-4" />
                   <span>Add Friends</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAddDemoFriend}
-                  className="px-4 py-2.5 rounded-xl bg-[#1d202c] hover:bg-[#282c3c] border border-[#343a4c] text-purple-300 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition cursor-pointer"
-                >
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span>Add Demo Mates</span>
                 </button>
               </div>
             </div>
@@ -1090,17 +1035,6 @@ export default function FriendsPage() {
                 Add to Crew
               </button>
             </form>
-
-            <div className="mt-4 pt-3 border-t border-[#31364a] text-center">
-              <button
-                type="button"
-                onClick={handleAddDemoFriend}
-                className="text-xs text-purple-300 hover:text-white flex items-center justify-center gap-1 mx-auto transition"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>Add Instant Demo Friends (Marco &amp; Zoro)</span>
-              </button>
-            </div>
           </div>
         </div>
       )}
