@@ -3,6 +3,7 @@ import './globals.css';
 import { Providers } from '@/components/Providers';
 import { AppShell } from '@/components/AppShell';
 import { PwaRegister } from '@/components/PwaRegister';
+import { AppSyncLoadingScreen } from '@/components/AppSyncLoadingScreen';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -40,9 +41,20 @@ export default function RootLayout({
         <meta name="referrer" content="no-referrer" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(sessionStorage.getItem('log_pose_app_synced')==='true'){document.documentElement.classList.add('app-synced');}}catch(e){}`,
+          }}
+        />
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `html.app-synced #app-sync-loader{display:none!important;}`,
+          }}
+        />
       </head>
       <body className="bg-[#1e212b] text-[#f8fafc] antialiased min-h-screen selection:bg-[#e76d78] selection:text-white">
         <Providers>
+          <AppSyncLoadingScreen />
           <AppShell>{children}</AppShell>
           <PwaRegister />
         </Providers>
