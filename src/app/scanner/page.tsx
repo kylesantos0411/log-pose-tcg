@@ -16,6 +16,7 @@ import {
   ArrowDown,
   RefreshCw,
   Camera,
+  SwitchCamera,
   Layers
 } from 'lucide-react';
 import { getSafeCardImageUrl, getEditionCardImageUrl } from '@/lib/card-image';
@@ -28,9 +29,12 @@ export default function ScannerPage() {
 
   // Camera & Scanning States
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [isRequestingCamera, setIsRequestingCamera] = useState(false);
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [isScanning, setIsScanning] = useState(false);
   const [remainingScans, setRemainingScans] = useState(9);
   const [totalScans] = useState(10);
@@ -46,40 +50,106 @@ export default function ScannerPage() {
   const sampleCodes = ['OP01-001', 'OP05-119', 'OP01-120', 'OP01-016', 'OP02-013', 'ST01-012'];
   const [sampleIndex, setSampleIndex] = useState(0);
 
-  // Initialize camera stream
-  useEffect(() => {
+  // Start / restart camera with cross-platform mobile support
+  const startCamera = async (targetMode: 'environment' | 'user' = facingMode) => {
+    setIsRequestingCamera(true);
+    setCameraError(null);
+
+    // Stop any previously running tracks
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setCameraError('Camera API not supported in this browser. Please use Chrome or Safari over HTTPS.');
+      setIsRequestingCamera(false);
+      return;
+    }
+
     let stream: MediaStream | null = null;
 
-    async function initCamera() {
+    try {
+      // 1. Try environment/user with preferred resolution
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: targetMode },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      });
+    } catch (firstErr) {
+      console.warn('Ideal camera constraint failed, trying basic constraint:', firstErr);
       try {
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        // 2. Try exact or simple facingMode
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: targetMode },
+          audio: false,
+        });
+      } catch (secondErr) {
+        console.warn('FacingMode constraint failed, trying default video:', secondErr);
+        try {
+          // 3. Fallback to any video device
           stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: { ideal: 'environment' },
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-            },
+            video: true,
+            audio: false,
           });
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-            setCameraActive(true);
-            setCameraError(null);
+        } catch (finalErr: any) {
+          console.error('All camera attempts failed:', finalErr);
+          if (finalErr.name === 'NotAllowedError' || finalErr.name === 'PermissionDeniedError') {
+            setCameraError('Camera access was blocked. Tap "Allow Camera" or check browser site permissions.');
+          } else if (finalErr.name === 'NotFoundError' || finalErr.name === 'DevicesNotFoundError') {
+            setCameraError('No camera found on this device.');
+          } else if (finalErr.name === 'NotReadableError' || finalErr.name === 'TrackStartError') {
+            setCameraError('Camera is currently in use by another app.');
+          } else {
+            setCameraError(finalErr.message || 'Camera access unavailable.');
           }
-        } else {
-          setCameraError('Camera API not supported in this browser.');
+          setCameraActive(false);
+          setIsRequestingCamera(false);
+          return;
         }
-      } catch (err: any) {
-        console.warn('Camera access not granted or unavailable:', err);
-        setCameraError(err.message || 'Camera access unavailable. Using interactive optical viewfinder.');
-        setCameraActive(false);
       }
     }
 
-    initCamera();
+    if (stream) {
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.setAttribute('webkit-playsinline', 'true');
+        
+        try {
+          await videoRef.current.play();
+          setCameraActive(true);
+          setCameraError(null);
+        } catch {
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current?.play().catch(console.error);
+            setCameraActive(true);
+            setCameraError(null);
+          };
+        }
+      }
+    }
+    setIsRequestingCamera(false);
+  };
+
+  const toggleCameraFacing = () => {
+    const nextMode = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(nextMode);
+    startCamera(nextMode);
+  };
+
+  // Auto-start on mount, clean up on unmount
+  useEffect(() => {
+    startCamera('environment');
 
     return () => {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
       }
     };
   }, []);
@@ -195,18 +265,22 @@ export default function ScannerPage() {
   return (
     <div className="fixed inset-0 z-50 bg-black text-white flex flex-col justify-between overflow-hidden select-none font-sans">
       {/* ================= BACKGROUND CAMERA FEED ================= */}
+      {/* ================= BACKGROUND CAMERA FEED ================= */}
       <div className="absolute inset-0 z-0 overflow-hidden bg-[#0a0c10]">
-        {cameraActive ? (
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="w-full h-full object-cover opacity-85"
-          />
-        ) : (
-          /* Ambient Dark Camera Viewfinder Texture when camera stream is off */
-          <div className="w-full h-full bg-gradient-to-b from-[#0e1017] via-[#07080c] to-[#040507] flex items-center justify-center relative">
+        {/* Video element is ALWAYS rendered in the DOM so videoRef.current is never null */}
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+            cameraActive ? 'opacity-90' : 'opacity-0 pointer-events-none'
+          }`}
+        />
+
+        {/* Viewfinder Texture / Permission Request when camera stream is not yet active */}
+        {!cameraActive && (
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0e1017] via-[#07080c] to-[#040507] flex flex-col items-center justify-center p-6 text-center z-5">
             <div 
               className="absolute inset-0 opacity-[0.07]" 
               style={{ 
@@ -215,13 +289,33 @@ export default function ScannerPage() {
               }} 
             />
             {/* Subtle animated ambient beam */}
-            <div className="w-96 h-96 rounded-full bg-[#f4727d]/5 blur-3xl pointer-events-none" />
+            <div className="w-80 h-80 rounded-full bg-[#f4727d]/5 blur-3xl pointer-events-none" />
+
+            <div className="relative z-10 max-w-xs space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-[#f4727d]/15 border border-[#f4727d]/30 text-[#f4727d] mx-auto flex items-center justify-center shadow-lg">
+                <Camera className={`w-7 h-7 ${isRequestingCamera ? 'animate-pulse' : ''}`} />
+              </div>
+              <h3 className="text-white font-bold text-sm tracking-wide">
+                {isRequestingCamera ? 'Accessing Camera Lens...' : cameraError ? 'Camera Permission Needed' : 'Start Camera Scanner'}
+              </h3>
+              <p className="text-xs text-gray-400 leading-relaxed px-2">
+                {cameraError || 'Tap below to grant camera access and start scanning cards in real-time.'}
+              </p>
+              <button
+                type="button"
+                onClick={() => startCamera(facingMode)}
+                disabled={isRequestingCamera}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#e76d78] to-[#f59e0b] text-white font-bold text-xs shadow-lg hover:brightness-110 active:scale-95 transition cursor-pointer disabled:opacity-60"
+              >
+                {isRequestingCamera ? 'Connecting Camera...' : 'Allow / Turn On Camera'}
+              </button>
+            </div>
           </div>
         )}
 
         {/* Dynamic Scan Laser Sweep */}
         {isScanning && (
-          <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#f4727d] to-transparent shadow-[0_0_15px_#f4727d] animate-laserSweep z-10" />
+          <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#f4727d] to-transparent shadow-[0_0_15px_#f4727d] animate-laserSweep z-10 pointer-events-none" />
         )}
       </div>
 
@@ -318,8 +412,16 @@ export default function ScannerPage() {
           </button>
         </div>
 
-        {/* Right: Quick Image Upload or Switch Camera */}
+        {/* Right: Switch Camera & Image Upload */}
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleCameraFacing}
+            title={`Switch to ${facingMode === 'environment' ? 'Front' : 'Back'} Camera`}
+            className="w-10 h-10 rounded-xl bg-[#242836]/80 hover:bg-[#34384c] text-gray-300 hover:text-white flex items-center justify-center backdrop-blur-md border border-white/10 shadow-lg active:scale-95 transition cursor-pointer"
+          >
+            <SwitchCamera className="w-5 h-5" />
+          </button>
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
