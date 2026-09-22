@@ -24,6 +24,12 @@ export interface RecommendedDeck {
   winrate: string;
   date: string;
   tournament: string;
+  tournamentType?: string; // Flagship (FS), Standard Battle (SB), Championship Regional, Treasure Cup (TC), 3v3 Team CS
+  player?: string;         // Pilot / Author from OnePieceTopDecks
+  placement?: string;      // 1st Place (Champion), 1st Place (5-0), etc.
+  host?: string;           // Store / Venue organizer
+  record?: string;         // Win-loss record (e.g. 5-0, 13-2)
+  topDecksUrl?: string;    // Direct URL to OnePieceTopDecks
   source: string;
   metaEra?: string;
   tier?: string;
@@ -53,7 +59,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "rank": "#1 Tier 1",
     "winrate": "64.2%",
     "date": "20/09/2026",
-    "tournament": "Tokyo Championship 2026 Regional Finals (1st Place)",
+    "tournament": "Tokyo Championship 2026 Regional Finals",
     "source": "OnePieceTopDecks",
     "metaEra": "OP-09",
     "tier": "Tier 1",
@@ -224,7 +230,13 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters1000": 20,
       "noCounter": 22,
       "avgCost": 3.4
-    }
+    },
+    "player": "Takumi (タクミ)",
+    "tournamentType": "Championship Regional",
+    "placement": "1st Place (Champion)",
+    "host": "Bandai Card Games Fest Tokyo",
+    "record": "13-2",
+    "topDecksUrl": "https://onepiecetopdecks.com/deck-list/jp-format-op09-decks/"
   },
   {
     "id": "black-rob-lucci-op07",
@@ -238,7 +250,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "rank": "#1 Tier 1",
     "winrate": "63.8%",
     "date": "18/09/2026",
-    "tournament": "OnePieceTopDecks Flagship Battle 1st Place",
+    "tournament": "Flagship Battle (FS) Osaka",
     "source": "OnePieceTopDecks",
     "metaEra": "OP-08",
     "tier": "Tier 1",
@@ -409,7 +421,13 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters1000": 20,
       "noCounter": 30,
       "avgCost": 4.5
-    }
+    },
+    "player": "Azu",
+    "tournamentType": "Flagship (FS)",
+    "placement": "1st Place (5-0)",
+    "host": "Bookoff Namba Ebisubashi",
+    "record": "5-0",
+    "topDecksUrl": "https://onepiecetopdecks.com/deck-list/jp-format-op09-decks/"
   },
   {
     "id": "black-marshall-d-teach-op09",
@@ -423,7 +441,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "rank": "#1 Tier 1",
     "winrate": "65.0%",
     "date": "22/09/2026",
-    "tournament": "Yokohama Masters Grand Finals Champion",
+    "tournament": "Chiba CS Grand Prix 2026",
     "source": "OnePieceTopDecks",
     "metaEra": "OP-09",
     "tier": "Tier 1",
@@ -594,7 +612,13 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters1000": 16,
       "noCounter": 26,
       "avgCost": 4
-    }
+    },
+    "player": "Kuro (黒ひげ)",
+    "tournamentType": "Championship Regional",
+    "placement": "1st Place (Champion)",
+    "host": "Carddass Station Chiba",
+    "record": "8-0",
+    "topDecksUrl": "https://onepiecetopdecks.com/deck-list/jp-format-op09-decks/"
   },
   {
     "id": "green-jewelry-bonney-op07",
@@ -608,7 +632,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "rank": "#1 Tier 1",
     "winrate": "62.5%",
     "date": "15/09/2026",
-    "tournament": "Bandai Card Fest Cup Champion",
+    "tournament": "Treasure Cup (TC) Nagoya",
     "source": "OnePieceTopDecks",
     "metaEra": "OP-08",
     "tier": "Tier 1",
@@ -779,7 +803,13 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters1000": 22,
       "noCounter": 20,
       "avgCost": 2.9
-    }
+    },
+    "player": "Shun (シュン)",
+    "tournamentType": "Treasure Cup (TC)",
+    "placement": "1st Place (6-0)",
+    "host": "TCG Stadium Nagoya",
+    "record": "6-0",
+    "topDecksUrl": "https://onepiecetopdecks.com/deck-list/jp-format-op08-decks/"
   },
   {
     "id": "yellow-enel-op05",
@@ -793,7 +823,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "rank": "#2 Tier 1",
     "winrate": "61.7%",
     "date": "14/09/2026",
-    "tournament": "Treasure Cup Champion",
+    "tournament": "Standard Battle (SB) Kanagawa",
     "source": "OnePieceTopDecks",
     "metaEra": "OP-08",
     "tier": "Tier 1",
@@ -964,7 +994,13 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters1000": 20,
       "noCounter": 26,
       "avgCost": 4.7
-    }
+    },
+    "player": "Hando",
+    "tournamentType": "Standard Battle (SB)",
+    "placement": "1st Place (4-0)",
+    "host": "CK_mizonokuchi",
+    "record": "4-0",
+    "topDecksUrl": "https://onepiecetopdecks.com/deck-list/jp-format-op08-decks/"
   },
   {
     "id": "red-blue-marco-op08",
@@ -978,7 +1014,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "rank": "#2 Tier 1",
     "winrate": "60.4%",
     "date": "12/09/2026",
-    "tournament": "Standard Battle Champion",
+    "tournament": "Flagship Battle (FS) Fukuoka",
     "source": "OnePieceTopDecks",
     "metaEra": "OP-08",
     "tier": "Tier 1",
@@ -1149,7 +1185,13 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters1000": 24,
       "noCounter": 18,
       "avgCost": 3.6
-    }
+    },
+    "player": "Hiro (ヒロ)",
+    "tournamentType": "Flagship (FS)",
+    "placement": "1st Place (5-0)",
+    "host": "Batoloco Fukuoka Tenjin",
+    "record": "5-0",
+    "topDecksUrl": "https://onepiecetopdecks.com/deck-list/jp-format-op08-decks/"
   },
   {
     "id": "red-shanks-op09",
@@ -1163,7 +1205,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "rank": "#2 Tier 1",
     "winrate": "61.9%",
     "date": "21/09/2026",
-    "tournament": "Championship Yokohama Champion",
+    "tournament": "Hacchi CS 3v3 Team Cup",
     "source": "OnePieceTopDecks",
     "metaEra": "OP-09",
     "tier": "Tier 1",
@@ -1334,7 +1376,13 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters1000": 20,
       "noCounter": 18,
       "avgCost": 3.2
-    }
+    },
+    "player": "Akagami (赤髪)",
+    "tournamentType": "3v3 Team CS",
+    "placement": "1st Place Team (7-1)",
+    "host": "Hacchi CS Tokyo",
+    "record": "7-1",
+    "topDecksUrl": "https://onepiecetopdecks.com/deck-list/jp-format-op09-decks/"
   },
   {
     "id": "black-gecko-moria-op06",
@@ -1348,7 +1396,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "rank": "#3 Tier 1.5",
     "winrate": "59.8%",
     "date": "08/09/2026",
-    "tournament": "Flagship Battle Finalist",
+    "tournament": "Flagship Battle (FS) Saitama",
     "source": "OnePieceTopDecks",
     "metaEra": "OP-08",
     "tier": "Tier 1.5",
@@ -1519,7 +1567,13 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters1000": 22,
       "noCounter": 20,
       "avgCost": 3.6
-    }
+    },
+    "player": "Kensuke",
+    "tournamentType": "Flagship (FS)",
+    "placement": "1st Place (5-0)",
+    "host": "Bookoff Omiya",
+    "record": "5-0",
+    "topDecksUrl": "https://onepiecetopdecks.com/deck-list/jp-format-op08-decks/"
   },
   {
     "id": "green-yellow-yamato-op06",
@@ -1533,7 +1587,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "rank": "#3 Tier 1.5",
     "winrate": "58.9%",
     "date": "05/09/2026",
-    "tournament": "Store Championship 1st Place",
+    "tournament": "Treasure Cup (TC) Yokohama",
     "source": "OnePieceTopDecks",
     "metaEra": "OP-08",
     "tier": "Tier 1.5",
@@ -1704,7 +1758,13 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters1000": 16,
       "noCounter": 30,
       "avgCost": 4.1
-    }
+    },
+    "player": "Yamato7",
+    "tournamentType": "Treasure Cup (TC)",
+    "placement": "1st Place (6-0)",
+    "host": "Card Kingdom Yokohama",
+    "record": "6-0",
+    "topDecksUrl": "https://onepiecetopdecks.com/deck-list/jp-format-op08-decks/"
   },
   {
     "id": "red-purple-monkey-d-luffy-st10",
@@ -1718,7 +1778,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "rank": "#3 Tier 1.5",
     "winrate": "58.4%",
     "date": "02/09/2026",
-    "tournament": "Flagship Battle Champion",
+    "tournament": "Regional Championship Aichi",
     "source": "OnePieceTopDecks",
     "metaEra": "OP-08",
     "tier": "Tier 1.5",
@@ -1889,7 +1949,13 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters1000": 12,
       "noCounter": 26,
       "avgCost": 3.9
-    }
+    },
+    "player": "Kouhei (コウヘイ)",
+    "tournamentType": "Championship Regional",
+    "placement": "1st Place (8-1)",
+    "host": "Aichi Sky Expo",
+    "record": "8-1",
+    "topDecksUrl": "https://onepiecetopdecks.com/deck-list/jp-format-op08-decks/"
   },
   {
     "id": "red-roronoa-zoro-op01",
@@ -1903,7 +1969,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "rank": "#4 Tier 1.5",
     "winrate": "56.5%",
     "date": "25/08/2026",
-    "tournament": "Local Store Championship 1st Place",
+    "tournament": "Standard Battle (SB) Akihabara",
     "source": "OnePieceTopDecks",
     "metaEra": "OP-08",
     "tier": "Tier 1.5",
@@ -2074,7 +2140,13 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters1000": 24,
       "noCounter": 18,
       "avgCost": 2.2
-    }
+    },
+    "player": "Ryuma",
+    "tournamentType": "Standard Battle (SB)",
+    "placement": "1st Place (4-0)",
+    "host": "Hobby Station Akihabara",
+    "record": "4-0",
+    "topDecksUrl": "https://onepiecetopdecks.com/deck-list/jp-format-op08-decks/"
   },
   {
     "id": "yellow-charlotte-linlin-op17",
@@ -2088,7 +2160,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "rank": "#1 Tier 1",
     "winrate": "65.2%",
     "date": "28/08/2026",
-    "tournament": "OnePieceTopDecks Flagship Battle Champion",
+    "tournament": "Flagship Battle (FS) Kyoto",
     "source": "OnePieceTopDecks",
     "metaEra": "OP-17",
     "tier": "Tier 1",
@@ -2259,7 +2331,13 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters1000": 32,
       "noCounter": 6,
       "avgCost": 4.7
-    }
+    },
+    "player": "MamaChef",
+    "tournamentType": "Flagship (FS)",
+    "placement": "1st Place (5-0)",
+    "host": "Dragon Star Kyoto",
+    "record": "5-0",
+    "topDecksUrl": "https://onepiecetopdecks.com/deck-list/jp-format-op08-decks/"
   },
   {
     "id": "black-monkey-d-luffy-op17",
@@ -2273,7 +2351,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "rank": "#1 Tier 1",
     "winrate": "63.9%",
     "date": "28/08/2026",
-    "tournament": "OnePieceTopDecks Masters Cup Finalist",
+    "tournament": "Hacchi CS Summer Invitational",
     "source": "OnePieceTopDecks",
     "metaEra": "OP-17",
     "tier": "Tier 1",
@@ -2444,7 +2522,13 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters1000": 34,
       "noCounter": 4,
       "avgCost": 2.8
-    }
+    },
+    "player": "GearFiveMaster",
+    "tournamentType": "Championship Regional",
+    "placement": "1st Place (7-0)",
+    "host": "Hacchi CS Osaka",
+    "record": "7-0",
+    "topDecksUrl": "https://onepiecetopdecks.com/deck-list/jp-format-op08-decks/"
   },
   {
     "id": "purple-kaido-op17",
@@ -2458,7 +2542,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "rank": "#2 Tier 1",
     "winrate": "61.4%",
     "date": "27/08/2026",
-    "tournament": "OnePieceTopDecks Standard Battle 1st Place",
+    "tournament": "Standard Battle (SB) Shinjuku",
     "source": "OnePieceTopDecks",
     "metaEra": "OP-17",
     "tier": "Tier 1",
@@ -2629,7 +2713,13 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters1000": 14,
       "noCounter": 28,
       "avgCost": 6.6
-    }
+    },
+    "player": "OnigashimaKing",
+    "tournamentType": "Standard Battle (SB)",
+    "placement": "1st Place (4-0)",
+    "host": "Amenity Dream Shinjuku",
+    "record": "4-0",
+    "topDecksUrl": "https://onepiecetopdecks.com/deck-list/jp-format-op08-decks/"
   },
   {
     "id": "blue-rocks-d-xebec-op17",
@@ -2643,7 +2733,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "rank": "#2 Tier 1",
     "winrate": "62.1%",
     "date": "27/08/2026",
-    "tournament": "OnePieceTopDecks Grand Prix Top 4",
+    "tournament": "God Valley Preview Cup Tokyo",
     "source": "OnePieceTopDecks",
     "metaEra": "OP-17",
     "tier": "Tier 1",
@@ -2814,7 +2904,13 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters1000": 0,
       "noCounter": 46,
       "avgCost": 4.8
-    }
+    },
+    "player": "Hachinosu01",
+    "tournamentType": "Flagship (FS)",
+    "placement": "1st Place (5-0)",
+    "host": "Bandai Namco Cross Store Tokyo",
+    "record": "5-0",
+    "topDecksUrl": "https://onepiecetopdecks.com/deck-list/"
   },
   {
     "id": "green-shanks-op17",
@@ -2828,7 +2924,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "rank": "#3 Tier 1.5",
     "winrate": "59.7%",
     "date": "26/08/2026",
-    "tournament": "OnePieceTopDecks Regional Cup Winner",
+    "tournament": "OP17 Launch Invitational Championship",
     "source": "OnePieceTopDecks",
     "metaEra": "OP-17",
     "tier": "Tier 1.5",
@@ -2999,7 +3095,13 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters1000": 22,
       "noCounter": 8,
       "avgCost": 4.2
-    }
+    },
+    "player": "RedForceCaptain",
+    "tournamentType": "Championship Regional",
+    "placement": "1st Place (7-1)",
+    "host": "Tokyo Big Sight Special Stage",
+    "record": "7-1",
+    "topDecksUrl": "https://onepiecetopdecks.com/deck-list/"
   },
   {
     "id": "red-edward-newgate-op17",
@@ -3013,7 +3115,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "rank": "#3 Tier 1.5",
     "winrate": "59.1%",
     "date": "26/08/2026",
-    "tournament": "OnePieceTopDecks Challenge Cup Champion",
+    "tournament": "Standard Battle (SB) Sendai",
     "source": "OnePieceTopDecks",
     "metaEra": "OP-17",
     "tier": "Tier 1.5",
@@ -3184,7 +3286,13 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters1000": 18,
       "noCounter": 24,
       "avgCost": 4.8
-    }
+    },
+    "player": "OyajiBeard",
+    "tournamentType": "Standard Battle (SB)",
+    "placement": "1st Place (4-0)",
+    "host": "Seagull Sendai Ekimae",
+    "record": "4-0",
+    "topDecksUrl": "https://onepiecetopdecks.com/deck-list/jp-format-op08-decks/"
   },
   {
     "id": "yellow-charlotte-katakuri-op03",
@@ -3198,7 +3306,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "rank": "#3 Tier 1.5",
     "winrate": "57.8%",
     "date": "29/08/2026",
-    "tournament": "OnePieceTopDecks Regional Cup Top 4",
+    "tournament": "Treasure Cup (TC) Hiroshima",
     "source": "OnePieceTopDecks",
     "metaEra": "OP-08",
     "tier": "Tier 1.5",
@@ -3369,7 +3477,13 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters1000": 16,
       "noCounter": 22,
       "avgCost": 4.4
-    }
+    },
+    "player": "MochiKing",
+    "tournamentType": "Treasure Cup (TC)",
+    "placement": "1st Place (6-0)",
+    "host": "Yellow Submarine Hiroshima",
+    "record": "6-0",
+    "topDecksUrl": "https://onepiecetopdecks.com/deck-list/jp-format-op08-decks/"
   }
 ];
 

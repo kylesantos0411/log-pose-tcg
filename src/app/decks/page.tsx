@@ -16,7 +16,7 @@ import {
 import { RECOMMENDED_DECKS, RecommendedDeck } from '@/lib/recommended-decks';
 import { getEditionCardImageUrl } from '@/lib/card-image';
 
-type MetaFilter = 'ALL' | 'TIER_1' | 'OP09' | 'OP08' | 'OP17';
+type MetaFilter = 'ALL' | 'TIER_1' | 'FLAGSHIP' | 'CHAMPIONSHIP' | 'STANDARD_BATTLE' | 'TREASURE_CUP' | 'OP09' | 'OP08' | 'OP17';
 type ColorFilter = 'ALL' | 'Red' | 'Blue' | 'Green' | 'Purple' | 'Black' | 'Yellow';
 
 const COLOR_CHIPS: { label: string; value: ColorFilter; bg: string; text: string }[] = [
@@ -44,13 +44,31 @@ export default function RecommendedDecksPage() {
         const matchesLeader = deck.leaderName.toLowerCase().includes(query);
         const matchesId = deck.leaderId.toLowerCase().includes(query);
         const matchesTournament = deck.tournament.toLowerCase().includes(query);
-        if (!matchesName && !matchesSubname && !matchesLeader && !matchesId && !matchesTournament) {
+        const matchesPlayer = deck.player?.toLowerCase().includes(query);
+        const matchesHost = deck.host?.toLowerCase().includes(query);
+        const matchesPlacement = deck.placement?.toLowerCase().includes(query);
+        const matchesType = deck.tournamentType?.toLowerCase().includes(query);
+        if (
+          !matchesName &&
+          !matchesSubname &&
+          !matchesLeader &&
+          !matchesId &&
+          !matchesTournament &&
+          !matchesPlayer &&
+          !matchesHost &&
+          !matchesPlacement &&
+          !matchesType
+        ) {
           return false;
         }
       }
 
-      // Meta filter
+      // Tournament & Meta filter
       if (activeMeta === 'TIER_1' && deck.tier !== 'Tier 1') return false;
+      if (activeMeta === 'FLAGSHIP' && !deck.tournamentType?.includes('Flagship')) return false;
+      if (activeMeta === 'CHAMPIONSHIP' && !deck.tournamentType?.includes('Championship') && !deck.tournamentType?.includes('3v3')) return false;
+      if (activeMeta === 'STANDARD_BATTLE' && !deck.tournamentType?.includes('Standard Battle')) return false;
+      if (activeMeta === 'TREASURE_CUP' && !deck.tournamentType?.includes('Treasure Cup')) return false;
       if (activeMeta === 'OP09' && deck.metaEra !== 'OP-09') return false;
       if (activeMeta === 'OP08' && deck.metaEra !== 'OP-08') return false;
       if (activeMeta === 'OP17' && deck.metaEra !== 'OP-17') return false;
@@ -114,35 +132,75 @@ export default function RecommendedDecksPage() {
           )}
         </div>
 
-        {/* Meta Era Quick Tabs */}
+        {/* Meta & Tournament Category Quick Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs font-bold select-none">
           <button
             onClick={() => setActiveMeta('ALL')}
             className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${
               activeMeta === 'ALL'
                 ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md shadow-[#f4727d]/20'
-                : 'bg-[#242735] text-gray-300 border-[#343a4c] hover:bg-[#2a2e40]'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
             }`}
           >
             All Decks ({RECOMMENDED_DECKS.length})
           </button>
           <button
             onClick={() => setActiveMeta('TIER_1')}
-            className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 flex items-center gap-1 ${
+            className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 flex items-center gap-1.5 ${
               activeMeta === 'TIER_1'
                 ? 'bg-amber-500 text-black font-black border-amber-500 shadow-md'
-                : 'bg-[#242735] text-amber-400 border-[#343a4c] hover:bg-[#2a2e40]'
+                : 'bg-[#242735] text-amber-400 border-[#34384c] hover:bg-[#2a2e40]'
             }`}
           >
-            <Trophy className="w-3 h-3 fill-current" />
+            <Trophy className="w-3.5 h-3.5 fill-current" />
             <span>Tier 1 Meta</span>
+          </button>
+          <button
+            onClick={() => setActiveMeta('FLAGSHIP')}
+            className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 flex items-center gap-1 ${
+              activeMeta === 'FLAGSHIP'
+                ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
+            }`}
+          >
+            <span>🏆 Flagship (FS)</span>
+          </button>
+          <button
+            onClick={() => setActiveMeta('CHAMPIONSHIP')}
+            className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 flex items-center gap-1 ${
+              activeMeta === 'CHAMPIONSHIP'
+                ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
+            }`}
+          >
+            <span>👑 Regionals / CS</span>
+          </button>
+          <button
+            onClick={() => setActiveMeta('STANDARD_BATTLE')}
+            className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 flex items-center gap-1 ${
+              activeMeta === 'STANDARD_BATTLE'
+                ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
+            }`}
+          >
+            <span>⚔️ Standard Battle</span>
+          </button>
+          <button
+            onClick={() => setActiveMeta('TREASURE_CUP')}
+            className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 flex items-center gap-1 ${
+              activeMeta === 'TREASURE_CUP'
+                ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
+            }`}
+          >
+            <span>💎 Treasure Cup</span>
           </button>
           <button
             onClick={() => setActiveMeta('OP09')}
             className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${
               activeMeta === 'OP09'
                 ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md'
-                : 'bg-[#242735] text-gray-300 border-[#343a4c] hover:bg-[#2a2e40]'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
             }`}
           >
             OP-09 Meta
@@ -152,7 +210,7 @@ export default function RecommendedDecksPage() {
             className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${
               activeMeta === 'OP08'
                 ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md'
-                : 'bg-[#242735] text-gray-300 border-[#343a4c] hover:bg-[#2a2e40]'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
             }`}
           >
             OP-08 Meta
@@ -162,7 +220,7 @@ export default function RecommendedDecksPage() {
             className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${
               activeMeta === 'OP17'
                 ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md'
-                : 'bg-[#242735] text-gray-300 border-[#343a4c] hover:bg-[#2a2e40]'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
             }`}
           >
             OP-17 Future
@@ -247,6 +305,25 @@ export default function RecommendedDecksPage() {
                         {deck.subname}
                       </div>
 
+                      {/* OnePieceTopDecks Pilot & Tournament Badges */}
+                      <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                        {deck.player && (
+                          <span className="px-1.5 py-0.5 rounded bg-blue-500/15 border border-blue-500/30 text-[9px] sm:text-[10px] font-bold text-blue-300 truncate max-w-[140px]">
+                            👤 {deck.player}
+                          </span>
+                        )}
+                        {deck.placement && (
+                          <span className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-[9px] sm:text-[10px] font-black text-amber-300 whitespace-nowrap">
+                            🏆 {deck.placement}
+                          </span>
+                        )}
+                        {deck.tournamentType && (
+                          <span className="px-1.5 py-0.5 rounded bg-purple-500/15 border border-purple-500/30 text-[9px] sm:text-[10px] font-bold text-purple-300 truncate max-w-[130px]">
+                            {deck.tournamentType}
+                          </span>
+                        )}
+                      </div>
+
                       <div className="flex items-center gap-1.5 flex-wrap mt-1">
                         <span className="font-mono text-[10px] sm:text-xs font-bold text-gray-400">
                           {deck.leaderId}
@@ -254,6 +331,11 @@ export default function RecommendedDecksPage() {
                         {isTier1 && (
                           <span className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-[9px] sm:text-[10px] font-black text-amber-300 whitespace-nowrap">
                             TIER 1
+                          </span>
+                        )}
+                        {deck.record && (
+                          <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-[9px] sm:text-[10px] font-bold text-emerald-400 whitespace-nowrap">
+                            Record {deck.record}
                           </span>
                         )}
                         {deck.winrate && deck.winrate !== '0%' && (
