@@ -673,21 +673,45 @@ export function SettingsModal() {
           <div className="pt-2 space-y-2">
             {user ? (
               <>
-                <div className="flex items-center justify-between text-[11px] text-gray-400 px-1">
-                  <span>Signed in as <strong className="text-white">{user.name}</strong></span>
-                  <span className="text-emerald-400 font-bold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    Online Synced
-                  </span>
+                <div className="p-3 rounded-2xl bg-[#1e212c] border border-[#343a4c] space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="text-2xl">{user.avatar || '👒'}</span>
+                      <div className="min-w-0">
+                        <div className="text-xs font-black text-white truncate">{user.name}</div>
+                        <div className="font-mono text-[10px] text-amber-400 truncate">{user.tag}</div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 truncate max-w-[120px]">
+                      {user.crew}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-gray-400 pt-1 border-t border-white/5">
+                    <span>Rank: <strong className="text-white">{user.rank}</strong></span>
+                    <span className="text-emerald-400 font-bold flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                      Account Synced
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2.5">
+                <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setShowDeleteConfirm(true)}
-                    className="flex-1 bg-[#f45d6a] hover:bg-[#e04f5c] text-white font-extrabold text-xs uppercase tracking-wider py-3 px-4 rounded-xl transition cursor-pointer shadow-md text-center"
+                    className="bg-[#f45d6a]/20 hover:bg-[#f45d6a]/30 border border-[#f45d6a]/40 text-[#f45d6a] font-extrabold text-[11px] uppercase tracking-wider py-2.5 px-2 rounded-xl transition cursor-pointer text-center"
                   >
                     DELETE
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSignInModal(true);
+                    }}
+                    className="bg-[#3b82f6]/20 hover:bg-[#3b82f6]/30 border border-[#3b82f6]/40 text-[#3b82f6] font-extrabold text-[11px] uppercase tracking-wider py-2.5 px-2 rounded-xl transition cursor-pointer text-center"
+                  >
+                    SWITCH
                   </button>
 
                   <button
@@ -697,7 +721,7 @@ export function SettingsModal() {
                       setCopiedNotification('Logged out to Guest Mode');
                       setTimeout(() => setCopiedNotification(null), 2500);
                     }}
-                    className="flex-1 bg-[#1e212c] hover:bg-[#282c3a] border border-[#32384a] text-white font-extrabold text-xs uppercase tracking-wider py-3 px-4 rounded-xl transition cursor-pointer shadow-sm text-center"
+                    className="bg-[#1e212c] hover:bg-[#282c3a] border border-[#32384a] text-white font-extrabold text-[11px] uppercase tracking-wider py-2.5 px-2 rounded-xl transition cursor-pointer text-center"
                   >
                     LOGOUT
                   </button>

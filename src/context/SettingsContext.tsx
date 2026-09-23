@@ -2,6 +2,18 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { formatCardId, AltArtLabelStyle, FormattedCardId } from '@/lib/card-format';
+import { 
+  StoredAccount, 
+  UserSession, 
+  getStoredAccounts, 
+  registerAccount, 
+  authenticateAccount, 
+  findAccountByIdentifier,
+  deleteStoredAccount, 
+  getActiveSession, 
+  setActiveSession 
+} from '@/lib/user-accounts';
+import { transferGuestCardsToAccount } from '@/lib/user-collection';
 
 export type CurrencyCode =
   | 'source' // Default: uses each marketplace source's native currency (Yuyu-tei: JPY ¥, TCGPlayer/eBay/PSA: USD $)
@@ -125,17 +137,7 @@ export interface EnabledPriceSources {
   psa: boolean;
 }
 
-export interface UserProfile {
-  id: string;
-  name: string;
-  tag: string;
-  email?: string;
-  avatar: string;
-  crew: string;
-  rank: string;
-  rankBadge: string;
-  createdAt?: string;
-}
+export type UserProfile = UserSession;
 
 export function generateCollectorTag(name: string): string {
   const clean = name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8) || 'PIRATE';
@@ -159,10 +161,24 @@ interface SettingsContextType {
   shareCrashReports: boolean;
   setShareCrashReports: (val: boolean) => void;
   user: UserProfile | null;
-  register: (data: { name: string; email?: string; avatar?: string; crew?: string; tag?: string }) => UserProfile;
-  login: (emailOrTag: string, name?: string) => void;
+  accounts: StoredAccount[];
+  register: (data: {
+    username?: string;
+    name?: string;
+    email?: string;
+    password?: string;
+    avatar?: string;
+    crew?: string;
+    tag?: string;
+    customTag?: string;
+  }) => { success: boolean; user?: UserProfile; error?: string };
+  login: (
+    identifier: string,
+    password?: string
+  ) => { success: boolean; user?: UserProfile; error?: string };
   updateProfile: (data: Partial<UserProfile>) => void;
   logout: () => void;
+  deleteAccount: (idOrTag?: string) => boolean;
   clearUserData: () => void;
   formatPrice: (
     amountUSD: number,
@@ -202,6 +218,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   });
   const [shareCrashReports, setShareCrashReportsState] = useState<boolean>(true);
   const [user, setUserState] = useState<UserProfile | null>(null);
+  const [accounts, setAccountsState] = useState<StoredAccount[]>([]);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -249,17 +266,20 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      const savedUser = localStorage.getItem('logpose_user_session');
-      if (savedUser) {
-        try {
-          setUserState(JSON.parse(savedUser));
-        } catch {
-          // Ignore
-        }
-      }
+      // Sync active session and registered accounts
+      const active = getActiveSession();
+      setUserState(active);
+      setAccountsState(getStoredAccounts());
     } catch {
       // localStorage may be unavailable in some environments
     }
+
+    const handleAuthChange = () => {
+      setUserState(getActiveSession());
+      setAccountsState(getStoredAccounts());
+    };
+    window.addEventListener('logpose_auth_changed', handleAuthChange);
+    return () => window.removeEventListener('logpose_auth_changed', handleAuthChange);
   }, []);
 
   const setCurrency = (next: CurrencyCode) => {
@@ -323,87 +343,139 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = (data: { name: string; email?: string; avatar?: string; crew?: string; tag?: string }): UserProfile => {
-    const rawTag = data.tag || generateCollectorTag(data.name);
-    const formattedTag = rawTag.toUpperCase().startsWith('PIRATE-') ? rawTag.toUpperCase() : `PIRATE-${rawTag.toUpperCase()}`;
-    const newUser: UserProfile = {
-      id: `usr_${Date.now()}`,
-      name: data.name.trim() || 'Pirate Collector',
-      tag: formattedTag,
-      email: data.email?.trim() || undefined,
-      avatar: data.avatar || '👒',
-      crew: data.crew || 'Straw Hat Pirates',
-      rank: 'Supernova Collector',
-      rankBadge: '🏴‍☠️',
-      createdAt: new Date().toISOString(),
-    };
-    setUserState(newUser);
-    try {
-      localStorage.setItem('logpose_user_session', JSON.stringify(newUser));
-    } catch {
-      // Ignore
+  const register = (data: {
+    username?: string;
+    name?: string;
+    email?: string;
+    password?: string;
+    avatar?: string;
+    crew?: string;
+    tag?: string;
+    customTag?: string;
+  }): { success: boolean; user?: UserProfile; error?: string } => {
+    const rawUsername = (data.username || data.name || '').trim();
+    const rawEmail = (data.email || `${rawUsername.toLowerCase()}@pirate.local`).trim();
+    const rawPassword = (data.password || 'password123').trim();
+    const customTag = data.customTag || data.tag;
+
+    const res = registerAccount({
+      username: rawUsername,
+      email: rawEmail,
+      password: rawPassword,
+      avatar: data.avatar,
+      crew: data.crew,
+      customTag,
+    });
+
+    if (res.success && res.user) {
+      setUserState(res.user);
+      transferGuestCardsToAccount(res.user.tag);
+      setAccountsState(getStoredAccounts());
     }
-    return newUser;
+    return res;
   };
 
-  const login = (emailOrTag: string, name?: string) => {
-    const identifier = emailOrTag.trim();
-    const isTag = identifier.toUpperCase().startsWith('PIRATE-');
-    const detectedName = name || (isTag ? identifier.replace(/^PIRATE-/, '').split('-')[0] : identifier.split('@')[0]) || 'Collector';
-    const tag = isTag ? identifier.toUpperCase() : generateCollectorTag(detectedName);
+  const login = (
+    identifier: string,
+    password?: string
+  ): { success: boolean; user?: UserProfile; error?: string } => {
+    const cleanId = (identifier || '').trim();
+    const cleanPass = (password || '').trim();
 
-    const newUser: UserProfile = {
-      id: `usr_${Date.now()}`,
-      name: detectedName,
-      tag: tag,
-      email: !isTag && identifier.includes('@') ? identifier : undefined,
-      avatar: '👒',
-      crew: 'Straw Hat Pirates',
-      rank: 'Supernova Collector',
-      rankBadge: '🏴‍☠️',
-      createdAt: new Date().toISOString(),
-    };
-    setUserState(newUser);
-    try {
-      localStorage.setItem('logpose_user_session', JSON.stringify(newUser));
-    } catch {
-      // Ignore
+    const existing = findAccountByIdentifier(cleanId);
+    if (existing && cleanPass) {
+      const res = authenticateAccount(cleanId, cleanPass);
+      if (res.success && res.user) {
+        setUserState(res.user);
+        transferGuestCardsToAccount(res.user.tag);
+        setAccountsState(getStoredAccounts());
+      }
+      return res;
     }
+
+    if (existing && !cleanPass) {
+      const sessionUser: UserSession = {
+        id: existing.id,
+        name: existing.username,
+        tag: existing.tag,
+        email: existing.email,
+        avatar: existing.avatar,
+        crew: existing.crew,
+        rank: existing.rank,
+        rankBadge: existing.rankBadge,
+        createdAt: existing.createdAt,
+      };
+      setActiveSession(sessionUser);
+      setUserState(sessionUser);
+      transferGuestCardsToAccount(sessionUser.tag);
+      setAccountsState(getStoredAccounts());
+      return { success: true, user: sessionUser };
+    }
+
+    if (!existing) {
+      if (cleanPass) {
+        return authenticateAccount(cleanId, cleanPass);
+      }
+      // Legacy fallback
+      const isTag = cleanId.toUpperCase().startsWith('PIRATE-');
+      const cleanName = isTag ? cleanId.replace(/^PIRATE-/, '').split('-')[0] : cleanId.split('@')[0] || 'Collector';
+      const res = registerAccount({
+        username: cleanName,
+        email: cleanId.includes('@') ? cleanId : `${cleanName.toLowerCase()}@pirate.local`,
+        password: 'password123',
+        customTag: isTag ? cleanId : undefined,
+      });
+      if (res.success && res.user) {
+        setUserState(res.user);
+        transferGuestCardsToAccount(res.user.tag);
+        setAccountsState(getStoredAccounts());
+      }
+      return res;
+    }
+
+    return { success: false, error: 'Could not sign in' };
   };
 
   const updateProfile = (data: Partial<UserProfile>) => {
     setUserState((prev) => {
       if (!prev) return null;
       const updated = { ...prev, ...data };
-      try {
-        localStorage.setItem('logpose_user_session', JSON.stringify(updated));
-      } catch {
-        // Ignore
-      }
+      setActiveSession(updated);
       return updated;
     });
   };
 
   const logout = () => {
+    setActiveSession(null);
     setUserState(null);
-    try {
-      localStorage.removeItem('logpose_user_session');
-    } catch {
-      // Ignore
+    setAccountsState(getStoredAccounts());
+  };
+
+  const deleteAccount = (idOrTag?: string): boolean => {
+    const target = idOrTag || user?.tag || user?.id;
+    if (!target) return false;
+    const ok = deleteStoredAccount(target);
+    if (ok) {
+      setUserState(null);
+      setAccountsState(getStoredAccounts());
     }
+    return ok;
   };
 
   const clearUserData = () => {
+    setActiveSession(null);
     setUserState(null);
     try {
       localStorage.removeItem('logpose_user_session');
-      localStorage.removeItem('logpose_user_collection');
-      localStorage.removeItem('optcg_user_collection');
+      localStorage.removeItem('logpose_user_binder');
+      localStorage.removeItem('logpose_binder_guest');
+      localStorage.removeItem('logpose_registered_accounts');
       localStorage.removeItem('logpose_friends_list');
       localStorage.removeItem('logpose_friend_requests');
     } catch {
       // Ignore
     }
+    setAccountsState([]);
   };
 
   const convertPrice = (
@@ -584,10 +656,12 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         shareCrashReports,
         setShareCrashReports,
         user,
+        accounts,
         register,
         login,
         updateProfile,
         logout,
+        deleteAccount,
         clearUserData,
         formatPrice,
         convertPrice,

@@ -14,11 +14,16 @@ import {
   LayoutGrid,
   X,
   Upload,
-  Download
+  Download,
+  LogIn,
+  UserPlus,
+  LogOut,
+  User
 } from 'lucide-react';
 import { getSafeCardImageUrl } from '@/lib/card-image';
 import { useSettings } from '@/context/SettingsContext';
 import { CardDetailView } from '@/components/CardDetailView';
+import { AccountModal } from '@/components/AccountModal';
 import { 
   getLocalBinder, 
   removeCardFromLocalBinder, 
@@ -69,22 +74,35 @@ interface Stats {
 }
 
 export default function CollectionPage() {
-  const { currency, formatPrice, formatYuyuPrice, openSettings, formatCard } = useSettings();
+  const { currency, formatPrice, formatYuyuPrice, openSettings, formatCard, user, logout } = useSettings();
   const [items, setItems] = useState<UserCardRecord[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [activeCard, setActiveCard] = useState<any | null>(null);
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const [accountModalTab, setAccountModalTab] = useState<'register' | 'login'>('login');
 
   useEffect(() => {
     loadCollection();
-  }, []);
+
+    const handleUpdate = () => {
+      loadCollection();
+    };
+
+    window.addEventListener('logpose_collection_updated', handleUpdate);
+    window.addEventListener('logpose_auth_changed', handleUpdate);
+    return () => {
+      window.removeEventListener('logpose_collection_updated', handleUpdate);
+      window.removeEventListener('logpose_auth_changed', handleUpdate);
+    };
+  }, [user?.tag]);
 
   async function loadCollection() {
     setLoading(true);
     try {
-      const local = getLocalBinder();
+      const local = getLocalBinder(user?.tag || null);
       setItems(local as any);
       setStats(local.length > 0 ? getLocalBinderStats(local) : null);
     } catch (e) {
@@ -99,7 +117,7 @@ export default function CollectionPage() {
   async function handleDelete(id: string, cardName: string) {
     if (!confirm(`Remove ${cardName} from your collection?`)) return;
 
-    removeCardFromLocalBinder(id);
+    removeCardFromLocalBinder(id, user?.tag || null);
     loadCollection();
   }
 
@@ -184,6 +202,103 @@ export default function CollectionPage() {
           </Link>
         </div>
       </header>
+
+      {/* Account Identity Bar or Guest Mode Alert Banner */}
+      {user ? (
+        <div className="flex items-center justify-between p-3 rounded-2xl bg-[#202433] border border-[#343a4c] shadow-sm">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-[#2a2e40] border border-[#3f455c] flex items-center justify-center text-xl flex-shrink-0">
+              {user.avatar || '👒'}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-sm font-black text-white truncate">{user.name}</span>
+                <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  {user.crew}
+                </span>
+              </div>
+              <div className="font-mono text-[10px] text-gray-400 flex items-center gap-1 truncate">
+                <span>Tag: <strong className="text-amber-400 font-bold">{user.tag}</strong></span>
+                <span className="text-gray-500">&bull;</span>
+                <span className="truncate">{user.rank}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setAccountModalTab('login');
+                setShowAccountModal(true);
+              }}
+              className="px-2.5 py-1.5 rounded-xl bg-[#292e40] hover:bg-[#343a50] border border-[#3b4258] text-[11px] font-bold text-gray-300 hover:text-white transition cursor-pointer"
+              title="Switch Account"
+            >
+              Switch
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm('Are you sure you want to log out of your account?')) {
+                  logout();
+                }
+              }}
+              className="px-2.5 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-[11px] font-bold text-red-400 hover:text-red-300 transition cursor-pointer flex items-center gap-1"
+              title="Log Out"
+            >
+              <LogOut className="w-3 h-3" />
+              <span>Log Out</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#202433] via-[#24283b] to-[#1e2230] border border-amber-500/35 shadow-md space-y-2.5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xl flex-shrink-0">
+                👤
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-black text-white">Guest Mode (Logged Out)</span>
+                  <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    Not Synced
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-400 leading-snug">
+                  You are currently logged out. Cards added in guest mode stay local to this browser. Sign in or create an account to access your permanent collector binder.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 pt-1 border-t border-white/5">
+            <button
+              type="button"
+              onClick={() => {
+                setAccountModalTab('login');
+                setShowAccountModal(true);
+              }}
+              className="flex-1 py-2 px-3 rounded-xl bg-[#3b82f6] hover:bg-[#2563eb] text-white text-xs font-black transition text-center shadow cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In to Account</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAccountModalTab('register');
+                setShowAccountModal(true);
+              }}
+              className="flex-1 py-2 px-3 rounded-xl bg-[#f45d6a] hover:bg-[#e04f5c] text-white text-xs font-black transition text-center shadow cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Create Account</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 2. Compact Portfolio Stats Summary (Never cut off) */}
       {stats && (
@@ -455,6 +570,13 @@ export default function CollectionPage() {
           </div>
         </div>
       )}
+
+      {/* Account Modal for Sign In / Registration */}
+      <AccountModal
+        isOpen={showAccountModal}
+        onClose={() => setShowAccountModal(false)}
+        defaultTab={accountModalTab}
+      />
     </div>
   );
 }

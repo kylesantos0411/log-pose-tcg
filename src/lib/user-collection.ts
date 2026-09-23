@@ -28,41 +28,92 @@ export interface LocalUserCard {
   };
 }
 
-const STORAGE_KEY = 'logpose_user_binder';
+/**
+ * Returns the currently active collector tag from user session, or null if logged out / guest
+ */
+export function getActiveUserTag(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('logpose_user_session');
+    if (!raw) return null;
+    const user = JSON.parse(raw);
+    return user?.tag || null;
+  } catch {
+    return null;
+  }
+}
 
-export function getLocalBinder(): LocalUserCard[] {
+/**
+ * Resolves the isolated localStorage key for a specific user tag or guest mode
+ */
+export function getBinderStorageKey(targetTag?: string | null): string {
+  const tag = targetTag !== undefined ? targetTag : getActiveUserTag();
+  if (!tag) {
+    return 'logpose_binder_guest';
+  }
+  return `logpose_binder_${tag.toUpperCase()}`;
+}
+
+export function getLocalBinder(userTag?: string | null): LocalUserCard[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw);
+    const key = getBinderStorageKey(userTag);
+    const raw = localStorage.getItem(key);
+
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+
+    // Graceful migration from legacy single-key binder if user binder is empty
+    const legacyRaw = localStorage.getItem('logpose_user_binder');
+    if (legacyRaw) {
+      try {
+        const legacyParsed = JSON.parse(legacyRaw);
+        if (Array.isArray(legacyParsed) && legacyParsed.length > 0) {
+          // Migrate to this account/guest
+          localStorage.setItem(key, JSON.stringify(legacyParsed));
+          // Clean up legacy key so it doesn't leak into subsequent accounts
+          localStorage.removeItem('logpose_user_binder');
+          return legacyParsed;
+        }
+      } catch {
+        // Ignore parse error
+      }
+    }
+
+    return [];
   } catch (e) {
     console.error('Failed to parse local binder:', e);
     return [];
   }
 }
 
-export function saveLocalBinder(cards: LocalUserCard[]): void {
+export function saveLocalBinder(cards: LocalUserCard[], userTag?: string | null): void {
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+    const key = getBinderStorageKey(userTag);
+    localStorage.setItem(key, JSON.stringify(cards));
     window.dispatchEvent(new Event('logpose_collection_updated'));
   } catch (e) {
     console.error('Failed to save local binder:', e);
   }
 }
 
-export function addCardToLocalBinder(cardData: {
-  cardId: string;
-  card: LocalUserCard['card'];
-  quantity?: number;
-  condition?: string;
-  isFoil?: boolean;
-  language?: string;
-  purchasePrice?: number | null;
-  notes?: string | null;
-}): LocalUserCard[] {
-  const current = getLocalBinder();
+export function addCardToLocalBinder(
+  cardData: {
+    cardId: string;
+    card: LocalUserCard['card'];
+    quantity?: number;
+    condition?: string;
+    isFoil?: boolean;
+    language?: string;
+    purchasePrice?: number | null;
+    notes?: string | null;
+  },
+  userTag?: string | null
+): LocalUserCard[] {
+  const current = getLocalBinder(userTag);
   const qty = cardData.quantity || 1;
   const cond = cardData.condition || 'NM';
   const foil = Boolean(cardData.isFoil);
@@ -95,15 +146,55 @@ export function addCardToLocalBinder(cardData: {
     updated = [newEntry, ...current];
   }
 
-  saveLocalBinder(updated);
+  saveLocalBinder(updated, userTag);
   return updated;
 }
 
-export function removeCardFromLocalBinder(recordId: string): LocalUserCard[] {
-  const current = getLocalBinder();
+export function removeCardFromLocalBinder(recordId: string, userTag?: string | null): LocalUserCard[] {
+  const current = getLocalBinder(userTag);
   const updated = current.filter((c) => c.id !== recordId);
-  saveLocalBinder(updated);
+  saveLocalBinder(updated, userTag);
   return updated;
+}
+
+/**
+ * Transfers any cards accumulated while in guest mode into a newly authenticated user's binder
+ */
+export function transferGuestCardsToAccount(userTag: string): number {
+  if (typeof window === 'undefined' || !userTag) return 0;
+  try {
+    const guestKey = 'logpose_binder_guest';
+    const guestRaw = localStorage.getItem(guestKey);
+    if (!guestRaw) return 0;
+
+    const guestCards: LocalUserCard[] = JSON.parse(guestRaw);
+    if (!Array.isArray(guestCards) || guestCards.length === 0) return 0;
+
+    const userKey = getBinderStorageKey(userTag);
+    const userRaw = localStorage.getItem(userKey);
+    const userCards: LocalUserCard[] = userRaw ? JSON.parse(userRaw) : [];
+
+    // Merge guest cards into user cards
+    const merged = [...userCards];
+    for (const gc of guestCards) {
+      const existing = merged.find(
+        (c) => c.cardId === gc.cardId && c.condition === gc.condition && c.isFoil === gc.isFoil && c.language === gc.language
+      );
+      if (existing) {
+        existing.quantity += gc.quantity;
+      } else {
+        merged.unshift(gc);
+      }
+    }
+
+    localStorage.setItem(userKey, JSON.stringify(merged));
+    localStorage.removeItem(guestKey);
+    window.dispatchEvent(new Event('logpose_collection_updated'));
+    return guestCards.length;
+  } catch (e) {
+    console.error('Failed to transfer guest cards:', e);
+    return 0;
+  }
 }
 
 export function getLocalBinderStats(cards: LocalUserCard[]) {
@@ -155,27 +246,27 @@ export function getLocalBinderStats(cards: LocalUserCard[]) {
   };
 }
 
-export function exportBinderToJSON(): void {
-  const binder = getLocalBinder();
+export function exportBinderToJSON(userTag?: string | null): void {
+  const binder = getLocalBinder(userTag);
   const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(binder, null, 2));
   const downloadAnchor = document.createElement('a');
   downloadAnchor.setAttribute('href', dataStr);
   const dateStr = new Date().toISOString().slice(0, 10);
-  downloadAnchor.setAttribute('download', `logpose-collection-backup-${dateStr}.json`);
+  const activeTag = userTag || getActiveUserTag() || 'guest';
+  downloadAnchor.setAttribute('download', `logpose-collection-${activeTag}-${dateStr}.json`);
   document.body.appendChild(downloadAnchor);
   downloadAnchor.click();
   downloadAnchor.remove();
 }
 
-export function importBinderFromJSON(jsonString: string): boolean {
+export function importBinderFromJSON(jsonString: string, userTag?: string | null): boolean {
   try {
     const parsed = JSON.parse(jsonString);
     if (!Array.isArray(parsed)) return false;
-    // Validate minimal structure
     for (const item of parsed) {
       if (!item.cardId || !item.card) return false;
     }
-    saveLocalBinder(parsed);
+    saveLocalBinder(parsed, userTag);
     return true;
   } catch (e) {
     console.error('Import failed:', e);

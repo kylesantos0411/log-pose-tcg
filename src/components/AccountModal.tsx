@@ -12,7 +12,12 @@ import {
   Check, 
   Crown,
   ChevronRight,
-  HelpCircle
+  HelpCircle,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  Lock,
+  KeyRound
 } from 'lucide-react';
 import { useSettings, generateCollectorTag } from '@/context/SettingsContext';
 
@@ -43,21 +48,26 @@ const PIRATE_CREWS = [
 ];
 
 export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: AccountModalProps) {
-  const { user, register, login } = useSettings();
+  const { user, accounts, register, login } = useSettings();
   const [tab, setTab] = useState<'register' | 'login'>(defaultTab);
 
   // Form states - Register
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState('👒');
   const [selectedCrew, setSelectedCrew] = useState('Straw Hat Pirates');
-  const [customTag, setCustomTag] = useState('');
   const [tagNumber] = useState(() => Math.floor(1000 + Math.random() * 9000));
 
   // Form states - Login
   const [loginIdentifier, setLoginIdentifier] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
 
-  // Notification state
+  // Feedback states
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -67,33 +77,77 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim()) return;
+    setErrorMsg(null);
 
-    const registered = register({
-      name: username.trim(),
-      email: email.trim() || undefined,
+    const cleanUser = username.trim();
+    const cleanEmail = email.trim();
+    const cleanPass = password.trim();
+
+    if (!cleanUser || cleanUser.length < 2) {
+      setErrorMsg('Username must be at least 2 characters long.');
+      return;
+    }
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setErrorMsg('Please enter a valid email address.');
+      return;
+    }
+    if (!cleanPass || cleanPass.length < 6) {
+      setErrorMsg('Password must be at least 6 characters long.');
+      return;
+    }
+    if (cleanPass !== confirmPassword.trim()) {
+      setErrorMsg('Passwords do not match. Please re-enter.');
+      return;
+    }
+
+    const res = register({
+      username: cleanUser,
+      email: cleanEmail,
+      password: cleanPass,
       avatar: selectedAvatar,
       crew: selectedCrew,
-      tag: liveTag,
+      customTag: liveTag,
     });
 
-    setSuccessMsg(`Welcome aboard, ${registered.name}! Your tag is ${registered.tag}`);
+    if (!res.success) {
+      setErrorMsg(res.error || 'Failed to create account. Please try again.');
+      return;
+    }
+
+    setSuccessMsg(`Welcome aboard, ${res.user?.name}! Your collector account is ready.`);
     setTimeout(() => {
       setSuccessMsg(null);
       onClose();
-    }, 1600);
+    }, 1500);
   };
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginIdentifier.trim()) return;
+    setErrorMsg(null);
 
-    login(loginIdentifier.trim());
-    setSuccessMsg('Signed in successfully! Loading your profile...');
+    const cleanId = loginIdentifier.trim();
+    const cleanPass = loginPassword.trim();
+
+    if (!cleanId) {
+      setErrorMsg('Please enter your Collector Tag, username, or email.');
+      return;
+    }
+    if (!cleanPass) {
+      setErrorMsg('Please enter your account password.');
+      return;
+    }
+
+    const res = login(cleanId, cleanPass);
+    if (!res.success) {
+      setErrorMsg(res.error || 'Invalid credentials. Please verify your details or create an account.');
+      return;
+    }
+
+    setSuccessMsg(`Welcome back, ${res.user?.name}! Loading your collector binder...`);
     setTimeout(() => {
       setSuccessMsg(null);
       onClose();
-    }, 1400);
+    }, 1300);
   };
 
   return (
@@ -117,10 +171,10 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
             </div>
             <div>
               <h3 className="text-base font-black text-white leading-tight">
-                {tab === 'register' ? 'Join the Grand Line' : 'Welcome Back, Pirate'}
+                {tab === 'register' ? 'Create Collector Account' : 'Sign In to Account'}
               </h3>
               <p className="text-[11px] text-gray-400 font-medium">
-                {tab === 'register' ? 'Create your official collector account' : 'Sign in to access your saved binder'}
+                {tab === 'register' ? 'Create an isolated personal binder' : 'Access your saved cards & trade profile'}
               </p>
             </div>
           </div>
@@ -128,7 +182,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-white p-1.5 rounded-xl hover:bg-white/5 transition"
+            className="text-gray-400 hover:text-white p-1.5 rounded-xl hover:bg-white/5 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -136,10 +190,20 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
 
         {/* Success Banner */}
         {successMsg && (
-          <div className="bg-emerald-500/15 border border-emerald-500/30 rounded-2xl p-3 text-center animate-fadeIn">
+          <div className="bg-emerald-500/15 border border-emerald-500/30 rounded-2xl p-3 text-center animate-fadeIn flex-shrink-0">
             <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-emerald-400">
               <Check className="w-4 h-4" />
               <span>{successMsg}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Error Banner */}
+        {errorMsg && (
+          <div className="bg-red-500/15 border border-red-500/30 rounded-2xl p-3 animate-fadeIn flex-shrink-0">
+            <div className="flex items-center gap-2 text-xs font-bold text-red-400">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>{errorMsg}</span>
             </div>
           </div>
         )}
@@ -148,7 +212,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
         <div className="flex rounded-xl bg-[#171923] p-1 border border-[#2d3244] flex-shrink-0">
           <button
             type="button"
-            onClick={() => setTab('register')}
+            onClick={() => { setTab('register'); setErrorMsg(null); }}
             className={`flex-1 py-2 rounded-lg text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer ${
               tab === 'register' 
                 ? 'bg-[#f45d6a] text-white shadow-md' 
@@ -160,7 +224,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
           </button>
           <button
             type="button"
-            onClick={() => setTab('login')}
+            onClick={() => { setTab('login'); setErrorMsg(null); }}
             className={`flex-1 py-2 rounded-lg text-xs font-black transition flex items-center justify-center gap-1.5 cursor-pointer ${
               tab === 'login' 
                 ? 'bg-[#3b82f6] text-white shadow-md' 
@@ -175,7 +239,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
         {/* Form Container (Scrollable) */}
         <div className="overflow-y-auto space-y-4 pr-0.5 flex-1 select-none">
           {tab === 'register' ? (
-            <form onSubmit={handleRegisterSubmit} className="space-y-4">
+            <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
               {/* Pirate Name */}
               <div>
                 <label className="block text-xs font-bold text-gray-300 mb-1.5">
@@ -189,6 +253,62 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition shadow-inner font-medium"
+                />
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-xs font-bold text-gray-300 mb-1.5">
+                  Email Address <span className="text-[#f45d6a]">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  placeholder="pirate@logpose.tcg"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition font-medium"
+                />
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="block text-xs font-bold text-gray-300 mb-1.5">
+                  Account Password <span className="text-[#f45d6a]">* (Min. 6 chars)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    placeholder="Enter password..."
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition font-medium"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirm Password */}
+              <div>
+                <label className="block text-xs font-bold text-gray-300 mb-1.5">
+                  Confirm Password <span className="text-[#f45d6a]">*</span>
+                </label>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  minLength={6}
+                  placeholder="Confirm password..."
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition font-medium"
                 />
               </div>
 
@@ -247,28 +367,14 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
                   {liveTag}
                 </div>
                 <p className="text-[10px] text-gray-400 leading-tight">
-                  Friends use this code to add you, view your showcase binder, and propose card trades.
+                  This tag uniquely identifies your personal binder and allows friends to trade with you.
                 </p>
-              </div>
-
-              {/* Email (Optional) */}
-              <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1.5">
-                  Email Address <span className="text-gray-500 text-[10px] font-normal">(Optional, for profile backup)</span>
-                </label>
-                <input
-                  type="email"
-                  placeholder="pirate@logpose.tcg"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition font-medium"
-                />
               </div>
 
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={!username.trim()}
+                disabled={!username.trim() || !email.trim() || !password.trim()}
                 className="w-full bg-gradient-to-r from-[#f45d6a] to-[#e76d78] hover:opacity-90 disabled:opacity-50 text-white font-extrabold text-xs uppercase tracking-wider py-3 px-4 rounded-xl transition cursor-pointer shadow-lg shadow-[#f45d6a]/20 flex items-center justify-center gap-2"
               >
                 <Crown className="w-4 h-4" />
@@ -277,33 +383,93 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
             </form>
           ) : (
             <form onSubmit={handleLoginSubmit} className="space-y-4">
+              {/* Quick Select Saved Accounts */}
+              {accounts.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="block text-[11px] font-bold text-gray-400">
+                    Accounts on this device:
+                  </label>
+                  <div className="space-y-1.5">
+                    {accounts.map((acc) => (
+                      <button
+                        key={acc.id}
+                        type="button"
+                        onClick={() => {
+                          setLoginIdentifier(acc.tag);
+                          setErrorMsg(null);
+                        }}
+                        className={`w-full p-2.5 rounded-xl border flex items-center justify-between text-left transition cursor-pointer ${
+                          loginIdentifier === acc.tag || loginIdentifier === acc.email
+                            ? 'bg-[#3b82f6]/20 border-[#3b82f6] text-white shadow-sm'
+                            : 'bg-[#181a24] border-[#2d3244] text-gray-300 hover:border-gray-500'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-lg">{acc.avatar || '👒'}</span>
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-white truncate">{acc.username}</div>
+                            <div className="font-mono text-[10px] text-amber-400 truncate">{acc.tag}</div>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-bold text-gray-400">Select &rarr;</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Login Identifier */}
               <div>
                 <label className="block text-xs font-bold text-gray-300 mb-1.5">
-                  Collector Tag or Email
+                  Collector Tag, Username, or Email <span className="text-[#3b82f6]">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. PIRATE-LUFFY-1234 or your@email.com"
+                  placeholder="e.g. PIRATE-LUFFY-1234 or luffy@onepiece.com"
                   value={loginIdentifier}
                   onChange={(e) => setLoginIdentifier(e.target.value)}
                   className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#3b82f6] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition font-medium"
                 />
               </div>
 
+              {/* Login Password */}
+              <div>
+                <label className="block text-xs font-bold text-gray-300 mb-1.5">
+                  Account Password <span className="text-[#3b82f6]">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showLoginPassword ? 'text' : 'password'}
+                    required
+                    placeholder="Enter your account password..."
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#3b82f6] rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition font-medium"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                  >
+                    {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
               <div className="bg-[#181a24] border border-[#343a4c] rounded-2xl p-3 text-[11px] text-gray-400 space-y-1">
                 <div className="font-bold text-white flex items-center gap-1.5">
                   <Compass className="w-3.5 h-3.5 text-[#3b82f6]" />
-                  <span>Local Profile &amp; Data Control</span>
+                  <span>Isolated Personal Collection</span>
                 </div>
                 <p>
-                  Entering your Collector Tag sets up your profile and trade identity on this device. Your card binder remains safely stored locally, and can be exported as JSON anytime from My Collection.
+                  Signing in loads your account's personal card binder. When you log out, your cards are securely hidden from other users of this device.
                 </p>
               </div>
 
               <button
                 type="submit"
-                disabled={!loginIdentifier.trim()}
+                disabled={!loginIdentifier.trim() || !loginPassword.trim()}
                 className="w-full bg-gradient-to-r from-[#3b82f6] to-[#2563eb] hover:opacity-90 disabled:opacity-50 text-white font-extrabold text-xs uppercase tracking-wider py-3 px-4 rounded-xl transition cursor-pointer shadow-lg shadow-[#3b82f6]/20 flex items-center justify-center gap-2"
               >
                 <LogIn className="w-4 h-4" />
@@ -317,7 +483,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
             <button
               type="button"
               onClick={onClose}
-              className="text-[11px] font-medium text-gray-400 hover:text-gray-200 transition"
+              className="text-[11px] font-medium text-gray-400 hover:text-gray-200 transition cursor-pointer"
             >
               Continue in Guest Mode (Offline Binder) &rarr;
             </button>

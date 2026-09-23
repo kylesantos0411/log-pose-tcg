@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { getSafeCardImageUrl } from '@/lib/card-image';
+import { getLocalBinder } from '@/lib/user-collection';
 
 import { SupportModal } from '@/components/SupportModal';
 import { AccountModal } from '@/components/AccountModal';
@@ -49,22 +50,21 @@ export function CleanHomeView({
   useEffect(() => {
     const updateCount = () => {
       try {
-        const raw = localStorage.getItem('logpose_user_binder');
-        if (raw) {
-          const list = JSON.parse(raw);
-          const total = Array.isArray(list) ? list.reduce((acc, c) => acc + (c.quantity || 1), 0) : 0;
-          setDisplayCount(total);
-        } else {
-          setDisplayCount(userCardsCount);
-        }
+        const cards = getLocalBinder(user?.tag || null);
+        const total = cards.reduce((acc, c) => acc + (c.quantity || 1), 0);
+        setDisplayCount(total);
       } catch {
-        setDisplayCount(userCardsCount);
+        setDisplayCount(0);
       }
     };
     updateCount();
     window.addEventListener('logpose_collection_updated', updateCount);
-    return () => window.removeEventListener('logpose_collection_updated', updateCount);
-  }, [userCardsCount]);
+    window.addEventListener('logpose_auth_changed', updateCount);
+    return () => {
+      window.removeEventListener('logpose_collection_updated', updateCount);
+      window.removeEventListener('logpose_auth_changed', updateCount);
+    };
+  }, [user?.tag]);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -243,11 +243,11 @@ export function CleanHomeView({
             </div>
 
             <div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-[#f59e0b]">
-                Personal Binder
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#f59e0b] truncate block">
+                {user ? `${user.name}'s Binder` : 'Guest Binder'}
               </span>
-              <h3 className="text-xl font-black text-white tracking-wide leading-tight">
-                Collection
+              <h3 className="text-xl font-black text-white tracking-wide leading-tight truncate">
+                {user ? 'My Collection' : 'Collection'}
               </h3>
             </div>
           </div>
@@ -257,8 +257,8 @@ export function CleanHomeView({
             <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
               {displayCount}
             </div>
-            <p className="text-[11px] text-gray-300 font-medium">
-              Cards in Collection
+            <p className="text-[11px] text-gray-300 font-medium truncate">
+              {user ? 'Cards in Account' : 'Cards in Guest Binder'}
             </p>
             <div className="pt-1 flex items-center gap-1 text-[11px] font-bold text-[#f59e0b] group-hover:translate-x-1 transition-transform">
               <span>Open Binder</span>

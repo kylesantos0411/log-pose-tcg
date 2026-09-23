@@ -68,7 +68,7 @@ export default function CardsPage() {
 function CardsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { currency, formatYuyuPrice, openSettings, formatCard } = useSettings();
+  const { currency, formatYuyuPrice, openSettings, formatCard, user } = useSettings();
   
   const sortParam = searchParams.get('sort') || '';
   const initialQuery = searchParams.get('q') || '';
@@ -202,7 +202,7 @@ function CardsContent() {
         isFoil: addIsFoil,
         language: 'jp',
         purchasePrice: purchasePriceUSD,
-      });
+      }, user?.tag || null);
 
       setSavedSuccess(true);
       setTimeout(() => {
