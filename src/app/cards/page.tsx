@@ -15,7 +15,9 @@ import {
   PenTool, 
   Coins, 
   SlidersHorizontal,
-  Settings as SettingsIcon 
+  Settings as SettingsIcon,
+  Flame,
+  Calendar,
 } from 'lucide-react';
 import { getSafeCardImageUrl } from '@/lib/card-image';
 import { ARTIST_PROFILES } from '@/lib/artist-data';
@@ -41,9 +43,11 @@ interface CardItem {
   yuyuPrice?: number | null;
   promoSource?: string | null;
   hasJpPrint?: boolean;
+  releaseDate?: string | null;
   pack?: {
     code: string;
     name: string;
+    releaseDate?: string | null;
   };
   userCards?: Array<{
     id: string;
@@ -79,6 +83,7 @@ function CardsContent() {
   const [cards, setCards] = useState<CardItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(initialQuery);
+  const [sortBy, setSortBy] = useState(sortParam || 'latest');
   const [selectedColor, setSelectedColor] = useState('All');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedRarity, setSelectedRarity] = useState(initialRarity);
@@ -125,11 +130,15 @@ function CardsContent() {
       setSearch(queryParam);
       setPage(1);
     }
+    const currentSort = searchParams.get('sort');
+    if (currentSort) {
+      setSortBy(currentSort);
+    }
   }, [searchParams]);
 
   useEffect(() => {
     fetchCards();
-  }, [search, selectedColor, selectedCategory, selectedRarity, selectedSet, selectedArtist, page, sortParam]);
+  }, [search, selectedColor, selectedCategory, selectedRarity, selectedSet, selectedArtist, page, sortBy]);
 
   async function fetchCards() {
     setLoading(true);
@@ -140,16 +149,11 @@ function CardsContent() {
         category: selectedCategory,
         rarity: selectedRarity,
         set: selectedSet,
+        sort: sortBy,
         lang: 'jp',
         page: page.toString(),
         limit: '36',
       });
-
-      if (sortParam) {
-        params.set('sort', sortParam);
-      } else {
-        params.set('sort', 'latest');
-      }
 
       if (selectedArtist && selectedArtist !== 'All') {
         params.set('artist', selectedArtist);
@@ -237,15 +241,22 @@ function CardsContent() {
   };
 
   // Header Title Logic
-  let pageTitle = 'Latest added cards';
-  if (selectedArtist !== 'All') {
+  const isLatestMode = sortBy === 'latest' && !search.trim() && selectedSet === 'All' && selectedArtist === 'All';
+  let pageTitle = 'Card Catalog';
+  if (isLatestMode) {
+    pageTitle = 'Latest Released Cards';
+  } else if (selectedArtist !== 'All') {
     pageTitle = selectedArtist;
   } else if (selectedSet !== 'All') {
     pageTitle = `${selectedSet} Cards`;
   } else if (search.trim()) {
     pageTitle = `Search: "${search}"`;
-  } else if (sortParam === 'latest') {
-    pageTitle = 'Latest added cards';
+  } else if (sortBy === 'price-desc') {
+    pageTitle = 'Most Valuable Cards';
+  } else if (sortBy === 'price-asc') {
+    pageTitle = 'Budget Cards';
+  } else if (sortBy === 'date-asc') {
+    pageTitle = 'Oldest Released Cards';
   }
 
   return (
@@ -263,9 +274,24 @@ function CardsContent() {
             >
               <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
             </Link>
-            <h1 className="text-base sm:text-lg font-bold text-white tracking-tight truncate">
-              {pageTitle}
-            </h1>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <h1 className="text-base sm:text-lg font-black text-white tracking-tight truncate">
+                  {pageTitle}
+                </h1>
+                {isLatestMode && (
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-rose-500/25 text-rose-300 border border-rose-500/40 shrink-0 flex items-center gap-1">
+                    <Flame className="w-2.5 h-2.5 fill-current" />
+                    NEWEST FIRST
+                  </span>
+                )}
+              </div>
+              {isLatestMode && (
+                <p className="text-[10px] text-amber-300 font-semibold tracking-wide">
+                  Sorted by release date: OP-10, EB-02, OP-09 &amp; newest sets first
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Right: Actions (Collection, Grid View Toggle) */}
@@ -396,7 +422,25 @@ function CardsContent() {
           </div>
 
           {/* Dropdown Filters */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+            {/* Sort Order Selector */}
+            <select
+              value={sortBy}
+              onChange={(e) => {
+                const s = e.target.value;
+                setSortBy(s);
+                setPage(1);
+                router.replace(`/cards?sort=${s}`);
+              }}
+              className="bg-[#1e212c] border border-amber-500/40 text-amber-300 font-bold focus:border-[#3b82f6] rounded-xl px-3 py-2 text-xs focus:outline-none transition cursor-pointer"
+            >
+              <option value="latest">📅 Release Date (Latest First)</option>
+              <option value="date-asc">📅 Release Date (Oldest First)</option>
+              <option value="price-desc">💰 Price: High to Low</option>
+              <option value="price-asc">💰 Price: Low to High</option>
+              <option value="id-asc">🔤 Card Number (A-Z)</option>
+            </select>
+
             <select
               value={selectedCategory}
               onChange={(e) => { setSelectedCategory(e.target.value); setPage(1); }}
@@ -598,6 +642,11 @@ function CardsContent() {
                         }
                       }}
                     />
+
+                    {/* Top-Left Release Set Badge */}
+                    <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 px-1.5 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[8px] sm:text-[9px] font-black text-amber-300 border border-white/10 shadow pointer-events-none">
+                      {card.pack?.code || card.id.split('-')[0]}
+                    </div>
 
                     {/* Subtle Floating Price Badge on Bottom-Left */}
                     <div className="absolute bottom-1.5 left-1.5 sm:bottom-2 sm:left-2 px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-md text-[9px] sm:text-[10px] font-bold text-amber-300 border border-white/10 shadow-sm pointer-events-none">

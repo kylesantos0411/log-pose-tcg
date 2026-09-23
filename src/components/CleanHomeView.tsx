@@ -192,7 +192,7 @@ export function CleanHomeView({
                 </span>
               </div>
               <p className="text-xs text-gray-300 line-clamp-1 mt-0.5">
-                Sync newest booster sets (OP-10, OP-09), manga arts & live market prices
+                Official releases by date: OP-10, EB-02, OP-09 &amp; live prices
               </p>
             </div>
           </div>
@@ -221,15 +221,15 @@ export function CleanHomeView({
           {/* Left Text & Action */}
           <div className="space-y-1 max-w-[62%]">
             <h2 className="text-xl sm:text-2xl font-black text-white tracking-wide group-hover:text-white leading-tight">
-              View Available cards
+              Browse All Cards
             </h2>
             
             <p className="text-xs text-gray-300 line-clamp-2 leading-snug font-normal">
-              {totalCards > 0 ? `${totalCards.toLocaleString()} Japanese cards` : 'Browse 1,400+ Japanese cards'} with live Yuyu-tei market prices.
+              Complete archive of {totalCards > 0 ? `${totalCards.toLocaleString()}` : '4,511+'} cards across all 60 sets with live Yuyu-tei prices.
             </p>
 
             <div className="pt-2 flex items-center gap-1.5 text-xs font-extrabold text-[#f59e0b] group-hover:translate-x-1 transition-transform">
-              <span>Explore Catalog</span>
+              <span>Explore All Sets</span>
               <ChevronRight className="w-4 h-4 stroke-[3]" />
             </div>
           </div>

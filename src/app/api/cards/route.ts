@@ -156,13 +156,17 @@ export async function GET(req: NextRequest) {
       where.AND = andConditions;
     }
     const sort = searchParams.get('sort');
-    let orderBy: any = [{ packId: 'asc' }, { id: 'asc' }];
-    if (sort === 'latest') {
-      orderBy = [{ packId: 'desc' }, { id: 'desc' }];
+    let orderBy: any = [{ releaseOrder: 'desc' }, { releaseDate: 'desc' }, { id: 'asc' }];
+    if (sort === 'latest' || sort === 'date-desc') {
+      orderBy = [{ releaseOrder: 'desc' }, { releaseDate: 'desc' }, { id: 'asc' }];
+    } else if (sort === 'date-asc') {
+      orderBy = [{ releaseOrder: 'asc' }, { releaseDate: 'asc' }, { id: 'asc' }];
     } else if (sort === 'price-desc') {
       orderBy = [{ yuyuPrice: 'desc' }, { id: 'asc' }];
     } else if (sort === 'price-asc') {
       orderBy = [{ yuyuPrice: 'asc' }, { id: 'asc' }];
+    } else if (sort === 'id-asc') {
+      orderBy = [{ id: 'asc' }];
     }
 
     const [cards, total] = await Promise.all([
@@ -173,6 +177,7 @@ export async function GET(req: NextRequest) {
             select: {
               code: true,
               name: true,
+              releaseDate: true,
             },
           },
         },

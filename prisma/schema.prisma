@@ -14,11 +14,15 @@ model Pack {
   seriesType  String?  // e.g. "STARTER DECK", "BOOSTER PACK"
   language    String   @default("en")
   cardsCount  Int      @default(0)
+  releaseDate String?  // e.g. "2024-11-30"
+  releaseOrder Float?  // Numeric sorting order from oldest (1.0) to newest (higher)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   cards       Card[]
 
   @@index([code])
+  @@index([releaseDate])
+  @@index([releaseOrder])
 }
 
 model Card {
@@ -44,6 +48,8 @@ model Card {
   yuyuPrice    Float?      // Authentic Japanese market price in JPY (Yuyu-tei)
   promoSource  String?     // Event or tournament source, e.g. "Flagship Battle Winner", "25th Anniversary"
   hasJpPrint   Boolean     @default(true) // False if English-exclusive with no Japanese print
+  releaseDate  String?     // Official Japanese Release Date YYYY-MM-DD
+  releaseOrder Float?      // Numeric sorting order from oldest to newest
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -55,6 +61,8 @@ model Card {
   @@index([colors])
   @@index([rarity])
   @@index([promoSource])
+  @@index([releaseDate])
+  @@index([releaseOrder])
 }
 
 model UserCard {
