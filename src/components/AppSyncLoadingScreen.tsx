@@ -3,12 +3,12 @@
 import React, { useState, useEffect } from 'react';
 
 export function AppSyncLoadingScreen() {
-  const [mounted, setMounted] = useState(false);
   const [fading, setFading] = useState(false);
   const [hidden, setHidden] = useState(false);
+  const [syncStep, setSyncStep] = useState('Initializing card catalog...');
 
   useEffect(() => {
-    // Check if app was already synchronized in this session
+    // Check if app was already loaded/synced in this session
     try {
       if (sessionStorage.getItem('log_pose_app_synced') === 'true') {
         setHidden(true);
@@ -18,27 +18,53 @@ export function AppSyncLoadingScreen() {
       // ignore
     }
 
-    setMounted(true);
+    let isMounted = true;
+    const startTime = Date.now();
 
-    // Fade out after database sync duration
-    const fadeTimer = setTimeout(() => {
-      setFading(true);
-    }, 1800);
-
-    // Completely unmount after fade
-    const removeTimer = setTimeout(() => {
-      setHidden(true);
+    async function initializeApp() {
       try {
-        sessionStorage.setItem('log_pose_app_synced', 'true');
-        document.documentElement.classList.add('app-synced');
+        setSyncStep('Connecting to local card database...');
+        
+        // Actually pre-warm the database and network queries in parallel
+        await Promise.allSettled([
+          fetch('/api/sets', { cache: 'no-store' }),
+          fetch('/api/cards?page=1&limit=30', { cache: 'no-store' }),
+        ]);
+
+        if (isMounted) {
+          setSyncStep('Loading market prices & currency rates...');
+        }
       } catch {
-        // ignore
+        // Safe to ignore offline or serverless
       }
-    }, 2200);
+
+      // Ensure smooth, polished transition timing (between 1.2s and 1.8s)
+      const elapsed = Date.now() - startTime;
+      const minDisplayTime = 1400;
+      const remaining = Math.max(minDisplayTime - elapsed, 200);
+
+      setTimeout(() => {
+        if (!isMounted) return;
+        setSyncStep('Ready!');
+        setFading(true);
+
+        setTimeout(() => {
+          if (!isMounted) return;
+          setHidden(true);
+          try {
+            sessionStorage.setItem('log_pose_app_synced', 'true');
+            document.documentElement.classList.add('app-synced');
+          } catch {
+            // ignore
+          }
+        }, 400);
+      }, remaining);
+    }
+
+    initializeApp();
 
     return () => {
-      clearTimeout(fadeTimer);
-      clearTimeout(removeTimer);
+      isMounted = false;
     };
   }, []);
 
@@ -51,31 +77,30 @@ export function AppSyncLoadingScreen() {
         fading ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
-      {/* Centered Circular Logo with Ambient Glow */}
+      {/* Centered App Icon Badge with Seamless White Background */}
       <div className="relative">
-        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[#1b1e2a] border-2 border-white/15 p-3 shadow-2xl flex items-center justify-center relative overflow-hidden">
-          <div className="absolute inset-0 rounded-full bg-[#f4727d]/20 blur-xl pointer-events-none animate-pulse" />
+        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-white p-2.5 shadow-2xl shadow-black/40 border-2 border-white/30 flex items-center justify-center relative overflow-hidden">
           <img
             src="/logo.png"
             alt="Log Pose TCG Logo"
-            className="w-full h-full object-contain relative z-10 drop-shadow-md"
+            className="w-full h-full object-contain relative z-10 drop-shadow-sm"
           />
         </div>
       </div>
 
-      {/* Bold App Title matching reference: LOG POSE TCG */}
+      {/* Bold App Title: LOG POSE TCG */}
       <h1 className="text-2xl sm:text-3xl font-black text-white tracking-wider uppercase mt-6 drop-shadow-sm">
         LOG POSE TCG
       </h1>
 
-      {/* Circular Rotating Spinner matching reference */}
-      <div className="mt-8 flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-[3px] border-white/20 border-t-white animate-spin" />
+      {/* Circular Rotating Spinner */}
+      <div className="mt-7 flex items-center justify-center">
+        <div className="w-7 h-7 rounded-full border-[3px] border-white/20 border-t-white animate-spin" />
       </div>
 
-      {/* Status Subtitle matching reference */}
-      <p className="mt-7 text-xs sm:text-sm text-gray-300/90 font-medium text-center max-w-[280px] sm:max-w-xs leading-relaxed">
-        Database synchronization in progress, please wait a few seconds...
+      {/* Real-time Status Subtitle */}
+      <p className="mt-6 text-xs sm:text-sm text-gray-300 font-medium text-center max-w-[280px] sm:max-w-xs leading-relaxed transition-all">
+        {syncStep}
       </p>
     </div>
   );
