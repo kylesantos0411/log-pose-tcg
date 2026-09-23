@@ -79,12 +79,21 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    if (targetArtist && isGuestArtist(targetArtist)) {
-      const allCards = await prisma.card.findMany({
-        select: { id: true, name: true },
-      });
-      const artistCardIds = getCardIdsByArtist(targetArtist, allCards);
-      andConditions.push({ id: { in: artistCardIds } });
+    if (targetArtist) {
+      const artistOrs: any[] = [
+        { artistName: { equals: targetArtist } },
+        { artistName: { contains: targetArtist } },
+      ];
+      if (isGuestArtist(targetArtist)) {
+        const allCards = await prisma.card.findMany({
+          select: { id: true, name: true },
+        });
+        const artistCardIds = getCardIdsByArtist(targetArtist, allCards);
+        if (artistCardIds.length > 0) {
+          artistOrs.push({ id: { in: artistCardIds } });
+        }
+      }
+      andConditions.push({ OR: artistOrs });
     }
 
     if (q && !isArtistQuery) {
@@ -256,14 +265,24 @@ export async function GET(req: NextRequest) {
         { pack: { code: { equals: withDash } } },
         { pack: { code: { equals: noDash } } },
         { packId: clean },
+        { displaySet: { equals: clean } },
+        { displaySet: { equals: withDash } },
+        { displaySet: { equals: noDash } },
+        { yuyuteiSet: { equals: clean } },
+        { yuyuteiSet: { equals: withDash } },
+        { yuyuteiSet: { equals: noDash } },
       ];
 
       if (/^promo|p$/i.test(clean)) {
         setOrs.push({ packId: '569901' });
         setOrs.push({ pack: { code: 'PROMO' } });
+        setOrs.push({ displaySet: 'PROMO' });
+        setOrs.push({ yuyuteiSet: 'PROMO' });
       } else if (/^special$/i.test(clean)) {
         setOrs.push({ packId: '569801' });
         setOrs.push({ pack: { code: 'SPECIAL' } });
+        setOrs.push({ displaySet: 'SPECIAL' });
+        setOrs.push({ yuyuteiSet: 'SPECIAL' });
       }
 
       andConditions.push({ OR: setOrs });
@@ -305,8 +324,22 @@ export async function GET(req: NextRequest) {
       prisma.card.count({ where }),
     ]);
 
+    const formattedCards = cards.map((c) => ({
+      ...c,
+      card_number: c.cardNumber || c.id.split('_')[0],
+      printed_set_code: c.printedSetCode,
+      original_set: c.originalSet,
+      yuyutei_set: c.yuyuteiSet,
+      display_set: c.displaySet,
+      printing_type: c.printingType,
+      artist_name: c.artistName,
+      artist_source: c.artistSource,
+      artist_source_url: c.artistSourceUrl,
+      artist_verification_status: c.artistVerificationStatus,
+    }));
+
     return NextResponse.json({
-      cards,
+      cards: formattedCards,
       pagination: {
         page,
         limit,

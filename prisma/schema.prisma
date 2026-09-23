@@ -50,6 +50,21 @@ model Card {
   hasJpPrint   Boolean     @default(true) // False if English-exclusive with no Japanese print
   releaseDate  String?     // Official Japanese Release Date YYYY-MM-DD
   releaseOrder Float?      // Numeric sorting order from oldest to newest
+
+  // Card Number and Set Separation Fields
+  cardNumber               String?   @map("card_number")
+  printedSetCode           String?   @map("printed_set_code")
+  originalSet              String?   @map("original_set")
+  yuyuteiSet               String?   @map("yuyutei_set")
+  displaySet               String?   @map("display_set")
+  printingType             String?   @map("printing_type")
+
+  // Illustrator / Artist Fields
+  artistName               String?   @map("artist_name")
+  artistSource             String?   @map("artist_source")
+  artistSourceUrl          String?   @map("artist_source_url")
+  artistVerificationStatus String?   @map("artist_verification_status")
+
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -63,6 +78,10 @@ model Card {
   @@index([promoSource])
   @@index([releaseDate])
   @@index([releaseOrder])
+  @@index([cardNumber])
+  @@index([yuyuteiSet])
+  @@index([displaySet])
+  @@index([artistName])
 }
 
 model UserCard {

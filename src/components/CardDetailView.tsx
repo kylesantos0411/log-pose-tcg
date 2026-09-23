@@ -54,6 +54,26 @@ export interface CardDetailData {
   hasJpPrint?: boolean;
   blockNumber?: number | null;
   isAltArt?: boolean;
+  cardNumber?: string | null;
+  card_number?: string | null;
+  printedSetCode?: string | null;
+  printed_set_code?: string | null;
+  originalSet?: string | null;
+  original_set?: string | null;
+  yuyuteiSet?: string | null;
+  yuyutei_set?: string | null;
+  displaySet?: string | null;
+  display_set?: string | null;
+  printingType?: string | null;
+  printing_type?: string | null;
+  artistName?: string | null;
+  artist_name?: string | null;
+  artistSource?: string | null;
+  artist_source?: string | null;
+  artistSourceUrl?: string | null;
+  artist_source_url?: string | null;
+  artistVerificationStatus?: string | null;
+  artist_verification_status?: string | null;
   pack?: {
     code?: string | null;
     name?: string | null;
@@ -182,7 +202,7 @@ export function CardDetailView({
   const japaneseName = JAPANESE_NAME_MAP[card.name] || '';
 
   // Card artist information (only set if card has a verified human/guest illustrator)
-  const artist: ArtistProfile | null = getCardArtist(card.id, card.name);
+  const artist: ArtistProfile | null = getCardArtist(card.id, card.name, card.artistName || (card as any).artist_name);
 
   // Derive realistic market quotes matching the OP.TCG screenshot
   const basePrice = card.marketPrice || 25.0;

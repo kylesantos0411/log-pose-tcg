@@ -349,10 +349,21 @@ export function isGuestArtist(artistName?: string | null): boolean {
   return true;
 }
 
-export function getCardArtist(cardId: string, cardName: string = ''): ArtistProfile | null {
+export function getCardArtist(cardId: string, cardName: string = '', cardArtistName?: string | null): ArtistProfile | null {
   const normId = (cardId || '').trim();
 
-  // 1. Direct verified exact match
+  // 1. Direct from database artistName if present and verified
+  if (cardArtistName && isGuestArtist(cardArtistName)) {
+    return ARTIST_PROFILES[cardArtistName] || {
+      name: cardArtistName,
+      style: 'Verified Card Illustrator',
+      bio: `Official illustrator credited on card ${normId}.`,
+      totalCards: 1,
+      featuredCards: [],
+    };
+  }
+
+  // 2. Direct verified exact match
   if (EXACT_CARD_ARTISTS[normId]) {
     const artistName = EXACT_CARD_ARTISTS[normId];
     return ARTIST_PROFILES[artistName] || {

@@ -30,13 +30,14 @@ export default async function CardPage({ params, searchParams }: Props) {
     notFound();
   }
 
-  // Find all sibling variants (same base card number)
-  const baseId = card.id.split('_')[0];
+  // Find all sibling variants (same base physical card number across any set)
+  const baseCardNumber = card.cardNumber || card.id.split('_')[0];
   const variants = await prisma.card.findMany({
     where: {
       OR: [
-        { id: baseId },
-        { id: { startsWith: `${baseId}_` } },
+        { cardNumber: baseCardNumber },
+        { id: baseCardNumber },
+        { id: { startsWith: `${baseCardNumber}_` } },
       ],
     },
     include: {

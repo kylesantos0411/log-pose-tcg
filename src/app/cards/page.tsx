@@ -44,6 +44,26 @@ interface CardItem {
   promoSource?: string | null;
   hasJpPrint?: boolean;
   releaseDate?: string | null;
+  cardNumber?: string | null;
+  card_number?: string | null;
+  printedSetCode?: string | null;
+  printed_set_code?: string | null;
+  originalSet?: string | null;
+  original_set?: string | null;
+  yuyuteiSet?: string | null;
+  yuyutei_set?: string | null;
+  displaySet?: string | null;
+  display_set?: string | null;
+  printingType?: string | null;
+  printing_type?: string | null;
+  artistName?: string | null;
+  artist_name?: string | null;
+  artistSource?: string | null;
+  artist_source?: string | null;
+  artistSourceUrl?: string | null;
+  artist_source_url?: string | null;
+  artistVerificationStatus?: string | null;
+  artist_verification_status?: string | null;
   pack?: {
     code: string;
     name: string;
@@ -687,7 +707,7 @@ function CardsContent() {
 
                     {/* Top-Left Release Set Badge */}
                     <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 px-1.5 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[8px] sm:text-[9px] font-black text-amber-300 border border-white/10 shadow pointer-events-none">
-                      {card.pack?.code || card.id.split('-')[0]}
+                      {card.displaySet || card.display_set || card.pack?.code || card.id.split('-')[0]}
                     </div>
 
                     {/* Subtle Floating Price Badge on Bottom-Left */}
