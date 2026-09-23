@@ -23,24 +23,24 @@ const JP_CARD_IMAGE_MAP: Record<string, string> = {
  * Returns the official Bandai card image URL for Japanese edition.
  */
 export function getEditionCardImageUrl(cardId: string, lang: 'en' | 'jp' = 'jp', fallbackUrl?: string | null): string {
-  // If fallbackUrl is a direct high-resolution Yuyu-tei or asset image, use it!
-  if (fallbackUrl && (fallbackUrl.includes('yuyu-tei.jp') || fallbackUrl.includes('/cards/'))) {
+  // If fallbackUrl is a direct high-resolution Bandai Asia-EN, Yuyu-tei or asset image, use it!
+  if (fallbackUrl && (fallbackUrl.includes('asia-en.onepiece-cardgame.com') || fallbackUrl.includes('yuyu-tei.jp') || fallbackUrl.includes('/cards/'))) {
     return getSafeCardImageUrl(fallbackUrl);
   }
 
   // Check explicit Japanese map first to prevent index shifts between EN and JP Bandai
-  if (JP_CARD_IMAGE_MAP[cardId]) {
+  if (lang === 'jp' && JP_CARD_IMAGE_MAP[cardId]) {
     return getSafeCardImageUrl(JP_CARD_IMAGE_MAP[cardId]);
   }
 
-  // Always prefer official Japanese card image on onepiece-cardgame.com
+  // Prefer official Bandai card image
   if (fallbackUrl && fallbackUrl.includes('onepiece-cardgame.com')) {
-    const jpUrl = fallbackUrl.replace('https://en.onepiece-cardgame.com/', 'https://onepiece-cardgame.com/');
-    return getSafeCardImageUrl(jpUrl);
+    const cleanUrl = fallbackUrl.replace('https://en.onepiece-cardgame.com/', 'https://onepiece-cardgame.com/');
+    return getSafeCardImageUrl(cleanUrl);
   }
 
-  const defaultJp = `https://onepiece-cardgame.com/images/cardlist/card/${cardId}.png`;
-  return getSafeCardImageUrl(defaultJp);
+  const defaultUrl = `https://asia-en.onepiece-cardgame.com/images/cardlist/card/${cardId}.png`;
+  return getSafeCardImageUrl(defaultUrl);
 }
 
 // Popular Japanese character name lookups for authentic display

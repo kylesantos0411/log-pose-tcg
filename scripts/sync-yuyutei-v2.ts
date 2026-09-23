@@ -12,6 +12,8 @@
 
 import { PrismaClient } from '@prisma/client';
 import { fetchIllustratorFromBinderPirates } from '../src/lib/illustrator-service';
+import { syncCardsForSet } from './sync-cards-bandai-yuyutei';
+import { BANDAI_ASIA_SERIES_MAP } from '../src/lib/bandai-asia-scraper';
 
 const prisma = new PrismaClient();
 
@@ -179,6 +181,12 @@ async function fetchYuyuSet(setIdentifier: string): Promise<ScrapedYuyuCard[]> {
 
 export async function syncYuyuSet(setIdentifier: string, fetchArtists = true) {
   const { clean, formattedCode } = getSetInfo(setIdentifier);
+
+  // Check if available on Bandai Asia-EN
+  if (BANDAI_ASIA_SERIES_MAP[formattedCode] || BANDAI_ASIA_SERIES_MAP[clean]) {
+    console.log(`\nFound official Bandai Asia-EN series mapping for [${formattedCode}].`);
+    return await syncCardsForSet(formattedCode, fetchArtists);
+  }
 
   console.log(`\n======================================================`);
   console.log(`🚀 Synchronizing Set Context: [${formattedCode}]`);
