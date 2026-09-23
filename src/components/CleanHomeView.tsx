@@ -14,6 +14,7 @@ import {
   Settings as SettingsIcon,
   Compass,
   Crown,
+  Flame,
 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 
@@ -74,24 +75,6 @@ function IsometricCubesIcon({ className = "w-8 h-8" }: { className?: string }) {
       <polygon points="17,10.5 21,13 17,15.5 13,13" />
       <polyline points="13,13 13,17 17,19.5 17,15.5" />
       <polyline points="21,13 21,17 17,19.5" />
-    </svg>
-  );
-}
-
-// 3-Bar Activity Stats Icon (Emerald Green)
-function ActivityBarsIcon({ className = "w-8 h-8" }: { className?: string }) {
-  return (
-    <svg 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2.8" 
-      strokeLinecap="round" 
-      className={className}
-    >
-      <line x1="5.5" y1="20" x2="5.5" y2="13" />
-      <line x1="12" y1="20" x2="12" y2="6" />
-      <line x1="18.5" y1="20" x2="18.5" y2="10" />
     </svg>
   );
 }
@@ -248,7 +231,7 @@ export function CleanHomeView({
           </div>
           <div className="mt-2">
             <h3 className="font-extrabold text-sm sm:text-base text-white tracking-wide leading-tight">
-              Sets &amp; Decks
+              Sets
             </h3>
             <p className="text-xs text-gray-400 font-medium mt-0.5">
               All {totalPacks > 0 ? totalPacks : '60'} Sets
@@ -294,24 +277,25 @@ export function CleanHomeView({
           </div>
         </Link>
 
-        {/* Tile 5: Stats */}
-        <Link
-          href="/collection"
-          className="group rounded-2xl bg-[#202330] hover:bg-[#262a3a] border border-[#313647] p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] transition-all duration-200 shadow-md hover:scale-[1.015] active:scale-[0.985] cursor-pointer"
+        {/* Tile 5: Latest */}
+        <button
+          type="button"
+          onClick={() => setShowLatestSyncModal(true)}
+          className="group rounded-2xl bg-[#202330] hover:bg-[#262a3a] border border-[#313647] p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] transition-all duration-200 shadow-md hover:scale-[1.015] active:scale-[0.985] cursor-pointer text-left w-full"
         >
           <div className="flex items-start justify-between">
-            <ActivityBarsIcon className="w-7 h-7 text-[#10b981] group-hover:scale-110 transition-transform" />
+            <Flame className="w-7 h-7 text-[#f59e0b] stroke-[2.2] group-hover:scale-110 transition-transform" />
             <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-0.5 transition" />
           </div>
           <div className="mt-2">
             <h3 className="font-extrabold text-sm sm:text-base text-white tracking-wide leading-tight">
-              Stats
+              Latest
             </h3>
             <p className="text-xs text-gray-400 font-medium mt-0.5">
-              Your Activity
+              Newly added cards
             </p>
           </div>
-        </Link>
+        </button>
 
         {/* Tile 6: Friends */}
         <Link
