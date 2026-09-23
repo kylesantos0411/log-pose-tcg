@@ -18,6 +18,7 @@ import {
   X,
   Compass,
   User,
+  Flame,
 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { getSafeCardImageUrl } from '@/lib/card-image';
@@ -25,6 +26,7 @@ import { getLocalBinder } from '@/lib/user-collection';
 
 import { SupportModal } from '@/components/SupportModal';
 import { AccountModal } from '@/components/AccountModal';
+import { LatestCardsSyncModal } from '@/components/LatestCardsSyncModal';
 
 interface CleanHomeViewProps {
   totalCards: number;
@@ -44,6 +46,7 @@ export function CleanHomeView({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showLatestSyncModal, setShowLatestSyncModal] = useState(false);
   const [displayCount, setDisplayCount] = useState(userCardsCount);
   const [homeSearch, setHomeSearch] = useState('');
 
@@ -164,6 +167,46 @@ export function CleanHomeView({
           </button>
         </div>
       </form>
+
+      {/* 2.5 LATEST RELEASED CARDS ACTION BANNER */}
+      <button
+        type="button"
+        onClick={() => setShowLatestSyncModal(true)}
+        className="w-full text-left relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/15 to-orange-500/15 hover:from-amber-500/25 hover:via-rose-500/25 hover:to-orange-500/25 border border-amber-500/30 hover:border-amber-400/60 p-3.5 sm:p-4 shadow-lg hover:shadow-amber-500/10 transition-all duration-300 group cursor-pointer"
+      >
+        {/* Glow ambient background */}
+        <div className="absolute -right-6 -bottom-6 w-28 h-28 bg-amber-500/20 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-500" />
+        
+        <div className="relative z-10 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-amber-500 to-rose-600 flex items-center justify-center text-white shadow-md shadow-amber-500/20 group-hover:scale-105 transition-transform flex-shrink-0">
+              <Flame className="w-5 h-5 sm:w-6 sm:h-6 fill-amber-200 text-amber-100 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm sm:text-base font-black text-white group-hover:text-amber-300 transition-colors">
+                  Latest Released Cards
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                  NEW
+                </span>
+              </div>
+              <p className="text-xs text-gray-300 line-clamp-1 mt-0.5">
+                Sync newest booster sets (OP-10, OP-09), manga arts & live market prices
+              </p>
+            </div>
+          </div>
+
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold group-hover:bg-amber-500 group-hover:text-gray-950 transition-all flex-shrink-0">
+            <span>Sync & View</span>
+            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+          </div>
+          
+          <div className="sm:hidden text-amber-400 group-hover:translate-x-1 transition-transform flex-shrink-0">
+            <ChevronRight className="w-5 h-5" />
+          </div>
+        </div>
+      </button>
 
       {/* 3. HERO SHOWCASE CARD: "Explore Cards" / "View the cards" */}
       <Link
@@ -397,6 +440,12 @@ export function CleanHomeView({
         isOpen={showAccountModal}
         onClose={() => setShowAccountModal(false)}
         defaultTab="register"
+      />
+
+      {/* Latest Released Cards Interactive Sync Modal */}
+      <LatestCardsSyncModal
+        isOpen={showLatestSyncModal}
+        onClose={() => setShowLatestSyncModal(false)}
       />
     </div>
   );
