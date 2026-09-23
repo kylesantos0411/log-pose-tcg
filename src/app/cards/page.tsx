@@ -58,8 +58,34 @@ interface CardItem {
 }
 
 const COLORS = ['All', 'Red', 'Green', 'Blue', 'Purple', 'Black', 'Yellow'];
-const CATEGORIES = ['All', 'Leader', 'Character', 'Event', 'Stage'];
-const RARITIES = ['All', 'Leader', 'Common', 'Uncommon', 'Rare', 'SuperRare', 'SecretRare', 'Special', 'Promo'];
+const YUYU_KINDS = [
+  { value: 'All', label: 'All Kinds' },
+  { value: 'character', label: 'character' },
+  { value: 'event', label: 'event' },
+  { value: 'stage', label: 'stage' },
+  { value: 'Don!! Card', label: 'Don!! Card' },
+  { value: 'leader', label: 'leader' },
+];
+const YUYU_RARITIES = [
+  'All',
+  'P-SEC',
+  'SEC',
+  'P-SR',
+  'SR',
+  'PR',
+  'R',
+  'P-UC',
+  'UC',
+  'PC',
+  'C',
+  'PL',
+  'L',
+  'SP',
+  'TR',
+  'PP',
+  'P',
+  '-',
+];
 
 export default function CardsPage() {
   return (
@@ -77,6 +103,7 @@ function CardsContent() {
   const sortParam = searchParams.get('sort') || '';
   const initialQuery = searchParams.get('q') || '';
   const initialSet = searchParams.get('set') || 'All';
+  const initialCategory = searchParams.get('category') || 'All';
   const initialRarity = searchParams.get('rarity') || 'All';
   const initialArtist = searchParams.get('artist') || 'All';
 
@@ -85,7 +112,7 @@ function CardsContent() {
   const [search, setSearch] = useState(initialQuery);
   const [sortBy, setSortBy] = useState(sortParam || 'latest');
   const [selectedColor, setSelectedColor] = useState('All');
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [selectedRarity, setSelectedRarity] = useState(initialRarity);
   const [selectedSet, setSelectedSet] = useState(initialSet);
   const [selectedArtist, setSelectedArtist] = useState(initialArtist);
@@ -123,6 +150,16 @@ function CardsContent() {
     const setParam = searchParams.get('set');
     if (setParam) {
       setSelectedSet(setParam);
+      setPage(1);
+    }
+    const categoryParam = searchParams.get('category');
+    if (categoryParam) {
+      setSelectedCategory(categoryParam);
+      setPage(1);
+    }
+    const rarityParam = searchParams.get('rarity');
+    if (rarityParam) {
+      setSelectedRarity(rarityParam);
       setPage(1);
     }
     const queryParam = searchParams.get('q');
@@ -446,9 +483,8 @@ function CardsContent() {
               onChange={(e) => { setSelectedCategory(e.target.value); setPage(1); }}
               className="bg-[#1e212c] border border-[#32384a] focus:border-[#3b82f6] rounded-xl px-3 py-2 text-xs text-gray-200 focus:outline-none transition cursor-pointer"
             >
-              <option value="All">All Categories</option>
-              {CATEGORIES.slice(1).map((cat) => (
-                <option key={cat} value={cat}>{cat}</option>
+              {YUYU_KINDS.map((k) => (
+                <option key={k.value} value={k.value}>{k.label}</option>
               ))}
             </select>
 
@@ -458,7 +494,7 @@ function CardsContent() {
               className="bg-[#1e212c] border border-[#32384a] focus:border-[#3b82f6] rounded-xl px-3 py-2 text-xs text-gray-200 focus:outline-none transition cursor-pointer"
             >
               <option value="All">All Rarities</option>
-              {RARITIES.slice(1).map((r) => (
+              {YUYU_RARITIES.slice(1).map((r) => (
                 <option key={r} value={r}>{r}</option>
               ))}
             </select>
@@ -528,6 +564,12 @@ function CardsContent() {
             <span className="px-2 py-0.5 rounded-md bg-[#e76d78]/20 text-[#e76d78] border border-[#e76d78]/30 font-bold flex-shrink-0 flex items-center gap-1">
               {selectedSet}
               <button type="button" onClick={() => setSelectedSet('All')}>&times;</button>
+            </span>
+          )}
+          {selectedCategory !== 'All' && (
+            <span className="px-2 py-0.5 rounded-md bg-[#10b981]/20 text-[#34d399] border border-[#10b981]/30 font-bold flex-shrink-0 flex items-center gap-1">
+              {selectedCategory}
+              <button type="button" onClick={() => setSelectedCategory('All')}>&times;</button>
             </span>
           )}
           {selectedColor !== 'All' && (

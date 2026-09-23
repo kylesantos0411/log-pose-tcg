@@ -284,17 +284,26 @@ export function CardDetailView({
   };
   const blockNum = getBlockNumber();
 
-  // Short Rarity code (e.g. R, C, UC, SR, SEC, L, SP)
-  const formatRarityCode = (rarity?: string | null) => {
+  // Yuyu-tei Rarity code (e.g. P-SEC, SEC, P-SR, SR, PR, R, P-UC, UC, PC, C, PL, L, SP, TR, PP, P, DON!!)
+  const formatRarityCode = (
+    rarity?: string | null,
+    isAlt?: boolean,
+    promoSource?: string | null,
+    category?: string | null
+  ) => {
+    if (category === 'DON!!' || rarity === '-') return 'DON!!';
     const r = (rarity || '').toLowerCase();
-    if (r.includes('secret')) return 'SEC';
-    if (r.includes('super')) return 'SR';
-    if (r.includes('special')) return 'SP';
-    if (r.includes('leader')) return 'L';
-    if (r.includes('uncommon')) return 'UC';
-    if (r.includes('common')) return 'C';
-    if (r.includes('promo')) return 'P';
-    if (r === 'rare' || r === 'r') return 'R';
+    const isAltArt = !!isAlt || !!promoSource?.includes('パラレル');
+    if (r.includes('secret')) return isAltArt ? 'P-SEC' : 'SEC';
+    if (r.includes('super')) return isAltArt ? 'P-SR' : 'SR';
+    if (r.includes('special') || r === 'sp') return 'SP';
+    if (r.includes('treasure') || r === 'tr') return 'TR';
+    if (r.includes('leader')) return isAltArt ? 'PL' : 'L';
+    if (r.includes('uncommon')) return isAltArt ? 'P-UC' : 'UC';
+    if (r.includes('common')) return isAltArt ? 'PC' : 'C';
+    if (r.includes('promo')) return isAltArt ? 'PP' : 'P';
+    if (r === 'rare' || r === 'r') return isAltArt ? 'PR' : 'R';
+    if (r === 'parallel') return 'PP';
     return rarity ? rarity.toUpperCase() : 'R';
   };
 
@@ -628,7 +637,7 @@ export function CardDetailView({
             {/* Bottom Row: Rarity (Left), Code Pill (Center), Attribute & Block Number (Right) */}
             <div className="flex items-center justify-between pt-2 gap-1">
               <span className="text-base sm:text-lg font-black text-white tracking-wider pl-1 flex-shrink-0">
-                {formatRarityCode(card.rarity)}
+                {formatRarityCode(card.rarity, card.isAltArt, card.promoSource, card.category)}
               </span>
 
               <button

@@ -153,11 +153,96 @@ export async function GET(req: NextRequest) {
     }
 
     if (category && category !== 'All') {
-      where.category = category;
+      const catLower = category.trim().toLowerCase();
+      if (catLower === 'character') {
+        where.category = 'Character';
+      } else if (catLower === 'event') {
+        where.category = 'Event';
+      } else if (catLower === 'stage') {
+        where.category = 'Stage';
+      } else if (catLower === 'don!! card' || catLower === 'don!!' || catLower === 'don') {
+        where.category = 'DON!!';
+      } else if (catLower === 'leader') {
+        where.category = 'Leader';
+      } else {
+        where.category = category;
+      }
     }
 
     if (rarity && rarity !== 'All') {
-      where.rarity = rarity;
+      const rUpper = rarity.trim().toUpperCase();
+      if (rUpper === 'P-SEC') {
+        where.rarity = 'SecretRare';
+        where.isAltArt = true;
+      } else if (rUpper === 'SEC') {
+        where.rarity = 'SecretRare';
+        where.isAltArt = false;
+      } else if (rUpper === 'P-SR') {
+        where.rarity = 'SuperRare';
+        where.isAltArt = true;
+      } else if (rUpper === 'SR') {
+        where.rarity = 'SuperRare';
+        where.isAltArt = false;
+      } else if (rUpper === 'PR') {
+        where.rarity = 'Rare';
+        where.isAltArt = true;
+      } else if (rUpper === 'R') {
+        where.rarity = 'Rare';
+        where.isAltArt = false;
+      } else if (rUpper === 'P-UC') {
+        where.rarity = 'Uncommon';
+        where.isAltArt = true;
+      } else if (rUpper === 'UC') {
+        where.rarity = 'Uncommon';
+        where.isAltArt = false;
+      } else if (rUpper === 'PC') {
+        where.rarity = 'Common';
+        where.isAltArt = true;
+      } else if (rUpper === 'C') {
+        where.rarity = 'Common';
+        where.isAltArt = false;
+      } else if (rUpper === 'PL') {
+        where.rarity = 'Leader';
+        where.isAltArt = true;
+      } else if (rUpper === 'L') {
+        where.rarity = 'Leader';
+        where.isAltArt = false;
+      } else if (rUpper === 'SP') {
+        andConditions.push({
+          OR: [
+            { rarity: 'Special' },
+            { promoSource: { contains: 'SP' } },
+            { promoSource: { contains: '特別' } },
+          ],
+        });
+      } else if (rUpper === 'TR') {
+        andConditions.push({
+          OR: [
+            { rarity: 'TreasureRare' },
+            { promoSource: { contains: 'TR' } },
+            { promoSource: { contains: 'トレジャー' } },
+          ],
+        });
+      } else if (rUpper === 'PP') {
+        andConditions.push({
+          OR: [
+            { rarity: 'Promo', isAltArt: true },
+            { rarity: 'Parallel' },
+          ],
+        });
+      } else if (rUpper === 'P') {
+        where.rarity = 'Promo';
+        where.isAltArt = false;
+      } else if (rUpper === '-') {
+        andConditions.push({
+          OR: [
+            { category: 'DON!!' },
+            { rarity: '-' },
+          ],
+        });
+      } else {
+        where.rarity = rarity;
+      }
     }
 
     if (set && set !== 'All') {
