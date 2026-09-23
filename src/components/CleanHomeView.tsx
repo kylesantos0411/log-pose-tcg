@@ -252,7 +252,7 @@ export function CleanHomeView({
 
         {/* Tile 4: Favorites */}
         <Link
-          href="/collection"
+          href="/favorites"
           className="group rounded-2xl bg-[#202330] hover:bg-[#262a3a] border border-[#313647] p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] transition-all duration-200 shadow-md hover:scale-[1.015] active:scale-[0.985] cursor-pointer"
         >
           <div className="flex items-start justify-between">

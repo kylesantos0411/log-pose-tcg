@@ -22,6 +22,16 @@ export async function GET(req: NextRequest) {
       yuyuPrice: { not: null, gt: 0 },
     };
 
+    const idsParam = searchParams.get('ids');
+    if (idsParam) {
+      const targetIds = idsParam.split(',').map((s) => s.trim()).filter(Boolean);
+      if (targetIds.length > 0) {
+        where.id = { in: targetIds };
+        delete where.hasJpPrint;
+        delete where.yuyuPrice;
+      }
+    }
+
     const andConditions: any[] = [];
 
     // Artist filter or artist keyword matching

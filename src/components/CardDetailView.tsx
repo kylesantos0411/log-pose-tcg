@@ -32,6 +32,7 @@ import {
 import { getSafeCardImageUrl, getEditionCardImageUrl, JAPANESE_NAME_MAP } from '@/lib/card-image';
 import { getCardArtist, ArtistProfile } from '@/lib/artist-data';
 import { useSettings, CURRENCIES } from '@/context/SettingsContext';
+import { isCardFavorite, toggleCardFavorite } from '@/lib/favorites';
 
 export interface CardDetailData {
   id: string;
@@ -138,10 +139,14 @@ export function CardDetailView({
   // Active view states
   const [activeTab, setActiveTab] = useState<'market' | 'grading'>('market');
   const [timeframe, setTimeframe] = useState<'7D' | '1M' | '3M'>('1M');
-  const [isFavorite, setIsFavorite] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(() => isCardFavorite(card.id));
   const [showComparison, setShowComparison] = useState(false);
   const [imgErrorEn, setImgErrorEn] = useState(false);
   const [imgErrorJp, setImgErrorJp] = useState(false);
+
+  useEffect(() => {
+    setIsFavorite(isCardFavorite(card.id));
+  }, [card.id]);
 
   // Modals & interaction states
   const [showArtistModal, setShowArtistModal] = useState(false);
@@ -168,7 +173,7 @@ export function CardDetailView({
   };
 
   const handleToggleFavorite = () => {
-    const next = !isFavorite;
+    const next = toggleCardFavorite(card.id);
     setIsFavorite(next);
     showToast(next ? `Added ${card.name} to Favorites ★` : `Removed from Favorites`);
   };
