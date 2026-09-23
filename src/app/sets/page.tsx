@@ -50,7 +50,7 @@ const BOOSTER_SETS: YuyuteiSetDefinition[] = [
   { id: 'op17', code: 'OP17', title: "The World's Strongest Warrior", targetSet: 'OP-17' },
   { id: 'op16', code: 'OP16', title: 'The Moment of Decisive Battle', targetSet: 'OP-16' },
   { id: 'op15', code: 'OP15', title: 'Adventure on the Island of the Gods', targetSet: 'OP-15' },
-  { id: 'op14', code: 'OP14', title: 'The Seven Heroes of the Azure Sea', targetSet: 'OP14-EB04' },
+  { id: 'op14', code: 'OP14', title: 'The Seven Heroes of the Azure Sea', targetSet: 'OP-14' },
   { id: 'op13', code: 'OP13', title: 'Inherited Will', targetSet: 'OP-13' },
   { id: 'prb02', code: 'PRB02', title: 'ONE PIECE CARD THE BESTvol.2', targetSet: 'PRB-02' },
   { id: 'op12', code: 'OP12', title: 'The bond between master and disciple', targetSet: 'OP-12' },

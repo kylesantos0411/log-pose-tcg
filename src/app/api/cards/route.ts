@@ -152,24 +152,23 @@ export async function GET(req: NextRequest) {
 
     if (set && set !== 'All') {
       const clean = set.trim();
-      const noDash = clean.replace('-', '');
-      const withDashMatch = clean.match(/^([A-Za-z]+)(\d+)$/);
-      const withDash = withDashMatch ? `${withDashMatch[1]}-${withDashMatch[2]}` : clean;
+      const noDash = clean.replace(/[^A-Za-z0-9]/g, '');
+      const withDashMatch = clean.match(/^([A-Za-z]+)-?(\d+)$/i);
+      const withDash = withDashMatch ? `${withDashMatch[1].toUpperCase()}-${withDashMatch[2]}` : clean;
 
       const setOrs: any[] = [
-        { pack: { code: { contains: clean } } },
-        { pack: { code: { contains: noDash } } },
-        { pack: { code: { contains: withDash } } },
-        { pack: { name: { contains: clean } } },
+        { pack: { code: { equals: clean } } },
+        { pack: { code: { equals: withDash } } },
+        { pack: { code: { equals: noDash } } },
         { packId: clean },
-        { id: { startsWith: noDash } },
       ];
 
       if (/^promo|p$/i.test(clean)) {
         setOrs.push({ packId: '569901' });
-        setOrs.push({ id: { startsWith: 'P-' } });
+        setOrs.push({ pack: { code: 'PROMO' } });
       } else if (/^special$/i.test(clean)) {
         setOrs.push({ packId: '569801' });
+        setOrs.push({ pack: { code: 'SPECIAL' } });
       }
 
       andConditions.push({ OR: setOrs });
