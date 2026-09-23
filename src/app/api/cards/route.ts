@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCardArtist, getCardIdsByArtist, ARTIST_PROFILES } from '@/lib/artist-data';
+import { getCardArtist, getCardIdsByArtist, ARTIST_PROFILES, isGuestArtist } from '@/lib/artist-data';
 
 export async function GET(req: NextRequest) {
   try {
@@ -49,8 +49,9 @@ export async function GET(req: NextRequest) {
         'hayaken': 'Hayaken-sarena',
         'hayaken-sarena': 'Hayaken-sarena',
         'hayaken sarena': 'Hayaken-sarena',
-        'toei': 'Bandai Namco / Toei Animation',
-        'bandai': 'Bandai Namco / Toei Animation',
+        'bisai': 'BISAI',
+        'sakuragi': 'Suzume Sakuragi',
+        'suzume sakuragi': 'Suzume Sakuragi',
       };
 
       if (ARTIST_ALIASES[lowerQ]) {
@@ -68,7 +69,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    if (targetArtist) {
+    if (targetArtist && isGuestArtist(targetArtist)) {
       const allCards = await prisma.card.findMany({
         select: { id: true, name: true },
       });

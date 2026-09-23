@@ -176,8 +176,8 @@ export function CardDetailView({
   // Japanese Name lookup
   const japaneseName = JAPANESE_NAME_MAP[card.name] || '';
 
-  // Card artist information
-  const artist: ArtistProfile = getCardArtist(card.id, card.name);
+  // Card artist information (only set if card has a verified human/guest illustrator)
+  const artist: ArtistProfile | null = getCardArtist(card.id, card.name);
 
   // Derive realistic market quotes matching the OP.TCG screenshot
   const basePrice = card.marketPrice || 25.0;
@@ -598,18 +598,25 @@ export function CardDetailView({
                 {formattedTypes}
               </div>
 
-              {/* Illustrator Pill */}
+              {/* Illustrator Pill / Official Card Art Badge */}
               <div className="pt-3 flex justify-center">
-                <button
-                  type="button"
-                  onClick={() => setShowArtistModal(true)}
-                  className="inline-flex items-center gap-2 px-4 py-1.5 sm:px-5 sm:py-2 rounded-xl sm:rounded-2xl bg-[#2e3243] hover:bg-[#383d52] font-bold text-xs sm:text-sm text-white tracking-wider uppercase transition shadow-sm cursor-pointer whitespace-nowrap"
-                  title={`View Illustrator: ${artist.name}`}
-                >
-                  <PenTool className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white stroke-[2.2]" />
-                  <span>{artist.name.toUpperCase()}</span>
-                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white stroke-[2.5]" />
-                </button>
+                {artist ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowArtistModal(true)}
+                    className="inline-flex items-center gap-2 px-4 py-1.5 sm:px-5 sm:py-2 rounded-xl sm:rounded-2xl bg-[#2e3243] hover:bg-[#383d52] font-bold text-xs sm:text-sm text-white tracking-wider uppercase transition shadow-sm cursor-pointer whitespace-nowrap"
+                    title={`View Illustrator: ${artist.name}`}
+                  >
+                    <PenTool className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#e76d78] stroke-[2.2]" />
+                    <span>{artist.name.toUpperCase()}</span>
+                    <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 stroke-[2.5]" />
+                  </button>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#242735] border border-white/5 text-[11px] font-semibold text-gray-400 tracking-wider">
+                    <Layers className="w-3 h-3 text-gray-500" />
+                    Official Card Art
+                  </span>
+                )}
               </div>
             </div>
 
@@ -1546,7 +1553,7 @@ export function CardDetailView({
       </div>
 
       {/* ================= MODAL 1: ARTIST PORTFOLIO MODAL ================= */}
-      {showArtistModal && (
+      {showArtistModal && artist && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
           <div className="bg-[#242836] border border-[#34384c] rounded-3xl max-w-lg w-full p-6 relative shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <button

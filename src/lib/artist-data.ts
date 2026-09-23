@@ -171,16 +171,29 @@ export const ARTIST_PROFILES: Record<string, ArtistProfile> = {
       { id: 'OP07-040', name: 'Crocodile (Uncommon)', rarity: 'Uncommon', marketPrice: 2.50 },
     ],
   },
-  'Bandai Namco / Toei Animation': {
-    name: 'Bandai Namco / Toei Animation',
-    style: 'Official Animation & Card Game Studio Graphics',
-    bio: 'Official production artwork, animated feature stills, and core card game layout design by the official Bandai Namco Carddass and Toei Animation studios.',
-    totalCards: 3200,
+  BISAI: {
+    name: 'BISAI',
+    style: 'Sleek Lineart, High-Contrast Cell Shading, Intense Battle Glare',
+    bio: 'Renowned One Piece TCG artist known for iconic, sharp Super Rare character artworks featuring crisp lines and high-contrast dramatic lighting.',
+    totalCards: 5,
     featuredCards: [
-      { id: 'OP01-001', name: 'Roronoa Zoro (Leader)', rarity: 'Leader', marketPrice: 4.50 },
-      { id: 'ST01-001', name: 'Monkey.D.Luffy (Leader)', rarity: 'Leader', marketPrice: 3.50 },
-      { id: 'OP01-016', name: 'Nami (Base Character)', rarity: 'Rare', marketPrice: 2.20 },
-      { id: 'OP02-001', name: 'Edward.Newgate (Base Leader)', rarity: 'Leader', marketPrice: 4.00 },
+      { id: 'OP01-068', name: 'Crocodile (SR)', rarity: 'SuperRare', marketPrice: 15.00 },
+      { id: 'OP02-025', name: 'Roronoa Zoro (SR)', rarity: 'SuperRare', marketPrice: 22.00 },
+      { id: 'OP03-040', name: 'Nami (SR)', rarity: 'SuperRare', marketPrice: 35.00 },
+      { id: 'OP04-024', name: 'Sugar (SR)', rarity: 'SuperRare', marketPrice: 18.00 },
+      { id: 'OP05-005', name: 'Karasu (SR)', rarity: 'SuperRare', marketPrice: 12.00 },
+    ],
+  },
+  'Suzume Sakuragi': {
+    name: 'Suzume Sakuragi',
+    style: 'Cute & Dynamic Character Portrayals, Vivid Anime Highlights',
+    bio: 'Beloved card artist specializing in charming, dynamic fan-favorite heroine illustrations and expressive character poses.',
+    totalCards: 4,
+    featuredCards: [
+      { id: 'OP01-077', name: 'Perona (Uncommon)', rarity: 'Uncommon', marketPrice: 4.50 },
+      { id: 'OP02-036', name: 'Nekomamushi (Common)', rarity: 'Common', marketPrice: 1.50 },
+      { id: 'OP04-032', name: 'Sugar (Common)', rarity: 'Common', marketPrice: 2.00 },
+      { id: 'OP06-035', name: 'Hiyori (Common)', rarity: 'Common', marketPrice: 3.00 },
     ],
   },
 };
@@ -301,9 +314,42 @@ export const EXACT_CARD_ARTISTS: Record<string, string> = {
   'OP05-060': 'Hayaken-sarena',
   'OP06-021': 'Hayaken-sarena',
   'OP07-040': 'Hayaken-sarena',
+
+  // === BISAI ===
+  'OP01-068': 'BISAI',
+  'OP02-025': 'BISAI',
+  'OP03-040': 'BISAI',
+  'OP04-024': 'BISAI',
+  'OP05-005': 'BISAI',
+
+  // === Suzume Sakuragi ===
+  'OP01-077': 'Suzume Sakuragi',
+  'OP02-036': 'Suzume Sakuragi',
+  'OP04-032': 'Suzume Sakuragi',
+  'OP06-035': 'Suzume Sakuragi',
 };
 
-export function getCardArtist(cardId: string, cardName: string = ''): ArtistProfile {
+/**
+ * Checks whether an artist name corresponds to a genuine guest illustrator
+ */
+export function isGuestArtist(artistName?: string | null): boolean {
+  if (!artistName) return false;
+  const lower = artistName.toLowerCase().trim();
+  if (
+    lower === 'all' ||
+    lower.includes('bandai') ||
+    lower.includes('toei') ||
+    lower.includes('animation') ||
+    lower.includes('official') ||
+    lower === 'unknown' ||
+    lower === 'none'
+  ) {
+    return false;
+  }
+  return true;
+}
+
+export function getCardArtist(cardId: string, cardName: string = ''): ArtistProfile | null {
   const normId = (cardId || '').trim();
 
   // 1. Direct verified exact match
@@ -312,7 +358,7 @@ export function getCardArtist(cardId: string, cardName: string = ''): ArtistProf
     return ARTIST_PROFILES[artistName] || {
       name: artistName,
       style: 'Verified Card Illustrator',
-      bio: `Official illustrator of card ${normId}.`,
+      bio: `Official illustrator credited on card ${normId}.`,
       totalCards: 1,
       featuredCards: [],
     };
@@ -331,9 +377,8 @@ export function getCardArtist(cardId: string, cardName: string = ''): ArtistProf
     return ARTIST_PROFILES['Eiichiro Oda'];
   }
 
-  // 3. Default: All other standard cards are official Bandai / Toei Animation studio productions
-  // Note: NEVER fall back to baseId or _p1, because different prints have completely different guest illustrators!
-  return ARTIST_PROFILES['Bandai Namco / Toei Animation'];
+  // 3. Normal / Standard base cards: Official Studio Art (No individual guest illustrator credited)
+  return null;
 }
 
 /**
@@ -341,18 +386,15 @@ export function getCardArtist(cardId: string, cardName: string = ''): ArtistProf
  */
 export function getCardIdsByArtist(artistName: string, allCards: Array<{ id: string; name: string }>): string[] {
   const targetLower = artistName.toLowerCase().trim();
-  
-  // If looking for Bandai / Toei Animation
-  if (targetLower.includes('bandai') || targetLower.includes('toei') || targetLower.includes('animation') || targetLower.includes('official')) {
-    return allCards
-      .filter((c) => getCardArtist(c.id, c.name).name === 'Bandai Namco / Toei Animation')
-      .map((c) => c.id);
+  if (!targetLower || targetLower === 'all' || !isGuestArtist(targetLower)) {
+    return [];
   }
 
   return allCards
     .filter((c) => {
       const art = getCardArtist(c.id, c.name);
-      return art.name.toLowerCase() === targetLower;
+      return art && art.name.toLowerCase() === targetLower;
     })
     .map((c) => c.id);
 }
+
