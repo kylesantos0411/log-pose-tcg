@@ -10,9 +10,11 @@ export async function createSupabaseServerClient(): Promise<SupabaseClient | nul
 
   const cookieStore = await cookies();
 
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    anonKey!,
     {
       cookies: {
         getAll() {
