@@ -128,7 +128,7 @@ export function CleanHomeView({
           </h1>
         </Link>
 
-        {/* Header Right Actions: Refresh, Search, Settings */}
+        {/* Header Right Actions: Refresh, Settings */}
         <div className="flex items-center gap-1">
           <button
             type="button"
@@ -138,14 +138,6 @@ export function CleanHomeView({
           >
             <RotateCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin text-[#3ed57a]' : ''}`} />
           </button>
-          
-          <Link
-            href="/cards"
-            title="Search Cards"
-            className="text-gray-300 hover:text-white p-2 rounded-full hover:bg-white/10 transition duration-200 active:scale-90 cursor-pointer"
-          >
-            <Search className="w-5 h-5" />
-          </Link>
 
           <button
             type="button"
