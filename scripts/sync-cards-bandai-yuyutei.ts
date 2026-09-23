@@ -177,18 +177,17 @@ export async function syncCardsForSet(setOrSeries: string, fetchArtists = true) 
       }
       if (!matchedYuyu) {
         if (bCard.isAltArt) {
+          // Strict: only match alt art
           matchedYuyu = yuyuCandidates.find(c => c.isAltArt && !c.isSuperParallel) || null;
         } else {
-          matchedYuyu = yuyuCandidates.find(c => !c.isAltArt) || null;
+          // Strict: only match base
+          matchedYuyu = yuyuCandidates.find(c => !c.isAltArt && !c.isSuperParallel) || null;
         }
-      }
-      if (!matchedYuyu) {
-        matchedYuyu = yuyuCandidates[0];
       }
     }
 
-    const yuyuPrice = matchedYuyu ? matchedYuyu.priceYen : null;
-    const marketPriceUsd = yuyuPrice ? Math.round((yuyuPrice / 140) * 100) / 100 : null;
+    const yuyuPrice = matchedYuyu ? matchedYuyu.priceYen : existingCard?.yuyuPrice || null;
+    const marketPriceUsd = yuyuPrice ? Math.round((yuyuPrice / 140) * 100) / 100 : existingCard?.marketPrice || null;
 
     // Check if card exists in DB (by id or by packId + cardNumber + isAltArt)
     let existingCard = await prisma.card.findUnique({
