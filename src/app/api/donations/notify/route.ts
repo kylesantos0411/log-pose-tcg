@@ -1,51 +1,85 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+// Simple in-memory rate limiter: max 10 requests per 10 minutes per IP
+const rateLimitMap = new Map<string, { count: number; expiresAt: number }>();
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
+const MAX_REQUESTS_PER_WINDOW = 10;
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const record = rateLimitMap.get(ip);
+  if (!record || now > record.expiresAt) {
+    rateLimitMap.set(ip, { count: 1, expiresAt: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+  if (record.count >= MAX_REQUESTS_PER_WINDOW) {
+    return true;
+  }
+  record.count += 1;
+  return false;
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const {
-      donorName = 'Anonymous Supporter',
-      donorEmail = '',
-      amount = 'Treat me a coffee',
-      referenceNumber = '',
-      message = '',
-      paymentMethod = 'QR Payment (GCash / Maya / Bank)',
-    } = body;
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown-client';
+    if (isRateLimited(ip)) {
+      return NextResponse.json(
+        { success: false, error: 'Too many donation requests. Please wait a few minutes before trying again.' },
+        { status: 429 }
+      );
+    }
 
-    const recipientEmail = process.env.DONATION_NOTIFY_EMAIL || 'kylesantos0411@gmail.com';
+    const body = await req.json();
+    const rawDonorName = String(body.donorName || 'Anonymous Supporter').slice(0, 100).trim();
+    const rawDonorEmail = String(body.donorEmail || '').slice(0, 100).trim();
+    const rawAmount = String(body.amount || 'Treat me a coffee').slice(0, 50).trim();
+    const rawReferenceNumber = String(body.referenceNumber || '').slice(0, 100).trim();
+    const rawMessage = String(body.message || '').slice(0, 1000).trim();
+    const rawPaymentMethod = String(body.paymentMethod || 'QR Payment (GCash / Maya / Bank)').slice(0, 100).trim();
+
+    const recipientEmail = process.env.DONATION_NOTIFY_EMAIL || '';
 
     // 1. Save to SQLite database so no donation is ever lost
     let donationRecord;
     try {
       donationRecord = await prisma.donation.create({
         data: {
-          donorName: String(donorName).trim() || 'Anonymous Supporter',
-          donorEmail: donorEmail ? String(donorEmail).trim() : null,
-          amount: amount ? String(amount).trim() : 'Treat me a coffee',
-          referenceNumber: referenceNumber ? String(referenceNumber).trim() : null,
-          message: message ? String(message).trim() : null,
-          paymentMethod: String(paymentMethod).trim(),
+          donorName: rawDonorName || 'Anonymous Supporter',
+          donorEmail: rawDonorEmail || null,
+          amount: rawAmount || 'Treat me a coffee',
+          referenceNumber: rawReferenceNumber || null,
+          message: rawMessage || null,
+          paymentMethod: rawPaymentMethod,
         },
       });
     } catch (dbErr) {
       console.error('[Donation DB Error]', dbErr);
     }
 
-    // 2. Format notification content
-    const subject = `☕ [Log Pose TCG] New Donation from ${donorName || 'a Supporter'}!`;
+    // 2. Format plain text notification content
+    const subject = `☕ [Log Pose TCG] New Donation from ${rawDonorName || 'a Supporter'}!`;
     const emailBody = `
 ========================================
 🎉 NEW DONATION RECEIVED FOR LOG POSE TCG
 ========================================
 
-👤 Donor Name: ${donorName || 'Anonymous Supporter'}
-📧 Donor Email: ${donorEmail || 'Not provided'}
-☕ Donation Amount / Tier: ${amount}
-💳 Payment Method: ${paymentMethod}
-🔢 Reference / Transaction ID: ${referenceNumber || 'Not provided'}
+👤 Donor Name: ${rawDonorName || 'Anonymous Supporter'}
+📧 Donor Email: ${rawDonorEmail || 'Not provided'}
+☕ Donation Amount / Tier: ${rawAmount}
+💳 Payment Method: ${rawPaymentMethod}
+🔢 Reference / Transaction ID: ${rawReferenceNumber || 'Not provided'}
 💬 Personal Message:
-"${message || 'None'}"
+"${rawMessage || 'None'}"
 
 📅 Date & Time: ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' })} (PHT)
 🆔 Record ID: ${donationRecord?.id || 'N/A'}
@@ -56,11 +90,11 @@ Thank you for maintaining Log Pose TCG! 🏴‍☠️
     let emailSent = false;
     let emailProvider = 'none';
 
-    // 3. Attempt Method A: SMTP / Gmail if env variables are configured
+    // 3. Attempt Method A: SMTP / Gmail if configured and recipientEmail is defined
     const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER;
     const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
 
-    if (smtpUser && smtpPass) {
+    if (recipientEmail && smtpUser && smtpPass) {
       try {
         const nodemailer = await import('nodemailer');
         const transporter = nodemailer.createTransport({
@@ -74,7 +108,7 @@ Thank you for maintaining Log Pose TCG! 🏴‍☠️
         await transporter.sendMail({
           from: `"Log Pose TCG Donations" <${smtpUser}>`,
           to: recipientEmail,
-          replyTo: donorEmail || undefined,
+          replyTo: rawDonorEmail || undefined,
           subject,
           text: emailBody,
           html: `
@@ -88,32 +122,32 @@ Thank you for maintaining Log Pose TCG! 🏴‍☠️
                 <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                   <tr>
                     <td style="padding: 8px 0; color: #94a3b8; font-weight: 600;">Donor Name:</td>
-                    <td style="padding: 8px 0; color: #ffffff; font-weight: 800; text-align: right;">${donorName || 'Anonymous Supporter'}</td>
+                    <td style="padding: 8px 0; color: #ffffff; font-weight: 800; text-align: right;">${escapeHtml(rawDonorName || 'Anonymous Supporter')}</td>
                   </tr>
                   <tr>
                     <td style="padding: 8px 0; color: #94a3b8; font-weight: 600;">Donor Email:</td>
-                    <td style="padding: 8px 0; color: #f4727d; font-weight: 700; text-align: right;">${donorEmail || 'Not provided'}</td>
+                    <td style="padding: 8px 0; color: #f4727d; font-weight: 700; text-align: right;">${escapeHtml(rawDonorEmail || 'Not provided')}</td>
                   </tr>
                   <tr>
                     <td style="padding: 8px 0; color: #94a3b8; font-weight: 600;">Amount:</td>
-                    <td style="padding: 8px 0; color: #f59e0b; font-weight: 800; text-align: right;">${amount}</td>
+                    <td style="padding: 8px 0; color: #f59e0b; font-weight: 800; text-align: right;">${escapeHtml(rawAmount)}</td>
                   </tr>
                   <tr>
                     <td style="padding: 8px 0; color: #94a3b8; font-weight: 600;">Method:</td>
-                    <td style="padding: 8px 0; color: #ffffff; text-align: right;">${paymentMethod}</td>
+                    <td style="padding: 8px 0; color: #ffffff; text-align: right;">${escapeHtml(rawPaymentMethod)}</td>
                   </tr>
-                  ${referenceNumber ? `
+                  ${rawReferenceNumber ? `
                   <tr>
                     <td style="padding: 8px 0; color: #94a3b8; font-weight: 600;">Reference #:</td>
-                    <td style="padding: 8px 0; color: #38bdf8; font-family: monospace; font-weight: 700; text-align: right;">${referenceNumber}</td>
+                    <td style="padding: 8px 0; color: #38bdf8; font-family: monospace; font-weight: 700; text-align: right;">${escapeHtml(rawReferenceNumber)}</td>
                   </tr>
                   ` : ''}
                 </table>
 
-                ${message ? `
+                ${rawMessage ? `
                 <div style="margin-top: 18px; padding: 16px; background: #262a38; border-radius: 14px; border: 1px solid #363d52;">
                   <span style="font-size: 11px; font-weight: 800; color: #f4727d; text-transform: uppercase; letter-spacing: 0.5px;">Message from Donor:</span>
-                  <p style="margin: 6px 0 0 0; color: #e2e8f0; font-size: 14px; line-height: 1.5; font-style: italic;">"${message}"</p>
+                  <p style="margin: 6px 0 0 0; color: #e2e8f0; font-size: 14px; line-height: 1.5; font-style: italic;">"${escapeHtml(rawMessage)}"</p>
                 </div>
                 ` : ''}
 
@@ -131,10 +165,10 @@ Thank you for maintaining Log Pose TCG! 🏴‍☠️
       }
     }
 
-    // 4. Attempt Method B: Direct Web Dispatch (FormSubmit) as instant fallback
-    if (!emailSent) {
+    // 4. Attempt Method B: FormSubmit if recipientEmail is configured
+    if (!emailSent && recipientEmail) {
       try {
-        const formSubmitRes = await fetch(`https://formsubmit.co/ajax/${recipientEmail}`, {
+        const formSubmitRes = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(recipientEmail)}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -144,12 +178,12 @@ Thank you for maintaining Log Pose TCG! 🏴‍☠️
           },
           body: JSON.stringify({
             _subject: subject,
-            'Donor Name': donorName || 'Anonymous Supporter',
-            'Donor Email': donorEmail || 'Not provided',
-            'Donation Amount': amount,
-            'Payment Method': paymentMethod,
-            'Reference Number': referenceNumber || 'None',
-            'Message to Kyle': message || 'None',
+            'Donor Name': rawDonorName || 'Anonymous Supporter',
+            'Donor Email': rawDonorEmail || 'Not provided',
+            'Donation Amount': rawAmount,
+            'Payment Method': rawPaymentMethod,
+            'Reference Number': rawReferenceNumber || 'None',
+            'Message': rawMessage || 'None',
             'Submission Date': new Date().toISOString(),
           }),
         });
@@ -178,3 +212,4 @@ Thank you for maintaining Log Pose TCG! 🏴‍☠️
     );
   }
 }
+

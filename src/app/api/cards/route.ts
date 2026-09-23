@@ -11,8 +11,10 @@ export async function GET(req: NextRequest) {
     const category = searchParams.get('category');
     const rarity = searchParams.get('rarity');
     const set = searchParams.get('set');
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '36', 10), 100);
+    const rawPage = parseInt(searchParams.get('page') || '1', 10);
+    const page = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+    const rawLimit = parseInt(searchParams.get('limit') || '36', 10);
+    const limit = isNaN(rawLimit) || rawLimit < 1 ? 36 : Math.min(rawLimit, 100);
 
     // JP-only mode: always show only cards with a Yuyu-tei price
     const where: any = {
@@ -162,14 +164,6 @@ export async function GET(req: NextRequest) {
             select: {
               code: true,
               name: true,
-            },
-          },
-          userCards: {
-            select: {
-              id: true,
-              quantity: true,
-              condition: true,
-              isFoil: true,
             },
           },
         },

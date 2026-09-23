@@ -23,14 +23,6 @@ export default async function CardPage({ params, searchParams }: Props) {
           name: true,
         },
       },
-      userCards: {
-        select: {
-          id: true,
-          quantity: true,
-          condition: true,
-          isFoil: true,
-        },
-      },
     },
   });
 
@@ -52,14 +44,6 @@ export default async function CardPage({ params, searchParams }: Props) {
         select: {
           code: true,
           name: true,
-        },
-      },
-      userCards: {
-        select: {
-          id: true,
-          quantity: true,
-          condition: true,
-          isFoil: true,
         },
       },
     },

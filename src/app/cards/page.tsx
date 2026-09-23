@@ -204,24 +204,6 @@ function CardsContent() {
         purchasePrice: purchasePriceUSD,
       });
 
-      // 2. Also sync to API if available
-      try {
-        await fetch('/api/collection', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            cardId: addModalCard.id,
-            quantity: addQuantity,
-            condition: addCondition,
-            isFoil: addIsFoil,
-            language: 'jp',
-            purchasePrice: purchasePriceUSD,
-          }),
-        });
-      } catch {
-        // Safe to ignore on serverless or offline
-      }
-
       setSavedSuccess(true);
       setTimeout(() => {
         setSavedSuccess(false);

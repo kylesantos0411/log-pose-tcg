@@ -89,7 +89,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
     if (!loginIdentifier.trim()) return;
 
     login(loginIdentifier.trim());
-    setSuccessMsg('Signed in successfully! Syncing your binder...');
+    setSuccessMsg('Signed in successfully! Loading your profile...');
     setTimeout(() => {
       setSuccessMsg(null);
       onClose();
@@ -254,7 +254,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
               {/* Email (Optional) */}
               <div>
                 <label className="block text-xs font-bold text-gray-300 mb-1.5">
-                  Email Address <span className="text-gray-500 text-[10px] font-normal">(Optional, for cloud sync)</span>
+                  Email Address <span className="text-gray-500 text-[10px] font-normal">(Optional, for profile backup)</span>
                 </label>
                 <input
                   type="email"
@@ -294,10 +294,10 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
               <div className="bg-[#181a24] border border-[#343a4c] rounded-2xl p-3 text-[11px] text-gray-400 space-y-1">
                 <div className="font-bold text-white flex items-center gap-1.5">
                   <Compass className="w-3.5 h-3.5 text-[#3b82f6]" />
-                  <span>Instant Device Sync</span>
+                  <span>Local Profile &amp; Data Control</span>
                 </div>
                 <p>
-                  Entering your Collector Tag restores your saved profile, friends list, and trade matches on any device.
+                  Entering your Collector Tag sets up your profile and trade identity on this device. Your card binder remains safely stored locally, and can be exported as JSON anytime from My Collection.
                 </p>
               </div>
 

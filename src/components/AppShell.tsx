@@ -10,7 +10,8 @@ import {
   TrendingUp, 
   ChevronRight, 
   Boxes, 
-  Smartphone 
+  Smartphone,
+  Users
 } from 'lucide-react';
 import { SettingsTriggerButton } from '@/components/SettingsTriggerButton';
 
@@ -91,6 +92,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           >
             <Swords className="w-4 h-4 text-[#f4727d]" />
             Recommended Decks
+          </Link>
+
+          <Link
+            href="/friends"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-[#2c3140] transition"
+          >
+            <Users className="w-4 h-4 text-purple-400" />
+            Friends &amp; Trades
           </Link>
 
           <Link

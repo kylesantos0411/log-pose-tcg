@@ -85,26 +85,12 @@ export default function CollectionPage() {
     setLoading(true);
     try {
       const local = getLocalBinder();
-      if (local.length > 0) {
-        setItems(local as any);
-        setStats(getLocalBinderStats(local));
-      } else {
-        const res = await fetch('/api/collection');
-        const data = await res.json();
-        if (data.userCards && data.userCards.length > 0) {
-          setItems(data.userCards);
-          setStats(data.stats);
-          saveLocalBinder(data.userCards);
-        } else {
-          setItems([]);
-          setStats(null);
-        }
-      }
+      setItems(local as any);
+      setStats(local.length > 0 ? getLocalBinderStats(local) : null);
     } catch (e) {
       console.error('Error loading collection:', e);
-      const local = getLocalBinder();
-      setItems(local as any);
-      setStats(getLocalBinderStats(local));
+      setItems([]);
+      setStats(null);
     } finally {
       setLoading(false);
     }
@@ -114,11 +100,6 @@ export default function CollectionPage() {
     if (!confirm(`Remove ${cardName} from your collection?`)) return;
 
     removeCardFromLocalBinder(id);
-    try {
-      await fetch(`/api/collection?id=${id}`, { method: 'DELETE' });
-    } catch {
-      // Ignore API failure on offline/serverless
-    }
     loadCollection();
   }
 

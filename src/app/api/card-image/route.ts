@@ -23,6 +23,48 @@ export async function GET(req: NextRequest) {
   // Force rewrite of English Bandai scans to official Japanese Bandai scans
   url = url.replace('https://en.onepiece-cardgame.com/', 'https://onepiece-cardgame.com/');
 
+  // SSRF Protection: Validate URL and enforce strict domain whitelist
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    return new NextResponse('Invalid URL format', { status: 400 });
+  }
+
+  if (parsedUrl.protocol !== 'https:' && parsedUrl.protocol !== 'http:') {
+    return new NextResponse('Invalid protocol', { status: 400 });
+  }
+
+  const ALLOWED_HOSTS = new Set([
+    'onepiece-cardgame.com',
+    'en.onepiece-cardgame.com',
+    'asia-en.onepiece-cardgame.com',
+    'card.yuyu-tei.jp',
+    'yuyu-tei.jp',
+    'tcgplayer.com',
+    'tcgplayer-cdn.tcgplayer.com'
+  ]);
+
+  const hostname = parsedUrl.hostname.toLowerCase();
+  const isAllowed = ALLOWED_HOSTS.has(hostname) || hostname.endsWith('.onepiece-cardgame.com') || hostname.endsWith('.yuyu-tei.jp');
+
+  if (!isAllowed) {
+    return new NextResponse('Forbidden host domain', { status: 403 });
+  }
+
+  // Prevent local/private IP address bypasses
+  if (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '0.0.0.0' ||
+    hostname.startsWith('192.168.') ||
+    hostname.startsWith('10.') ||
+    hostname.startsWith('169.254.') ||
+    hostname.endsWith('.local')
+  ) {
+    return new NextResponse('Forbidden address', { status: 403 });
+  }
+
   // Create local cache file path using MD5 hash of url
   const hash = crypto.createHash('md5').update(url).digest('hex');
   const ext = url.toLowerCase().includes('.jpg') || url.toLowerCase().includes('.jpeg') ? 'jpg' : 'png';
