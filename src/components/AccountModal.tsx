@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   User, 
@@ -15,6 +15,10 @@ import {
   EyeOff,
   Cloud,
   CheckCircle2,
+  Mail,
+  KeyRound,
+  RotateCcw,
+  ArrowLeft,
 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 
@@ -50,14 +54,14 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
     accounts, 
     register, 
     login, 
+    sendVerificationCode,
     isCloudConnected,
-    loginWithSupabaseEmail,
-    registerWithSupabaseEmail,
   } = useSettings();
 
   const [tab, setTab] = useState<'register' | 'login'>(defaultTab);
 
-  // Form states - Register
+  // Registration step: 'form' (enter details) -> 'verify' (enter 6-digit code)
+  const [registerStep, setRegisterStep] = useState<'form' | 'verify'>('form');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -66,28 +70,46 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
   const [selectedAvatar, setSelectedAvatar] = useState('👒');
   const [selectedCrew, setSelectedCrew] = useState('Straw Hat Pirates');
   const [tagNumber] = useState(() => Math.floor(1000 + Math.random() * 9000));
+  const [registerCode, setRegisterCode] = useState('');
+  const [registerDevCode, setRegisterDevCode] = useState<string | null>(null);
 
-  // Form states - Login
+  // Login mode: 'password' | 'code'
+  const [loginMode, setLoginMode] = useState<'password' | 'code'>('password');
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [loginStep, setLoginStep] = useState<'enter_id' | 'verify_code'>('enter_id');
+  const [loginCode, setLoginCode] = useState('');
+  const [loginDevCode, setLoginDevCode] = useState<string | null>(null);
+
+  // Timer for resending code
+  const [countdown, setCountdown] = useState(0);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (countdown > 0) {
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [countdown]);
 
   if (!isOpen) return null;
 
   // Live calculated tag
   const liveTag = `PIRATE-${(username.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8) || 'CAPTAIN')}-${tagNumber}`;
 
-  const handleRegisterSubmit = async (e: React.FormEvent) => {
+  // 1. Send verification code for registration
+  const handleRequestRegisterCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setIsSubmitting(true);
 
     const cleanUser = username.trim();
-    const cleanEmail = email.trim();
+    const cleanEmail = email.trim().toLowerCase();
     const cleanPass = password.trim();
 
     if (!cleanUser || cleanUser.length < 2) {
@@ -112,53 +134,71 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
     }
 
     try {
-      if (isCloudConnected) {
-        const cloudRes = await registerWithSupabaseEmail({
-          email: cleanEmail,
-          password: cleanPass,
-          username: cleanUser,
-          avatar: selectedAvatar,
-          crew: selectedCrew,
-        });
-
-        if (!cloudRes.success) {
-          setErrorMsg(cloudRes.error || 'Failed to register cloud account.');
-          setIsSubmitting(false);
-          return;
-        }
-
-        setSuccessMsg(`Welcome aboard, ${cleanUser}! Your cloud collector account is ready.`);
-      } else {
-        const res = register({
-          username: cleanUser,
-          email: cleanEmail,
-          password: cleanPass,
-          avatar: selectedAvatar,
-          crew: selectedCrew,
-          customTag: liveTag,
-        });
-
-        if (!res.success) {
-          setErrorMsg(res.error || 'Failed to create account. Please try again.');
-          setIsSubmitting(false);
-          return;
-        }
-
-        setSuccessMsg(`Welcome aboard, ${res.user?.name}! Your collector account is ready.`);
+      const res = await sendVerificationCode(cleanEmail, 'register');
+      if (!res.success) {
+        setErrorMsg(res.error || 'Failed to send verification code.');
+        setIsSubmitting(false);
+        return;
       }
 
+      if (res.devCode) {
+        setRegisterDevCode(res.devCode);
+      }
+      setRegisterStep('verify');
+      setCountdown(60);
+      setSuccessMsg(`Verification code sent to ${cleanEmail}! Please check your email.`);
+      setTimeout(() => setSuccessMsg(null), 3000);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to request verification code.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // 2. Submit 6-digit code and complete registration
+  const handleVerifyRegisterCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setIsSubmitting(true);
+
+    const cleanCode = registerCode.trim();
+    if (cleanCode.length !== 6) {
+      setErrorMsg('Please enter the complete 6-digit verification code.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const res = await register({
+        username: username.trim(),
+        email: email.trim().toLowerCase(),
+        password: password.trim(),
+        avatar: selectedAvatar,
+        crew: selectedCrew,
+        customTag: liveTag,
+        code: cleanCode,
+      });
+
+      if (!res.success) {
+        setErrorMsg(res.error || 'Failed to verify and create account.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      setSuccessMsg(`Welcome aboard, ${res.user?.name}! Your permanent account has been created.`);
       setTimeout(() => {
         setSuccessMsg(null);
         setIsSubmitting(false);
         onClose();
       }, 1500);
     } catch (err: any) {
-      setErrorMsg(err.message || 'An unexpected error occurred.');
+      setErrorMsg(err.message || 'Registration failed.');
       setIsSubmitting(false);
     }
   };
 
-  const handleLoginSubmit = async (e: React.FormEvent) => {
+  // 3. Login with password
+  const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setIsSubmitting(true);
@@ -178,28 +218,14 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
     }
 
     try {
-      if (isCloudConnected && cleanId.includes('@')) {
-        const cloudRes = await loginWithSupabaseEmail(cleanId, cleanPass);
-        if (cloudRes.success) {
-          setSuccessMsg(`Welcome back! Loading your cloud binder...`);
-          setTimeout(() => {
-            setSuccessMsg(null);
-            setIsSubmitting(false);
-            onClose();
-          }, 1200);
-          return;
-        }
-      }
-
-      // Local account login
-      const res = login(cleanId, cleanPass);
+      const res = await login(cleanId, cleanPass);
       if (!res.success) {
-        setErrorMsg(res.error || 'Invalid credentials. Please verify your details or create an account.');
+        setErrorMsg(res.error || 'Invalid credentials. You can also sign in with a 6-digit code.');
         setIsSubmitting(false);
         return;
       }
 
-      setSuccessMsg(`Welcome back, ${res.user?.name}! Loading your collector binder...`);
+      setSuccessMsg(`Welcome back, ${res.user?.name}! Loading your cards...`);
       setTimeout(() => {
         setSuccessMsg(null);
         setIsSubmitting(false);
@@ -207,6 +233,74 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
       }, 1200);
     } catch (err: any) {
       setErrorMsg(err.message || 'Sign in failed');
+      setIsSubmitting(false);
+    }
+  };
+
+  // 4. Send code for login
+  const handleRequestLoginCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setIsSubmitting(true);
+
+    const cleanId = loginIdentifier.trim().toLowerCase();
+    if (!cleanId || !cleanId.includes('@')) {
+      setErrorMsg('Please enter the email address associated with your account.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const res = await sendVerificationCode(cleanId, 'login');
+      if (!res.success) {
+        setErrorMsg(res.error || 'No account found with this email. Please check your email or register.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (res.devCode) {
+        setLoginDevCode(res.devCode);
+      }
+      setLoginStep('verify_code');
+      setCountdown(60);
+      setSuccessMsg(`Login code sent to ${cleanId}!`);
+      setTimeout(() => setSuccessMsg(null), 3000);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to send login code.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // 5. Submit code for login
+  const handleVerifyLoginCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    setIsSubmitting(true);
+
+    const cleanCode = loginCode.trim();
+    if (cleanCode.length !== 6) {
+      setErrorMsg('Please enter the complete 6-digit login code.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const res = await login(loginIdentifier.trim(), undefined, cleanCode);
+      if (!res.success) {
+        setErrorMsg(res.error || 'Invalid or expired login code.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      setSuccessMsg(`Welcome back, ${res.user?.name}! Loading your cards...`);
+      setTimeout(() => {
+        setSuccessMsg(null);
+        setIsSubmitting(false);
+        onClose();
+      }, 1200);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Login failed');
       setIsSubmitting(false);
     }
   };
@@ -233,17 +327,15 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
             <div>
               <div className="flex items-center gap-1.5">
                 <h3 className="text-base font-black text-white leading-tight">
-                  {tab === 'register' ? 'Create Collector Account' : 'Sign In to Account'}
+                  {tab === 'register' ? 'Create Verified Account' : 'Sign In to Account'}
                 </h3>
-                {isCloudConnected && (
-                  <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[9px] font-bold text-emerald-400 flex items-center gap-0.5">
-                    <Cloud className="w-2.5 h-2.5" />
-                    Cloud
-                  </span>
-                )}
+                <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[9px] font-bold text-emerald-400 flex items-center gap-0.5">
+                  <Cloud className="w-2.5 h-2.5" />
+                  Cloud Database
+                </span>
               </div>
               <p className="text-[11px] text-gray-400 font-medium">
-                {tab === 'register' ? 'Save your cards permanently to the cloud' : 'Access your saved cards & trade profile'}
+                {tab === 'register' ? 'Protected with 6-digit code verification' : 'Access your permanent cloud binder & cards'}
               </p>
             </div>
           </div>
@@ -308,242 +400,467 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
         {/* Form Container (Scrollable) */}
         <div className="overflow-y-auto space-y-3.5 pr-0.5 flex-1 select-none">
           {tab === 'register' ? (
-            <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
-              {/* Pirate Name */}
-              <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1.5">
-                  Pirate Name / Collector Handle <span className="text-[#f45d6a]">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  maxLength={24}
-                  placeholder="e.g. ZoroHunter, ShanksCollector, PirateKing"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition shadow-inner font-medium"
-                />
-              </div>
-
-              {/* Email */}
-              <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1.5">
-                  Email Address <span className="text-[#f45d6a]">*</span>
-                </label>
-                <input
-                  type="email"
-                  required
-                  placeholder="pirate@logpose.tcg"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition font-medium"
-                />
-              </div>
-
-              {/* Password */}
-              <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1.5">
-                  Account Password <span className="text-[#f45d6a]">* (Min. 6 chars)</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    minLength={6}
-                    placeholder="Enter password..."
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition font-medium"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Confirm Password */}
-              <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1.5">
-                  Confirm Password <span className="text-[#f45d6a]">*</span>
-                </label>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  placeholder="Re-enter password..."
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition font-medium"
-                />
-              </div>
-
-              {/* Avatar Selector */}
-              <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1.5">
-                  Choose Pirate Avatar
-                </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {PIRATE_AVATARS.map((av) => (
-                    <button
-                      key={av.emoji}
-                      type="button"
-                      onClick={() => setSelectedAvatar(av.emoji)}
-                      className={`p-2 rounded-xl border flex flex-col items-center justify-center transition cursor-pointer ${
-                        selectedAvatar === av.emoji
-                          ? 'bg-[#f45d6a]/20 border-[#f45d6a] text-white shadow-sm'
-                          : 'bg-[#181a24] border-[#2d3244] text-gray-400 hover:border-gray-500'
-                      }`}
-                    >
-                      <span className="text-xl mb-0.5">{av.emoji}</span>
-                      <span className="text-[10px] font-bold truncate max-w-full">{av.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Pirate Crew */}
-              <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1.5">
-                  Pirate Crew Affiliation
-                </label>
-                <select
-                  value={selectedCrew}
-                  onChange={(e) => setSelectedCrew(e.target.value)}
-                  className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl px-3 py-2.5 text-xs text-white outline-none cursor-pointer"
-                >
-                  {PIRATE_CREWS.map((c) => (
-                    <option key={c} value={c} className="bg-[#181a24] text-white">
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Live Preview of Collector Tag */}
-              <div className="bg-[#181a24] border border-[#343a4c] rounded-2xl p-3 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 block uppercase tracking-wider">
-                    Generated Collector Tag
-                  </span>
-                  <span className="text-xs font-mono font-black text-amber-400">
-                    {liveTag}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 text-[11px] text-gray-400 font-medium">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span>Permanent Account</span>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-gradient-to-r from-[#f45d6a] to-[#e64956] hover:opacity-90 disabled:opacity-50 text-white font-extrabold text-xs uppercase tracking-wider py-3 px-4 rounded-xl transition cursor-pointer shadow-lg shadow-[#f45d6a]/20 flex items-center justify-center gap-2"
-              >
-                <UserPlus className="w-4 h-4" />
-                <span>{isSubmitting ? 'Creating Account...' : 'Set Sail & Register'}</span>
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleLoginSubmit} className="space-y-3.5">
-              {/* Existing Accounts Quick Switch */}
-              {accounts.length > 0 && (
+            registerStep === 'form' ? (
+              /* Registration Step 1: Details Form */
+              <form onSubmit={handleRequestRegisterCode} className="space-y-3.5">
+                {/* Pirate Name */}
                 <div>
                   <label className="block text-xs font-bold text-gray-300 mb-1.5">
-                    Saved Accounts on This Device
+                    Pirate Name / Collector Handle <span className="text-[#f45d6a]">*</span>
                   </label>
-                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                    {accounts.map((acc) => (
+                  <input
+                    type="text"
+                    required
+                    maxLength={24}
+                    placeholder="e.g. ZoroHunter, ShanksCollector, PirateKing"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition shadow-inner font-medium"
+                  />
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1.5">
+                    Email Address <span className="text-[#f45d6a]">* (A 6-digit code will be sent)</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="pirate@logpose.tcg"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition font-medium"
+                  />
+                </div>
+
+                {/* Password */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1.5">
+                    Account Password <span className="text-[#f45d6a]">* (Min. 6 chars)</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      minLength={6}
+                      placeholder="Enter password..."
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition font-medium"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm Password */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1.5">
+                    Confirm Password <span className="text-[#f45d6a]">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    placeholder="Re-enter password..."
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition font-medium"
+                  />
+                </div>
+
+                {/* Avatar Selector */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1.5">
+                    Choose Pirate Avatar
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {PIRATE_AVATARS.map((av) => (
                       <button
-                        key={acc.id}
+                        key={av.emoji}
                         type="button"
-                        onClick={() => {
-                          setLoginIdentifier(acc.tag || acc.email);
-                          setErrorMsg(null);
-                        }}
-                        className={`w-full p-2.5 rounded-xl border flex items-center justify-between text-left transition cursor-pointer ${
-                          loginIdentifier === acc.tag || loginIdentifier === acc.email
-                            ? 'bg-[#3b82f6]/20 border-[#3b82f6] text-white shadow-sm'
-                            : 'bg-[#181a24] border-[#2d3244] text-gray-300 hover:border-gray-500'
+                        onClick={() => setSelectedAvatar(av.emoji)}
+                        className={`p-2 rounded-xl border flex flex-col items-center justify-center transition cursor-pointer ${
+                          selectedAvatar === av.emoji
+                            ? 'bg-[#f45d6a]/20 border-[#f45d6a] text-white shadow-sm'
+                            : 'bg-[#181a24] border-[#2d3244] text-gray-400 hover:border-gray-500'
                         }`}
                       >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-lg">{acc.avatar || '👒'}</span>
-                          <div className="min-w-0">
-                            <div className="text-xs font-bold text-white truncate">{acc.username}</div>
-                            <div className="font-mono text-[10px] text-amber-400 truncate">{acc.tag}</div>
-                          </div>
-                        </div>
-                        <span className="text-[10px] font-bold text-gray-400">Select &rarr;</span>
+                        <span className="text-xl mb-0.5">{av.emoji}</span>
+                        <span className="text-[10px] font-bold truncate max-w-full">{av.name}</span>
                       </button>
                     ))}
                   </div>
                 </div>
-              )}
 
-              {/* Login Identifier */}
-              <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1.5">
-                  Collector Tag, Username, or Email <span className="text-[#3b82f6]">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. PIRATE-LUFFY-1234 or luffy@onepiece.com"
-                  value={loginIdentifier}
-                  onChange={(e) => setLoginIdentifier(e.target.value)}
-                  className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#3b82f6] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition font-medium"
-                />
-              </div>
+                {/* Pirate Crew */}
+                <div>
+                  <label className="block text-xs font-bold text-gray-300 mb-1.5">
+                    Pirate Crew Affiliation
+                  </label>
+                  <select
+                    value={selectedCrew}
+                    onChange={(e) => setSelectedCrew(e.target.value)}
+                    className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl px-3 py-2.5 text-xs text-white outline-none cursor-pointer"
+                  >
+                    {PIRATE_CREWS.map((c) => (
+                      <option key={c} value={c} className="bg-[#181a24] text-white">
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              {/* Login Password */}
-              <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1.5">
-                  Account Password <span className="text-[#3b82f6]">*</span>
-                </label>
-                <div className="relative">
+                {/* Generated Collector Tag Preview */}
+                <div className="bg-[#181a24] border border-[#343a4c] rounded-2xl p-3 flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-gray-400 block uppercase tracking-wider">
+                      Generated Collector Tag
+                    </span>
+                    <span className="text-xs font-mono font-black text-amber-400">
+                      {liveTag}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[11px] text-emerald-400 font-bold">
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Permanent Cloud Account</span>
+                  </div>
+                </div>
+
+                {/* Request Verification Code Button */}
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-gradient-to-r from-[#f45d6a] to-[#e64956] hover:opacity-90 disabled:opacity-50 text-white font-extrabold text-xs uppercase tracking-wider py-3 px-4 rounded-xl transition cursor-pointer shadow-lg shadow-[#f45d6a]/20 flex items-center justify-center gap-2"
+                >
+                  <Mail className="w-4 h-4" />
+                  <span>{isSubmitting ? 'Sending Code...' : 'Send Verification Code & Continue'}</span>
+                </button>
+              </form>
+            ) : (
+              /* Registration Step 2: Verification Code Confirmation */
+              <form onSubmit={handleVerifyRegisterCode} className="space-y-4 animate-fadeIn">
+                <div className="text-center py-2 space-y-1">
+                  <div className="w-12 h-12 rounded-2xl bg-[#f45d6a]/15 border border-[#f45d6a]/30 flex items-center justify-center text-[#f45d6a] mx-auto mb-2">
+                    <KeyRound className="w-6 h-6" />
+                  </div>
+                  <h4 className="text-sm font-black text-white">
+                    Enter 6-Digit Verification Code
+                  </h4>
+                  <p className="text-xs text-gray-400">
+                    We sent a code to <span className="text-white font-bold">{email}</span>
+                  </p>
+                </div>
+
+                {/* Quick Fill Helper (Foolproof fallback) */}
+                {registerDevCode && (
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-2.5 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs text-amber-300 font-bold">
+                      <Sparkles className="w-4 h-4 flex-shrink-0" />
+                      <span>Code: {registerDevCode}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setRegisterCode(registerDevCode)}
+                      className="px-2.5 py-1 rounded-lg bg-amber-400 text-black font-extrabold text-[11px] hover:bg-amber-300 transition cursor-pointer shadow-sm"
+                    >
+                      Quick Fill
+                    </button>
+                  </div>
+                )}
+
+                {/* 6-Digit Code Input */}
+                <div>
                   <input
-                    type={showLoginPassword ? 'text' : 'password'}
+                    type="text"
                     required
-                    placeholder="Enter your account password..."
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#3b82f6] rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition font-medium"
+                    maxLength={6}
+                    autoFocus
+                    placeholder="• • • • • •"
+                    value={registerCode}
+                    onChange={(e) => setRegisterCode(e.target.value.replace(/[^0-9]/g, ''))}
+                    className="w-full text-center tracking-[12px] text-2xl font-mono font-black bg-[#181a24] border-2 border-[#343a4c] focus:border-[#f45d6a] rounded-2xl py-3 text-amber-400 outline-none transition shadow-inner"
                   />
+                </div>
+
+                {/* Submit Verification Button */}
+                <button
+                  type="submit"
+                  disabled={isSubmitting || registerCode.trim().length !== 6}
+                  className="w-full bg-gradient-to-r from-[#f45d6a] to-[#e64956] hover:opacity-90 disabled:opacity-50 text-white font-extrabold text-xs uppercase tracking-wider py-3 px-4 rounded-xl transition cursor-pointer shadow-lg shadow-[#f45d6a]/20 flex items-center justify-center gap-2"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>{isSubmitting ? 'Verifying Account...' : 'Confirm & Complete Registration'}</span>
+                </button>
+
+                {/* Footer Controls: Back & Resend */}
+                <div className="flex items-center justify-between pt-2 border-t border-[#343a4c] text-xs">
                   <button
                     type="button"
-                    onClick={() => setShowLoginPassword(!showLoginPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                    onClick={() => { setRegisterStep('form'); setErrorMsg(null); }}
+                    className="text-gray-400 hover:text-white flex items-center gap-1 transition"
                   >
-                    {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>Edit details</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={countdown > 0 || isSubmitting}
+                    onClick={handleRequestRegisterCode}
+                    className="text-amber-400 hover:underline disabled:text-gray-500 font-bold transition flex items-center gap-1"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>{countdown > 0 ? `Resend code (${countdown}s)` : 'Resend code'}</span>
                   </button>
                 </div>
+              </form>
+            )
+          ) : (
+            /* Login Tab */
+            <div className="space-y-3.5">
+              {/* Login Method Toggle: Password vs 6-Digit Code */}
+              <div className="flex rounded-xl bg-[#181a24] p-1 border border-[#343a4c]">
+                <button
+                  type="button"
+                  onClick={() => { setLoginMode('password'); setErrorMsg(null); }}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    loginMode === 'password'
+                      ? 'bg-[#3b82f6] text-white shadow-sm'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <span>Password Sign In</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setLoginMode('code'); setErrorMsg(null); setLoginStep('enter_id'); }}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                    loginMode === 'code'
+                      ? 'bg-[#3b82f6] text-white shadow-sm'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <KeyRound className="w-3 h-3" />
+                  <span>Code Sign In</span>
+                </button>
               </div>
 
-              <div className="bg-[#181a24] border border-[#343a4c] rounded-2xl p-3 text-[11px] text-gray-400 space-y-1">
-                <div className="font-bold text-white flex items-center gap-1.5">
-                  <Compass className="w-3.5 h-3.5 text-[#3b82f6]" />
-                  <span>Permanent Cloud &amp; Isolated Binder</span>
-                </div>
-                <p>
-                  Signing in loads your account's personal card binder. Your cards are safely preserved and synchronized across all your devices.
-                </p>
-              </div>
+              {loginMode === 'password' ? (
+                /* Method A: Password Login Form */
+                <form onSubmit={handlePasswordLogin} className="space-y-3.5">
+                  {/* Saved Accounts on Device */}
+                  {accounts.length > 0 && (
+                    <div>
+                      <label className="block text-xs font-bold text-gray-300 mb-1.5">
+                        Saved Accounts on This Device
+                      </label>
+                      <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                        {accounts.map((acc) => (
+                          <button
+                            key={acc.id}
+                            type="button"
+                            onClick={() => {
+                              setLoginIdentifier(acc.tag || acc.email);
+                              setErrorMsg(null);
+                            }}
+                            className={`w-full p-2.5 rounded-xl border flex items-center justify-between text-left transition cursor-pointer ${
+                              loginIdentifier === acc.tag || loginIdentifier === acc.email
+                                ? 'bg-[#3b82f6]/20 border-[#3b82f6] text-white shadow-sm'
+                                : 'bg-[#181a24] border-[#2d3244] text-gray-300 hover:border-gray-500'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-lg">{acc.avatar || '👒'}</span>
+                              <div className="min-w-0">
+                                <div className="text-xs font-bold text-white truncate">{acc.username}</div>
+                                <div className="font-mono text-[10px] text-amber-400 truncate">{acc.tag}</div>
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-bold text-gray-400">Select &rarr;</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-              <button
-                type="submit"
-                disabled={isSubmitting || !loginIdentifier.trim() || !loginPassword.trim()}
-                className="w-full bg-gradient-to-r from-[#3b82f6] to-[#2563eb] hover:opacity-90 disabled:opacity-50 text-white font-extrabold text-xs uppercase tracking-wider py-3 px-4 rounded-xl transition cursor-pointer shadow-lg shadow-[#3b82f6]/20 flex items-center justify-center gap-2"
-              >
-                <LogIn className="w-4 h-4" />
-                <span>{isSubmitting ? 'Signing in...' : 'Sign In to Account'}</span>
-              </button>
-            </form>
+                  {/* Login Identifier */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-300 mb-1.5">
+                      Collector Tag, Username, or Email <span className="text-[#3b82f6]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. PIRATE-LUFFY-1234, Kai, or pirate@email.com"
+                      value={loginIdentifier}
+                      onChange={(e) => setLoginIdentifier(e.target.value)}
+                      className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#3b82f6] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition font-medium"
+                    />
+                  </div>
+
+                  {/* Login Password */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-300 mb-1.5">
+                      Account Password <span className="text-[#3b82f6]">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showLoginPassword ? 'text' : 'password'}
+                        required
+                        placeholder="Enter your account password..."
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#3b82f6] rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition font-medium"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowLoginPassword(!showLoginPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                      >
+                        {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-[#181a24] border border-[#343a4c] rounded-2xl p-3 text-[11px] text-gray-400 space-y-1">
+                    <div className="font-bold text-white flex items-center gap-1.5">
+                      <Compass className="w-3.5 h-3.5 text-[#3b82f6]" />
+                      <span>Permanent Cloud Database Storage</span>
+                    </div>
+                    <p>
+                      Your account is securely saved in the database and is never lost even if you clear your browser history or cache.
+                    </p>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting || !loginIdentifier.trim() || !loginPassword.trim()}
+                    className="w-full bg-gradient-to-r from-[#3b82f6] to-[#2563eb] hover:opacity-90 disabled:opacity-50 text-white font-extrabold text-xs uppercase tracking-wider py-3 px-4 rounded-xl transition cursor-pointer shadow-lg shadow-[#3b82f6]/20 flex items-center justify-center gap-2"
+                  >
+                    <LogIn className="w-4 h-4" />
+                    <span>{isSubmitting ? 'Signing in...' : 'Sign In to Account'}</span>
+                  </button>
+                </form>
+              ) : (
+                /* Method B: Login via 6-Digit Code */
+                loginStep === 'enter_id' ? (
+                  <form onSubmit={handleRequestLoginCode} className="space-y-3.5">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-300 mb-1.5">
+                        Your Account Email <span className="text-[#3b82f6]">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="Enter the email of your account..."
+                        value={loginIdentifier}
+                        onChange={(e) => setLoginIdentifier(e.target.value)}
+                        className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#3b82f6] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition font-medium"
+                      />
+                    </div>
+
+                    <div className="bg-[#181a24] border border-[#343a4c] rounded-2xl p-3 text-[11px] text-gray-400 space-y-1">
+                      <div className="font-bold text-white flex items-center gap-1.5">
+                        <KeyRound className="w-3.5 h-3.5 text-[#3b82f6]" />
+                        <span>Foolproof Code Sign In</span>
+                      </div>
+                      <p>
+                        Forgot your password or browsing data was deleted? We'll send a 6-digit login code to your email so you can sign in instantly.
+                      </p>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmitting || !loginIdentifier.trim()}
+                      className="w-full bg-gradient-to-r from-[#3b82f6] to-[#2563eb] hover:opacity-90 disabled:opacity-50 text-white font-extrabold text-xs uppercase tracking-wider py-3 px-4 rounded-xl transition cursor-pointer shadow-lg shadow-[#3b82f6]/20 flex items-center justify-center gap-2"
+                    >
+                      <Mail className="w-4 h-4" />
+                      <span>{isSubmitting ? 'Sending Code...' : 'Send Login Code'}</span>
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleVerifyLoginCode} className="space-y-4 animate-fadeIn">
+                    <div className="text-center py-2 space-y-1">
+                      <div className="w-12 h-12 rounded-2xl bg-[#3b82f6]/15 border border-[#3b82f6]/30 flex items-center justify-center text-[#3b82f6] mx-auto mb-2">
+                        <KeyRound className="w-6 h-6" />
+                      </div>
+                      <h4 className="text-sm font-black text-white">
+                        Enter 6-Digit Login Code
+                      </h4>
+                      <p className="text-xs text-gray-400">
+                        Code sent to <span className="text-white font-bold">{loginIdentifier}</span>
+                      </p>
+                    </div>
+
+                    {loginDevCode && (
+                      <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-2.5 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-xs text-amber-300 font-bold">
+                          <Sparkles className="w-4 h-4 flex-shrink-0" />
+                          <span>Code: {loginDevCode}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setLoginCode(loginDevCode)}
+                          className="px-2.5 py-1 rounded-lg bg-amber-400 text-black font-extrabold text-[11px] hover:bg-amber-300 transition cursor-pointer shadow-sm"
+                        >
+                          Quick Fill
+                        </button>
+                      </div>
+                    )}
+
+                    <div>
+                      <input
+                        type="text"
+                        required
+                        maxLength={6}
+                        autoFocus
+                        placeholder="• • • • • •"
+                        value={loginCode}
+                        onChange={(e) => setLoginCode(e.target.value.replace(/[^0-9]/g, ''))}
+                        className="w-full text-center tracking-[12px] text-2xl font-mono font-black bg-[#181a24] border-2 border-[#343a4c] focus:border-[#3b82f6] rounded-2xl py-3 text-amber-400 outline-none transition shadow-inner"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmitting || loginCode.trim().length !== 6}
+                      className="w-full bg-gradient-to-r from-[#3b82f6] to-[#2563eb] hover:opacity-90 disabled:opacity-50 text-white font-extrabold text-xs uppercase tracking-wider py-3 px-4 rounded-xl transition cursor-pointer shadow-lg shadow-[#3b82f6]/20 flex items-center justify-center gap-2"
+                    >
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>{isSubmitting ? 'Verifying Code...' : 'Verify & Sign In'}</span>
+                    </button>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-[#343a4c] text-xs">
+                      <button
+                        type="button"
+                        onClick={() => { setLoginStep('enter_id'); setErrorMsg(null); }}
+                        className="text-gray-400 hover:text-white flex items-center gap-1 transition"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        <span>Change Email</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={countdown > 0 || isSubmitting}
+                        onClick={handleRequestLoginCode}
+                        className="text-amber-400 hover:underline disabled:text-gray-500 font-bold transition flex items-center gap-1"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>{countdown > 0 ? `Resend (${countdown}s)` : 'Resend code'}</span>
+                      </button>
+                    </div>
+                  </form>
+                )
+              )}
+            </div>
           )}
 
           {/* Guest Mode Notice */}

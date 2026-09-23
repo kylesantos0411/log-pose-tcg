@@ -15,6 +15,7 @@ import {
   Compass,
   Crown,
   Flame,
+  User as UserIcon,
 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 
@@ -137,6 +138,25 @@ export function CleanHomeView({
             className="text-gray-300 hover:text-white p-2 rounded-full hover:bg-white/10 transition duration-200 active:scale-90 cursor-pointer"
           >
             <RotateCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin text-[#3ed57a]' : ''}`} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowAccountModal(true)}
+            title={user ? `${user.name} (${user.tag})` : 'Account / Sign In'}
+            className="text-gray-300 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition duration-200 active:scale-90 cursor-pointer"
+          >
+            {user ? (
+              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#3b82f6] to-[#c084fc] p-0.5 shadow-sm">
+                <div className="w-full h-full bg-[#1e212c] rounded-full flex items-center justify-center text-[11px]">
+                  {user.avatar || '👒'}
+                </div>
+              </div>
+            ) : (
+              <div className="w-6 h-6 rounded-full bg-[#242836] border border-[#3b4056] flex items-center justify-center text-xs text-gray-300 hover:text-white">
+                <UserIcon className="w-3.5 h-3.5" />
+              </div>
+            )}
           </button>
 
           <button

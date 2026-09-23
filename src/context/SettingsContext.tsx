@@ -11,7 +11,8 @@ import {
   findAccountByIdentifier,
   deleteStoredAccount, 
   getActiveSession, 
-  setActiveSession 
+  setActiveSession,
+  saveStoredAccountFromSession 
 } from '@/lib/user-accounts';
 import { transferGuestCardsToAccount, getLocalBinder } from '@/lib/user-collection';
 import { 
@@ -175,6 +176,7 @@ interface SettingsContextType {
   user: UserProfile | null;
   accounts: StoredAccount[];
   isCloudConnected: boolean;
+  sendVerificationCode: (email: string, type: 'register' | 'login') => Promise<{ success: boolean; error?: string; devCode?: string; message?: string }>;
   loginWithGoogle: () => Promise<{ error?: string }>;
   loginWithSupabaseEmail: (email: string, password: string) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
   registerWithSupabaseEmail: (data: { email: string; password: string; username: string; avatar?: string; crew?: string }) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
@@ -187,11 +189,13 @@ interface SettingsContextType {
     crew?: string;
     tag?: string;
     customTag?: string;
-  }) => { success: boolean; user?: UserProfile; error?: string };
+    code?: string;
+  }) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
   login: (
     identifier: string,
-    password?: string
-  ) => { success: boolean; user?: UserProfile; error?: string };
+    password?: string,
+    code?: string
+  ) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
   updateProfile: (data: Partial<UserProfile>) => void;
   logout: () => void;
   deleteAccount: (idOrTag?: string) => boolean;
@@ -459,7 +463,27 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   };
 
-  const register = (data: {
+  const sendVerificationCode = async (
+    email: string,
+    type: 'register' | 'login'
+  ): Promise<{ success: boolean; error?: string; devCode?: string; message?: string }> => {
+    try {
+      const res = await fetch('/api/auth/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, type }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        return { success: false, error: data.error || 'Failed to send verification code.' };
+      }
+      return { success: true, devCode: data.devCode, message: data.message };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Network error sending verification code.' };
+    }
+  };
+
+  const register = async (data: {
     username?: string;
     name?: string;
     email?: string;
@@ -468,88 +492,94 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     crew?: string;
     tag?: string;
     customTag?: string;
-  }): { success: boolean; user?: UserProfile; error?: string } => {
+    code?: string;
+  }): Promise<{ success: boolean; user?: UserProfile; error?: string }> => {
     const rawUsername = (data.username || data.name || '').trim();
-    const rawEmail = (data.email || `${rawUsername.toLowerCase()}@pirate.local`).trim();
+    const rawEmail = (data.email || '').trim();
     const rawPassword = (data.password || 'password123').trim();
-    const customTag = data.customTag || data.tag;
+    const rawCode = (data.code || '').trim();
 
-    const res = registerAccount({
-      username: rawUsername,
-      email: rawEmail,
-      password: rawPassword,
-      avatar: data.avatar,
-      crew: data.crew,
-      customTag,
-    });
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: rawUsername,
+          email: rawEmail,
+          password: rawPassword,
+          code: rawCode,
+          avatar: data.avatar,
+          crew: data.crew,
+          customTag: data.customTag || data.tag,
+        }),
+      });
 
-    if (res.success && res.user) {
-      setUserState(res.user);
-      transferGuestCardsToAccount(res.user.tag);
-      setAccountsState(getStoredAccounts());
+      const result = await res.json();
+      if (!res.ok || result.error) {
+        return { success: false, error: result.error || 'Failed to register account.' };
+      }
+
+      if (result.user) {
+        setUserState(result.user);
+        setActiveSession(result.user);
+        saveStoredAccountFromSession(result.user);
+        transferGuestCardsToAccount(result.user.tag);
+        setAccountsState(getStoredAccounts());
+      }
+      return { success: true, user: result.user };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Network error during registration.' };
     }
-    return res;
   };
 
-  const login = (
+  const login = async (
     identifier: string,
-    password?: string
-  ): { success: boolean; user?: UserProfile; error?: string } => {
+    password?: string,
+    code?: string
+  ): Promise<{ success: boolean; user?: UserProfile; error?: string }> => {
     const cleanId = (identifier || '').trim();
     const cleanPass = (password || '').trim();
+    const cleanCode = (code || '').trim();
 
-    const existing = findAccountByIdentifier(cleanId);
-    if (existing && cleanPass) {
-      const res = authenticateAccount(cleanId, cleanPass);
-      if (res.success && res.user) {
-        setUserState(res.user);
-        transferGuestCardsToAccount(res.user.tag);
-        setAccountsState(getStoredAccounts());
-      }
-      return res;
-    }
-
-    if (existing && !cleanPass) {
-      const sessionUser: UserSession = {
-        id: existing.id,
-        name: existing.username,
-        tag: existing.tag,
-        email: existing.email,
-        avatar: existing.avatar,
-        crew: existing.crew,
-        rank: existing.rank,
-        rankBadge: existing.rankBadge,
-        createdAt: existing.createdAt,
-      };
-      setActiveSession(sessionUser);
-      setUserState(sessionUser);
-      transferGuestCardsToAccount(sessionUser.tag);
-      setAccountsState(getStoredAccounts());
-      return { success: true, user: sessionUser };
-    }
-
-    if (!existing) {
-      if (cleanPass) {
-        return authenticateAccount(cleanId, cleanPass);
-      }
-      // Legacy fallback
-      const isTag = cleanId.toUpperCase().startsWith('PIRATE-');
-      const cleanName = isTag ? cleanId.replace(/^PIRATE-/, '').split('-')[0] : cleanId.split('@')[0] || 'Collector';
-      const res = registerAccount({
-        username: cleanName,
-        email: cleanId.includes('@') ? cleanId : `${cleanName.toLowerCase()}@pirate.local`,
-        password: 'password123',
-        customTag: isTag ? cleanId : undefined,
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identifier: cleanId,
+          password: cleanPass || undefined,
+          code: cleanCode || undefined,
+        }),
       });
-      if (res.success && res.user) {
-        setUserState(res.user);
-        transferGuestCardsToAccount(res.user.tag);
+
+      const result = await res.json();
+      if (!res.ok || result.error) {
+        // Fallback to local accounts if server is unreachable
+        const existing = findAccountByIdentifier(cleanId);
+        if (existing && cleanPass) {
+          const localAuth = authenticateAccount(cleanId, cleanPass);
+          if (localAuth.success && localAuth.user) {
+            setUserState(localAuth.user);
+            setActiveSession(localAuth.user);
+            transferGuestCardsToAccount(localAuth.user.tag);
+            setAccountsState(getStoredAccounts());
+            return localAuth;
+          }
+        }
+        return { success: false, error: result.error || 'Invalid credentials.' };
+      }
+
+      if (result.user) {
+        setUserState(result.user);
+        setActiveSession(result.user);
+        saveStoredAccountFromSession(result.user);
+        transferGuestCardsToAccount(result.user.tag);
         setAccountsState(getStoredAccounts());
       }
-      return res;
+      return { success: true, user: result.user };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Network error during login.' };
     }
-
-    return { success: false, error: 'Could not sign in' };
   };
 
   const updateProfile = (data: Partial<UserProfile>) => {
@@ -777,6 +807,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         user,
         accounts,
         isCloudConnected: isSupabaseConfigured(),
+        sendVerificationCode,
         loginWithGoogle,
         loginWithSupabaseEmail,
         registerWithSupabaseEmail,

@@ -266,3 +266,36 @@ export function deleteStoredAccount(idOrTag: string): boolean {
     return false;
   }
 }
+
+/**
+ * Update or cache a server session user into local stored accounts list
+ */
+export function saveStoredAccountFromSession(sessionUser: UserSession): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const accounts = getStoredAccounts();
+    const index = accounts.findIndex((a) => a.id === sessionUser.id || a.tag === sessionUser.tag);
+    const updated: StoredAccount = {
+      id: sessionUser.id,
+      username: sessionUser.name,
+      tag: sessionUser.tag,
+      email: sessionUser.email || '',
+      password: '',
+      avatar: sessionUser.avatar,
+      crew: sessionUser.crew,
+      rank: sessionUser.rank,
+      rankBadge: sessionUser.rankBadge,
+      createdAt: sessionUser.createdAt || new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+    };
+    if (index >= 0) {
+      accounts[index] = { ...accounts[index], ...updated };
+    } else {
+      accounts.push(updated);
+    }
+    saveStoredAccounts(accounts);
+  } catch (e) {
+    console.error('Failed to sync stored account from session:', e);
+  }
+}
+

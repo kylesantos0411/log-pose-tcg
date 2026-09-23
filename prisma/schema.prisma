@@ -67,6 +67,8 @@ model Card {
 
 model UserCard {
   id            String   @id @default(uuid())
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   cardId        String
   card          Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
   quantity      Int      @default(1)
@@ -82,6 +84,7 @@ model UserCard {
   updatedAt     DateTime @updatedAt
 
   @@index([cardId])
+  @@index([userId])
   @@index([isWishlist])
 }
 
@@ -111,4 +114,41 @@ model Donation {
 
   @@index([createdAt])
 }
+
+model User {
+  id                String             @id @default(uuid())
+  username          String             @unique
+  email             String             @unique
+  tag               String             @unique // e.g. "PIRATE-LUFFY-1234"
+  passwordHash      String
+  avatar            String             @default("👒")
+  crew              String             @default("Straw Hat Pirates")
+  rank              String             @default("Cabin Boy")
+  rankBadge         String             @default("⚓")
+  isVerified        Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  userCards         UserCard[]
+  verificationCodes VerificationCode[]
+
+  @@index([email])
+  @@index([tag])
+  @@index([username])
+}
+
+model VerificationCode {
+  id        String   @id @default(uuid())
+  email     String
+  code      String   // 6-digit code e.g. "482910"
+  type      String   // "register" | "login" | "reset"
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email, code])
+  @@index([expiresAt])
+}
+
 
