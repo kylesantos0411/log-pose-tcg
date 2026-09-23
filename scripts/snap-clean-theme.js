@@ -19,12 +19,12 @@ async function main() {
   });
 
   await mobilePage.goto('http://localhost:3000/', { waitUntil: 'networkidle2' });
+  await new Promise(r => setTimeout(r, 2500));
   await mobilePage.evaluate(() => {
     const el = document.getElementById('app-sync-loader');
     if (el) el.remove();
-    document.documentElement.classList.add('app-synced');
   });
-  await new Promise(r => setTimeout(r, 1500));
+  await new Promise(r => setTimeout(r, 1000));
   await mobilePage.screenshot({ path: path.join(ARTIFACTS, 'clean_theme_mobile_verified.png') });
   console.log('Saved: clean_theme_mobile_verified.png');
 
@@ -37,12 +37,12 @@ async function main() {
   });
 
   await desktopPage.goto('http://localhost:3000/', { waitUntil: 'networkidle2' });
+  await new Promise(r => setTimeout(r, 2500));
   await desktopPage.evaluate(() => {
     const el = document.getElementById('app-sync-loader');
     if (el) el.remove();
-    document.documentElement.classList.add('app-synced');
   });
-  await new Promise(r => setTimeout(r, 1500));
+  await new Promise(r => setTimeout(r, 1000));
   await desktopPage.screenshot({ path: path.join(ARTIFACTS, 'clean_theme_desktop_verified.png') });
   console.log('Saved: clean_theme_desktop_verified.png');
 

@@ -10,7 +10,7 @@ import {
   ChevronRight, 
   Settings as SettingsIcon,
   X,
-  Globe,
+  Compass,
   Camera,
   Layers,
 } from 'lucide-react';
@@ -29,23 +29,47 @@ interface CleanHomeViewProps {
 }
 
 /* =========================================================================
-   CUSTOM CLEAN SVG ICONS MATCHING USER REFERENCE SCREENSHOT
+   CUSTOM CLEAN SVG ICONS (Minimalist, Bold White, Clean Lines)
    ========================================================================= */
 
-// Japanese Torii Gate Icon for "Asia"
-function ToriiGateIcon({ className = "w-10 h-10" }: { className?: string }) {
+// Trading Cards Stack Icon for "Cards"
+function CardsCatalogIcon({ className = "w-10 h-10" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      {/* Back card slightly tilted */}
+      <rect 
+        x="3.2" 
+        y="3.8" 
+        width="11" 
+        height="16.2" 
+        rx="2.2" 
+        transform="rotate(-12 8.7 12)" 
+        fill="currentColor" 
+        opacity="0.8" 
+      />
+      {/* Front card */}
+      <rect 
+        x="8.5" 
+        y="4.2" 
+        width="12" 
+        height="16.5" 
+        rx="2.4" 
+        fill="currentColor" 
+      />
+      {/* Subtle center emblem */}
+      <circle cx="14.5" cy="12.5" r="2.4" fill="#242634" />
+    </svg>
+  );
+}
+
+// 4-Quadrant Booster Packs / Sets Grid Icon for "Sets"
+function SetsGridIcon({ className = "w-10 h-10" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-      {/* Top curved lintel (Kasagi & Shimaki) */}
-      <path d="M2.2 5.2 C5 4.8, 19 4.8, 21.8 5.2 C22.4 5.5, 22 6.6, 21.2 6.8 L2.8 6.8 C2 6.6, 1.6 5.5, 2.2 5.2 Z" />
-      {/* Secondary horizontal beam (Nuki) */}
-      <rect x="3.8" y="8.8" width="16.4" height="1.8" rx="0.4" />
-      {/* Left Pillar (Hashira) */}
-      <polygon points="6.2,6.8 8.2,6.8 7.8,20 5.8,20" />
-      {/* Right Pillar (Hashira) */}
-      <polygon points="15.8,6.8 17.8,6.8 18.2,20 16.2,20" />
-      {/* Center strut (Gakuzuka) */}
-      <rect x="11.2" y="6.8" width="1.6" height="2" />
+      <rect x="3" y="3" width="8" height="8" rx="2" />
+      <rect x="13" y="3" width="8" height="8" rx="2" />
+      <rect x="3" y="13" width="8" height="8" rx="2" />
+      <rect x="13" y="13" width="8" height="8" rx="2" />
     </svg>
   );
 }
@@ -54,7 +78,6 @@ function ToriiGateIcon({ className = "w-10 h-10" }: { className?: string }) {
 function CardsDeckIcon({ className = "w-10 h-10" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
-      {/* Back card tilted */}
       <rect 
         x="3" 
         y="4" 
@@ -65,7 +88,6 @@ function CardsDeckIcon({ className = "w-10 h-10" }: { className?: string }) {
         fill="currentColor" 
         opacity="0.85" 
       />
-      {/* Front card upright */}
       <rect 
         x="8.5" 
         y="4.5" 
@@ -74,7 +96,6 @@ function CardsDeckIcon({ className = "w-10 h-10" }: { className?: string }) {
         rx="2.2" 
         fill="currentColor" 
       />
-      {/* Diamond emblem in center */}
       <polygon 
         points="14.5,10.2 16.8,12.8 14.5,15.4 12.2,12.8" 
         fill="#242634" 
@@ -83,7 +104,7 @@ function CardsDeckIcon({ className = "w-10 h-10" }: { className?: string }) {
   );
 }
 
-// Solid 5-pointed Star for "Favorites" (Collection)
+// Solid 5-pointed Star for "Favorites / Collection"
 function StarFavoriteIcon({ className = "w-10 h-10" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -92,7 +113,7 @@ function StarFavoriteIcon({ className = "w-10 h-10" }: { className?: string }) {
   );
 }
 
-// 3-Bar Chart Icon for "Stats" (Market / Prices)
+// 3-Bar Chart Icon for "Market / Stats"
 function StatsChartIcon({ className = "w-10 h-10" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -107,10 +128,8 @@ function StatsChartIcon({ className = "w-10 h-10" }: { className?: string }) {
 function FriendsCommunityIcon({ className = "w-10 h-10" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-      {/* Left person */}
       <circle cx="8" cy="8" r="3.2" />
       <path d="M2.5 19.5 C2.5 15.8 5 13.8 8 13.8 C11 13.8 13.5 15.8 13.5 19.5 Z" />
-      {/* Right person */}
       <circle cx="16.5" cy="8" r="3.2" />
       <path d="M12.5 19.5 C12.5 16.5 14.5 13.8 16.5 13.8 C19.5 13.8 22 15.8 22 19.5 Z" />
     </svg>
@@ -122,9 +141,7 @@ function CameraScanIcon({ className = "w-10 h-10" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
       <path d="M4 7 C2.9 7 2 7.9 2 9 L2 18 C2 19.1 2.9 20 4 20 L20 20 C21.1 20 22 19.1 22 18 L22 9 C22 7.9 21.1 7 20 7 L16.8 7 L15.3 5 C15 4.5 14.3 4 13.6 4 L10.4 4 C9.7 4 9 4.5 8.7 5 L7.2 7 Z" />
-      {/* Inner lens cutout */}
       <circle cx="12" cy="13.5" r="4.2" fill="#242634" />
-      {/* 4-point sparkle */}
       <path 
         d="M12 11.2 C12.2 12.5, 13 13.3, 14.3 13.5 C13 13.7, 12.2 14.5, 12 15.8 C11.8 14.5, 11 13.7, 9.7 13.5 C11 13.3, 11.8 12.5, 12 11.2 Z" 
         fill="white" 
@@ -197,7 +214,7 @@ export function CleanHomeView({
   return (
     <div className="w-full max-w-md sm:max-w-lg mx-auto py-2 sm:py-5 px-3 sm:px-4 space-y-3.5 select-none font-sans">
       {/* =========================================================================
-          1. MINIMALIST TOP HEADER (Matching Reference: Avatar Left, OP.TCG Center, Reload & Search Right)
+          1. MINIMALIST TOP HEADER (Avatar Left, LOG POSE Center, Reload & Search Right)
          ========================================================================= */}
       <div className="flex items-center justify-between pt-1 pb-1">
         {/* Left: Circular Straw Hat / Account Button */}
@@ -222,10 +239,11 @@ export function CleanHomeView({
           )}
         </button>
 
-        {/* Center: Clean Bold Brand Title "OP.TCG" */}
-        <Link href="/" className="hover:opacity-90 transition">
+        {/* Center: Authentic LOG POSE Title with Compass Needle */}
+        <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition">
+          <Compass className="w-5 h-5 sm:w-6 sm:h-6 text-[#f4727d]" />
           <h1 className="text-xl sm:text-2xl font-black text-white tracking-widest uppercase">
-            OP.TCG
+            LOG POSE
           </h1>
         </Link>
 
@@ -286,7 +304,7 @@ export function CleanHomeView({
       )}
 
       {/* =========================================================================
-          2. SLIM BANNER: "View the latest added cards"
+          2. SLIM BANNER: "View latest cards (OP-17 & OP-18)"
          ========================================================================= */}
       <button
         type="button"
@@ -294,7 +312,7 @@ export function CleanHomeView({
         className="w-full rounded-2xl bg-[#242634] hover:bg-[#2b2e40] border border-[#323547]/50 px-4 py-3 sm:py-3.5 flex items-center justify-between transition-all duration-200 shadow-md hover:scale-[1.01] active:scale-[0.99] cursor-pointer text-left group"
       >
         <div className="flex items-center gap-2.5">
-          <Sparkles className="w-4 h-4 text-white stroke-[2.2] group-hover:scale-110 transition-transform" />
+          <Sparkles className="w-4 h-4 text-amber-400 stroke-[2.2] group-hover:scale-110 transition-transform" />
           <span className="text-xs sm:text-sm font-bold text-white tracking-wide">
             View the latest added cards
           </span>
@@ -303,41 +321,41 @@ export function CleanHomeView({
       </button>
 
       {/* =========================================================================
-          3. CLEAN FEATURE TILES GRID (Matching Reference: Big White Icons + Clean Labels)
+          3. CLEAN FEATURE TILES GRID (Big Bold White Icons + Simple Labels)
          ========================================================================= */}
       
-      {/* Row 1: 2 Large Cards (Global & Asia) */}
+      {/* Row 1: 2 Large Cards (Cards & Sets) */}
       <div className="grid grid-cols-2 gap-3 sm:gap-3.5">
-        {/* Global (All Cards / English & International) */}
+        {/* Cards (All Cards Catalog & Search) */}
         <Link
           href="/cards"
           className="group rounded-3xl bg-[#242634] hover:bg-[#2b2e40] border border-[#323547]/40 p-5 sm:p-6 flex flex-col items-center justify-center gap-4 transition-all duration-200 shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[140px] sm:min-h-[160px]"
         >
           <div className="text-white group-hover:scale-110 transition-transform duration-200">
-            <Globe className="w-10 h-10 sm:w-12 sm:h-12 stroke-[1.8]" />
+            <CardsCatalogIcon className="w-10 h-10 sm:w-12 sm:h-12" />
           </div>
           <span className="text-sm sm:text-base font-bold text-white tracking-wide">
-            Global
+            Cards
           </span>
         </Link>
 
-        {/* Asia (Japanese Print Cards & Yuyu-tei Japanese Store Prices) */}
+        {/* Sets (All Booster Packs & Starter Decks) */}
         <Link
-          href="/cards?lang=jp"
+          href="/sets"
           className="group rounded-3xl bg-[#242634] hover:bg-[#2b2e40] border border-[#323547]/40 p-5 sm:p-6 flex flex-col items-center justify-center gap-4 transition-all duration-200 shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[140px] sm:min-h-[160px]"
         >
           <div className="text-white group-hover:scale-110 transition-transform duration-200">
-            <ToriiGateIcon className="w-10 h-10 sm:w-12 sm:h-12" />
+            <SetsGridIcon className="w-10 h-10 sm:w-12 sm:h-12" />
           </div>
           <span className="text-sm sm:text-base font-bold text-white tracking-wide">
-            Asia
+            Sets
           </span>
         </Link>
       </div>
 
-      {/* Row 2: 3 Cards (Decks, Favorites, Stats) */}
+      {/* Row 2: 3 Cards (Decks, Collection, Market) */}
       <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
-        {/* Decks */}
+        {/* Decks (Deck Builder & Meta Decks) */}
         <Link
           href="/decks"
           className="group rounded-2xl sm:rounded-3xl bg-[#242634] hover:bg-[#2b2e40] border border-[#323547]/40 p-3.5 sm:p-4 flex flex-col items-center justify-center gap-3 transition-all duration-200 shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[110px] sm:min-h-[125px]"
@@ -350,7 +368,7 @@ export function CleanHomeView({
           </span>
         </Link>
 
-        {/* Favorites (User's Collection / Saved Cards) */}
+        {/* Collection (My Binder & Saved Cards) */}
         <Link
           href="/collection"
           className="group rounded-2xl sm:rounded-3xl bg-[#242634] hover:bg-[#2b2e40] border border-[#323547]/40 p-3.5 sm:p-4 flex flex-col items-center justify-center gap-3 transition-all duration-200 shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[110px] sm:min-h-[125px]"
@@ -359,11 +377,11 @@ export function CleanHomeView({
             <StarFavoriteIcon className="w-8 h-8 sm:w-9 sm:h-9" />
           </div>
           <span className="text-xs sm:text-sm font-bold text-white tracking-wide">
-            Favorites
+            Collection
           </span>
         </Link>
 
-        {/* Stats (Market Prices & Chase Cards) */}
+        {/* Market (Price Trends & Top Valued Cards) */}
         <Link
           href="/cards?sort=price_desc"
           className="group rounded-2xl sm:rounded-3xl bg-[#242634] hover:bg-[#2b2e40] border border-[#323547]/40 p-3.5 sm:p-4 flex flex-col items-center justify-center gap-3 transition-all duration-200 shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[110px] sm:min-h-[125px]"
@@ -372,14 +390,14 @@ export function CleanHomeView({
             <StatsChartIcon className="w-8 h-8 sm:w-9 sm:h-9" />
           </div>
           <span className="text-xs sm:text-sm font-bold text-white tracking-wide">
-            Stats
+            Market
           </span>
         </Link>
       </div>
 
       {/* Row 3: 3 Cards (Friends, Scan, Settings) */}
       <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
-        {/* Friends */}
+        {/* Friends (Trading & Community) */}
         <Link
           href="/friends"
           className="group rounded-2xl sm:rounded-3xl bg-[#242634] hover:bg-[#2b2e40] border border-[#323547]/40 p-3.5 sm:p-4 flex flex-col items-center justify-center gap-3 transition-all duration-200 shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[110px] sm:min-h-[125px]"
@@ -392,10 +410,9 @@ export function CleanHomeView({
           </span>
         </Link>
 
-        {/* Scan */}
-        <button
-          type="button"
-          onClick={() => setShowScannerModal(true)}
+        {/* Scan (Camera Card Scanner) */}
+        <Link
+          href="/scanner"
           className="group rounded-2xl sm:rounded-3xl bg-[#242634] hover:bg-[#2b2e40] border border-[#323547]/40 p-3.5 sm:p-4 flex flex-col items-center justify-center gap-3 transition-all duration-200 shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer min-h-[110px] sm:min-h-[125px]"
         >
           <div className="text-white group-hover:scale-110 transition-transform duration-200">
@@ -404,9 +421,9 @@ export function CleanHomeView({
           <span className="text-xs sm:text-sm font-bold text-white tracking-wide">
             Scan
           </span>
-        </button>
+        </Link>
 
-        {/* Settings */}
+        {/* Settings (Preferences, Currencies USD/JPY/EUR) */}
         <button
           type="button"
           onClick={openSettings}
@@ -422,40 +439,38 @@ export function CleanHomeView({
       </div>
 
       {/* =========================================================================
-          4. BOTTOM SUPPORT / SUBSCRIBE BANNER (With Pink/Salmon PLUS Vertical Tab)
+          4. BOTTOM SUPPORT BANNER (Authentic Log Pose Server Support)
          ========================================================================= */}
       <div 
         onClick={() => setShowSupportModal(true)}
         className="relative rounded-2xl sm:rounded-3xl bg-[#242634] hover:bg-[#2a2c3d] border border-[#323547]/50 overflow-hidden flex items-stretch transition-all duration-200 shadow-lg cursor-pointer group"
       >
         {/* Main Content Area */}
-        <div className="flex-1 p-4 sm:p-5 flex flex-col items-center justify-center text-center space-y-2.5">
+        <div className="flex-1 p-4 sm:p-5 flex flex-col items-center justify-center text-center space-y-2">
           <p className="text-[11px] sm:text-xs font-black tracking-wider text-white uppercase leading-tight max-w-[280px]">
-            SUPPORT THE APPLICATION
+            SUPPORT SERVER &amp; MAINTENANCE
             <br />
-            <span className="text-gray-300 font-extrabold">
-              AND UNLOCK PREMIUM FEATURES
+            <span className="text-gray-400 font-semibold text-[10px] tracking-normal normal-case">
+              Keeps card database &amp; daily pricing scrapers online
             </span>
           </p>
 
           <div className="flex items-center gap-2 pt-0.5">
-            {/* Curved arrow pointing down to the button */}
             <span className="text-gray-400 text-lg font-bold select-none leading-none">
               ↳
             </span>
 
             <span className="px-6 sm:px-8 py-1.5 rounded-full border border-[#f4727d] bg-[#1e202c] text-white font-extrabold text-[11px] sm:text-xs tracking-widest uppercase group-hover:bg-[#f4727d] group-hover:text-white transition duration-200 shadow-sm">
-              SUBSCRIBE
+              SUPPORT
             </span>
           </div>
         </div>
 
-        {/* Right Vertical PLUS Tab */}
+        {/* Right Vertical Accent Tab */}
         <div className="w-10 sm:w-12 bg-[#f4727d] flex flex-col items-center justify-center py-2 px-1 text-black font-black text-xs sm:text-sm tracking-widest select-none flex-shrink-0">
-          <span>P</span>
           <span>L</span>
-          <span>U</span>
-          <span>S</span>
+          <span>O</span>
+          <span>G</span>
         </div>
       </div>
 
