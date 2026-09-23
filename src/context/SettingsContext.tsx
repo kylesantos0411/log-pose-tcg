@@ -13,7 +13,19 @@ import {
   getActiveSession, 
   setActiveSession 
 } from '@/lib/user-accounts';
-import { transferGuestCardsToAccount } from '@/lib/user-collection';
+import { transferGuestCardsToAccount, getLocalBinder } from '@/lib/user-collection';
+import { 
+  getSupabaseBrowserClient, 
+  isSupabaseConfigured, 
+  signInWithGoogle, 
+  signInWithEmailPassword, 
+  signUpWithEmailPassword, 
+  signOutSupabase 
+} from '@/lib/supabase/client';
+import { 
+  fetchCloudProfile, 
+  migrateLocalBinderToCloud 
+} from '@/lib/supabase-sync';
 
 export type CurrencyCode =
   | 'source' // Default: uses each marketplace source's native currency (Yuyu-tei: JPY ¥, TCGPlayer/eBay/PSA: USD $)
@@ -162,6 +174,10 @@ interface SettingsContextType {
   setShareCrashReports: (val: boolean) => void;
   user: UserProfile | null;
   accounts: StoredAccount[];
+  isCloudConnected: boolean;
+  loginWithGoogle: () => Promise<{ error?: string }>;
+  loginWithSupabaseEmail: (email: string, password: string) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
+  registerWithSupabaseEmail: (data: { email: string; password: string; username: string; avatar?: string; crew?: string }) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
   register: (data: {
     username?: string;
     name?: string;
@@ -274,12 +290,41 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       // localStorage may be unavailable in some environments
     }
 
+    // Supabase Auth Listener for Google OAuth and Cloud Auth
+    let authUnsubscribe: (() => void) | undefined;
+    try {
+      const client = getSupabaseBrowserClient();
+      if (client && isSupabaseConfigured()) {
+        client.auth.getSession().then(async ({ data: { session } }) => {
+          if (session?.user) {
+            await syncSupabaseSession(session.user);
+          }
+        });
+
+        const { data: { subscription } } = client.auth.onAuthStateChange(async (event, session) => {
+          if (session?.user) {
+            await syncSupabaseSession(session.user);
+          } else if (event === 'SIGNED_OUT') {
+            setUserState(null);
+            setActiveSession(null);
+          }
+        });
+
+        authUnsubscribe = () => subscription.unsubscribe();
+      }
+    } catch (err) {
+      console.warn('Supabase auth listener initialization skipped:', err);
+    }
+
     const handleAuthChange = () => {
       setUserState(getActiveSession());
       setAccountsState(getStoredAccounts());
     };
     window.addEventListener('logpose_auth_changed', handleAuthChange);
-    return () => window.removeEventListener('logpose_auth_changed', handleAuthChange);
+    return () => {
+      window.removeEventListener('logpose_auth_changed', handleAuthChange);
+      if (authUnsubscribe) authUnsubscribe();
+    };
   }, []);
 
   const setCurrency = (next: CurrencyCode) => {
@@ -341,6 +386,77 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Ignore
     }
+  };
+
+  const syncSupabaseSession = async (sbUser: any) => {
+    try {
+      const cloud = await fetchCloudProfile(sbUser.id);
+      const name = cloud?.username || sbUser.user_metadata?.username || sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'Collector';
+      const tag = cloud?.tag || sbUser.user_metadata?.tag || `PIRATE-${name.toUpperCase().slice(0, 8)}-${sbUser.id.slice(0, 4)}`;
+      const avatar = cloud?.avatar || sbUser.user_metadata?.avatar || '👒';
+      const crew = cloud?.crew || sbUser.user_metadata?.crew || 'Straw Hat Pirates';
+
+      const userProfile: UserProfile = {
+        id: sbUser.id,
+        name,
+        tag,
+        email: sbUser.email,
+        avatar,
+        crew,
+        rank: cloud?.rank || 'Cabin Boy',
+        rankBadge: cloud?.rankBadge || '⚓',
+        createdAt: sbUser.created_at,
+      };
+
+      setActiveSession(userProfile);
+      setUserState(userProfile);
+
+      // Auto-migrate any cards added while guest
+      const guestCards = getLocalBinder(null);
+      if (guestCards.length > 0) {
+        await migrateLocalBinderToCloud(sbUser.id, guestCards);
+        transferGuestCardsToAccount(tag);
+      }
+    } catch (err) {
+      console.error('Failed to sync Supabase session:', err);
+    }
+  };
+
+  const loginWithGoogle = async (): Promise<{ error?: string }> => {
+    return await signInWithGoogle();
+  };
+
+  const loginWithSupabaseEmail = async (
+    email: string,
+    pass: string
+  ): Promise<{ success: boolean; user?: UserProfile; error?: string }> => {
+    const res = await signInWithEmailPassword(email, pass);
+    if (res.error) {
+      return { success: false, error: res.error };
+    }
+    if (res.user) {
+      await syncSupabaseSession(res.user);
+      return { success: true, user: getActiveSession() || undefined };
+    }
+    return { success: false, error: 'Sign in failed' };
+  };
+
+  const registerWithSupabaseEmail = async (data: {
+    email: string;
+    password: string;
+    username: string;
+    avatar?: string;
+    crew?: string;
+  }): Promise<{ success: boolean; user?: UserProfile; error?: string }> => {
+    const res = await signUpWithEmailPassword(data);
+    if (res.error) {
+      return { success: false, error: res.error };
+    }
+    if (res.user) {
+      await syncSupabaseSession(res.user);
+      return { success: true, user: getActiveSession() || undefined };
+    }
+    return { success: true };
   };
 
   const register = (data: {
@@ -446,6 +562,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    try {
+      signOutSupabase();
+    } catch {}
     setActiveSession(null);
     setUserState(null);
     setAccountsState(getStoredAccounts());
@@ -657,6 +776,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         setShareCrashReports,
         user,
         accounts,
+        isCloudConnected: isSupabaseConfigured(),
+        loginWithGoogle,
+        loginWithSupabaseEmail,
+        registerWithSupabaseEmail,
         register,
         login,
         updateProfile,
