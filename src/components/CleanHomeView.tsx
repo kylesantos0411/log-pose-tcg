@@ -371,7 +371,7 @@ export function CleanHomeView({
             onClick={() => setShowSupportModal(true)}
             className="px-8 sm:px-10 py-2 rounded-full border-2 border-[#f4727d] hover:bg-[#f4727d] text-white font-extrabold text-xs tracking-wider transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md hover:scale-105 active:scale-95"
           >
-            DONATE
+            SUPPORT
           </button>
         </div>
       </div>

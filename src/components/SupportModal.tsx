@@ -198,7 +198,7 @@ export function SupportModal({ isOpen, onClose }: SupportModalProps) {
             </button>
 
             <p className="text-[11px] text-gray-400 font-medium mt-2.5">
-              Voluntary donation &bull; Any amount is deeply appreciated
+              Voluntary support &bull; Any amount is deeply appreciated
             </p>
           </>
         )}
@@ -347,7 +347,7 @@ export function SupportModal({ isOpen, onClose }: SupportModalProps) {
               <div>
                 <label className="text-[11px] font-extrabold text-gray-300 uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
                   <Coffee className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Donation Tier / Amount</span>
+                  <span>Support Tier / Amount</span>
                 </label>
                 <div className="grid grid-cols-2 gap-1.5">
                   {PRESET_AMOUNTS.map((preset) => {
@@ -465,7 +465,7 @@ export function SupportModal({ isOpen, onClose }: SupportModalProps) {
             </h3>
 
             <p className="text-xs sm:text-sm text-gray-300 font-medium mt-2 mb-6 max-w-xs leading-relaxed">
-              Your coffee donation notification has been sent directly to Kyle. Every bit of support helps keep Log Pose servers and price updates online for everyone!
+              Your coffee support notification has been sent directly to Kyle. Every bit of support helps keep Log Pose servers and price updates online for everyone!
             </p>
 
             <button
