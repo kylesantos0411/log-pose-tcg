@@ -168,45 +168,6 @@ export function CleanHomeView({
         </div>
       </form>
 
-      {/* 2.5 LATEST RELEASED CARDS ACTION BANNER */}
-      <button
-        type="button"
-        onClick={() => setShowLatestSyncModal(true)}
-        className="w-full text-left relative overflow-hidden rounded-2xl bg-gradient-to-r from-amber-500/15 via-rose-500/15 to-orange-500/15 hover:from-amber-500/25 hover:via-rose-500/25 hover:to-orange-500/25 border border-amber-500/30 hover:border-amber-400/60 p-3.5 sm:p-4 shadow-lg hover:shadow-amber-500/10 transition-all duration-300 group cursor-pointer"
-      >
-        {/* Glow ambient background */}
-        <div className="absolute -right-6 -bottom-6 w-28 h-28 bg-amber-500/20 rounded-full blur-2xl pointer-events-none group-hover:scale-125 transition-transform duration-500" />
-        
-        <div className="relative z-10 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-amber-500 to-rose-600 flex items-center justify-center text-white shadow-md shadow-amber-500/20 group-hover:scale-105 transition-transform flex-shrink-0">
-              <Flame className="w-5 h-5 sm:w-6 sm:h-6 fill-amber-200 text-amber-100 animate-pulse" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm sm:text-base font-black text-white group-hover:text-amber-300 transition-colors">
-                  Latest Released Cards
-                </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/40">
-                  NEW
-                </span>
-              </div>
-              <p className="text-xs text-gray-300 line-clamp-1 mt-0.5">
-                Official releases by date: OP-10, EB-02, OP-09 &amp; live prices
-              </p>
-            </div>
-          </div>
-
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold group-hover:bg-amber-500 group-hover:text-gray-950 transition-all flex-shrink-0">
-            <span>Sync & View</span>
-            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-          </div>
-          
-          <div className="sm:hidden text-amber-400 group-hover:translate-x-1 transition-transform flex-shrink-0">
-            <ChevronRight className="w-5 h-5" />
-          </div>
-        </div>
-      </button>
 
       {/* 3. HERO SHOWCASE CARD: "Explore Cards" / "View the cards" */}
       <Link
@@ -361,36 +322,53 @@ export function CleanHomeView({
         </div>
       </div>
 
-      {/* 4. UTILITY ROW: Friends & Settings Side-by-Side Horizontal Cards */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-3.5">
+      {/* 4. UTILITY ROW: Feature Buttons (Latest Cards, Friends, Settings) */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        {/* Latest Cards */}
+        <button
+          type="button"
+          onClick={() => setShowLatestSyncModal(true)}
+          className="group rounded-2xl bg-[#242735] hover:bg-[#2c3042] border border-[#363a4e] hover:border-amber-400/50 p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 transition-all duration-200 shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer text-left w-full"
+        >
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition-transform flex-shrink-0">
+            <Flame className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2]" />
+          </div>
+          <div className="overflow-hidden min-w-0">
+            <div className="font-bold text-xs sm:text-sm text-white truncate">
+              Latest
+            </div>
+            <div className="text-[10px] text-gray-400 truncate">New Sets</div>
+          </div>
+        </button>
+
         {/* Friends / Community */}
         <Link
           href="/friends"
-          className="group rounded-2xl bg-[#242735] hover:bg-[#2c3042] border border-[#363a4e] hover:border-purple-400/50 p-3 sm:p-3.5 flex items-center gap-3 transition-all duration-200 shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer relative"
+          className="group rounded-2xl bg-[#242735] hover:bg-[#2c3042] border border-[#363a4e] hover:border-purple-400/50 p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 transition-all duration-200 shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer relative"
         >
-          <div className="w-9 h-9 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 group-hover:scale-105 transition-transform flex-shrink-0">
-            <Users className="w-5 h-5 stroke-[2]" />
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 group-hover:scale-105 transition-transform flex-shrink-0">
+            <Users className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2]" />
           </div>
-          <div className="overflow-hidden">
-            <div className="font-bold text-xs sm:text-sm text-white truncate flex items-center gap-1.5">
+          <div className="overflow-hidden min-w-0">
+            <div className="font-bold text-xs sm:text-sm text-white truncate flex items-center gap-1">
               <span>Friends</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
             </div>
-            <div className="text-[10px] text-gray-400">Trades &amp; Social</div>
+            <div className="text-[10px] text-gray-400 truncate">Trades &amp; Social</div>
           </div>
         </Link>
 
         {/* Settings Button */}
         <button
           onClick={openSettings}
-          className="group rounded-2xl bg-[#242735] hover:bg-[#2c3042] border border-[#363a4e] hover:border-cyan-400/50 p-3 sm:p-3.5 flex items-center gap-3 transition-all duration-200 shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer text-left w-full"
+          className="group rounded-2xl bg-[#242735] hover:bg-[#2c3042] border border-[#363a4e] hover:border-cyan-400/50 p-2.5 sm:p-3 flex items-center gap-2 sm:gap-2.5 transition-all duration-200 shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer text-left w-full"
         >
-          <div className="w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-105 group-hover:rotate-45 transition-all duration-300 flex-shrink-0">
-            <SettingsIcon className="w-5 h-5 stroke-[2]" />
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-105 group-hover:rotate-45 transition-all duration-300 flex-shrink-0">
+            <SettingsIcon className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2]" />
           </div>
-          <div className="overflow-hidden">
+          <div className="overflow-hidden min-w-0">
             <div className="font-bold text-xs sm:text-sm text-white truncate">Settings</div>
-            <div className="text-[10px] text-gray-400">Currency &amp; Cache</div>
+            <div className="text-[10px] text-gray-400 truncate">Preferences</div>
           </div>
         </button>
       </div>
