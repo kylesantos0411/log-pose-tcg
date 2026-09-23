@@ -1011,8 +1011,8 @@ export default function FriendsPage() {
               </button>
             </div>
 
-            <p className="text-xs text-gray-300 mb-4">
-              Enter their unique pirate tag or code (e.g. <code>PIRATE-ZORO-1080</code> or <code>PIRATE-LUFFY-5656</code>):
+            <p className="text-xs text-gray-300 mb-3">
+              Enter their unique pirate tag or code (e.g. <code>PIRATE-SHANKS-7721</code> or <code>PIRATE-CAPTAIN-1234</code>):
             </p>
 
             <form onSubmit={handleSendFriendRequest} className="space-y-3">
@@ -1020,9 +1020,13 @@ export default function FriendsPage() {
                 type="text"
                 value={newFriendInput}
                 onChange={(e) => setNewFriendInput(e.target.value)}
-                placeholder="e.g. PIRATE-ZORO-1080..."
+                placeholder="e.g. PIRATE-SHANKS-7721..."
                 className="w-full bg-[#1a1d27] border border-[#3b4156] focus:border-purple-500 rounded-xl px-3.5 py-2.5 text-xs text-white uppercase font-mono placeholder-gray-500 focus:outline-none"
               />
+
+              <p className="text-[10px] text-gray-400">
+                Your crew members and trade proposals are safely saved to your local device.
+              </p>
 
               {addSuccessMessage && (
                 <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30 flex items-center gap-1.5">
