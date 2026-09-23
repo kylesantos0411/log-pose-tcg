@@ -396,7 +396,7 @@ function CardsContent() {
           </div>
 
           {/* Dropdown Filters */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
             <select
               value={selectedCategory}
               onChange={(e) => { setSelectedCategory(e.target.value); setPage(1); }}
@@ -431,6 +431,19 @@ function CardsContent() {
                 </option>
               ))}
             </select>
+
+            <select
+              value={selectedArtist}
+              onChange={(e) => { setSelectedArtist(e.target.value); setPage(1); }}
+              className="bg-[#1e212c] border border-[#32384a] focus:border-[#3b82f6] rounded-xl px-3 py-2 text-xs text-gray-200 focus:outline-none transition cursor-pointer"
+            >
+              <option value="All">All Illustrators</option>
+              {Object.keys(ARTIST_PROFILES).map((artistName) => (
+                <option key={artistName} value={artistName}>
+                  {artistName}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Color Pills */}
@@ -461,6 +474,12 @@ function CardsContent() {
       {!showFilters && activeFilterCount > 0 && (
         <div className="flex items-center gap-1.5 px-3 py-1.5 overflow-x-auto text-[11px] scrollbar-none">
           <span className="text-gray-400 flex-shrink-0">Filters:</span>
+          {selectedArtist !== 'All' && (
+            <span className="px-2 py-0.5 rounded-md bg-[#8b5cf6]/20 text-[#c084fc] border border-[#8b5cf6]/30 font-bold flex-shrink-0 flex items-center gap-1">
+              🎨 {selectedArtist}
+              <button type="button" onClick={() => setSelectedArtist('All')}>&times;</button>
+            </span>
+          )}
           {selectedSet !== 'All' && (
             <span className="px-2 py-0.5 rounded-md bg-[#e76d78]/20 text-[#e76d78] border border-[#e76d78]/30 font-bold flex-shrink-0 flex items-center gap-1">
               {selectedSet}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCardArtist, ARTIST_PROFILES } from '@/lib/artist-data';
+import { getCardArtist, getCardIdsByArtist, ARTIST_PROFILES } from '@/lib/artist-data';
 
 export async function GET(req: NextRequest) {
   try {
@@ -26,13 +26,23 @@ export async function GET(req: NextRequest) {
 
     // Artist filter or artist keyword matching
     let targetArtist = artist && artist !== 'All' ? artist : '';
+    let isArtistQuery = false;
+
     if (!targetArtist && q) {
       const lowerQ = q.toLowerCase().trim();
-      const matched = Object.keys(ARTIST_PROFILES).find(
-        (k) => k.toLowerCase() === lowerQ || lowerQ.includes(k.toLowerCase())
-      );
+      const matched = Object.keys(ARTIST_PROFILES).find((k) => {
+        const kLower = k.toLowerCase();
+        return (
+          kLower === lowerQ ||
+          kLower.includes(lowerQ) ||
+          lowerQ.includes(kLower) ||
+          (lowerQ === 'oda' && kLower.includes('oda')) ||
+          (lowerQ === 'egawa' && kLower.includes('egawa'))
+        );
+      });
       if (matched) {
         targetArtist = matched;
+        isArtistQuery = true;
       }
     }
 
@@ -40,12 +50,11 @@ export async function GET(req: NextRequest) {
       const allCards = await prisma.card.findMany({
         select: { id: true, name: true },
       });
-      const artistCardIds = allCards
-        .filter((c) => getCardArtist(c.id, c.name).name.toLowerCase() === targetArtist.toLowerCase())
-        .map((c) => c.id);
-
+      const artistCardIds = getCardIdsByArtist(targetArtist, allCards);
       andConditions.push({ id: { in: artistCardIds } });
-    } else if (q) {
+    }
+
+    if (q && !isArtistQuery) {
       const cleanQ = q.replace(/\s*\((Alt Art|Parallel|Reprint|Promo)[^)]*\)/gi, '').trim();
       const isPureParallel = /^(alt\s*art|parallel|parallel\s*cards?|alt\s*arts?|alt)$/i.test(cleanQ || q.trim());
       const isPurePromo = /^(promo|promos|promotional|promotions?)$/i.test(cleanQ || q.trim());
