@@ -30,19 +30,41 @@ export async function GET(req: NextRequest) {
 
     if (!targetArtist && q) {
       const lowerQ = q.toLowerCase().trim();
-      const matched = Object.keys(ARTIST_PROFILES).find((k) => {
-        const kLower = k.toLowerCase();
-        return (
-          kLower === lowerQ ||
-          kLower.includes(lowerQ) ||
-          lowerQ.includes(kLower) ||
-          (lowerQ === 'oda' && kLower.includes('oda')) ||
-          (lowerQ === 'egawa' && kLower.includes('egawa'))
-        );
-      });
-      if (matched) {
-        targetArtist = matched;
+      const ARTIST_ALIASES: Record<string, string> = {
+        'oda': 'Eiichiro Oda',
+        'eiichiro oda': 'Eiichiro Oda',
+        'eiichiro': 'Eiichiro Oda',
+        'sunohara': 'Sunohara',
+        'egawa': 'Akira Egawa',
+        'akira egawa': 'Akira Egawa',
+        'makitoshi': 'Makitoshi',
+        'bashikou': 'BASHIKOU',
+        'otton': 'Otton',
+        'anderson': 'Anderson',
+        'nijihayashi': 'Nijihayashi',
+        'ryuda': 'Ryuda',
+        'kawayoo': 'kawayoo',
+        'morishita': 'Naochika Morishita',
+        'naochika morishita': 'Naochika Morishita',
+        'hayaken': 'Hayaken-sarena',
+        'hayaken-sarena': 'Hayaken-sarena',
+        'hayaken sarena': 'Hayaken-sarena',
+        'toei': 'Bandai Namco / Toei Animation',
+        'bandai': 'Bandai Namco / Toei Animation',
+      };
+
+      if (ARTIST_ALIASES[lowerQ]) {
+        targetArtist = ARTIST_ALIASES[lowerQ];
         isArtistQuery = true;
+      } else {
+        const matched = Object.keys(ARTIST_PROFILES).find((k) => {
+          const kLower = k.toLowerCase();
+          return kLower === lowerQ || (lowerQ.length >= 4 && kLower.includes(lowerQ));
+        });
+        if (matched) {
+          targetArtist = matched;
+          isArtistQuery = true;
+        }
       }
     }
 
