@@ -131,13 +131,21 @@ async function sendVerificationEmail(email: string, code: string, type: string) 
   const subject = 
     type === 'register' 
       ? '⚔️ Log Pose TCG - Verify Your Account Creation'
+      : type === 'reset'
+      ? '🔒 Log Pose TCG - Reset Account Password'
       : '🗝️ Log Pose TCG - Login Verification Code';
 
   const bodyHtml = `
     <div style="font-family: Arial, sans-serif; background-color: #1a1c25; color: #ffffff; padding: 24px; border-radius: 16px; max-width: 500px; margin: 0 auto;">
       <h2 style="color: #c084fc; margin-top: 0;">Log Pose TCG</h2>
       <p style="color: #cbd5e1; font-size: 15px;">
-        ${type === 'register' ? 'Welcome aboard! Use the following code to confirm your account registration:' : 'Here is your one-time verification code to sign in:'}
+        ${
+          type === 'register'
+            ? 'Welcome aboard! Use the following code to confirm your account registration:'
+            : type === 'reset'
+            ? 'Here is your one-time verification code to reset your account password:'
+            : 'Here is your one-time verification code to sign in:'
+        }
       </p>
       <div style="background-color: #242836; border: 1px solid #3b82f6; border-radius: 12px; padding: 16px; text-align: center; margin: 20px 0;">
         <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #f59e0b;">${code}</span>

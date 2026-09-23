@@ -27,9 +27,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (type === 'login' && !existingUser) {
+    if ((type === 'login' || type === 'reset') && !existingUser) {
       return NextResponse.json(
-        { error: 'No account found with this email. Please create an account first.' },
+        { error: 'No account found with this email. Please check your email or create an account.' },
         { status: 404 }
       );
     }

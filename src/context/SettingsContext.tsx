@@ -12,7 +12,8 @@ import {
   deleteStoredAccount, 
   getActiveSession, 
   setActiveSession,
-  saveStoredAccountFromSession 
+  saveStoredAccountFromSession,
+  updateStoredAccountPassword 
 } from '@/lib/user-accounts';
 import { transferGuestCardsToAccount, getLocalBinder } from '@/lib/user-collection';
 import { 
@@ -176,7 +177,7 @@ interface SettingsContextType {
   user: UserProfile | null;
   accounts: StoredAccount[];
   isCloudConnected: boolean;
-  sendVerificationCode: (email: string, type: 'register' | 'login') => Promise<{ success: boolean; error?: string; devCode?: string; message?: string }>;
+  sendVerificationCode: (email: string, type: 'register' | 'login' | 'reset') => Promise<{ success: boolean; error?: string; devCode?: string; message?: string }>;
   loginWithGoogle: () => Promise<{ error?: string }>;
   loginWithSupabaseEmail: (email: string, password: string) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
   registerWithSupabaseEmail: (data: { email: string; password: string; username: string; avatar?: string; crew?: string }) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
@@ -196,6 +197,11 @@ interface SettingsContextType {
     password?: string,
     code?: string
   ) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
+  resetPassword: (data: {
+    email: string;
+    code: string;
+    newPassword: string;
+  }) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
   updateProfile: (data: Partial<UserProfile>) => void;
   logout: () => void;
   deleteAccount: (idOrTag?: string) => boolean;
@@ -465,7 +471,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   const sendVerificationCode = async (
     email: string,
-    type: 'register' | 'login'
+    type: 'register' | 'login' | 'reset'
   ): Promise<{ success: boolean; error?: string; devCode?: string; message?: string }> => {
     try {
       const res = await fetch('/api/auth/send-code', {
@@ -579,6 +585,36 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       return { success: true, user: result.user };
     } catch (err: any) {
       return { success: false, error: err.message || 'Network error during login.' };
+    }
+  };
+
+  const resetPassword = async (data: {
+    email: string;
+    code: string;
+    newPassword: string;
+  }): Promise<{ success: boolean; user?: UserProfile; error?: string }> => {
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      const result = await res.json();
+      if (!res.ok || result.error) {
+        return { success: false, error: result.error || 'Failed to reset password.' };
+      }
+
+      if (result.user) {
+        setUserState(result.user);
+        setActiveSession(result.user);
+        saveStoredAccountFromSession(result.user);
+        updateStoredAccountPassword(result.user.email, data.newPassword);
+        setAccountsState(getStoredAccounts());
+      }
+      return { success: true, user: result.user };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Network error during password reset.' };
     }
   };
 
@@ -813,6 +849,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         registerWithSupabaseEmail,
         register,
         login,
+        resetPassword,
         updateProfile,
         logout,
         deleteAccount,

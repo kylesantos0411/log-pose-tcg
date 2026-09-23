@@ -299,3 +299,22 @@ export function saveStoredAccountFromSession(sessionUser: UserSession): void {
   }
 }
 
+/**
+ * Update password for a stored account
+ */
+export function updateStoredAccountPassword(emailOrTag: string, newPassword: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const clean = emailOrTag.trim().toLowerCase();
+    const accounts = getStoredAccounts();
+    const target = accounts.find((a) => a.email.toLowerCase() === clean || a.tag.toLowerCase() === clean);
+    if (target) {
+      target.password = newPassword.trim();
+      saveStoredAccounts(accounts);
+    }
+  } catch (e) {
+    console.error('Failed to update stored account password:', e);
+  }
+}
+
+
