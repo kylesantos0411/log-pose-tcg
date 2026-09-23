@@ -16,7 +16,7 @@ import {
 import { RECOMMENDED_DECKS, RecommendedDeck } from '@/lib/recommended-decks';
 import { getEditionCardImageUrl } from '@/lib/card-image';
 
-type MetaFilter = 'ALL' | 'TIER_1' | 'FLAGSHIP' | 'CHAMPIONSHIP' | 'STANDARD_BATTLE' | 'TREASURE_CUP' | 'OP09' | 'OP08' | 'OP17';
+type MetaFilter = 'ALL' | 'TIER_1' | 'FLAGSHIP' | 'CHAMPIONSHIP' | 'STANDARD_BATTLE' | 'TREASURE_CUP' | 'OP16' | 'OP15' | 'EB04' | 'OP09' | 'OP08' | 'OP17';
 type ColorFilter = 'ALL' | 'Red' | 'Blue' | 'Green' | 'Purple' | 'Black' | 'Yellow';
 
 const COLOR_CHIPS: { label: string; value: ColorFilter; bg: string; text: string }[] = [
@@ -69,6 +69,9 @@ export default function RecommendedDecksPage() {
       if (activeMeta === 'CHAMPIONSHIP' && !deck.tournamentType?.includes('Championship') && !deck.tournamentType?.includes('3v3')) return false;
       if (activeMeta === 'STANDARD_BATTLE' && !deck.tournamentType?.includes('Standard Battle')) return false;
       if (activeMeta === 'TREASURE_CUP' && !deck.tournamentType?.includes('Treasure Cup')) return false;
+      if (activeMeta === 'OP16' && deck.metaEra !== 'OP-16') return false;
+      if (activeMeta === 'OP15' && deck.metaEra !== 'OP-15') return false;
+      if (activeMeta === 'EB04' && deck.metaEra !== 'EB-04') return false;
       if (activeMeta === 'OP09' && deck.metaEra !== 'OP-09') return false;
       if (activeMeta === 'OP08' && deck.metaEra !== 'OP-08') return false;
       if (activeMeta === 'OP17' && deck.metaEra !== 'OP-17') return false;
@@ -194,6 +197,36 @@ export default function RecommendedDecksPage() {
             }`}
           >
             <span>💎 Treasure Cup</span>
+          </button>
+          <button
+            onClick={() => setActiveMeta('OP16')}
+            className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${
+              activeMeta === 'OP16'
+                ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
+            }`}
+          >
+            OP-16 Future
+          </button>
+          <button
+            onClick={() => setActiveMeta('OP15')}
+            className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${
+              activeMeta === 'OP15'
+                ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
+            }`}
+          >
+            OP-15 Meta
+          </button>
+          <button
+            onClick={() => setActiveMeta('EB04')}
+            className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${
+              activeMeta === 'EB04'
+                ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
+            }`}
+          >
+            EB-04 Extra
           </button>
           <button
             onClick={() => setActiveMeta('OP09')}
@@ -352,7 +385,7 @@ export default function RecommendedDecksPage() {
                     {/* Color Dot Indicator */}
                     <div
                       className="w-4 h-4 sm:w-5 sm:h-5 rounded-full shadow-md border border-white/20 flex items-center justify-center text-[9px] font-black text-white/80"
-                      style={{ backgroundColor: deck.colorDot }}
+                      style={{ background: deck.colorDot }}
                       title={`${deck.color} Deck`}
                     />
 
