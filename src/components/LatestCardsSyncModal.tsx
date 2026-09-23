@@ -66,6 +66,7 @@ export function LatestCardsSyncModal({ isOpen, onClose }: LatestCardsSyncModalPr
   const [currentStep, setCurrentStep] = useState(1);
   const [progress, setProgress] = useState(10);
   const [isDone, setIsDone] = useState(false);
+  const [syncedCount, setSyncedCount] = useState<number | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -74,6 +75,22 @@ export function LatestCardsSyncModal({ isOpen, onClose }: LatestCardsSyncModalPr
       setIsDone(false);
       return;
     }
+
+    // Trigger real backend sync API
+    fetch('/api/cards/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ set: 'latest' }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.stats?.totalIndexedCards) {
+          setSyncedCount(data.stats.totalIndexedCards);
+        }
+      })
+      .catch((err) => {
+        console.warn('Sync API background ping:', err);
+      });
 
     // Realistic multi-step progress progression
     const t1 = setTimeout(() => { setCurrentStep(2); setProgress(35); }, 700);
@@ -207,7 +224,7 @@ export function LatestCardsSyncModal({ isOpen, onClose }: LatestCardsSyncModalPr
                     {isCurrent && <span className="text-[10px] text-[#3ed57a] font-semibold animate-pulse">Running...</span>}
                   </div>
                   <p className="text-[10px] text-gray-400 truncate mt-0.5">
-                    {s.desc}
+                    {s.step === 5 && syncedCount ? `${syncedCount.toLocaleString()} Japanese cards synchronized & ready!` : s.desc}
                   </p>
                 </div>
               </div>
