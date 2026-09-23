@@ -46,6 +46,7 @@ interface YuyuteiSetDefinition {
 
 // Exact set categories and order matching Yuyu-tei official layout
 const BOOSTER_SETS: YuyuteiSetDefinition[] = [
+  { id: 'op18', code: 'OP18', title: 'Booster Pack OP-18 [Coming Soon]', targetSet: 'OP-18' },
   { id: 'op17', code: 'OP17', title: "The World's Strongest Warrior", targetSet: 'OP-17' },
   { id: 'op16', code: 'OP16', title: 'The Moment of Decisive Battle', targetSet: 'OP-16' },
   { id: 'op15', code: 'OP15', title: 'Adventure on the Island of the Gods', targetSet: 'OP-15' },

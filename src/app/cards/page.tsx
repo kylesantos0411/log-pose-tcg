@@ -288,7 +288,7 @@ function CardsContent() {
               </div>
               {isLatestMode && (
                 <p className="text-[10px] text-amber-300 font-semibold tracking-wide">
-                  Sorted by release date: OP-10, EB-02, OP-09 &amp; newest sets first
+                  Sorted by release date: OP-17, OP-16, OP-15 &amp; newest sets first (OP-18 upcoming)
                 </p>
               )}
             </div>

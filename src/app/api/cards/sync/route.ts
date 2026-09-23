@@ -11,18 +11,6 @@ export async function GET() {
       where: {
         hasJpPrint: true,
         yuyuPrice: { not: null, gt: 0 },
-        OR: [
-          { id: { startsWith: 'OP10' } },
-          { id: { startsWith: 'OP09' } },
-          { id: { startsWith: 'OP08' } },
-          { id: { startsWith: 'EB01' } },
-          { id: { startsWith: 'ST20' } },
-          { id: { startsWith: 'ST19' } },
-          { id: { startsWith: 'ST18' } },
-          { id: { startsWith: 'ST17' } },
-          { id: { startsWith: 'ST16' } },
-          { id: { startsWith: 'ST15' } },
-        ],
       },
       select: {
         id: true,
@@ -34,8 +22,8 @@ export async function GET() {
         rarity: true,
       },
       orderBy: [
-        { packId: 'desc' },
-        { id: 'desc' },
+        { releaseOrder: 'desc' },
+        { id: 'asc' },
       ],
       take: 8,
     });
@@ -45,7 +33,7 @@ export async function GET() {
       stats: {
         totalCards,
         recentCardsCount: latestCards.length,
-        latestSets: ['OP-10', 'OP-09', 'EB-01', 'ST-15~ST-20'],
+        latestSets: ['OP-18 (Upcoming)', 'OP-17', 'OP-16', 'OP-15'],
         lastSynced: new Date().toISOString(),
       },
       previewCards: latestCards,
@@ -76,8 +64,8 @@ export async function POST(req: NextRequest) {
         yuyuPrice: { not: null, gt: 0 },
       },
       orderBy: [
-        { packId: 'desc' },
-        { id: 'desc' },
+        { releaseOrder: 'desc' },
+        { id: 'asc' },
       ],
       take: 12,
       select: {
@@ -94,7 +82,7 @@ export async function POST(req: NextRequest) {
       message: `Synchronized ${recentCards.length} cards from newest expansions (${requestedSet})`,
       stats: {
         totalIndexedCards: totalCards,
-        activeSets: ['OP-10', 'OP-09', 'EB-01', 'ST-15-20'],
+        activeSets: ['OP-18 (Upcoming)', 'OP-17', 'OP-16', 'OP-15'],
         syncTimestamp: new Date().toISOString(),
         pricingEngine: 'Yuyu-tei Japanese Storefront API v2',
         registry: 'Bandai Carddass Official JP Master Index',

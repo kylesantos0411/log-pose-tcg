@@ -31,7 +31,7 @@ const SYNC_STAGES = [
   {
     step: 2,
     title: 'Checking Latest Booster Releases',
-    desc: 'Scanning OP-10 (Royal Bloodlines), OP-09, and ST-15–20 decks...',
+    desc: 'Scanning OP-17 (The World’s Strongest Warriors), OP-16, and OP-18 upcoming previews...',
     icon: Flame,
   },
   {
@@ -49,16 +49,16 @@ const SYNC_STAGES = [
   {
     step: 5,
     title: 'Catalog Synchronized',
-    desc: '4,511+ Japanese cards with live valuations ready!',
+    desc: '4,515+ Japanese cards with live valuations ready!',
     icon: CheckCircle2,
   },
 ];
 
 const PREVIEW_NEW_CARDS = [
-  { id: 'OP09-119_p1', name: 'Shanks (Manga Rare)', pack: 'OP-09', priceYen: 198000, img: 'https://onepiece-cardgame.com/images/cardlist/card/OP09-119_p1.png' },
-  { id: 'OP09-001_p1', name: 'Monkey.D.Luffy (Leader Alt)', pack: 'OP-09', priceYen: 32000, img: 'https://onepiece-cardgame.com/images/cardlist/card/OP09-001_p1.png' },
-  { id: 'OP08-118_p1', name: 'Silvers Rayleigh (Manga)', pack: 'OP-08', priceYen: 148000, img: 'https://onepiece-cardgame.com/images/cardlist/card/OP08-118_p1.png' },
-  { id: 'OP07-119_p1', name: 'Boa Hancock (Manga Rare)', pack: 'OP-07', priceYen: 178000, img: 'https://onepiece-cardgame.com/images/cardlist/card/OP07-119_p1.png' },
+  { id: 'OP18-001', name: 'Monkey.D.Dragon (OP-18 Leader)', pack: 'OP-18', priceYen: 3500, img: 'https://card.yuyu-tei.jp/opc/front/op17/10001.jpg' },
+  { id: 'OP17-001', name: 'Edward.Newgate (OP-17 Leader)', pack: 'OP-17', priceYen: 4800, img: 'https://card.yuyu-tei.jp/opc/front/op17/10001.jpg' },
+  { id: 'OP17-005', name: 'Edward.Newgate (SuperRare)', pack: 'OP-17', priceYen: 2200, img: 'https://card.yuyu-tei.jp/opc/front/op17/10005.jpg' },
+  { id: 'EB04-007_p2', name: 'Roronoa Zoro (OP-17 Special)', pack: 'OP-17', priceYen: 38000, img: 'https://card.yuyu-tei.jp/opc/front/op17/10174.jpg' },
 ];
 
 export function LatestCardsSyncModal({ isOpen, onClose }: LatestCardsSyncModalProps) {
