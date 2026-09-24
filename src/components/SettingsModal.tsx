@@ -5,13 +5,8 @@ import {
   X, 
   Settings as SettingsIcon, 
   Check, 
-  DollarSign, 
   Coins, 
-  RefreshCw, 
-  HelpCircle, 
-  Globe, 
   Sparkles,
-  Star, 
   Download, 
   Upload, 
   FileJson, 
@@ -22,7 +17,10 @@ import {
   AlertTriangle, 
   Heart, 
   Smartphone, 
-  User 
+  User,
+  Database,
+  ShieldCheck,
+  Globe
 } from 'lucide-react';
 import { useSettings, CURRENCIES, CurrencyCode } from '@/context/SettingsContext';
 import { SupportModal } from '@/components/SupportModal';
@@ -40,61 +38,63 @@ export function SettingsModal() {
     shareCrashReports, 
     setShareCrashReports, 
     user, 
-    login, 
     logout, 
     clearUserData 
   } = useSettings();
 
-  const [copiedNotification, setCopiedNotification] = useState<string | null>(null);
+  const [notification, setNotification] = useState<string | null>(null);
   const [showSignInModal, setShowSignInModal] = useState(false);
+  const [accountModalTab, setAccountModalTab] = useState<'login' | 'register'>('login');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
-  const [emailInput, setEmailInput] = useState('');
-  const [nameInput, setNameInput] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
 
   if (!isSettingsOpen) return null;
 
+  const showToast = (msg: string) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 2400);
+  };
+
   const handleSelectCurrency = (code: CurrencyCode) => {
     setCurrency(code);
     const name = CURRENCIES[code]?.name || code;
-    setCopiedNotification(`Currency set to ${name}`);
-    setTimeout(() => setCopiedNotification(null), 2500);
+    showToast(`Currency set to ${name}`);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
       {/* Click outside backdrop */}
       <div className="fixed inset-0" onClick={closeSettings} />
 
       {/* Modal Dialog Card */}
       <div 
-        className="relative bg-[#242836] border border-[#34384c] rounded-3xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl z-10 font-sans"
+        className="relative bg-[#1a1c26] border border-[#2e3346] rounded-2xl sm:rounded-3xl w-full max-w-lg max-h-[92vh] overflow-hidden flex flex-col shadow-2xl z-10 font-sans"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Toast alert */}
-        {copiedNotification && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-[#1e212c] border border-emerald-500 text-emerald-400 text-xs font-bold px-4 py-2 rounded-full shadow-xl flex items-center gap-1.5 animate-bounce">
+        {/* Toast Notification */}
+        {notification && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-[#12131a] border border-emerald-500/60 text-emerald-400 text-xs font-semibold px-4 py-2 rounded-full shadow-2xl flex items-center gap-2 animate-fadeIn">
             <Check className="w-3.5 h-3.5" />
-            <span>{copiedNotification}</span>
+            <span>{notification}</span>
           </div>
         )}
 
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-[#34384c] bg-[#1e212c] flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-[#282d3e] bg-[#141620] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#e76d78]/15 border border-[#e76d78]/30 flex items-center justify-center text-[#e76d78]">
+            <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
               <SettingsIcon className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-extrabold text-white">Application Settings</h2>
-              <p className="text-[11px] text-gray-400">Configure currency display &amp; preferences</p>
+              <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">Settings</h2>
+              <p className="text-[11px] text-slate-400">Preferences, localization &amp; data</p>
             </div>
           </div>
 
           <button
             onClick={closeSettings}
-            className="p-1.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer"
+            className="p-1.5 rounded-lg hover:bg-white/5 text-slate-400 hover:text-white transition cursor-pointer"
             aria-label="Close modal"
           >
             <X className="w-5 h-5" />
@@ -102,61 +102,143 @@ export function SettingsModal() {
         </div>
 
         {/* Modal Scrollable Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Section: Preferred Currency */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                  <Coins className="w-3.5 h-3.5 text-[#f59e0b]" />
-                  Market Currency Display
-                </span>
-                <p className="text-[11px] text-gray-400 mt-0.5">
-                  Choose your preferred currency. The default uses each source's native currency.
-                </p>
+        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
+          {/* 1. Account Section */}
+          <div className="space-y-2">
+            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-0.5">
+              Account &amp; Sync
+            </div>
+
+            {user ? (
+              <div className="bg-[#141620] border border-[#282d3e] rounded-2xl p-3.5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-blue-600/15 border border-blue-500/30 text-blue-400 flex items-center justify-center flex-shrink-0">
+                      <User className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs sm:text-sm font-bold text-white truncate">{user.name}</div>
+                      <div className="font-mono text-[11px] text-slate-400 truncate">{user.tag}</div>
+                    </div>
+                  </div>
+
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Cloud Active
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2 border-t border-[#232738]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAccountModalTab('login');
+                      setShowSignInModal(true);
+                    }}
+                    className="flex-1 py-1.5 px-3 rounded-lg bg-[#1c1f2d] hover:bg-[#25293d] border border-[#2e3346] text-xs font-semibold text-slate-200 transition text-center"
+                  >
+                    Switch Account
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      logout();
+                      showToast('Logged out to Guest Mode');
+                    }}
+                    className="py-1.5 px-3 rounded-lg bg-[#1c1f2d] hover:bg-[#25293d] border border-[#2e3346] text-xs font-semibold text-slate-300 transition flex items-center justify-center gap-1"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span>Log Out</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="py-1.5 px-2 rounded-lg hover:bg-rose-500/10 text-[11px] font-medium text-rose-400 hover:text-rose-300 transition"
+                    title="Clear local session & cache"
+                  >
+                    Clear Cache
+                  </button>
+                </div>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#1e212c] text-gray-300 border border-[#34384c]">
-                Active: {currency === 'source' ? 'Source Currency' : currency}
+            ) : (
+              <div className="bg-[#141620] border border-[#282d3e] rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs font-bold text-white flex items-center gap-2">
+                    <span>Guest Mode</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium">
+                      Offline Only
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Sign in to sync your collection and favorites across devices.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAccountModalTab('login');
+                    setShowSignInModal(true);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition flex items-center justify-center gap-1.5 shadow-sm shrink-0"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Sign In / Register</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 2. Currency & Localization */}
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-0.5 flex items-center gap-1.5">
+                <Coins className="w-3.5 h-3.5 text-blue-400" />
+                Market Currency Display
+              </span>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-[#141620] text-slate-300 border border-[#282d3e]">
+                Active: {currency === 'source' ? 'Source Native' : currency}
               </span>
             </div>
 
-            {/* Currency Options Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-              {/* Option 1: Source Currency (Default) */}
-              <button
-                type="button"
-                onClick={() => handleSelectCurrency('source')}
-                className={`sm:col-span-2 p-3 rounded-2xl border text-left transition flex items-start justify-between cursor-pointer ${
-                  currency === 'source'
-                    ? 'bg-[#e76d78]/15 border-[#e76d78] shadow-md'
-                    : 'bg-[#1e212c] border-[#32384a] hover:border-gray-500 hover:bg-[#282c3a]'
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#3b82f6] to-[#1d4ed8] flex items-center justify-center text-lg flex-shrink-0 shadow">
-                    🌐
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-white">Source Currency</span>
-                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-[#e76d78] text-white">
-                        Default
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">
-                      Uses each marketplace original currency: <strong className="text-[#f59e0b] font-semibold">Yuyu-tei (¥ JPY)</strong>, <strong className="text-sky-400 font-semibold">Cardmarket (€ EUR)</strong>, and <strong className="text-emerald-400 font-semibold">eBay, PSA ($ USD)</strong>.
-                    </p>
-                  </div>
+            {/* Source Native Currency (Default) */}
+            <button
+              type="button"
+              onClick={() => handleSelectCurrency('source')}
+              className={`w-full p-3 rounded-xl border text-left transition flex items-center justify-between cursor-pointer ${
+                currency === 'source'
+                  ? 'bg-blue-600/10 border-blue-500 text-white shadow-sm'
+                  : 'bg-[#141620] border-[#282d3e] hover:border-slate-500 hover:bg-[#1a1d2b] text-slate-300'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 flex-shrink-0">
+                  <Globe className="w-4 h-4" />
                 </div>
-
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                  currency === 'source' ? 'bg-[#e76d78] text-white' : 'border border-gray-600'
-                }`}>
-                  {currency === 'source' && <Check className="w-3 h-3 stroke-[3]" />}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-bold text-white">Source Native (Recommended)</span>
+                    <span className="text-[9px] font-bold uppercase px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                      Default
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Displays Yuyu-tei in ¥ JPY, Cardmarket in € EUR, and eBay in $ USD.
+                  </p>
                 </div>
-              </button>
+              </div>
 
-              {/* Other Currencies */}
+              <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ml-2 ${
+                currency === 'source' ? 'bg-blue-600 text-white' : 'border border-slate-600'
+              }`}>
+                {currency === 'source' && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+              </div>
+            </button>
+
+            {/* Specific Currency Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {(Object.keys(CURRENCIES) as CurrencyCode[])
                 .filter((code) => code !== 'source')
                 .map((code) => {
@@ -168,29 +250,29 @@ export function SettingsModal() {
                       key={code}
                       type="button"
                       onClick={() => handleSelectCurrency(code)}
-                      className={`p-3 rounded-2xl border text-left transition flex items-center justify-between cursor-pointer ${
+                      className={`p-2.5 rounded-xl border text-left transition flex items-center justify-between cursor-pointer ${
                         isSelected
-                          ? 'bg-[#3b82f6]/15 border-[#3b82f6] shadow-md'
-                          : 'bg-[#1e212c] border-[#32384a] hover:border-gray-500 hover:bg-[#282c3a]'
+                          ? 'bg-blue-600/10 border-blue-500 text-white shadow-sm'
+                          : 'bg-[#141620] border-[#282d3e] hover:border-slate-500 hover:bg-[#1a1d2b] text-slate-300'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="text-xl flex-shrink-0">{item.flag}</span>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-base flex-shrink-0">{item.flag}</span>
                         <div className="min-w-0">
-                          <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <div className="text-xs font-bold text-white flex items-center gap-1">
                             <span>{item.code}</span>
-                            <span className="text-[11px] font-normal text-gray-400">({item.symbol})</span>
+                            <span className="text-[10px] text-slate-400 font-normal">({item.symbol})</span>
                           </div>
-                          <div className="text-[10px] text-gray-400 truncate">
+                          <div className="text-[10px] text-slate-400 truncate">
                             {item.name}
                           </div>
                         </div>
                       </div>
 
-                      <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 ml-2 ${
-                        isSelected ? 'bg-[#3b82f6] text-white' : 'border border-gray-600'
+                      <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 ml-1.5 ${
+                        isSelected ? 'bg-blue-600 text-white' : 'border border-slate-600'
                       }`}>
-                        {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                        {isSelected && <Check className="w-2 h-2 stroke-[3]" />}
                       </div>
                     </button>
                   );
@@ -198,15 +280,15 @@ export function SettingsModal() {
             </div>
           </div>
 
-          {/* Parallel / Alternate Art Display Format */}
-          <div className="space-y-3 pt-2 border-t border-[#34384c]">
+          {/* 3. Card Code Format */}
+          <div className="space-y-2">
             <div>
-              <h3 className="text-xs font-bold text-gray-200 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-[#f59e0b]" />
-                Variant Card Code Format
-              </h3>
-              <p className="text-[11px] text-gray-400 mt-0.5">
-                Choose how cards with internal <code>_p</code> suffixes are displayed across the app
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-0.5 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                Variant Code Format
+              </span>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                Display style for alternate art and parallel card prints
               </p>
             </div>
 
@@ -215,183 +297,88 @@ export function SettingsModal() {
                 type="button"
                 onClick={() => {
                   setAltArtStyle('alt_art');
-                  setCopiedNotification('Format: EB04-039 (Alt Art)');
-                  setTimeout(() => setCopiedNotification(null), 2500);
+                  showToast('Format: EB04-039 (Alt Art)');
                 }}
-                className={`p-3 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
                   altArtStyle === 'alt_art'
-                    ? 'bg-[#e76d78]/15 border-[#e76d78] shadow-md'
-                    : 'bg-[#1e212c] border-[#32384a] hover:border-gray-500'
+                    ? 'bg-blue-600/10 border-blue-500 shadow-sm'
+                    : 'bg-[#141620] border-[#282d3e] hover:border-slate-500 text-slate-300'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-white">Alt Art (Official/Community)</span>
-                  {altArtStyle === 'alt_art' && <Check className="w-3.5 h-3.5 text-[#e76d78]" />}
+                  <span className="text-xs font-bold text-white">Alt Art (Standard)</span>
+                  {altArtStyle === 'alt_art' && <Check className="w-3.5 h-3.5 text-blue-400" />}
                 </div>
-                <div className="mt-2 font-mono text-[11px] text-amber-300 font-bold bg-[#151720] px-2 py-1 rounded border border-amber-500/20">
+                <div className="mt-2 font-mono text-[11px] text-blue-300 font-semibold bg-[#0d0f17] px-2 py-1 rounded border border-blue-500/20">
                   EB04-039 (Alt Art)
                 </div>
-                <div className="text-[10px] text-gray-400 mt-1">
-                  Western collector standard
-                </div>
+                <span className="text-[10px] text-slate-400 mt-1">Western collector convention</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => {
                   setAltArtStyle('parallel');
-                  setCopiedNotification('Format: EB04-039 (Parallel)');
-                  setTimeout(() => setCopiedNotification(null), 2500);
+                  showToast('Format: EB04-039 (Parallel)');
                 }}
-                className={`p-3 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                className={`p-3 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
                   altArtStyle === 'parallel'
-                    ? 'bg-[#3b82f6]/15 border-[#3b82f6] shadow-md'
-                    : 'bg-[#1e212c] border-[#32384a] hover:border-gray-500'
+                    ? 'bg-blue-600/10 border-blue-500 shadow-sm'
+                    : 'bg-[#141620] border-[#282d3e] hover:border-slate-500 text-slate-300'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-white">Parallel (Bandai)</span>
-                  {altArtStyle === 'parallel' && <Check className="w-3.5 h-3.5 text-[#3b82f6]" />}
+                  <span className="text-xs font-bold text-white">Parallel (Official)</span>
+                  {altArtStyle === 'parallel' && <Check className="w-3.5 h-3.5 text-blue-400" />}
                 </div>
-                <div className="mt-2 font-mono text-[11px] text-blue-300 font-bold bg-[#151720] px-2 py-1 rounded border border-blue-500/20">
+                <div className="mt-2 font-mono text-[11px] text-slate-300 font-semibold bg-[#0d0f17] px-2 py-1 rounded border border-[#282d3e]">
                   EB04-039 (Parallel)
                 </div>
-                <div className="text-[10px] text-gray-400 mt-1">
-                  Official Bandai designation
-                </div>
+                <span className="text-[10px] text-slate-400 mt-1">Official Bandai designation</span>
               </button>
             </div>
           </div>
 
-          {/* Section: OTHER */}
-          <div className="space-y-2.5 pt-1">
-            <h3 className="text-xs font-black text-gray-400 uppercase tracking-wider px-0.5">
-              OTHER
-            </h3>
+          {/* 4. Data & Offline Storage */}
+          <div className="space-y-2">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-0.5 flex items-center gap-1.5">
+              <Database className="w-3.5 h-3.5 text-blue-400" />
+              Data &amp; Offline Storage
+            </span>
 
-            <div className="space-y-2">
-              {/* Support Server Maintenance */}
-              <button
-                type="button"
-                onClick={() => setShowSupportModal(true)}
-                className="w-full bg-[#1e212c] hover:bg-[#282c3a] border border-[#32384a] hover:border-[#f4727d]/50 p-3 rounded-2xl flex items-center justify-between transition cursor-pointer text-left group"
-              >
-                <div className="flex items-center gap-3 min-w-0 pr-2">
-                  <div className="w-6 h-6 flex items-center justify-center text-[#f4727d] flex-shrink-0">
-                    <Heart className="w-4 h-4 fill-[#f4727d]/20 text-[#f4727d] group-hover:scale-110 transition-transform" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold text-white group-hover:text-[#f4727d] transition flex items-center gap-1.5">
-                      <span>Support Server &amp; Maintenance</span>
-                      <span className="text-[9px] font-black uppercase tracking-wider bg-[#f4727d]/20 text-[#f4727d] border border-[#f4727d]/30 px-1.5 py-0.5 rounded">
-                        Optional
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-gray-400 mt-0.5 truncate">
-                      Help keep database servers, cloud hosting, and scrapers running
-                    </div>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-white transition flex-shrink-0" />
-              </button>
-
-              {/* Rate the app */}
-              <button
-                type="button"
-                onClick={() => {
-                  setCopiedNotification('Thank you for rating Log Pose TCG! 5 stars recorded ★★★★★');
-                  setTimeout(() => setCopiedNotification(null), 3000);
-                }}
-                className="w-full bg-[#1e212c] hover:bg-[#282c3a] border border-[#32384a] p-3 rounded-2xl flex items-center justify-between transition cursor-pointer text-left group"
-              >
-                <div className="flex items-center gap-3 min-w-0 pr-2">
-                  <div className="w-6 h-6 flex items-center justify-center text-white flex-shrink-0">
-                    <Star className="w-4 h-4 fill-white text-white" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold text-white group-hover:text-[#f45d6a] transition">
-                      Rate the app
-                    </div>
-                    <div className="text-[10px] text-gray-400 mt-0.5 truncate">
-                      Help us improve the app by leaving a review on the store
-                    </div>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-white transition flex-shrink-0" />
-              </button>
-
-              {/* Download all images */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (isDownloading) return;
-                  setIsDownloading(true);
-                  setCopiedNotification('Caching card scans offline (Wi-Fi recommended)...');
-                  setTimeout(() => {
-                    setIsDownloading(false);
-                    setCopiedNotification('All card images cached offline!');
-                    setTimeout(() => setCopiedNotification(null), 2500);
-                  }, 2000);
-                }}
-                disabled={isDownloading}
-                className="w-full bg-[#1e212c] hover:bg-[#282c3a] border border-[#32384a] p-3 rounded-2xl flex items-center justify-between transition cursor-pointer text-left group disabled:opacity-75"
-              >
-                <div className="flex items-center gap-3 min-w-0 pr-2">
-                  <div className="w-6 h-6 flex items-center justify-center text-white flex-shrink-0">
-                    <Download className={`w-4 h-4 text-white ${isDownloading ? 'animate-bounce text-[#f45d6a]' : ''}`} />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold text-white group-hover:text-[#f45d6a] transition">
-                      {isDownloading ? 'Caching card scans...' : 'Download all images'}
-                    </div>
-                    <div className="text-[10px] text-gray-400 mt-0.5 truncate">
-                      Cache every image for offline use (Wi-Fi recommended)
-                    </div>
-                  </div>
-                </div>
-                {isDownloading ? (
-                  <div className="w-4 h-4 border-2 border-[#f45d6a] border-t-transparent rounded-full animate-spin flex-shrink-0" />
-                ) : (
-                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-white transition flex-shrink-0" />
-                )}
-              </button>
-
-              {/* Export Collection Backup (JSON) */}
+            <div className="bg-[#141620] border border-[#282d3e] rounded-2xl divide-y divide-[#232738] overflow-hidden">
+              {/* Export Backup */}
               <button
                 type="button"
                 onClick={() => {
                   const binder = getLocalBinder();
                   if (binder.length === 0) {
-                    setCopiedNotification('Your binder is empty');
-                    setTimeout(() => setCopiedNotification(null), 2000);
+                    showToast('Your binder is currently empty');
                     return;
                   }
                   exportBinderToJSON();
-                  setCopiedNotification(`Exported ${binder.length} cards`);
-                  setTimeout(() => setCopiedNotification(null), 2000);
+                  showToast(`Exported ${binder.length} cards to JSON`);
                 }}
-                className="w-full bg-[#1e212c] hover:bg-[#282c3a] border border-[#32384a] p-3 rounded-2xl flex items-center justify-between transition cursor-pointer text-left group"
+                className="w-full p-3 flex items-center justify-between hover:bg-[#1a1d2b] transition text-left cursor-pointer group"
               >
                 <div className="flex items-center gap-3 min-w-0 pr-2">
-                  <div className="w-6 h-6 flex items-center justify-center text-[#f59e0b] flex-shrink-0">
-                    <FileJson className="w-4 h-4" />
+                  <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center flex-shrink-0">
+                    <FileJson className="w-3.5 h-3.5" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-bold text-white group-hover:text-[#f59e0b] transition">
+                    <div className="text-xs font-semibold text-white group-hover:text-blue-400 transition">
                       Export Collection Backup
                     </div>
-                    <div className="text-[10px] text-gray-400 mt-0.5 truncate">
-                      Save your cards and binder as a portable JSON file
+                    <div className="text-[10px] text-slate-400 truncate">
+                      Save your cards and custom costs as a portable JSON file
                     </div>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-white transition flex-shrink-0" />
+                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-white transition flex-shrink-0" />
               </button>
 
-              {/* Import Collection Backup (JSON) */}
-              <label
-                className="w-full bg-[#1e212c] hover:bg-[#282c3a] border border-[#32384a] p-3 rounded-2xl flex items-center justify-between transition cursor-pointer text-left group"
-              >
+              {/* Import Backup */}
+              <label className="w-full p-3 flex items-center justify-between hover:bg-[#1a1d2b] transition text-left cursor-pointer group">
                 <input
                   type="file"
                   accept=".json,application/json"
@@ -403,42 +390,87 @@ export function SettingsModal() {
                     reader.onload = (event) => {
                       const text = event.target?.result as string;
                       const success = importBinderFromJSON(text);
-                      if (success) {
-                        setCopiedNotification('Collection restored successfully!');
-                      } else {
-                        setCopiedNotification('Invalid backup file');
-                      }
-                      setTimeout(() => setCopiedNotification(null), 2500);
+                      showToast(success ? 'Collection restored successfully!' : 'Invalid backup file');
                     };
                     reader.readAsText(file);
                     e.target.value = '';
                   }}
                 />
                 <div className="flex items-center gap-3 min-w-0 pr-2">
-                  <div className="w-6 h-6 flex items-center justify-center text-[#3b82f6] flex-shrink-0">
-                    <Upload className="w-4 h-4" />
+                  <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center flex-shrink-0">
+                    <Upload className="w-3.5 h-3.5" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-bold text-white group-hover:text-[#3b82f6] transition">
+                    <div className="text-xs font-semibold text-white group-hover:text-blue-400 transition">
                       Import Collection Backup
                     </div>
-                    <div className="text-[10px] text-gray-400 mt-0.5 truncate">
-                      Restore saved cards from a backup JSON file
+                    <div className="text-[10px] text-slate-400 truncate">
+                      Restore saved cards from an existing JSON backup
                     </div>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-white transition flex-shrink-0" />
+                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-white transition flex-shrink-0" />
               </label>
 
-              {/* Share the crash reports with the developers */}
-              <div className="w-full bg-[#1e212c] border border-[#32384a] p-3 rounded-2xl flex items-center justify-between">
-                <div className="flex items-center gap-3 pr-2 min-w-0">
-                  <div className="w-6 h-6 flex items-center justify-center text-white flex-shrink-0">
-                    <Bug className="w-4 h-4 text-white" />
+              {/* Offline Images Caching */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (isDownloading) return;
+                  setIsDownloading(true);
+                  showToast('Caching high-res scans for offline use...');
+                  setTimeout(() => {
+                    setIsDownloading(false);
+                    showToast('Card scans cached offline successfully!');
+                  }, 2200);
+                }}
+                disabled={isDownloading}
+                className="w-full p-3 flex items-center justify-between hover:bg-[#1a1d2b] transition text-left cursor-pointer group disabled:opacity-75"
+              >
+                <div className="flex items-center gap-3 min-w-0 pr-2">
+                  <div className="w-7 h-7 rounded-lg bg-slate-700/40 text-slate-300 flex items-center justify-center flex-shrink-0">
+                    <Download className={`w-3.5 h-3.5 ${isDownloading ? 'animate-bounce text-blue-400' : ''}`} />
                   </div>
-                  <span className="text-xs font-semibold text-white leading-tight">
-                    Share the crash reports with the developers
-                  </span>
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold text-white group-hover:text-blue-400 transition">
+                      {isDownloading ? 'Caching scans...' : 'Preload High-Res Scans'}
+                    </div>
+                    <div className="text-[10px] text-slate-400 truncate">
+                      Store card images locally for faster offline loading
+                    </div>
+                  </div>
+                </div>
+                {isDownloading ? (
+                  <div className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-white transition flex-shrink-0" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* 5. System & Support */}
+          <div className="space-y-2">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-0.5 flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
+              System &amp; Community
+            </span>
+
+            <div className="bg-[#141620] border border-[#282d3e] rounded-2xl divide-y divide-[#232738] overflow-hidden">
+              {/* Crash Reports Toggle */}
+              <div className="p-3 flex items-center justify-between">
+                <div className="flex items-center gap-3 pr-2 min-w-0">
+                  <div className="w-7 h-7 rounded-lg bg-slate-700/40 text-slate-300 flex items-center justify-center flex-shrink-0">
+                    <Bug className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold text-white">
+                      Anonymous Diagnostics
+                    </div>
+                    <div className="text-[10px] text-slate-400 truncate">
+                      Share crash reports to help resolve bugs
+                    </div>
+                  </div>
                 </div>
 
                 <button
@@ -448,147 +480,87 @@ export function SettingsModal() {
                   onClick={() => {
                     const next = !shareCrashReports;
                     setShareCrashReports(next);
-                    setCopiedNotification(next ? 'Crash reports enabled' : 'Crash reports disabled');
-                    setTimeout(() => setCopiedNotification(null), 2000);
+                    showToast(next ? 'Diagnostics enabled' : 'Diagnostics disabled');
                   }}
-                  className={`w-12 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out cursor-pointer flex-shrink-0 relative ${
-                    shareCrashReports ? 'bg-[#f45d6a]' : 'bg-[#383d4f]'
+                  className={`w-11 h-6 rounded-full p-0.5 transition-colors duration-200 ease-in-out cursor-pointer flex-shrink-0 relative ${
+                    shareCrashReports ? 'bg-blue-600' : 'bg-slate-700'
                   }`}
                 >
                   <span
                     className={`block w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-200 ease-in-out ${
-                      shareCrashReports ? 'translate-x-6' : 'translate-x-0'
+                      shareCrashReports ? 'translate-x-5' : 'translate-x-0'
                     }`}
                   />
                 </button>
               </div>
 
-              {/* Install Log Pose App (PWA) */}
+              {/* Install PWA */}
               <button
                 type="button"
                 onClick={() => {
                   closeSettings();
                   window.dispatchEvent(new CustomEvent('open_install_prompt'));
                 }}
-                className="w-full bg-gradient-to-r from-[#e76d78]/15 to-[#f59e0b]/15 hover:from-[#e76d78]/25 hover:to-[#f59e0b]/25 border border-[#e76d78]/30 p-3 rounded-2xl flex items-center justify-between transition cursor-pointer text-left group"
+                className="w-full p-3 flex items-center justify-between hover:bg-[#1a1d2b] transition text-left cursor-pointer group"
               >
                 <div className="flex items-center gap-3 min-w-0 pr-2">
-                  <div className="w-6 h-6 flex items-center justify-center text-[#e76d78] flex-shrink-0">
-                    <Smartphone className="w-4 h-4" />
+                  <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center flex-shrink-0">
+                    <Smartphone className="w-3.5 h-3.5" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-xs font-bold text-white group-hover:text-[#e76d78] transition">
-                      Install Log Pose App
+                    <div className="text-xs font-semibold text-white group-hover:text-blue-400 transition">
+                      Install Web App (PWA)
                     </div>
-                    <div className="text-[10px] text-gray-400 mt-0.5 truncate">
-                      Add to your home screen for quick launch and offline access
+                    <div className="text-[10px] text-slate-400 truncate">
+                      Add to home screen for fullscreen mobile experience
                     </div>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-white transition flex-shrink-0" />
+                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-white transition flex-shrink-0" />
+              </button>
+
+              {/* Support & Server Maintenance */}
+              <button
+                type="button"
+                onClick={() => setShowSupportModal(true)}
+                className="w-full p-3 flex items-center justify-between hover:bg-[#1a1d2b] transition text-left cursor-pointer group"
+              >
+                <div className="flex items-center gap-3 min-w-0 pr-2">
+                  <div className="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center flex-shrink-0">
+                    <Heart className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold text-white group-hover:text-blue-400 transition">
+                      Support Server Maintenance
+                    </div>
+                    <div className="text-[10px] text-slate-400 truncate">
+                      Help keep daily price scrapers and cloud servers online
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-white transition flex-shrink-0" />
               </button>
             </div>
           </div>
 
-          {/* Section: DISCLAIMER */}
-          <div className="space-y-1.5 pt-1 px-0.5">
-            <h3 className="text-xs font-black text-gray-400 uppercase tracking-wider">
-              DISCLAIMER
-            </h3>
-            <p className="text-xs text-gray-400 font-medium leading-relaxed">
-              LOG POSE TCG is an unofficial, free fan made app.
+          {/* Legal Disclaimer */}
+          <div className="pt-2 px-1">
+            <p className="text-[10px] text-slate-400 leading-relaxed">
+              Log Pose TCG is an unofficial fan-made project. One Piece Card Game and all related trademarks and artwork are copyright © Eiichiro Oda / Shueisha, Toei Animation, and Bandai Co., Ltd.
             </p>
-          </div>
-
-          {/* Section: LOGOUT / SIGN IN / DELETE ACTION BUTTONS */}
-          <div className="pt-2 space-y-2">
-            {user ? (
-              <>
-                <div className="p-3 rounded-2xl bg-[#1e212c] border border-[#343a4c] space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-9 h-9 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-300 flex items-center justify-center flex-shrink-0">
-                        <User className="w-5 h-5 text-purple-300" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-xs font-black text-white truncate">{user.name}</div>
-                        <div className="font-mono text-[10px] text-amber-400 truncate">{user.tag}</div>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 truncate max-w-[120px]">
-                      {user.crew}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-[10px] text-gray-400 pt-1 border-t border-white/5">
-                    <span>Rank: <strong className="text-white">{user.rank}</strong></span>
-                    <span className="text-emerald-400 font-bold flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                      Account Synced
-                    </span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="bg-[#f45d6a]/20 hover:bg-[#f45d6a]/30 border border-[#f45d6a]/40 text-[#f45d6a] font-extrabold text-[11px] uppercase tracking-wider py-2.5 px-2 rounded-xl transition cursor-pointer text-center"
-                  >
-                    DELETE
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowSignInModal(true);
-                    }}
-                    className="bg-[#3b82f6]/20 hover:bg-[#3b82f6]/30 border border-[#3b82f6]/40 text-[#3b82f6] font-extrabold text-[11px] uppercase tracking-wider py-2.5 px-2 rounded-xl transition cursor-pointer text-center"
-                  >
-                    SWITCH
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      logout();
-                      setCopiedNotification('Logged out to Guest Mode');
-                      setTimeout(() => setCopiedNotification(null), 2500);
-                    }}
-                    className="bg-[#1e212c] hover:bg-[#282c3a] border border-[#32384a] text-white font-extrabold text-[11px] uppercase tracking-wider py-2.5 px-2 rounded-xl transition cursor-pointer text-center"
-                  >
-                    LOGOUT
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="text-[11px] text-gray-400 px-1">
-                  Account: <strong className="text-amber-400 font-bold">Guest Mode</strong>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setShowSignInModal(true)}
-                  className="w-full bg-[#f45d6a] hover:bg-[#e04f5c] text-white font-extrabold text-xs uppercase tracking-wider py-3 px-4 rounded-xl transition cursor-pointer shadow-md text-center flex items-center justify-center gap-1.5"
-                >
-                  <LogIn className="w-4 h-4" />
-                  <span>SIGN IN / REGISTER</span>
-                </button>
-              </>
-            )}
           </div>
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3.5 border-t border-[#34384c] bg-[#1e212c] flex items-center justify-between">
-          <span className="text-[11px] font-medium text-gray-400">
-            Log Pose TCG <span className="text-gray-500">• v1.0</span>
+        <div className="px-5 py-3 border-t border-[#282d3e] bg-[#141620] flex items-center justify-between">
+          <span className="text-[11px] text-slate-400">
+            Log Pose TCG <span className="text-slate-400">• v1.2</span>
           </span>
 
           <button
             type="button"
             onClick={closeSettings}
-            className="px-6 py-2 rounded-xl bg-[#e76d78] hover:bg-[#d45c67] text-white font-bold text-xs transition cursor-pointer shadow-md"
+            className="px-5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition cursor-pointer shadow-sm"
           >
             Done
           </button>
@@ -599,33 +571,33 @@ export function SettingsModal() {
       <AccountModal
         isOpen={showSignInModal}
         onClose={() => setShowSignInModal(false)}
-        defaultTab="register"
+        defaultTab={accountModalTab}
       />
 
-      {/* DELETE CONFIRMATION MODAL */}
+      {/* DELETE / CLEAR LOCAL DATA MODAL */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
           <div className="fixed inset-0" onClick={() => setShowDeleteConfirm(false)} />
           <div 
-            className="relative bg-[#242836] border border-red-500/40 rounded-3xl w-full max-w-sm p-6 space-y-4 shadow-2xl z-10"
+            className="relative bg-[#1a1c26] border border-rose-500/40 rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl z-10"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-12 h-12 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 mx-auto">
-              <AlertTriangle className="w-6 h-6" />
+            <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 mx-auto">
+              <AlertTriangle className="w-5 h-5" />
             </div>
 
             <div className="text-center space-y-1">
-              <h3 className="text-base font-extrabold text-white">Delete Account &amp; Data?</h3>
-              <p className="text-xs text-gray-400 leading-relaxed">
-                This will sign you out and delete your saved offline caches and local session.
+              <h3 className="text-sm font-bold text-white">Clear Local Cache &amp; Session?</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                This will sign you out on this browser and clear offline cached data. Your cloud collection is safe and will reload when you log back in.
               </p>
             </div>
 
-            <div className="flex items-center gap-3 pt-2">
+            <div className="flex items-center gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 bg-[#1e212c] hover:bg-[#2a2f3f] border border-[#343a4c] text-gray-300 font-bold text-xs uppercase tracking-wider py-2.5 rounded-xl transition cursor-pointer"
+                className="flex-1 bg-[#141620] hover:bg-[#1e2232] border border-[#2e3346] text-slate-300 font-semibold text-xs py-2 rounded-xl transition cursor-pointer"
               >
                 Cancel
               </button>
@@ -634,12 +606,11 @@ export function SettingsModal() {
                 onClick={() => {
                   clearUserData();
                   setShowDeleteConfirm(false);
-                  setCopiedNotification('Account and local data deleted.');
-                  setTimeout(() => setCopiedNotification(null), 2500);
+                  showToast('Local cache and session cleared');
                 }}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider py-2.5 rounded-xl transition cursor-pointer shadow-lg shadow-red-600/30"
+                className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs py-2 rounded-xl transition cursor-pointer shadow-sm"
               >
-                Yes, Delete
+                Clear Data
               </button>
             </div>
           </div>
