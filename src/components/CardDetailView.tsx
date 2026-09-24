@@ -399,66 +399,6 @@ export function CardDetailView({
     .map((t) => t.trim())
     .join('/');
 
-  // Dynamic Card-Specific Population Report & Gem Rate Calculation
-  // Generates consistent, realistic PSA/BGS/CGC population distributions based on card ID & rarity
-  const getCardPopStats = () => {
-    let hash = 0;
-    const str = card.id || 'OP01-001';
-    for (let i = 0; i < str.length; i++) {
-      hash = ((hash << 5) - hash) + str.charCodeAt(i);
-      hash |= 0;
-    }
-    const absHash = Math.abs(hash);
-
-    // Baseline grading volume scales by card rarity & popularity
-    const rarityUpper = (card.rarity || '').toUpperCase();
-    let baseMultiplier = 1.0;
-    if (rarityUpper.includes('SEC') || card.isAltArt) baseMultiplier = 2.4;
-    else if (rarityUpper.includes('SR') || rarityUpper.includes('L')) baseMultiplier = 1.6;
-    else if (rarityUpper.includes('R')) baseMultiplier = 0.9;
-    else baseMultiplier = 0.4;
-
-    const totalGraded = Math.round((350 + (absHash % 2800)) * baseMultiplier);
-
-    // Realistic Gem Rate: modern One Piece Japanese cards grade very well (typically 62% to 84%)
-    // Rarity and foil complexity affect the gem rate slightly
-    const gemRateNum = Math.min(88.5, Math.max(56.0, 60.0 + ((absHash % 270) / 10.0)));
-    const gemRateStr = gemRateNum.toFixed(1);
-
-    // Grade distributions
-    const psa10Pop = Math.round(totalGraded * (gemRateNum / 100));
-    const mintRateNum = Math.min(28.0, Math.max(8.0, 100 - gemRateNum - 6.0));
-    const psa9Pop = Math.round(totalGraded * (mintRateNum / 100));
-    const psa8Pop = Math.max(12, Math.round(totalGraded * 0.05));
-    const bgs10Pop = Math.max(3, Math.round(totalGraded * 0.009));
-    const bgs95Pop = Math.max(25, Math.round(totalGraded * 0.11));
-    const cgc10Pop = Math.max(18, Math.round(totalGraded * 0.045));
-
-    // Distribution percentages for visual progress bar
-    const psa10Pct = gemRateStr;
-    const psa9Pct = mintRateNum.toFixed(1);
-    const psa8Pct = (5.0 + (absHash % 25) / 10).toFixed(1);
-    const lowerPct = (Math.max(1.5, 100 - parseFloat(psa10Pct) - parseFloat(psa9Pct) - parseFloat(psa8Pct))).toFixed(1);
-
-    return {
-      totalGraded,
-      gemRateNum,
-      gemRateStr,
-      psa10Pop,
-      psa9Pop,
-      psa8Pop,
-      bgs10Pop,
-      bgs95Pop,
-      cgc10Pop,
-      psa10Pct,
-      psa9Pct,
-      psa8Pct,
-      lowerPct
-    };
-  };
-
-  const popStats = getCardPopStats();
-
   const enImageUrl = getEditionCardImageUrl(card.id, 'en', card.imageUrl);
   const jpImageUrl = getEditionCardImageUrl(card.id, 'jp', card.imageUrl);
 
@@ -1071,20 +1011,17 @@ export function CardDetailView({
           {/* TAB 2: GRADING & POPULATION DASHBOARD VIEW */}
           {activeTab === 'grading' && (
             <div className="pt-4 space-y-4">
-              {/* Grading Header Quote */}
+              {/* Grading Header */}
               <div className="flex items-center justify-between bg-[#1e212c] p-3 rounded-xl border border-[#32384a]">
                 <div>
                   <div className="text-xs font-extrabold text-white flex items-center gap-1.5">
                     <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    <span>Graded Slab Pop Report &amp; Valuations</span>
+                    <span>Graded Slab Valuations</span>
                   </div>
                   <div className="text-[11px] text-gray-400 mt-0.5">
                     All graded valuations sourced directly from live SNKRDUNK listings
                   </div>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  {popStats.gemRateStr}% Gem Rate
-                </span>
               </div>
 
               {/* Slabs Grid */}
@@ -1104,7 +1041,6 @@ export function CardDetailView({
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-black text-red-400">PSA 10</span>
-                        <span className="text-[10px] text-gray-400">Pop: {popStats.psa10Pop.toLocaleString()}</span>
                       </div>
                       <div className={`font-extrabold text-white mt-1 group-hover:text-red-300 transition whitespace-nowrap ${hasPrice ? getPriceFontSizeClass(pFormatted) : 'text-xs text-gray-400'}`}>
                         {pFormatted}
@@ -1135,7 +1071,6 @@ export function CardDetailView({
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-black text-gray-300">PSA 9</span>
-                        <span className="text-[10px] text-gray-400">Pop: {popStats.psa9Pop.toLocaleString()}</span>
                       </div>
                       <div className={`font-extrabold text-white mt-1 group-hover:text-gray-200 transition whitespace-nowrap ${hasPrice ? getPriceFontSizeClass(pFormatted) : 'text-xs text-gray-400'}`}>
                         {pFormatted}
@@ -1169,7 +1104,6 @@ export function CardDetailView({
                           <span>BGS 10</span>
                           <span className="text-[9px] bg-amber-500/20 px-1 rounded text-amber-300 font-bold">Black/Gold</span>
                         </span>
-                        <span className="text-[10px] text-amber-400/80 font-bold">Pop: {popStats.bgs10Pop.toLocaleString()}</span>
                       </div>
                       <div className={`font-extrabold text-amber-300 mt-1 whitespace-nowrap ${hasPrice ? getPriceFontSizeClass(pFormatted) : 'text-xs text-gray-400'}`}>
                         {pFormatted}
@@ -1200,7 +1134,6 @@ export function CardDetailView({
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-black text-sky-400">BGS 9.5</span>
-                        <span className="text-[10px] text-gray-400">Pop: {popStats.bgs95Pop.toLocaleString()}</span>
                       </div>
                       <div className={`font-extrabold text-white mt-1 whitespace-nowrap ${hasPrice ? getPriceFontSizeClass(pFormatted) : 'text-xs text-gray-400'}`}>
                         {pFormatted}
@@ -1266,7 +1199,6 @@ export function CardDetailView({
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-black text-gray-400">PSA 8</span>
-                        <span className="text-[10px] text-gray-500">Pop: {popStats.psa8Pop.toLocaleString()}</span>
                       </div>
                       <div className={`font-extrabold text-white mt-1 whitespace-nowrap ${hasPrice ? getPriceFontSizeClass(pFormatted) : 'text-xs text-gray-400'}`}>
                         {pFormatted}
@@ -1281,53 +1213,6 @@ export function CardDetailView({
                     </a>
                   );
                 })()}
-              </div>
-
-              {/* Visual Gem Rate Progress Breakdown */}
-              <div className="space-y-1.5 pt-2 border-t border-[#34384c]">
-                <div className="flex justify-between text-xs text-gray-300 font-bold">
-                  <span>Grade Distribution</span>
-                  <span className="text-gray-400 font-normal">{popStats.totalGraded.toLocaleString()} Total Graded</span>
-                </div>
-                <div className="h-3 w-full rounded-full bg-[#181a24] overflow-hidden flex shadow-inner">
-                  <div style={{ width: `${popStats.psa10Pct}%` }} className="bg-red-500" title={`PSA 10 (${popStats.psa10Pct}%)`}></div>
-                  <div style={{ width: `${popStats.psa9Pct}%` }} className="bg-sky-500" title={`PSA 9 / BGS 9.5 (${popStats.psa9Pct}%)`}></div>
-                  <div style={{ width: `${popStats.psa8Pct}%` }} className="bg-amber-500" title={`PSA 8 (${popStats.psa8Pct}%)`}></div>
-                  <div style={{ width: `${popStats.lowerPct}%` }} className="bg-gray-600" title={`Lower grades (${popStats.lowerPct}%)`}></div>
-                </div>
-                <div className="flex items-center justify-between text-[10px] text-gray-400 pt-0.5">
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-red-500"></span> 10 Gem ({Math.round(parseFloat(popStats.psa10Pct))}%)
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-sky-500"></span> 9 Mint ({Math.round(parseFloat(popStats.psa9Pct))}%)
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-amber-500"></span> 8 NM ({Math.round(parseFloat(popStats.psa8Pct))}%)
-                  </span>
-                </div>
-              </div>
-
-              {/* Direct Registry Links */}
-              <div className="grid grid-cols-2 gap-2 pt-2">
-                <a
-                  href="https://www.psacard.com/cert/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-2 rounded-xl bg-[#1e212c] hover:bg-[#282c3a] border border-[#32384a] text-xs font-bold text-gray-300 hover:text-white flex items-center justify-between transition"
-                >
-                  <span>Verify PSA Cert</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
-                </a>
-                <a
-                  href="https://www.beckett.com/grading/pop-report"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-2 rounded-xl bg-[#1e212c] hover:bg-[#282c3a] border border-[#32384a] text-xs font-bold text-gray-300 hover:text-white flex items-center justify-between transition"
-                >
-                  <span>Beckett Registry</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
-                </a>
               </div>
             </div>
           )}
