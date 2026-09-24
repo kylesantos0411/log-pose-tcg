@@ -179,4 +179,15 @@ model VerificationCode {
   @@index([expiresAt])
 }
 
+model BetaInviteCode {
+  id        String   @id @default(uuid())
+  code      String   @unique // e.g. "LOGPOSE-BETA-001"
+  used      Boolean  @default(false)
+  usedBy    String?  // email of the user who redeemed it
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([code])
+}
+
 

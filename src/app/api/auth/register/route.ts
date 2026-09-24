@@ -5,12 +5,13 @@ import { hashPassword, generateUniqueTag, verifyCode } from '@/lib/auth-server';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { username, email, password, code, token, avatar = '👒', crew = 'Straw Hat Pirates', customTag } = body;
+    const { username, email, password, code, token, avatar = '👒', crew = 'Straw Hat Pirates', customTag, inviteCode } = body;
 
     const cleanUsername = (username || '').trim();
     const cleanEmail = (email || '').trim().toLowerCase();
     const cleanPassword = (password || '').trim();
     const cleanCode = (code || '').trim();
+    const cleanInviteCode = (inviteCode || '').trim().toUpperCase();
     const verificationToken = token || req.cookies.get('logpose_verification_token')?.value;
 
     if (!cleanUsername || cleanUsername.length < 2) {
@@ -22,7 +23,21 @@ export async function POST(req: NextRequest) {
     if (!cleanPassword || cleanPassword.length < 6) {
       return NextResponse.json({ error: 'Password must be at least 6 characters long.' }, { status: 400 });
     }
-    // 1. Optional 6-digit code verification (if provided)
+
+    // 1. Validate invite code (required for all new registrations)
+    if (!cleanInviteCode) {
+      return NextResponse.json({ error: 'An invite code is required to create an account. This is a private beta.' }, { status: 403 });
+    }
+
+    const invite = await prisma.betaInviteCode.findUnique({ where: { code: cleanInviteCode } });
+    if (!invite) {
+      return NextResponse.json({ error: 'Invalid invite code. Please check your code and try again.' }, { status: 403 });
+    }
+    if (invite.used) {
+      return NextResponse.json({ error: 'This invite code has already been used.' }, { status: 403 });
+    }
+
+    // 2. Optional 6-digit code verification (if provided)
     if (cleanCode && cleanCode.length === 6) {
       const verification = await verifyCode(cleanEmail, cleanCode, 'register', verificationToken);
       if (!verification.valid) {
@@ -30,7 +45,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. Check if email or username is already taken
+    // 3. Check if email or username is already taken
     try {
       const existing = await prisma.user.findFirst({
         where: {
@@ -51,10 +66,10 @@ export async function POST(req: NextRequest) {
       console.warn('Prisma check existing user warning:', queryErr);
     }
 
-    // 3. Generate unique tag
+    // 4. Generate unique tag
     const tag = customTag?.trim().toUpperCase() || await generateUniqueTag(cleanUsername);
 
-    // 4. Create user in SQLite (or fallback session if unexpected transient DB lock)
+    // 5. Create user in SQLite
     const passwordHash = hashPassword(cleanPassword);
     let user: any = null;
 
@@ -85,6 +100,16 @@ export async function POST(req: NextRequest) {
         rankBadge: '⚓',
         createdAt: new Date(),
       };
+    }
+
+    // 6. Mark invite code as used
+    try {
+      await prisma.betaInviteCode.update({
+        where: { code: cleanInviteCode },
+        data: { used: true, usedBy: cleanEmail, usedAt: new Date() },
+      });
+    } catch (inviteErr) {
+      console.warn('Failed to mark invite code as used:', inviteErr);
     }
 
     const userSession = {

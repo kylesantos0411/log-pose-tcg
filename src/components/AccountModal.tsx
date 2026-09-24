@@ -71,6 +71,8 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
   const [selectedAvatar, setSelectedAvatar] = useState('👒');
   const [selectedCrew, setSelectedCrew] = useState('Straw Hat Pirates');
   const [tagNumber] = useState(() => Math.floor(1000 + Math.random() * 9000));
+  const [inviteCode, setInviteCode] = useState('');
+
 
   // Login state (Direct Email/Username/Tag + Password)
   const [loginIdentifier, setLoginIdentifier] = useState('');
@@ -147,6 +149,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
         avatar: selectedAvatar,
         crew: selectedCrew,
         customTag: liveTag,
+        inviteCode: inviteCode.trim().toUpperCase(),
       });
 
       if (!res.success) {
@@ -520,6 +523,32 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
                 </div>
               </div>
 
+              {/* Private Beta Banner */}
+              <div className="bg-[#1a1520] border border-[#6d3a9c]/40 rounded-2xl p-3 flex items-start gap-2.5">
+                <span className="text-base mt-0.5">🔒</span>
+                <div>
+                  <p className="text-[11px] font-bold text-purple-300 mb-0.5">Private Beta — Invite Required</p>
+                  <p className="text-[10px] text-gray-400 leading-relaxed">
+                    Registration is currently by invite only. Enter your invite code below to create an account.
+                  </p>
+                </div>
+              </div>
+
+              {/* Invite Code */}
+              <div>
+                <label className="block text-xs font-bold text-gray-300 mb-1.5">
+                  Invite Code <span className="text-[#f45d6a]">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. LOGPOSE-BETA-001"
+                  value={inviteCode}
+                  onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                  className="w-full bg-[#181a24] border border-[#343a4c] focus:border-purple-500 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition font-mono font-bold tracking-widest uppercase"
+                />
+              </div>
+
               {/* Create Account Button */}
               <button
                 type="submit"
@@ -530,6 +559,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
                 <span>{isSubmitting ? 'Creating Cloud Account...' : 'Create Account'}</span>
               </button>
             </form>
+
           ) : tab === 'forgot' ? (
             /* Forgot Password Tab */
             <div className="space-y-4">

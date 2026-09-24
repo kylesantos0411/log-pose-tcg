@@ -603,11 +603,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     customTag?: string;
     code?: string;
     token?: string;
+    inviteCode?: string;
   }): Promise<{ success: boolean; user?: UserProfile; error?: string }> => {
     const rawUsername = (data.username || data.name || '').trim();
     const rawEmail = (data.email || '').trim().toLowerCase();
     const rawPassword = (data.password || 'password123').trim();
     const rawCode = (data.code || '').trim();
+    const rawInviteCode = (data.inviteCode || '').trim().toUpperCase();
+
 
     // 1. Direct Supabase Cloud Registration
     if (isSupabaseConfigured()) {
@@ -702,6 +705,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                 avatar: data.avatar,
                 crew: data.crew,
                 customTag: userProfile.tag,
+                inviteCode: rawInviteCode,
               }),
             }).catch(console.warn);
 
@@ -729,6 +733,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           avatar: data.avatar,
           crew: data.crew,
           customTag: data.customTag || data.tag,
+          inviteCode: rawInviteCode,
         }),
       });
 
