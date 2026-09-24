@@ -33,7 +33,8 @@ import {
 } from '@/lib/supabase/client';
 import { 
   fetchCloudProfile, 
-  migrateLocalBinderToCloud 
+  migrateLocalBinderToCloud,
+  syncUserCloudData
 } from '@/lib/supabase-sync';
 
 export const BETA_INVITE_CODES = [
@@ -337,6 +338,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       const active = getActiveSession();
       setUserState(active);
       setAccountsState(getStoredAccounts());
+      if (active?.id) {
+        syncUserCloudData(active.id, active.tag).catch((e) =>
+          console.warn('Initial cloud sync skipped:', e)
+        );
+      }
     } catch {
       // localStorage may be unavailable in some environments
     }
@@ -463,12 +469,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       setActiveSession(userProfile);
       setUserState(userProfile);
 
-      // Auto-migrate any cards added while guest
-      const guestCards = getLocalBinder(null);
-      if (guestCards.length > 0) {
-        await migrateLocalBinderToCloud(sbUser.id, guestCards);
-        transferGuestCardsToAccount(tag);
-      }
+      // Auto-sync collection and favorites with Supabase cloud (bidirectional restore)
+      await syncUserCloudData(sbUser.id, tag);
     } catch (err) {
       console.error('Failed to sync Supabase session:', err);
     }
@@ -566,6 +568,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             saveStoredAccountFromSession(userProfile);
             transferGuestCardsToAccount(userProfile.tag);
             setAccountsState(getStoredAccounts());
+            await syncUserCloudData(userProfile.id, userProfile.tag);
 
             return { 
               success: true, 
@@ -720,6 +723,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             saveStoredAccountFromSession(userProfile);
             transferGuestCardsToAccount(userProfile.tag);
             setAccountsState(getStoredAccounts());
+            await syncUserCloudData(userProfile.id, userProfile.tag);
 
             return { success: true, user: userProfile };
           }
@@ -805,6 +809,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           saveStoredAccountFromSession(userProfile);
           transferGuestCardsToAccount(userProfile.tag);
           setAccountsState(getStoredAccounts());
+          await syncUserCloudData(userProfile.id, userProfile.tag);
 
           return { success: true, user: userProfile };
         } catch (sbErr: any) {
@@ -842,6 +847,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           saveStoredAccountFromSession(userProfile);
           transferGuestCardsToAccount(userProfile.tag);
           setAccountsState(getStoredAccounts());
+          await syncUserCloudData(userProfile.id, userProfile.tag);
 
           return { success: true, user: userProfile };
         } catch (sbErr: any) {
@@ -885,6 +891,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         saveStoredAccountFromSession(result.user);
         transferGuestCardsToAccount(result.user.tag);
         setAccountsState(getStoredAccounts());
+        await syncUserCloudData(result.user.id, result.user.tag);
       }
       return { success: true, user: result.user };
     } catch (err: any) {

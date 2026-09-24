@@ -1,5 +1,5 @@
 import { getSupabaseBrowserClient, isSupabaseConfigured } from './supabase/client';
-import { LocalUserCard } from './user-collection';
+import type { LocalUserCard } from './user-collection';
 
 export interface CloudProfile {
   id: string;
@@ -12,12 +12,19 @@ export interface CloudProfile {
   rankBadge: string;
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidUuid(id?: string | null): boolean {
+  if (!id) return false;
+  return UUID_REGEX.test(id);
+}
+
 /**
  * Fetch profile from Supabase profiles table
  */
 export async function fetchCloudProfile(userId: string): Promise<CloudProfile | null> {
   const client = getSupabaseBrowserClient();
-  if (!client || !isSupabaseConfigured()) return null;
+  if (!client || !isSupabaseConfigured() || !isValidUuid(userId)) return null;
 
   try {
     const { data, error } = await client
@@ -45,11 +52,94 @@ export async function fetchCloudProfile(userId: string): Promise<CloudProfile | 
 }
 
 /**
+ * Fetch all cards in a user's cloud binder (collection) from Supabase
+ */
+export async function fetchCloudCards(userId: string): Promise<LocalUserCard[]> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured() || !isValidUuid(userId)) return [];
+
+  try {
+    const { data, error } = await client
+      .from('user_cards')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_wishlist', false);
+
+    if (error || !data || data.length === 0) return [];
+
+    // Extract unique card_ids to fetch metadata
+    const uniqueIds = Array.from(new Set(data.map((r: any) => r.card_id).filter(Boolean)));
+    const cardMap = new Map<string, any>();
+
+    // Fetch card details in batches of 50
+    for (let i = 0; i < uniqueIds.length; i += 50) {
+      const chunk = uniqueIds.slice(i, i + 50);
+      try {
+        const res = await fetch(`/api/cards?ids=${encodeURIComponent(chunk.join(','))}&limit=100`);
+        if (res.ok) {
+          const json = await res.json();
+          if (Array.isArray(json.cards)) {
+            for (const c of json.cards) {
+              cardMap.set(c.id, c);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Batch card detail lookup failed:', err);
+      }
+    }
+
+    const localCards: LocalUserCard[] = data.map((r: any) => {
+      const c = cardMap.get(r.card_id);
+      return {
+        id: r.id || `uc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        cardId: r.card_id,
+        quantity: r.quantity || 1,
+        condition: r.condition || 'NM',
+        isFoil: Boolean(r.is_foil),
+        language: r.language || 'jp',
+        purchasePrice: r.purchase_price !== null && r.purchase_price !== undefined ? Number(r.purchase_price) : null,
+        notes: r.notes || null,
+        createdAt: r.created_at || new Date().toISOString(),
+        card: c ? {
+          id: c.id,
+          name: c.name,
+          category: c.category,
+          colors: c.colors,
+          cost: c.cost,
+          power: c.power,
+          rarity: c.rarity,
+          imageUrl: c.imageUrl,
+          marketPrice: c.marketPrice,
+          yuyuPrice: c.yuyuPrice,
+          pack: c.pack ? { code: c.pack.code, name: c.pack.name } : undefined,
+        } : {
+          id: r.card_id,
+          name: r.card_id,
+          category: 'Character',
+          colors: 'Red',
+          cost: null,
+          power: null,
+          rarity: 'Common',
+          imageUrl: `https://onepiece-cardgame.com/images/cardlist/card/${r.card_id.split('_')[0]}.png`,
+          marketPrice: null,
+        },
+      };
+    });
+
+    return localCards;
+  } catch (err) {
+    console.error('Failed to fetch cloud cards:', err);
+    return [];
+  }
+}
+
+/**
  * Sync a single card addition or quantity update to Supabase
  */
 export async function syncCardToCloud(userId: string, card: LocalUserCard): Promise<boolean> {
   const client = getSupabaseBrowserClient();
-  if (!client || !isSupabaseConfigured()) return false;
+  if (!client || !isSupabaseConfigured() || !isValidUuid(userId)) return false;
 
   try {
     const { error } = await client
@@ -61,9 +151,10 @@ export async function syncCardToCloud(userId: string, card: LocalUserCard): Prom
           quantity: card.quantity,
           condition: card.condition || 'NM',
           is_foil: Boolean(card.isFoil),
-          language: card.language || 'en',
+          language: card.language || 'jp',
           purchase_price: card.purchasePrice ?? null,
           notes: card.notes ?? null,
+          is_wishlist: false,
           updated_at: new Date().toISOString(),
         },
         {
@@ -81,17 +172,29 @@ export async function syncCardToCloud(userId: string, card: LocalUserCard): Prom
 /**
  * Remove a card from the user's cloud collection
  */
-export async function removeCardFromCloud(userId: string, cardId: string): Promise<boolean> {
+export async function removeCardFromCloud(
+  userId: string,
+  cardId: string,
+  condition?: string,
+  isFoil?: boolean,
+  language?: string
+): Promise<boolean> {
   const client = getSupabaseBrowserClient();
-  if (!client || !isSupabaseConfigured()) return false;
+  if (!client || !isSupabaseConfigured() || !isValidUuid(userId)) return false;
 
   try {
-    const { error } = await client
+    let query = client
       .from('user_cards')
       .delete()
       .eq('user_id', userId)
-      .eq('card_id', cardId);
+      .eq('card_id', cardId)
+      .eq('is_wishlist', false);
 
+    if (condition) query = query.eq('condition', condition);
+    if (isFoil !== undefined) query = query.eq('is_foil', isFoil);
+    if (language) query = query.eq('language', language);
+
+    const { error } = await query;
     return !error;
   } catch (err) {
     console.error('Failed to remove card from cloud:', err);
@@ -100,12 +203,12 @@ export async function removeCardFromCloud(userId: string, cardId: string): Promi
 }
 
 /**
- * Migrate local guest cards into Supabase cloud database
+ * Migrate/upsert local cards into Supabase cloud database
  */
 export async function migrateLocalBinderToCloud(userId: string, localCards: LocalUserCard[]): Promise<number> {
   if (!localCards.length) return 0;
   const client = getSupabaseBrowserClient();
-  if (!client || !isSupabaseConfigured()) return 0;
+  if (!client || !isSupabaseConfigured() || !isValidUuid(userId)) return 0;
 
   try {
     const records = localCards.map((c) => ({
@@ -114,9 +217,10 @@ export async function migrateLocalBinderToCloud(userId: string, localCards: Loca
       quantity: c.quantity || 1,
       condition: c.condition || 'NM',
       is_foil: Boolean(c.isFoil),
-      language: c.language || 'en',
+      language: c.language || 'jp',
       purchase_price: c.purchasePrice ?? null,
       notes: c.notes ?? null,
+      is_wishlist: false,
       updated_at: new Date().toISOString(),
     }));
 
@@ -136,5 +240,225 @@ export async function migrateLocalBinderToCloud(userId: string, localCards: Loca
   } catch (err) {
     console.error('Failed to migrate local cards to cloud:', err);
     return 0;
+  }
+}
+
+/**
+ * Fetch favorite card IDs from Supabase (stored as is_wishlist = true)
+ */
+export async function fetchCloudFavorites(userId: string): Promise<string[]> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured() || !isValidUuid(userId)) return [];
+
+  try {
+    const { data, error } = await client
+      .from('user_cards')
+      .select('card_id')
+      .eq('user_id', userId)
+      .eq('is_wishlist', true);
+
+    if (error || !data) return [];
+    return data.map((r: any) => r.card_id).filter(Boolean);
+  } catch (err) {
+    console.error('Failed to fetch cloud favorites:', err);
+    return [];
+  }
+}
+
+/**
+ * Add a card to user's favorites in Supabase
+ */
+export async function addFavoriteToCloud(userId: string, cardId: string): Promise<boolean> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured() || !isValidUuid(userId) || !cardId) return false;
+
+  try {
+    const { error } = await client
+      .from('user_cards')
+      .upsert(
+        {
+          user_id: userId,
+          card_id: cardId,
+          is_wishlist: true,
+          quantity: 1,
+          condition: 'NM',
+          is_foil: false,
+          language: 'jp',
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'user_id,card_id,condition,is_foil,language,is_wishlist',
+        }
+      );
+    return !error;
+  } catch (err) {
+    console.error('Failed to add favorite to cloud:', err);
+    return false;
+  }
+}
+
+/**
+ * Remove a card from user's favorites in Supabase
+ */
+export async function removeFavoriteFromCloud(userId: string, cardId: string): Promise<boolean> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured() || !isValidUuid(userId) || !cardId) return false;
+
+  try {
+    const { error } = await client
+      .from('user_cards')
+      .delete()
+      .eq('user_id', userId)
+      .eq('card_id', cardId)
+      .eq('is_wishlist', true);
+    return !error;
+  } catch (err) {
+    console.error('Failed to remove favorite from cloud:', err);
+    return false;
+  }
+}
+
+/**
+ * Synchronize local favorites with Supabase cloud (bidirectional union)
+ */
+export async function syncFavoritesWithCloud(userId: string): Promise<string[]> {
+  if (typeof window === 'undefined' || !isValidUuid(userId)) return [];
+
+  // Read local favorites
+  let localFavorites: string[] = [];
+  try {
+    const raw = localStorage.getItem('logpose_favorite_cards');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) localFavorites = parsed;
+    }
+  } catch {}
+
+  const cloudIds = await fetchCloudFavorites(userId);
+
+  // Union of local and cloud favorites
+  const mergedSet = new Set<string>([...cloudIds, ...localFavorites]);
+  const mergedList = Array.from(mergedSet);
+
+  // If local had favorites not yet in cloud, upload them to Supabase
+  const toUpload = localFavorites.filter((id) => !cloudIds.includes(id));
+  if (toUpload.length > 0) {
+    const records = toUpload.map((id) => ({
+      user_id: userId,
+      card_id: id,
+      is_wishlist: true,
+      quantity: 1,
+      condition: 'NM',
+      is_foil: false,
+      language: 'jp',
+      updated_at: new Date().toISOString(),
+    }));
+
+    const client = getSupabaseBrowserClient();
+    if (client) {
+      try {
+        await client.from('user_cards').upsert(records, {
+          onConflict: 'user_id,card_id,condition,is_foil,language,is_wishlist',
+        });
+      } catch (err) {
+        console.warn('Failed to upload local favorites to cloud:', err);
+      }
+    }
+  }
+
+  // Update local storage and notify UI
+  try {
+    localStorage.setItem('logpose_favorite_cards', JSON.stringify(mergedList));
+    window.dispatchEvent(new CustomEvent('logpose_favorites_updated', { detail: { all: mergedList } }));
+  } catch (err) {
+    console.error('Failed to save merged favorites:', err);
+  }
+
+  return mergedList;
+}
+
+/**
+ * Central synchronizer: fully reconciles user collection and favorites between cloud and local
+ */
+export async function syncUserCloudData(userId: string, userTag: string): Promise<void> {
+  if (!userId || typeof window === 'undefined' || !isValidUuid(userId)) return;
+
+  try {
+    // 1. Sync favorites (pulls cloud favorites & uploads offline local favorites)
+    await syncFavoritesWithCloud(userId);
+
+    // 2. Migrate guest cards if user was browsing anonymously before login
+    const guestKey = 'logpose_binder_guest';
+    const guestRaw = localStorage.getItem(guestKey);
+    if (guestRaw) {
+      try {
+        const guestCards: LocalUserCard[] = JSON.parse(guestRaw);
+        if (Array.isArray(guestCards) && guestCards.length > 0) {
+          await migrateLocalBinderToCloud(userId, guestCards);
+          localStorage.removeItem(guestKey);
+        }
+      } catch {}
+    }
+
+    // 3. Fetch cards stored in Supabase cloud
+    const cloudCards = await fetchCloudCards(userId);
+
+    // 4. Fetch local cards for this user's tag
+    const tag = (userTag || 'guest').toUpperCase();
+    const userKey = `logpose_binder_${tag}`;
+    let localCards: LocalUserCard[] = [];
+    try {
+      const raw = localStorage.getItem(userKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) localCards = parsed;
+      }
+    } catch {}
+
+    // 5. Intelligent Merge:
+    // If logging in on a new device (local binder is empty), populate it directly from cloud!
+    if (localCards.length === 0 && cloudCards.length > 0) {
+      localStorage.setItem(userKey, JSON.stringify(cloudCards));
+      window.dispatchEvent(new Event('logpose_collection_updated'));
+      return;
+    }
+
+    // If local has cards, merge them with cloud cards without loss
+    const merged = [...cloudCards];
+    const newCardsToUpload: LocalUserCard[] = [];
+
+    for (const local of localCards) {
+      const existing = merged.find(
+        (c) =>
+          c.cardId === local.cardId &&
+          c.condition === local.condition &&
+          c.isFoil === local.isFoil &&
+          c.language === local.language
+      );
+
+      if (existing) {
+        if (local.quantity > existing.quantity) {
+          existing.quantity = local.quantity;
+          newCardsToUpload.push(existing);
+        }
+        if (local.purchasePrice && !existing.purchasePrice) {
+          existing.purchasePrice = local.purchasePrice;
+          newCardsToUpload.push(existing);
+        }
+      } else {
+        merged.unshift(local);
+        newCardsToUpload.push(local);
+      }
+    }
+
+    localStorage.setItem(userKey, JSON.stringify(merged));
+    window.dispatchEvent(new Event('logpose_collection_updated'));
+
+    // Upload any cards that were only present on this local device
+    if (newCardsToUpload.length > 0) {
+      await migrateLocalBinderToCloud(userId, newCardsToUpload);
+    }
+  } catch (err) {
+    console.error('Failed to sync user cloud data:', err);
   }
 }

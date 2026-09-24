@@ -1,5 +1,8 @@
 'use client';
 
+import { addFavoriteToCloud, removeFavoriteFromCloud } from './supabase-sync';
+import { getActiveSession } from './user-accounts';
+
 const FAVORITES_STORAGE_KEY = 'logpose_favorite_cards';
 
 export function getFavoriteCardIds(): string[] {
@@ -39,6 +42,24 @@ export function toggleCardFavorite(cardId: string): boolean {
     console.error('Failed to update favorites', e);
   }
 
+  // Auto-sync with Supabase cloud if user is authenticated
+  try {
+    const session = getActiveSession();
+    if (session?.id) {
+      if (!exists) {
+        addFavoriteToCloud(session.id, cardId).catch((e) =>
+          console.warn('Background add favorite failed:', e)
+        );
+      } else {
+        removeFavoriteFromCloud(session.id, cardId).catch((e) =>
+          console.warn('Background remove favorite failed:', e)
+        );
+      }
+    }
+  } catch (err) {
+    console.warn('Could not trigger background favorite sync:', err);
+  }
+
   return !exists;
 }
 
@@ -50,4 +71,16 @@ export function removeCardFavorite(cardId: string): void {
     localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent('logpose_favorites_updated', { detail: { cardId, isFavorite: false, all: updated } }));
   } catch {}
+
+  // Auto-sync removal with Supabase cloud
+  try {
+    const session = getActiveSession();
+    if (session?.id) {
+      removeFavoriteFromCloud(session.id, cardId).catch((e) =>
+        console.warn('Background remove favorite failed:', e)
+      );
+    }
+  } catch (err) {
+    console.warn('Could not trigger background favorite removal:', err);
+  }
 }

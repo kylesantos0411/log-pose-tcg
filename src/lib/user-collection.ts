@@ -1,5 +1,8 @@
 'use client';
 
+import { syncCardToCloud, removeCardFromCloud } from './supabase-sync';
+import { getActiveSession } from './user-accounts';
+
 export interface LocalUserCard {
   id: string; // unique record id
   cardId: string;
@@ -124,12 +127,15 @@ export function addCardToLocalBinder(
   );
 
   let updated: LocalUserCard[];
+  let affectedCard: LocalUserCard;
+
   if (existingIdx >= 0) {
     updated = [...current];
     updated[existingIdx].quantity += qty;
     if (cardData.purchasePrice !== undefined) {
       updated[existingIdx].purchasePrice = cardData.purchasePrice;
     }
+    affectedCard = updated[existingIdx];
   } else {
     const newEntry: LocalUserCard = {
       id: 'uc_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
@@ -144,16 +150,46 @@ export function addCardToLocalBinder(
       card: cardData.card,
     };
     updated = [newEntry, ...current];
+    affectedCard = newEntry;
   }
 
   saveLocalBinder(updated, userTag);
+
+  // Auto-sync with Supabase cloud if user is authenticated
+  try {
+    const session = getActiveSession();
+    if (session?.id) {
+      syncCardToCloud(session.id, affectedCard).catch((e) =>
+        console.warn('Background card sync failed:', e)
+      );
+    }
+  } catch (err) {
+    console.warn('Could not trigger background card sync:', err);
+  }
+
   return updated;
 }
 
 export function removeCardFromLocalBinder(recordId: string, userTag?: string | null): LocalUserCard[] {
   const current = getLocalBinder(userTag);
+  const target = current.find((c) => c.id === recordId);
   const updated = current.filter((c) => c.id !== recordId);
   saveLocalBinder(updated, userTag);
+
+  // Auto-sync removal with Supabase cloud if user is authenticated
+  if (target) {
+    try {
+      const session = getActiveSession();
+      if (session?.id) {
+        removeCardFromCloud(session.id, target.cardId, target.condition, target.isFoil, target.language).catch((e) =>
+          console.warn('Background card remove failed:', e)
+        );
+      }
+    } catch (err) {
+      console.warn('Could not trigger background card removal:', err);
+    }
+  }
+
   return updated;
 }
 
