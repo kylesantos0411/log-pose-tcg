@@ -7,7 +7,8 @@ import {
   RotateCw, 
   Search, 
   ChevronRight, 
-  FolderHeart, 
+  FolderHeart,
+  Boxes,
   Swords, 
   Star,
   Users, 
@@ -28,56 +29,6 @@ interface CleanHomeViewProps {
   totalPacks: number;
   userCardsCount: number;
   featuredCards?: Array<{ id: string; name: string; imageUrl: string | null }>;
-}
-
-/* =========================================================================
-   CUSTOM CLEAN SVG ICONS MATCHING USER REFERENCE EXACTLY
-   ========================================================================= */
-
-// Hero Card Tilted Cards Outline Icon (Pink/Coral)
-function HeroCardsOutlineIcon({ className = "w-9 h-9" }: { className?: string }) {
-  return (
-    <svg 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2.2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-      className={className}
-    >
-      <rect x="2.5" y="5.5" width="12" height="16" rx="2" transform="rotate(-12 2.5 5.5)" />
-      <rect x="7.5" y="3" width="13" height="17" rx="2" />
-    </svg>
-  );
-}
-
-// 3 Isometric Stacked Cubes for "Sets & Decks" (Blue)
-function IsometricCubesIcon({ className = "w-8 h-8" }: { className?: string }) {
-  return (
-    <svg 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-      className={className}
-    >
-      {/* Top Cube */}
-      <polygon points="12,2 16,4.5 12,7 8,4.5" />
-      <polyline points="8,4.5 8,8.5 12,11 12,7" />
-      <polyline points="16,4.5 16,8.5 12,11" />
-      {/* Bottom Left Cube */}
-      <polygon points="7,10.5 11,13 7,15.5 3,13" />
-      <polyline points="3,13 3,17 7,19.5 7,15.5" />
-      <polyline points="11,13 11,17 7,19.5" />
-      {/* Bottom Right Cube */}
-      <polygon points="17,10.5 21,13 17,15.5 13,13" />
-      <polyline points="13,13 13,17 17,19.5 17,15.5" />
-      <polyline points="21,13 21,17 17,19.5" />
-    </svg>
-  );
 }
 
 export function CleanHomeView({ 
@@ -188,28 +139,6 @@ export function CleanHomeView({
       </form>
 
       {/* =========================================================================
-          3. HERO CARD: Browse All Cards (Pink Outline Cards Icon + Text + Chevron)
-         ========================================================================= */}
-      <Link
-        href="/cards"
-        className="group rounded-2xl bg-[#202330] hover:bg-[#262a3a] border border-[#313647] p-4 sm:p-5 flex items-center justify-between gap-3 transition-all duration-200 shadow-md hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
-      >
-        <div className="flex items-center gap-3.5 min-w-0">
-          <HeroCardsOutlineIcon className="w-9 h-9 sm:w-10 sm:h-10 text-[#f4727d] flex-shrink-0 group-hover:scale-105 transition-transform" />
-          <div className="space-y-0.5 min-w-0">
-            <h2 className="text-base sm:text-lg font-black text-white tracking-wide leading-tight truncate">
-              Browse All Cards
-            </h2>
-            <p className="text-xs text-gray-400 leading-snug line-clamp-2">
-              Complete archive of {totalCards > 0 ? totalCards.toLocaleString() : '4,511'} cards across all {totalPacks > 0 ? totalPacks : '60'} sets with live Yuyu-tei prices.
-            </p>
-          </div>
-        </div>
-
-        <ChevronRight className="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-0.5 transition-all flex-shrink-0" />
-      </Link>
-
-      {/* =========================================================================
           4. 6-TILE FEATURE GRID (2 Columns x 3 Rows)
          ========================================================================= */}
       <div className="grid grid-cols-2 gap-3 sm:gap-3.5">
@@ -219,7 +148,7 @@ export function CleanHomeView({
           className="group rounded-2xl bg-[#202330] hover:bg-[#262a3a] border border-[#313647] p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] transition-all duration-200 shadow-md hover:scale-[1.015] active:scale-[0.985] cursor-pointer"
         >
           <div className="flex items-start justify-between">
-            <FolderHeart className="w-7 h-7 text-[#f59e0b] stroke-[2] group-hover:scale-110 transition-transform" />
+            <FolderHeart className="w-7 h-7 text-white stroke-[1.8] group-hover:scale-110 transition-transform" />
             <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-0.5 transition" />
           </div>
           <div className="mt-2">
@@ -238,7 +167,7 @@ export function CleanHomeView({
           className="group rounded-2xl bg-[#202330] hover:bg-[#262a3a] border border-[#313647] p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] transition-all duration-200 shadow-md hover:scale-[1.015] active:scale-[0.985] cursor-pointer"
         >
           <div className="flex items-start justify-between">
-            <IsometricCubesIcon className="w-7 h-7 text-[#3b82f6] group-hover:scale-110 transition-transform" />
+            <Boxes className="w-7 h-7 text-white stroke-[1.8] group-hover:scale-110 transition-transform" />
             <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-0.5 transition" />
           </div>
           <div className="mt-2">
@@ -257,7 +186,7 @@ export function CleanHomeView({
           className="group rounded-2xl bg-[#202330] hover:bg-[#262a3a] border border-[#313647] p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] transition-all duration-200 shadow-md hover:scale-[1.015] active:scale-[0.985] cursor-pointer"
         >
           <div className="flex items-start justify-between">
-            <Swords className="w-7 h-7 text-[#f4727d] stroke-[2] group-hover:scale-110 transition-transform" />
+            <Swords className="w-7 h-7 text-white stroke-[1.8] group-hover:scale-110 transition-transform" />
             <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-0.5 transition" />
           </div>
           <div className="mt-2">
@@ -276,7 +205,7 @@ export function CleanHomeView({
           className="group rounded-2xl bg-[#202330] hover:bg-[#262a3a] border border-[#313647] p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] transition-all duration-200 shadow-md hover:scale-[1.015] active:scale-[0.985] cursor-pointer"
         >
           <div className="flex items-start justify-between">
-            <Star className="w-7 h-7 text-[#c084fc] stroke-[2] group-hover:scale-110 transition-transform" />
+            <Star className="w-7 h-7 text-white stroke-[1.8] group-hover:scale-110 transition-transform" />
             <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-0.5 transition" />
           </div>
           <div className="mt-2">
@@ -296,7 +225,7 @@ export function CleanHomeView({
           className="group rounded-2xl bg-[#202330] hover:bg-[#262a3a] border border-[#313647] p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] transition-all duration-200 shadow-md hover:scale-[1.015] active:scale-[0.985] cursor-pointer text-left w-full"
         >
           <div className="flex items-start justify-between">
-            <Flame className="w-7 h-7 text-[#f59e0b] stroke-[2.2] group-hover:scale-110 transition-transform" />
+            <Flame className="w-7 h-7 text-white stroke-[1.8] group-hover:scale-110 transition-transform" />
             <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-0.5 transition" />
           </div>
           <div className="mt-2">
@@ -315,7 +244,7 @@ export function CleanHomeView({
           className="group rounded-2xl bg-[#202330] hover:bg-[#262a3a] border border-[#313647] p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] transition-all duration-200 shadow-md hover:scale-[1.015] active:scale-[0.985] cursor-pointer"
         >
           <div className="flex items-start justify-between">
-            <Users className="w-7 h-7 text-[#818cf8] stroke-[2] group-hover:scale-110 transition-transform" />
+            <Users className="w-7 h-7 text-white stroke-[1.8] group-hover:scale-110 transition-transform" />
             <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-white group-hover:translate-x-0.5 transition" />
           </div>
           <div className="mt-2">
@@ -337,7 +266,7 @@ export function CleanHomeView({
         className="group rounded-2xl bg-[#202330] hover:bg-[#262a3a] border border-[#313647] p-3.5 px-4 flex items-center justify-between transition-all duration-200 shadow-md cursor-pointer"
       >
         <div className="flex items-center gap-3">
-          <Crown className="w-6 h-6 text-[#f4727d] stroke-[2] flex-shrink-0 group-hover:scale-110 transition-transform" />
+          <Crown className="w-6 h-6 text-white stroke-[1.8] flex-shrink-0 group-hover:scale-110 transition-transform" />
           <div>
             <h4 className="font-extrabold text-xs sm:text-sm text-white leading-tight">
               Support the Application
@@ -355,7 +284,7 @@ export function CleanHomeView({
               e.stopPropagation();
               setShowSupportModal(true);
             }}
-            className="px-5 py-1.5 rounded-full border-2 border-[#f4727d] bg-[#1a1c26] hover:bg-[#f4727d] text-white font-black text-xs tracking-wider transition-all duration-200 shadow-sm active:scale-95 cursor-pointer"
+            className="px-5 py-1.5 rounded-full border-2 border-white/30 hover:border-white bg-[#1a1c26] hover:bg-white hover:text-[#1a1c26] text-white font-black text-xs tracking-wider transition-all duration-200 shadow-sm active:scale-95 cursor-pointer"
           >
             SUPPORT
           </button>

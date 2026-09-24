@@ -66,8 +66,8 @@ export async function POST(req: NextRequest) {
       console.warn('Prisma check existing user warning:', queryErr);
     }
 
-    // 4. Generate unique tag
-    const tag = customTag?.trim().toUpperCase() || await generateUniqueTag(cleanUsername);
+    // 4. User identifier / tag is their chosen username
+    const tag = customTag?.trim() || cleanUsername;
 
     // 5. Create user in SQLite
     const passwordHash = hashPassword(cleanPassword);
@@ -80,10 +80,10 @@ export async function POST(req: NextRequest) {
           email: cleanEmail,
           passwordHash,
           tag,
-          avatar,
-          crew,
-          rank: 'Cabin Boy',
-          rankBadge: '⚓',
+          avatar: avatar || '👤',
+          crew: crew || 'Collector',
+          rank: 'Collector',
+          rankBadge: '⭐',
           isVerified: true,
         },
       });

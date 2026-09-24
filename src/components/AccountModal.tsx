@@ -30,26 +30,6 @@ interface AccountModalProps {
   isMandatory?: boolean;
 }
 
-const PIRATE_AVATARS = [
-  { emoji: '👒', name: 'Straw Hat', desc: 'Luffy' },
-  { emoji: '⚔️', name: 'Three Swords', desc: 'Zoro' },
-  { emoji: '🧭', name: 'Log Pose', desc: 'Nami' },
-  { emoji: '👑', name: 'Emperor', desc: 'Shanks' },
-  { emoji: '🐯', name: 'Heart', desc: 'Law' },
-  { emoji: '🦅', name: 'Phoenix', desc: 'Marco' },
-  { emoji: '🍖', name: 'Meat', desc: 'Captain' },
-  { emoji: '🌸', name: 'Hana', desc: 'Robin' },
-];
-
-const PIRATE_CREWS = [
-  'Straw Hat Pirates',
-  'Heart Pirates',
-  'Red Hair Pirates',
-  'Cross Guild',
-  'Whitebeard Pirates',
-  'Revolutionary Army',
-];
-
 export function AccountModal({ isOpen, onClose, defaultTab = 'register', isMandatory = false }: AccountModalProps) {
   const { 
     user, 
@@ -69,13 +49,9 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register', isManda
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedAvatar, setSelectedAvatar] = useState('👒');
-  const [selectedCrew, setSelectedCrew] = useState('Straw Hat Pirates');
-  const [tagNumber] = useState(() => Math.floor(1000 + Math.random() * 9000));
   const [inviteCode, setInviteCode] = useState('');
 
-
-  // Login state (Direct Email/Username/Tag + Password)
+  // Login state (Direct Email/Username + Password)
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -106,10 +82,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register', isManda
 
   if (!isOpen) return null;
 
-  // Live calculated tag
-  const liveTag = `PIRATE-${(username.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8) || 'CAPTAIN')}-${tagNumber}`;
-
-  // 1. Direct Account Creation (No code required)
+  // Direct Account Creation
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -147,9 +120,9 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register', isManda
         username: cleanUser,
         email: cleanEmail,
         password: cleanPass,
-        avatar: selectedAvatar,
-        crew: selectedCrew,
-        customTag: liveTag,
+        avatar: '👤',
+        crew: 'Collector',
+        customTag: cleanUser,
         inviteCode: inviteCode.trim().toUpperCase(),
       });
 
@@ -159,7 +132,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register', isManda
         return;
       }
 
-      setSuccessMsg(`Welcome aboard, ${res.user?.name || cleanUser}! Your permanent account has been created.`);
+      setSuccessMsg(`Welcome, ${res.user?.name || cleanUser}! Your account has been created.`);
       setTimeout(() => {
         setSuccessMsg(null);
         setIsSubmitting(false);
@@ -311,20 +284,24 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register', isManda
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-[#343a4c] pb-3 flex-shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#f45d6a] to-[#f59e0b] p-0.5 shadow-md">
-              <div className="w-full h-full bg-[#1b1e2a] rounded-[14px] flex items-center justify-center text-lg">
-                {tab === 'register' ? selectedAvatar : tab === 'forgot' ? '🔒' : '🏴‍☠️'}
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#3b82f6] to-[#8b5cf6] p-0.5 shadow-md flex items-center justify-center">
+              <div className="w-full h-full bg-[#1b1e2a] rounded-[14px] flex items-center justify-center text-white">
+                {tab === 'register' ? (
+                  <UserPlus className="w-5 h-5 text-indigo-400" />
+                ) : tab === 'forgot' ? (
+                  <KeyRound className="w-5 h-5 text-amber-400" />
+                ) : (
+                  <LogIn className="w-5 h-5 text-blue-400" />
+                )}
               </div>
             </div>
             <div>
               <div className="flex items-center gap-1.5">
                 <h3 className="text-base font-black text-white leading-tight">
-                  {isMandatory 
-                    ? (tab === 'register' ? 'Private Beta Registration' : tab === 'forgot' ? 'Reset Password' : 'Beta Tester Login')
-                    : (tab === 'register' ? 'Create Verified Account' : tab === 'forgot' ? 'Reset Password' : 'Sign In to Account')}
+                  {tab === 'register' ? 'Create Account' : tab === 'forgot' ? 'Reset Password' : 'Sign In'}
                 </h3>
                 {isMandatory ? (
-                  <span className="px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/40 text-[9px] font-bold text-purple-300 flex items-center gap-0.5">
+                  <span className="px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/40 text-[9px] font-bold text-purple-300 flex items-center gap-1">
                     🔒 Private Beta
                   </span>
                 ) : (
@@ -335,9 +312,11 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register', isManda
                 )}
               </div>
               <p className="text-[11px] text-gray-400 font-medium">
-                {isMandatory
-                  ? (tab === 'register' ? 'Enter your invite code to join the private beta' : tab === 'forgot' ? 'Recover your account with a verification code' : 'Sign in with your tester account to access the app')
-                  : (tab === 'register' ? 'Create your permanent cloud account' : tab === 'forgot' ? 'Recover your account with a 6-digit verification code' : 'Access your permanent cloud binder & cards')}
+                {tab === 'register'
+                  ? 'Enter your details and beta invite code to get started'
+                  : tab === 'forgot'
+                  ? 'Recover your account with a verification code'
+                  : 'Sign in to access your collection & market prices'}
               </p>
             </div>
           </div>
@@ -406,16 +385,16 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register', isManda
           {tab === 'register' ? (
             /* Registration Details Form */
             <form onSubmit={handleCreateAccount} className="space-y-3.5">
-              {/* Pirate Name */}
+              {/* Username */}
               <div>
                 <label className="block text-xs font-bold text-gray-300 mb-1.5">
-                  Pirate Name / Collector Handle <span className="text-[#f45d6a]">*</span>
+                  Username <span className="text-[#f45d6a]">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   maxLength={24}
-                  placeholder="e.g. ZoroHunter, ShanksCollector, PirateKing"
+                  placeholder="e.g. kyle_tcg"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition shadow-inner font-medium"
@@ -425,32 +404,32 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register', isManda
               {/* Email */}
               <div>
                 <label className="block text-xs font-bold text-gray-300 mb-1.5">
-                  Email Address <span className="text-gray-400 font-normal text-[11px]">(For cloud sync & recovery)</span>
+                  Email Address <span className="text-[#f45d6a]">*</span>
                 </label>
                 <input
                   type="email"
                   required
-                  placeholder="pirate@logpose.tcg"
+                  placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition font-medium"
+                  className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition font-medium"
                 />
               </div>
 
               {/* Password */}
               <div>
                 <label className="block text-xs font-bold text-gray-300 mb-1.5">
-                  Account Password <span className="text-[#f45d6a]">* (Min. 6 chars)</span>
+                  Password <span className="text-[#f45d6a]">* (Min. 6 chars)</span>
                 </label>
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
                     minLength={6}
-                    placeholder="Enter password..."
+                    placeholder="Create a password..."
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl pl-3.5 pr-10 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition font-medium"
+                    className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl pl-3.5 pr-10 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition font-medium"
                   />
                   <button
                     type="button"
@@ -471,78 +450,20 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register', isManda
                   type="password"
                   required
                   minLength={6}
-                  placeholder="Re-enter password..."
+                  placeholder="Re-enter your password..."
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition font-medium"
+                  className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition font-medium"
                 />
               </div>
 
-              {/* Avatar Selector */}
-              <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1.5">
-                  Choose Pirate Avatar
-                </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {PIRATE_AVATARS.map((av) => (
-                    <button
-                      key={av.emoji}
-                      type="button"
-                      onClick={() => setSelectedAvatar(av.emoji)}
-                      className={`p-2 rounded-xl border flex flex-col items-center justify-center transition cursor-pointer ${
-                        selectedAvatar === av.emoji
-                          ? 'bg-[#f45d6a]/20 border-[#f45d6a] text-white shadow-sm'
-                          : 'bg-[#181a24] border-[#2d3244] text-gray-400 hover:border-gray-500'
-                      }`}
-                    >
-                      <span className="text-xl mb-0.5">{av.emoji}</span>
-                      <span className="text-[10px] font-bold truncate max-w-full">{av.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Pirate Crew */}
-              <div>
-                <label className="block text-xs font-bold text-gray-300 mb-1.5">
-                  Pirate Crew Affiliation
-                </label>
-                <select
-                  value={selectedCrew}
-                  onChange={(e) => setSelectedCrew(e.target.value)}
-                  className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl px-3 py-2.5 text-xs text-white outline-none cursor-pointer"
-                >
-                  {PIRATE_CREWS.map((c) => (
-                    <option key={c} value={c} className="bg-[#181a24] text-white">
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Generated Collector Tag Preview */}
-              <div className="bg-[#181a24] border border-[#343a4c] rounded-2xl p-3 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 block uppercase tracking-wider">
-                    Generated Collector Tag
-                  </span>
-                  <span className="text-xs font-mono font-black text-amber-400">
-                    {liveTag}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 text-[11px] text-emerald-400 font-bold">
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>Permanent Cloud Account</span>
-                </div>
-              </div>
-
-              {/* Private Beta Banner */}
-              <div className="bg-[#1a1520] border border-[#6d3a9c]/40 rounded-2xl p-3 flex items-start gap-2.5">
+              {/* Private Beta Notice */}
+              <div className="bg-[#1c1d2a] border border-purple-500/30 rounded-2xl p-3 flex items-start gap-2.5">
                 <span className="text-base mt-0.5">🔒</span>
                 <div>
-                  <p className="text-[11px] font-bold text-purple-300 mb-0.5">Private Beta — Invite Required</p>
-                  <p className="text-[10px] text-gray-400 leading-relaxed">
-                    Registration is currently by invite only. Enter your invite code below to create an account.
+                  <p className="text-xs font-bold text-purple-300">Private Beta Access</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    An invite code is required to register during this testing phase.
                   </p>
                 </div>
               </div>
@@ -569,7 +490,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register', isManda
                 className="w-full bg-gradient-to-r from-[#f45d6a] to-[#e64956] hover:opacity-90 disabled:opacity-50 text-white font-extrabold text-xs uppercase tracking-wider py-3 px-4 rounded-xl transition cursor-pointer shadow-lg shadow-[#f45d6a]/20 flex items-center justify-center gap-2"
               >
                 <ShieldCheck className="w-4 h-4" />
-                <span>{isSubmitting ? 'Creating Cloud Account...' : 'Create Account'}</span>
+                <span>{isSubmitting ? 'Creating Account...' : 'Create Account'}</span>
               </button>
             </form>
 
@@ -751,11 +672,13 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register', isManda
                               : 'bg-[#181a24] border-[#2d3244] text-gray-300 hover:border-gray-500'
                           }`}
                         >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-lg">{acc.avatar || '👒'}</span>
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-7 h-7 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 flex-shrink-0">
+                              <User className="w-3.5 h-3.5" />
+                            </div>
                             <div className="min-w-0">
                               <div className="text-xs font-bold text-white truncate">{acc.username}</div>
-                              <div className="font-mono text-[10px] text-amber-400 truncate">{acc.tag}</div>
+                              <div className="text-[10px] text-gray-400 truncate">{acc.email}</div>
                             </div>
                           </div>
                           <span className="text-[10px] font-bold text-gray-400">Select &rarr;</span>
@@ -768,12 +691,12 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register', isManda
                 {/* Login Identifier */}
                 <div>
                   <label className="block text-xs font-bold text-gray-300 mb-1.5">
-                    Collector Tag, Username, or Email <span className="text-[#3b82f6]">*</span>
+                    Username or Email <span className="text-[#3b82f6]">*</span>
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. PIRATE-LUFFY-1234, Kai, or pirate@email.com"
+                    placeholder="e.g. kyle_tcg or name@example.com"
                     value={loginIdentifier}
                     onChange={(e) => setLoginIdentifier(e.target.value)}
                     className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#3b82f6] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition font-medium"
@@ -784,7 +707,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register', isManda
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-xs font-bold text-gray-300">
-                      Account Password <span className="text-[#3b82f6]">*</span>
+                      Password <span className="text-[#3b82f6]">*</span>
                     </label>
                     <button
                       type="button"
