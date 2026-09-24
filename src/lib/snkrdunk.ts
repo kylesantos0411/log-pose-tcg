@@ -85,11 +85,12 @@ export function matchCardToApparel(card: any, apparels: SnkrdunkApparel[]): Snkr
 
   // Parallel identification
   const isParallel = Boolean(
-    card.isAltArt ||
+    (card.isAltArt ||
     card.id.includes('_p') ||
     card.rarity === 'SP' ||
     card.rarity === 'Special' ||
-    (card.yuyuteiTitle && (card.yuyuteiTitle.includes('パラレル') || card.yuyuteiTitle.includes('SP') || card.yuyuteiTitle.includes('箔押し')))
+    (card.yuyuteiTitle && (card.yuyuteiTitle.includes('パラレル') || card.yuyuteiTitle.includes('SP') || card.yuyuteiTitle.includes('箔押し')))) &&
+    !isManga
   );
 
   // Special card (-SPC, -SP, Anime 25th, etc.)
@@ -102,7 +103,32 @@ export function matchCardToApparel(card: any, apparels: SnkrdunkApparel[]): Snkr
   );
 
   const isReprint = card.pack?.code === 'PRB-01' || (card.pack?.name && card.pack.name.includes('BEST'));
-  const isPromo = Boolean(card.promoSource || card.id.startsWith('P-') || card.pack?.code?.startsWith('P-') || card.pack?.code === 'PROMO');
+  
+  // Internal Yuyu-tei printing notes must NOT count as promo flags
+  const internalNotes = [
+    '刻印あり', '刻印なし', 'ホロなし', 'ホロあり', 'ノーマル', 'parallel', 'パラレル',
+    '再録', 'reprint', 'super parallel', 'comic parallel', 'コミパラ'
+  ];
+  const hasRealPromoSource = Boolean(
+    card.promoSource &&
+    !internalNotes.includes(card.promoSource.trim().toLowerCase()) &&
+    (card.promoSource.includes('チャンピオンシップ') ||
+      card.promoSource.includes('フラッグシップ') ||
+      card.promoSource.includes('記念') ||
+      card.promoSource.includes('大会') ||
+      card.promoSource.includes('プロモ') ||
+      card.promoSource.toLowerCase().includes('campaign') ||
+      card.promoSource.toLowerCase().includes('flagship'))
+  );
+
+  const isPromo = Boolean(
+    card.id.startsWith('P-') ||
+    card.cardNumber?.startsWith('P-') ||
+    card.pack?.code === 'PROMO' ||
+    card.pack?.code?.startsWith('P-') ||
+    card.pack?.name?.toLowerCase().includes('promo') ||
+    hasRealPromoSource
+  );
 
   const scored = candidates.map((app) => {
     let score = 100; // Positive baseline
@@ -127,10 +153,10 @@ export function matchCardToApparel(card: any, apparels: SnkrdunkApparel[]): Snkr
       rawName.includes('Comic Parallel');
 
     if (isManga) {
-      if (appIsManga) score += 80;
-      else score -= 60;
+      if (appIsManga) score += 100;
+      else score -= 80;
     } else {
-      if (appIsManga) score -= 60;
+      if (appIsManga) score -= 80;
     }
 
     // Special card (-SPC, -SP) matching
@@ -172,12 +198,12 @@ export function matchCardToApparel(card: any, apparels: SnkrdunkApparel[]): Snkr
       rawName.includes('L-P') ||
       rawName.includes('SEC-P');
 
-    if (isParallel && !isManga) {
-      if (appIsStandardParallel) score += 60;
-      else score -= 50;
+    if (isParallel && !isManga && !appIsManga) {
+      if (appIsStandardParallel) score += 70;
+      else score -= 60;
     } else if (!isParallel && !isManga) {
-      if (!appIsStandardParallel) score += 50;
-      else score -= 50;
+      if (!appIsStandardParallel && !appIsManga) score += 60;
+      else score -= 60;
     }
 
     // Reprint matching (PRB-01 / THE BEST)
@@ -187,10 +213,10 @@ export function matchCardToApparel(card: any, apparels: SnkrdunkApparel[]): Snkr
       rawName.includes('THE BEST');
 
     if (isReprint) {
-      if (appIsTheBest) score += 50;
-      else score -= 40;
+      if (appIsTheBest) score += 60;
+      else score -= 50;
     } else {
-      if (appIsTheBest) score -= 40;
+      if (appIsTheBest) score -= 50;
     }
 
     // Promo matching
@@ -203,6 +229,7 @@ export function matchCardToApparel(card: any, apparels: SnkrdunkApparel[]): Snkr
       rawTitle.includes('プロモ') ||
       rawTitle.includes('キャンペーン') ||
       rawTitle.includes('Campaign') ||
+      rawTitle.includes('プロモーションカード') ||
       rawName.includes('Flagship') ||
       rawName.includes('Serial') ||
       rawName.includes('Promotional') ||
@@ -210,15 +237,15 @@ export function matchCardToApparel(card: any, apparels: SnkrdunkApparel[]): Snkr
       rawName.includes('Championship');
 
     if (isPromo) {
-      if (appIsPromo) score += 70;
-      else score -= 40;
-    } else {
-      if (!appIsPromo) score += 40;
+      if (appIsPromo) score += 80;
       else score -= 50;
+    } else {
+      if (!appIsPromo) score += 50;
+      else score -= 80;
     }
 
-    // Explicit Promo Source Keywords matching
-    if (card.promoSource) {
+    // Explicit Promo Source Keywords matching (if actually a promo)
+    if (isPromo && card.promoSource) {
       const ps = card.promoSource.toLowerCase();
       if ((ps.includes('始めよう') || ps.includes('campaign') || ps.includes('start')) &&
           (name.includes('campaign') || name.includes('started') || title.includes('始めよう'))) {
@@ -241,17 +268,48 @@ export function matchCardToApparel(card: any, apparels: SnkrdunkApparel[]): Snkr
       }
     }
 
-    // Pack / Set Name matching (only if NOT promo card)
-    if (!isPromo && card.pack?.name) {
+    // Pack / Set Name matching
+    if (card.pack?.name) {
       const pName = card.pack.name.toLowerCase();
       const cleanTokens = pName
         .replace(/[^a-z0-9 ]/g, ' ')
         .split(/\s+/)
-        .filter((w: string) => w.length > 3 && !['pack', 'booster', 'card', 'deck'].includes(w));
+        .filter((w: string) => w.length >= 3 && !['pack', 'booster', 'card', 'deck'].includes(w));
       for (const token of cleanTokens) {
         if (title.includes(token) || name.includes(token)) {
-          score += 25;
+          score += 40;
         }
+      }
+      // Japanese pack name matching
+      if (pName.includes('romance dawn') && (rawTitle.includes('ロマンスドーン') || rawTitle.includes('ROMANCE DAWN'))) {
+        score += 60;
+      }
+      if (pName.includes('paramount war') && (rawTitle.includes('頂上決戦') || rawTitle.includes('Paramount War'))) {
+        score += 60;
+      }
+      if (pName.includes('pillars of strength') && (rawTitle.includes('強大な敵') || rawTitle.includes('Pillars of Strength'))) {
+        score += 60;
+      }
+      if (pName.includes('kingdoms of intrigue') && (rawTitle.includes('謀略の王国') || rawTitle.includes('Kingdoms of Intrigue'))) {
+        score += 60;
+      }
+      if (pName.includes('awakening') && (rawTitle.includes('新時代の主役') || rawTitle.includes('Awakening'))) {
+        score += 60;
+      }
+      if (pName.includes('wings of the captain') && (rawTitle.includes('双璧の覇者') || rawTitle.includes('Wings of the Captain'))) {
+        score += 60;
+      }
+      if (pName.includes('500 years') && (rawTitle.includes('500年後の未来') || rawTitle.includes('500 Years'))) {
+        score += 60;
+      }
+      if (pName.includes('two legends') && (rawTitle.includes('二つの伝説') || rawTitle.includes('Two Legends'))) {
+        score += 60;
+      }
+      if (pName.includes('new emperors') && (rawTitle.includes('新たなる皇帝') || rawTitle.includes('Four Emperors') || rawTitle.includes('New Emperors'))) {
+        score += 60;
+      }
+      if (pName.includes('royal blood') && (rawTitle.includes('王族の血統') || rawTitle.includes('Royal Blood'))) {
+        score += 60;
       }
     }
 
