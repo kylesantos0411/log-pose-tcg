@@ -236,7 +236,12 @@ export function CardDetailView({
 
   // SNKRDUNK live pricing
   const snkrdunkRawYen: number | null = snkrdunkPricing?.rawA ?? null;
-  const snkrdunkRawUsd: number | null = snkrdunkRawYen ? snkrdunkRawYen / 152 : null;
+  const snkrdunkRawB: number | null = snkrdunkPricing?.rawB ?? null;
+  const snkrdunkRawLowest: number | null = snkrdunkPricing?.rawLowest ?? null;
+  const snkrdunkCondition: 'A' | 'B' | 'C' | 'D' | null = snkrdunkPricing?.rawCondition ?? null;
+  const snkrdunkGradedOnly: boolean = Boolean(snkrdunkPricing?.hasGradedOnly);
+  const snkrdunkActivePrice: number | null = snkrdunkRawYen ?? snkrdunkRawLowest ?? null;
+  const snkrdunkRawUsd: number | null = snkrdunkActivePrice ? snkrdunkActivePrice / 152 : null;
   const snkrdunkUrl = snkrdunkPricing?.url || `https://snkrdunk.com/search?keywords=${encodeURIComponent(card.cardNumber || card.id.split('_')[0])}`;
 
   // All graded card prices are sourced exclusively from SNKRDUNK
@@ -925,18 +930,40 @@ export function CardDetailView({
                       );
                     })()}
 
-                    {/* 4. SNKRDUNK (Raw Condition A) */}
+                    {/* 4. SNKRDUNK (Raw Condition A with fallback) */}
                     {enabledPriceSources.snkrdunk && (() => {
-                      const hasPrice = snkrdunkRawYen !== null;
-                      const priceFormatted = hasPrice
-                        ? formatPrice(snkrdunkRawYen, { source: 'snkrdunk', rawJPY: snkrdunkRawYen }).full
-                        : 'Unavailable';
+                      const hasCondA = snkrdunkRawYen !== null;
+                      const hasAnyRaw = snkrdunkRawLowest !== null;
+                      const activePrice = snkrdunkRawYen ?? snkrdunkRawLowest;
+
+                      let priceFormatted = 'Unavailable';
+                      let badgeText = 'Out of Stock';
+                      let badgeClass = 'bg-gray-700/40 text-gray-400';
+                      let subtext = '';
+
+                      if (hasCondA && activePrice) {
+                        priceFormatted = formatPrice(activePrice, { source: 'snkrdunk', rawJPY: activePrice }).full;
+                        badgeText = 'Grade A';
+                        badgeClass = 'bg-emerald-500/20 text-emerald-300';
+                        subtext = 'SNKRDUNK';
+                      } else if (hasAnyRaw && activePrice) {
+                        priceFormatted = formatPrice(activePrice, { source: 'snkrdunk', rawJPY: activePrice }).full;
+                        badgeText = `Grade ${snkrdunkCondition || 'B'}`;
+                        badgeClass = 'bg-amber-500/20 text-amber-300';
+                        subtext = 'Cond. A out of stock';
+                      } else if (snkrdunkGradedOnly) {
+                        priceFormatted = 'Graded Only';
+                        badgeText = 'PSA / ARS';
+                        badgeClass = 'bg-blue-500/20 text-blue-300';
+                        subtext = 'Check GRADING tab';
+                      }
+
                       return (
                         <a
                           href={snkrdunkUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          title="View Condition A on SNKRDUNK (スニダン)"
+                          title="View on SNKRDUNK (スニダン)"
                           className="flex items-center gap-2 sm:gap-2.5 group cursor-pointer min-w-0"
                         >
                           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white border border-white/20 flex items-center justify-center flex-shrink-0 shadow-md overflow-hidden p-1.5">
@@ -948,20 +975,29 @@ export function CardDetailView({
                                 (e.currentTarget as HTMLElement).style.display = 'none';
                                 if (e.currentTarget.parentElement) {
                                   e.currentTarget.parentElement.innerText = 'SD';
-                                  e.currentTarget.parentElement.className = 'w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#10b981] text-white font-black text-[11px] sm:text-xs flex items-center justify-center flex-shrink-0 shadow-md';
+                                  e.currentTarget.parentElement.className = 'w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black text-white font-black text-[11px] sm:text-xs flex items-center justify-center flex-shrink-0 shadow-md border border-[#343a4c]';
                                 }
                               }}
                             />
                           </div>
                           <div className="min-w-0 flex-1 overflow-hidden">
                             <div className="flex items-center gap-1 leading-tight">
-                              <span className={`font-black text-white group-hover:text-[#10b981] transition whitespace-nowrap ${hasPrice ? getPriceFontSizeClass(priceFormatted) : 'text-xs text-gray-400'}`}>
+                              {activePrice && (
+                                <ArrowUpRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#22c55e] flex-shrink-0" strokeWidth={3} />
+                              )}
+                              <span className={`font-black text-white group-hover:text-[#22c55e] transition whitespace-nowrap ${activePrice ? getPriceFontSizeClass(priceFormatted) : 'text-xs text-gray-400'}`}>
                                 {priceFormatted}
                               </span>
                             </div>
-                            <div className="text-[10px] sm:text-[11px] text-emerald-400 font-bold mt-0.5 leading-tight whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-1">
-                              <span className="bg-emerald-500/20 text-emerald-300 px-1 py-0.2 rounded text-[9px] font-extrabold">Grade A</span>
-                              <span className="text-gray-400 font-normal">SNKRDUNK</span>
+                            <div className="text-[10px] sm:text-[11px] font-bold mt-0.5 leading-tight whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-1">
+                              <span className={`${badgeClass} px-1 py-0.2 rounded text-[9px] font-extrabold`}>
+                                {badgeText}
+                              </span>
+                              {subtext && (
+                                <span className="text-gray-400 font-normal">
+                                  {subtext}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </a>

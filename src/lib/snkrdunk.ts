@@ -32,8 +32,12 @@ export interface SnkrdunkPricing {
   productNumber: string;
   apparelName: string;
   url: string;
-  // Raw Market (Condition A only, lowest active)
-  rawA: number | null; // JPY
+  // Raw Market (Condition A lowest active, with fallback if out of stock)
+  rawA: number | null; // JPY (Condition A)
+  rawB: number | null; // JPY (Condition B)
+  rawLowest: number | null; // JPY (Lowest raw listing of any condition)
+  rawCondition: 'A' | 'B' | 'C' | 'D' | null;
+  hasGradedOnly: boolean; // True if listings exist but are exclusively PSA/BGS/ARS graded
   // Graded Market (Lowest active for each company and grade)
   psa10: number | null;
   psa9: number | null;
@@ -210,21 +214,33 @@ export async function fetchSnkrdunkPricing(card: any): Promise<SnkrdunkPricing |
     const matchedApparel = matchCardToApparel(card, appData.apparels || []);
     if (!matchedApparel) return null;
 
-    // 2. Fetch active used listings (isSaleOnly=1)
-    const usedRes = await fetch(
-      `https://snkrdunk.com/v1/apparels/${matchedApparel.id}/used?perPage=50&page=1&isSaleOnly=1`,
-      {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)',
-          'Accept': 'application/json',
-        },
-        next: { revalidate: 900 },
+    // 2. Fetch active used listings (isSaleOnly=1) with up to 100 items per page
+    const fetchUsedPage = async (page: number) => {
+      try {
+        const res = await fetch(
+          `https://snkrdunk.com/v1/apparels/${matchedApparel.id}/used?perPage=100&page=${page}&isSaleOnly=1`,
+          {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)',
+              'Accept': 'application/json',
+            },
+            next: { revalidate: 900 },
+          }
+        );
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.apparelUsedItems || [];
+      } catch {
+        return [];
       }
-    );
+    };
 
-    if (!usedRes.ok) return null;
-    const usedData = await usedRes.json();
-    const items = usedData.apparelUsedItems || [];
+    let items = await fetchUsedPage(1);
+    // If page 1 had 100 items, fetch page 2 to avoid missing raw Condition A cards
+    if (items.length === 100) {
+      const page2 = await fetchUsedPage(2);
+      items = items.concat(page2);
+    }
 
     // Group active listings by condition
     const grouped: Record<string, number[]> = {};
@@ -233,6 +249,11 @@ export async function fetchSnkrdunkPricing(card: any): Promise<SnkrdunkPricing |
         const cond = item.displayWearCount || item.wearCount;
         if (!grouped[cond]) grouped[cond] = [];
         grouped[cond].push(item.price);
+
+        if (item.wearCount && item.wearCount !== cond) {
+          if (!grouped[item.wearCount]) grouped[item.wearCount] = [];
+          grouped[item.wearCount].push(item.price);
+        }
       }
     }
 
@@ -241,34 +262,62 @@ export async function fetchSnkrdunkPricing(card: any): Promise<SnkrdunkPricing |
       grouped[cond].sort((a, b) => a - b);
     }
 
-    // User Requirement 1: Only use RAW cards with condition/grade A. Lowest active listing.
+    // User Requirement 1: Primary raw price is condition A. Lowest active listing.
     const rawAList = grouped['A（きれいな状態）'] || grouped['tradingCardSingleConditionNearlyUnused'] || [];
     const rawA = rawAList.length > 0 ? rawAList[0] : null;
+
+    // Condition B & C fallback
+    const rawBList = grouped['B（小さなキズ/ソリがある品）'] || grouped['tradingCardSingleConditionLittleScratches'] || [];
+    const rawB = rawBList.length > 0 ? rawBList[0] : null;
+
+    const rawCList = grouped['C（キズ/ソリがある品）'] || grouped['tradingCardSingleConditionScratches'] || [];
+    const rawC = rawCList.length > 0 ? rawCList[0] : null;
+
+    const rawDList = grouped['D（大きなダメージあり）'] || grouped['tradingCardSingleConditionLargeDamages'] || [];
+    const rawD = rawDList.length > 0 ? rawDList[0] : null;
+
+    let rawLowest: number | null = null;
+    let rawCondition: 'A' | 'B' | 'C' | 'D' | null = null;
+    if (rawA !== null) {
+      rawLowest = rawA;
+      rawCondition = 'A';
+    } else if (rawB !== null) {
+      rawLowest = rawB;
+      rawCondition = 'B';
+    } else if (rawC !== null) {
+      rawLowest = rawC;
+      rawCondition = 'C';
+    } else if (rawD !== null) {
+      rawLowest = rawD;
+      rawCondition = 'D';
+    }
+
+    const hasGradedOnly = rawLowest === null && items.length > 0;
 
     // User Requirement 2 & 3: PSA exact grades only. Lowest active listing.
     const psa10List = grouped['PSA10'] || grouped['tradingCardSingleConditionPSA10'] || [];
     const psa9List = grouped['PSA9'] || grouped['tradingCardSingleConditionPSA9'] || [];
-    const psa8List = grouped['PSA8以下'] || grouped['tradingCardSingleConditionPSA8OrLess'] || [];
+    const psa8List = grouped['PSA8以下'] || grouped['tradingCardSingleConditionPSA8Under'] || grouped['tradingCardSingleConditionPSA8OrLess'] || [];
     const psa10 = psa10List.length > 0 ? psa10List[0] : null;
     const psa9 = psa9List.length > 0 ? psa9List[0] : null;
     const psa8 = psa8List.length > 0 ? psa8List[0] : null;
 
     // User Requirement 4: BGS exact grades only. Lowest active listing.
     const bgs10List = [...(grouped['BGS10 BL'] || []), ...(grouped['BGS10 GL'] || [])].sort((a, b) => a - b);
-    const bgs95List = grouped['BGS9.5'] || [];
+    const bgs95List = grouped['BGS9.5'] || grouped['tradingCardSingleConditionBGS95'] || [];
     const bgs10 = bgs10List.length > 0 ? bgs10List[0] : null;
     const bgs95 = bgs95List.length > 0 ? bgs95List[0] : null;
 
     // User Requirement 5: ARS exact grades only. Lowest active listing.
-    const ars10plusList = grouped['ARS10+'] || [];
-    const ars10List = grouped['ARS10'] || [];
+    const ars10plusList = grouped['ARS10+'] || grouped['tradingCardSingleConditionARS10plus'] || [];
+    const ars10List = grouped['ARS10'] || grouped['tradingCardSingleConditionARS10'] || [];
     const ars9List = grouped['ARS9'] || [];
     const ars10plus = ars10plusList.length > 0 ? ars10plusList[0] : null;
     const ars10 = ars10List.length > 0 ? ars10List[0] : null;
     const ars9 = ars9List.length > 0 ? ars9List[0] : null;
 
     // CGC / Other:
-    const cgcList = grouped['他鑑定品'] || [];
+    const cgcList = grouped['他鑑定品'] || grouped['tradingCardSingleConditionOtherGradingCompany'] || [];
     const cgc10 = cgcList.length > 0 ? cgcList[0] : null;
 
     const result: SnkrdunkPricing = {
@@ -277,6 +326,10 @@ export async function fetchSnkrdunkPricing(card: any): Promise<SnkrdunkPricing |
       apparelName: matchedApparel.localizedName || matchedApparel.name,
       url: `https://snkrdunk.com/apparels/${matchedApparel.id}/used`,
       rawA,
+      rawB,
+      rawLowest,
+      rawCondition,
+      hasGradedOnly,
       psa10,
       psa9,
       psa8,
