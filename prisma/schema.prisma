@@ -65,6 +65,13 @@ model Card {
   artistSourceUrl          String?   @map("artist_source_url")
   artistVerificationStatus String?   @map("artist_verification_status")
 
+  // Yuyutei Native Product Identity Fields
+  yuyuteiProductId         String?   @map("yuyutei_product_id")
+  yuyuteiVer               String?   @map("yuyutei_ver")
+  yuyuteiUrl               String?   @map("yuyutei_url")
+  yuyuteiTitle             String?   @map("yuyutei_title")
+  yuyuteiRarity            String?   @map("yuyutei_rarity")
+
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -82,6 +89,8 @@ model Card {
   @@index([yuyuteiSet])
   @@index([displaySet])
   @@index([artistName])
+  @@index([yuyuteiProductId])
+  @@index([yuyuteiVer, yuyuteiProductId])
 }
 
 model UserCard {
