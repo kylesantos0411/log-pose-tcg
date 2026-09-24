@@ -72,7 +72,6 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
   const [selectedCrew, setSelectedCrew] = useState('Straw Hat Pirates');
   const [tagNumber] = useState(() => Math.floor(1000 + Math.random() * 9000));
   const [registerCode, setRegisterCode] = useState('');
-  const [registerDevCode, setRegisterDevCode] = useState<string | null>(null);
   const [registerToken, setRegisterToken] = useState<string | null>(null);
 
   // Login mode: 'password' | 'code'
@@ -82,7 +81,6 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginStep, setLoginStep] = useState<'enter_id' | 'verify_code'>('enter_id');
   const [loginCode, setLoginCode] = useState('');
-  const [loginDevCode, setLoginDevCode] = useState<string | null>(null);
   const [loginToken, setLoginToken] = useState<string | null>(null);
 
   // Forgot Password state
@@ -92,7 +90,6 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
   const [forgotNewPassword, setForgotNewPassword] = useState('');
   const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
   const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
-  const [forgotDevCode, setForgotDevCode] = useState<string | null>(null);
   const [forgotToken, setForgotToken] = useState<string | null>(null);
 
   // Timer for resending code
@@ -147,22 +144,25 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
     }
 
     try {
-      const res = await sendVerificationCode(cleanEmail, 'register');
+      const res = await sendVerificationCode(cleanEmail, 'register', {
+        username: cleanUser,
+        password: cleanPass,
+        avatar: selectedAvatar,
+        crew: selectedCrew,
+        tag: liveTag,
+      });
       if (!res.success) {
         setErrorMsg(res.error || 'Failed to send verification code.');
         setIsSubmitting(false);
         return;
       }
 
-      if (res.devCode) {
-        setRegisterDevCode(res.devCode);
-      }
       if (res.token) {
         setRegisterToken(res.token);
       }
       setRegisterStep('verify');
       setCountdown(60);
-      setSuccessMsg(`Verification code sent to ${cleanEmail}! Please check your email.`);
+      setSuccessMsg(`Verification code sent to ${cleanEmail}! Please check your email inbox.`);
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to request verification code.');
@@ -275,15 +275,12 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
         return;
       }
 
-      if (res.devCode) {
-        setLoginDevCode(res.devCode);
-      }
       if (res.token) {
         setLoginToken(res.token);
       }
       setLoginStep('verify_code');
       setCountdown(60);
-      setSuccessMsg(`Login code sent to ${cleanId}!`);
+      setSuccessMsg(`Login code sent to ${cleanId}! Please check your email.`);
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to send login code.');
@@ -346,9 +343,6 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
         return;
       }
 
-      if (res.devCode) {
-        setForgotDevCode(res.devCode);
-      }
       if (res.token) {
         setForgotToken(res.token);
       }
@@ -667,23 +661,6 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
                   </p>
                 </div>
 
-                {/* Quick Fill Helper (Foolproof fallback) */}
-                {registerDevCode && (
-                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-2.5 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 text-xs text-amber-300 font-bold">
-                      <Sparkles className="w-4 h-4 flex-shrink-0" />
-                      <span>Code: {registerDevCode}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setRegisterCode(registerDevCode)}
-                      className="px-2.5 py-1 rounded-lg bg-amber-400 text-black font-extrabold text-[11px] hover:bg-amber-300 transition cursor-pointer shadow-sm"
-                    >
-                      Quick Fill
-                    </button>
-                  </div>
-                )}
-
                 {/* 6-Digit Code Input */}
                 <div>
                   <input
@@ -793,23 +770,6 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
                       Enter the 6-digit code sent to <span className="text-white font-bold">{forgotEmail}</span>
                     </p>
                   </div>
-
-                  {/* Quick Fill Helper */}
-                  {forgotDevCode && (
-                    <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-2.5 flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 text-xs text-amber-300 font-bold">
-                        <Sparkles className="w-4 h-4 flex-shrink-0" />
-                        <span>Code: {forgotDevCode}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setForgotCode(forgotDevCode)}
-                        className="px-2.5 py-1 rounded-lg bg-amber-400 text-black font-extrabold text-[11px] hover:bg-amber-300 transition cursor-pointer shadow-sm"
-                      >
-                        Quick Fill
-                      </button>
-                    </div>
-                  )}
 
                   {/* 6-Digit Code Input */}
                   <div>
@@ -1091,22 +1051,6 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
                         Code sent to <span className="text-white font-bold">{loginIdentifier}</span>
                       </p>
                     </div>
-
-                    {loginDevCode && (
-                      <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-2.5 flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-xs text-amber-300 font-bold">
-                          <Sparkles className="w-4 h-4 flex-shrink-0" />
-                          <span>Code: {loginDevCode}</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setLoginCode(loginDevCode)}
-                          className="px-2.5 py-1 rounded-lg bg-amber-400 text-black font-extrabold text-[11px] hover:bg-amber-300 transition cursor-pointer shadow-sm"
-                        >
-                          Quick Fill
-                        </button>
-                      </div>
-                    )}
 
                     <div>
                       <input

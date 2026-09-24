@@ -44,8 +44,6 @@ export async function POST(req: NextRequest) {
     const res = NextResponse.json({
       success: true,
       message: `Verification code sent to ${cleanEmail}. Please check your inbox.`,
-      // Include devCode so testing is seamless and no user is ever locked out
-      devCode: code,
       token,
     });
 

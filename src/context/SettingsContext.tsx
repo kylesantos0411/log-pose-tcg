@@ -21,6 +21,14 @@ import {
   isSupabaseConfigured, 
   signInWithGoogle, 
   signInWithEmailPassword, 
+  signInWithIdentifier,
+  signUpWithEmailPassword,
+  verifySignupOtp,
+  resendSignupCode,
+  sendPasswordResetEmail,
+  verifyResetOtpAndSetPassword,
+  sendLoginOtp,
+  verifyLoginOtp,
   signOutSupabase 
 } from '@/lib/supabase/client';
 import { 
@@ -176,7 +184,17 @@ interface SettingsContextType {
   user: UserProfile | null;
   accounts: StoredAccount[];
   isCloudConnected: boolean;
-  sendVerificationCode: (email: string, type: 'register' | 'login' | 'reset') => Promise<{ success: boolean; error?: string; devCode?: string; message?: string; token?: string }>;
+  sendVerificationCode: (
+    email: string, 
+    type: 'register' | 'login' | 'reset',
+    registrationData?: {
+      username?: string;
+      password?: string;
+      avatar?: string;
+      crew?: string;
+      tag?: string;
+    }
+  ) => Promise<{ success: boolean; error?: string; devCode?: string; message?: string; token?: string }>;
   loginWithGoogle: () => Promise<{ error?: string }>;
   loginWithSupabaseEmail: (email: string, password: string) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
   registerWithSupabaseEmail: (data: { email: string; password: string; username: string; avatar?: string; crew?: string }) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
@@ -465,19 +483,71 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   const sendVerificationCode = async (
     email: string,
-    type: 'register' | 'login' | 'reset'
+    type: 'register' | 'login' | 'reset',
+    registrationData?: {
+      username?: string;
+      password?: string;
+      avatar?: string;
+      crew?: string;
+      tag?: string;
+    }
   ): Promise<{ success: boolean; error?: string; devCode?: string; message?: string; token?: string }> => {
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. Direct Supabase Cloud Auth (Zero-loss persistent cloud accounts + real email delivery)
+    if (isSupabaseConfigured()) {
+      try {
+        if (type === 'register') {
+          const { error } = await signUpWithEmailPassword({
+            email: cleanEmail,
+            password: registrationData?.password || 'password123',
+            username: registrationData?.username || cleanEmail.split('@')[0],
+            avatar: registrationData?.avatar || '👒',
+            crew: registrationData?.crew || 'Straw Hat Pirates',
+            tag: registrationData?.tag,
+          });
+
+          if (error) {
+            if (error.toLowerCase().includes('already registered')) {
+              return { success: false, error: 'An account with this email already exists. Please sign in or reset your password.' };
+            }
+            return { success: false, error };
+          }
+          return { success: true, message: `Verification code sent to ${cleanEmail}. Please check your email inbox.` };
+        }
+
+        if (type === 'login') {
+          const { error } = await sendLoginOtp(cleanEmail);
+          if (error) {
+            return { success: false, error };
+          }
+          return { success: true, message: `6-digit sign-in code sent to ${cleanEmail}. Please check your email inbox.` };
+        }
+
+        if (type === 'reset') {
+          const { error } = await sendPasswordResetEmail(cleanEmail);
+          if (error) {
+            return { success: false, error };
+          }
+          return { success: true, message: `Password reset code sent to ${cleanEmail}. Please check your email inbox.` };
+        }
+      } catch (sbErr: any) {
+        return { success: false, error: sbErr.message || 'Failed to send verification code.' };
+      }
+    }
+
+    // Fallback to local serverless API route if Supabase is not configured
     try {
       const res = await fetch('/api/auth/send-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, type }),
+        body: JSON.stringify({ email: cleanEmail, type }),
       });
       const data = await res.json();
       if (!res.ok || data.error) {
         return { success: false, error: data.error || 'Failed to send verification code.' };
       }
-      return { success: true, devCode: data.devCode, message: data.message, token: data.token };
+      return { success: true, message: data.message, token: data.token };
     } catch (err: any) {
       return { success: false, error: err.message || 'Network error sending verification code.' };
     }
@@ -496,10 +566,47 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     token?: string;
   }): Promise<{ success: boolean; user?: UserProfile; error?: string }> => {
     const rawUsername = (data.username || data.name || '').trim();
-    const rawEmail = (data.email || '').trim();
+    const rawEmail = (data.email || '').trim().toLowerCase();
     const rawPassword = (data.password || 'password123').trim();
     const rawCode = (data.code || '').trim();
 
+    // 1. Direct Supabase Cloud Registration Verification
+    if (isSupabaseConfigured() && rawCode) {
+      try {
+        const { user: authUser, profile, error } = await verifySignupOtp({
+          email: rawEmail,
+          token: rawCode,
+        });
+
+        if (error || !authUser) {
+          return { success: false, error: error || 'Invalid or expired verification code. Please check your email.' };
+        }
+
+        const userProfile: UserProfile = {
+          id: profile?.id || authUser.id,
+          name: profile?.username || rawUsername || 'Collector',
+          tag: profile?.tag || data.customTag || data.tag || `PIRATE-${(rawUsername || 'CAPTAIN').toUpperCase().slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`,
+          email: profile?.email || rawEmail,
+          avatar: profile?.avatar || data.avatar || '👒',
+          crew: profile?.crew || data.crew || 'Straw Hat Pirates',
+          rank: profile?.rank || 'Cabin Boy',
+          rankBadge: profile?.rank_badge || profile?.rankBadge || '⚓',
+          createdAt: profile?.created_at || new Date().toISOString(),
+        };
+
+        setUserState(userProfile);
+        setActiveSession(userProfile);
+        saveStoredAccountFromSession(userProfile);
+        transferGuestCardsToAccount(userProfile.tag);
+        setAccountsState(getStoredAccounts());
+
+        return { success: true, user: userProfile };
+      } catch (sbErr: any) {
+        return { success: false, error: sbErr.message || 'Failed to complete registration.' };
+      }
+    }
+
+    // Local / serverless API fallback
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -544,6 +651,76 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const cleanPass = (password || '').trim();
     const cleanCode = (code || '').trim();
 
+    // 1. Direct Supabase Cloud Authentication (Persistent across browsing data deletion)
+    if (isSupabaseConfigured()) {
+      if (cleanPass) {
+        try {
+          const { user: authUser, profile, error } = await signInWithIdentifier(cleanId, cleanPass);
+          if (error || !authUser) {
+            return { success: false, error: error || 'Invalid credentials. Please verify your details.' };
+          }
+
+          const userProfile: UserProfile = {
+            id: profile?.id || authUser.id,
+            name: profile?.username || cleanId,
+            tag: profile?.tag || `PIRATE-${(profile?.username || cleanId).toUpperCase().slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`,
+            email: profile?.email || authUser.email || (cleanId.includes('@') ? cleanId : null),
+            avatar: profile?.avatar || '👒',
+            crew: profile?.crew || 'Straw Hat Pirates',
+            rank: profile?.rank || 'Cabin Boy',
+            rankBadge: profile?.rank_badge || profile?.rankBadge || '⚓',
+            createdAt: profile?.created_at || new Date().toISOString(),
+          };
+
+          setUserState(userProfile);
+          setActiveSession(userProfile);
+          saveStoredAccountFromSession(userProfile);
+          transferGuestCardsToAccount(userProfile.tag);
+          setAccountsState(getStoredAccounts());
+
+          return { success: true, user: userProfile };
+        } catch (sbErr: any) {
+          return { success: false, error: sbErr.message || 'Error signing in to Supabase.' };
+        }
+      }
+
+      if (cleanCode && cleanId.includes('@')) {
+        try {
+          const { user: authUser, profile, error } = await verifyLoginOtp({
+            email: cleanId,
+            token: cleanCode,
+          });
+
+          if (error || !authUser) {
+            return { success: false, error: error || 'Invalid or expired login code. Please request a new one.' };
+          }
+
+          const userProfile: UserProfile = {
+            id: profile?.id || authUser.id,
+            name: profile?.username || cleanId.split('@')[0],
+            tag: profile?.tag || `PIRATE-${(profile?.username || cleanId.split('@')[0]).toUpperCase().slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`,
+            email: profile?.email || authUser.email || cleanId,
+            avatar: profile?.avatar || '👒',
+            crew: profile?.crew || 'Straw Hat Pirates',
+            rank: profile?.rank || 'Cabin Boy',
+            rankBadge: profile?.rank_badge || profile?.rankBadge || '⚓',
+            createdAt: profile?.created_at || new Date().toISOString(),
+          };
+
+          setUserState(userProfile);
+          setActiveSession(userProfile);
+          saveStoredAccountFromSession(userProfile);
+          transferGuestCardsToAccount(userProfile.tag);
+          setAccountsState(getStoredAccounts());
+
+          return { success: true, user: userProfile };
+        } catch (sbErr: any) {
+          return { success: false, error: sbErr.message || 'Error verifying login code.' };
+        }
+      }
+    }
+
+    // Local / serverless API fallback
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -558,7 +735,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
       const result = await res.json();
       if (!res.ok || result.error) {
-        // Fallback to local accounts if server is unreachable
         const existing = findAccountByIdentifier(cleanId);
         if (existing && cleanPass) {
           const localAuth = authenticateAccount(cleanId, cleanPass);
@@ -592,6 +768,48 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     newPassword: string;
     token?: string;
   }): Promise<{ success: boolean; user?: UserProfile; error?: string }> => {
+    const cleanEmail = data.email.trim().toLowerCase();
+    const cleanCode = data.code.trim();
+    const cleanNewPass = data.newPassword.trim();
+
+    // 1. Direct Supabase Cloud Password Reset
+    if (isSupabaseConfigured() && cleanCode && cleanNewPass) {
+      try {
+        const { user: authUser, profile, error } = await verifyResetOtpAndSetPassword({
+          email: cleanEmail,
+          token: cleanCode,
+          newPassword: cleanNewPass,
+        });
+
+        if (error || !authUser) {
+          return { success: false, error: error || 'Failed to reset password. Please verify the code.' };
+        }
+
+        const userProfile: UserProfile = {
+          id: profile?.id || authUser.id,
+          name: profile?.username || cleanEmail.split('@')[0],
+          tag: profile?.tag || `PIRATE-${(profile?.username || cleanEmail.split('@')[0]).toUpperCase().slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`,
+          email: profile?.email || authUser.email || cleanEmail,
+          avatar: profile?.avatar || '👒',
+          crew: profile?.crew || 'Straw Hat Pirates',
+          rank: profile?.rank || 'Cabin Boy',
+          rankBadge: profile?.rank_badge || profile?.rankBadge || '⚓',
+          createdAt: profile?.created_at || new Date().toISOString(),
+        };
+
+        setUserState(userProfile);
+        setActiveSession(userProfile);
+        saveStoredAccountFromSession(userProfile);
+        updateStoredAccountPassword(cleanEmail, cleanNewPass);
+        setAccountsState(getStoredAccounts());
+
+        return { success: true, user: userProfile };
+      } catch (sbErr: any) {
+        return { success: false, error: sbErr.message || 'Failed to update password.' };
+      }
+    }
+
+    // Local / serverless API fallback
     try {
       const res = await fetch('/api/auth/reset-password', {
         method: 'POST',
