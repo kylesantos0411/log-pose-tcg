@@ -935,9 +935,9 @@ export function CardDetailView({
                           title="View on SNKRDUNK (スニダン)"
                           className="flex items-center gap-2 sm:gap-2.5 group cursor-pointer min-w-0"
                         >
-                          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white border border-white/20 flex items-center justify-center flex-shrink-0 shadow-md overflow-hidden p-1.5">
+                          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white border border-white/20 flex items-center justify-center flex-shrink-0 shadow-md overflow-hidden p-1">
                             <img
-                              src="/logos/snkrdunk.svg"
+                              src="/logos/snkrdunk.png"
                               alt="SNKRDUNK"
                               className="w-full h-full object-contain"
                               onError={(e) => {
