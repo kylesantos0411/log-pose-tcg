@@ -58,9 +58,9 @@ async function main() {
   });
   console.log(`  🗑️ Removed ${deletedOldCodes.count} old predictable invite codes.`);
 
-  console.log('\n🎟️ Generating 10 secure, non-guessable invite codes...\n');
+  console.log('\n🎟️ Generating 15 secure, non-guessable invite codes...\n');
   const newCodes = [];
-  while (newCodes.length < 10) {
+  while (newCodes.length < 15) {
     const code = generateSecureCode('POSE');
     if (!newCodes.includes(code)) {
       newCodes.push(code);
