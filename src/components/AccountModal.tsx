@@ -555,7 +555,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register', isManda
                 <input
                   type="text"
                   required
-                  placeholder="e.g. LOGPOSE-BETA-001"
+                  placeholder="e.g. POSE-TT9W-BGZ2"
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                   className="w-full bg-[#181a24] border border-[#343a4c] focus:border-purple-500 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition font-mono font-bold tracking-widest uppercase"

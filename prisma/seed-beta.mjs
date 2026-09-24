@@ -1,6 +1,8 @@
 /**
- * Beta seed script — creates 5 pre-made tester accounts + 5 invite codes.
- * Run with: node prisma/seed-beta.mjs
+ * Script to:
+ * 1. Delete the 5 pre-made tester accounts from local SQLite
+ * 2. Delete old predictable invite codes (LOGPOSE-BETA-001..005)
+ * 3. Seed 10 new cryptographically secure, non-guessable invite codes
  */
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
@@ -9,77 +11,77 @@ const prisma = new PrismaClient({
   datasources: { db: { url: 'file:C:/Users/kyle/.gemini/antigravity/scratch/optcg-app/prisma/dev.db' } },
 });
 
-function hashPassword(password) {
-  return crypto.createHash('sha256').update(password + 'logpose_salt_2024').digest('hex');
+// Characters excluding ambiguous 0, O, 1, I, L
+const CHARSET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+
+function generateSecureCode(prefix = 'POSE') {
+  const bytes = crypto.randomBytes(8);
+  let chunk1 = '';
+  let chunk2 = '';
+  for (let i = 0; i < 4; i++) {
+    chunk1 += CHARSET[bytes[i] % CHARSET.length];
+  }
+  for (let i = 4; i < 8; i++) {
+    chunk2 += CHARSET[bytes[i] % CHARSET.length];
+  }
+  return `${prefix}-${chunk1}-${chunk2}`;
 }
 
-const BETA_ACCOUNTS = [
-  { username: 'LuffyBeta',  email: 'luffy.beta@logpose.test',  password: 'LuffyBeta2026!',  avatar: '👒', crew: 'Straw Hat Pirates',   tag: 'PIRATE-LUFFYBETA-0001' },
-  { username: 'ZoroBeta',   email: 'zoro.beta@logpose.test',   password: 'ZoroBeta2026!',   avatar: '⚔️', crew: 'Straw Hat Pirates',   tag: 'PIRATE-ZOROBETA-0002' },
-  { username: 'NamiBeta',   email: 'nami.beta@logpose.test',   password: 'NamiBeta2026!',   avatar: '🧭', crew: 'Straw Hat Pirates',   tag: 'PIRATE-NAMIBETA-0003' },
-  { username: 'SanjiBeta',  email: 'sanji.beta@logpose.test',  password: 'SanjiBeta2026!',  avatar: '🍖', crew: 'Straw Hat Pirates',   tag: 'PIRATE-SANJIBETA-0004' },
-  { username: 'RobinBeta',  email: 'robin.beta@logpose.test',  password: 'RobinBeta2026!',  avatar: '🌸', crew: 'Revolutionary Army',  tag: 'PIRATE-ROBINBETA-0005' },
-];
-
-const INVITE_CODES = [
-  'LOGPOSE-BETA-001',
-  'LOGPOSE-BETA-002',
-  'LOGPOSE-BETA-003',
-  'LOGPOSE-BETA-004',
-  'LOGPOSE-BETA-005',
-];
-
 async function main() {
-  console.log('🏴‍☠️ Seeding beta accounts and invite codes...\n');
+  console.log('🧹 Cleaning up pre-made tester accounts...\n');
 
-  // Create pre-made accounts
-  for (const acct of BETA_ACCOUNTS) {
-    const existing = await prisma.user.findFirst({
-      where: { OR: [{ email: acct.email }, { username: acct.username }] },
-    });
-    if (existing) {
-      console.log(`  ⚠️  Account already exists: ${acct.username} — skipping`);
-      continue;
+  const emailsToDelete = [
+    'luffy.beta@logpose.test',
+    'zoro.beta@logpose.test',
+    'nami.beta@logpose.test',
+    'sanji.beta@logpose.test',
+    'robin.beta@logpose.test',
+  ];
+
+  for (const email of emailsToDelete) {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (user) {
+      await prisma.user.delete({ where: { email } });
+      console.log(`  🗑️ Deleted account: ${user.username} (${email})`);
+    } else {
+      console.log(`  ℹ️ Not found: ${email}`);
     }
-    await prisma.user.create({
+  }
+
+  console.log('\n🧹 Clearing old beta invite codes...\n');
+  const deletedOldCodes = await prisma.betaInviteCode.deleteMany({
+    where: {
+      code: {
+        startsWith: 'LOGPOSE-BETA-',
+      },
+    },
+  });
+  console.log(`  🗑️ Removed ${deletedOldCodes.count} old predictable invite codes.`);
+
+  console.log('\n🎟️ Generating 10 secure, non-guessable invite codes...\n');
+  const newCodes = [];
+  while (newCodes.length < 10) {
+    const code = generateSecureCode('POSE');
+    if (!newCodes.includes(code)) {
+      newCodes.push(code);
+    }
+  }
+
+  for (const code of newCodes) {
+    await prisma.betaInviteCode.create({
       data: {
-        username: acct.username,
-        email: acct.email,
-        passwordHash: hashPassword(acct.password),
-        tag: acct.tag,
-        avatar: acct.avatar,
-        crew: acct.crew,
-        rank: 'Cabin Boy',
-        rankBadge: '⚓',
-        isVerified: true,
+        code,
       },
     });
-    console.log(`  ✅ Created: ${acct.username} (${acct.email}) / ${acct.password}`);
+    console.log(`  🔑 ${code}`);
   }
 
-  console.log('');
-
-  // Create invite codes
-  for (const code of INVITE_CODES) {
-    const existing = await prisma.betaInviteCode.findUnique({ where: { code } });
-    if (existing) {
-      console.log(`  ⚠️  Invite code already exists: ${code} — skipping`);
-      continue;
-    }
-    await prisma.betaInviteCode.create({ data: { code } });
-    console.log(`  🎟️  Created invite code: ${code}`);
-  }
-
-  console.log('\n✅ Beta seed complete!\n');
-  console.log('=== PRE-MADE ACCOUNTS ===');
-  BETA_ACCOUNTS.forEach(a => {
-    console.log(`  ${a.username.padEnd(12)} | ${a.email.padEnd(30)} | ${a.password}`);
-  });
-  console.log('\n=== INVITE CODES ===');
-  INVITE_CODES.forEach(c => console.log(`  ${c}`));
-  console.log('');
+  console.log('\n✅ 10 secure invite codes generated and ready in database!');
 }
 
 main()
-  .catch((e) => { console.error(e); process.exit(1); })
+  .catch((e) => {
+    console.error('Error during update:', e);
+    process.exit(1);
+  })
   .finally(() => prisma.$disconnect());

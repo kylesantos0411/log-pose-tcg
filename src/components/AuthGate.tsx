@@ -49,7 +49,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         <AccountModal
           isOpen={true}
           onClose={() => {}}
-          defaultTab="login"
+          defaultTab="register"
           isMandatory={true}
         />
       </div>
