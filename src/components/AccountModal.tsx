@@ -20,6 +20,7 @@ import {
   RotateCcw,
   ArrowLeft,
   Info,
+  Lock,
 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 
@@ -120,7 +121,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register', isManda
         username: cleanUser,
         email: cleanEmail,
         password: cleanPass,
-        avatar: '👤',
+        avatar: 'default',
         crew: 'Collector',
         customTag: cleanUser,
         inviteCode: inviteCode.trim().toUpperCase(),
@@ -302,7 +303,8 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register', isManda
                 </h3>
                 {isMandatory ? (
                   <span className="px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/40 text-[9px] font-bold text-purple-300 flex items-center gap-1">
-                    🔒 Private Beta
+                    <Lock className="w-2.5 h-2.5 text-purple-400" />
+                    <span>Private Beta</span>
                   </span>
                 ) : (
                   <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[9px] font-bold text-emerald-400 flex items-center gap-0.5">
@@ -459,7 +461,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register', isManda
 
               {/* Private Beta Notice */}
               <div className="bg-[#1c1d2a] border border-purple-500/30 rounded-2xl p-3 flex items-start gap-2.5">
-                <span className="text-base mt-0.5">🔒</span>
+                <Lock className="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-xs font-bold text-purple-300">Private Beta Access</p>
                   <p className="text-[11px] text-gray-400 mt-0.5">

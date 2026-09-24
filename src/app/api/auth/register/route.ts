@@ -80,10 +80,10 @@ export async function POST(req: NextRequest) {
           email: cleanEmail,
           passwordHash,
           tag,
-          avatar: avatar || '👤',
+          avatar: avatar || 'default',
           crew: crew || 'Collector',
           rank: 'Collector',
-          rankBadge: '⭐',
+          rankBadge: '',
           isVerified: true,
         },
       });
@@ -94,10 +94,10 @@ export async function POST(req: NextRequest) {
         username: cleanUsername,
         email: cleanEmail,
         tag,
-        avatar,
-        crew,
-        rank: 'Cabin Boy',
-        rankBadge: '⚓',
+        avatar: avatar || 'default',
+        crew: crew || 'Collector',
+        rank: 'Collector',
+        rankBadge: '',
         createdAt: new Date(),
       };
     }
