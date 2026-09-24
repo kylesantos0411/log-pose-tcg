@@ -523,12 +523,12 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
       {/* ================= TAB 3: STATS (TOURNAMENT DOSSIER & STRATEGY) ================= */}
       {activeTab === 'STATS' && (
         <section className="p-1 sm:p-3 space-y-3">
-          {/* OnePieceTopDecks Official Tournament & Pilot Dossier Card */}
+          {/* GumGum.gg Official Tournament & Pilot Dossier Card */}
           <div className="bg-[#242735] border border-[#34384c] rounded-2xl p-4 shadow-lg space-y-3">
             <div className="flex items-center justify-between border-b border-[#34384c] pb-2.5">
               <div className="flex items-center gap-2 text-amber-400 font-black text-xs uppercase tracking-wider">
                 <Trophy className="w-4 h-4 fill-amber-400" />
-                <span>OnePieceTopDecks Dossier</span>
+                <span>GumGum.gg Tournament Dossier</span>
               </div>
               <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-[10px] font-black text-amber-300 uppercase">
                 {deck.tier}
@@ -602,7 +602,7 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
               </div>
             </div>
 
-            {/* External Button to OnePieceTopDecks.com */}
+            {/* External Button to GumGum.gg */}
             {deck.topDecksUrl && (
               <a
                 href={deck.topDecksUrl}
@@ -610,7 +610,7 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
                 rel="noopener noreferrer"
                 className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg active:scale-[0.98] transition cursor-pointer"
               >
-                <span>View on OnePieceTopDecks.com</span>
+                <span>View Original on GumGum.gg</span>
                 <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
               </a>
             )}
@@ -642,14 +642,23 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
 
           {/* Sourcing Attribution */}
           <div className="p-3 bg-[#1b1e2a] rounded-xl border border-[#313648] text-center text-xs text-gray-400">
-            <span>Verified Decklist and Player Data via </span>
+            <span>Tournament decklist data from </span>
             <a 
-              href="https://onepiecetopdecks.com" 
+              href="https://gumgum.gg" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-amber-400 font-bold hover:underline"
             >
-              OnePieceTopDecks.com
+              GumGum.gg
+            </a>
+            <span> · Japanese card images &amp; prices from </span>
+            <a
+              href="https://yuyu-tei.jp"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 font-bold hover:underline"
+            >
+              Yuyu-tei
             </a>
           </div>
         </section>

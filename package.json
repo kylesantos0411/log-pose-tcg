@@ -9,7 +9,8 @@
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "ingest": "npx tsx scripts/ingest-cards.ts"
+    "ingest": "npx tsx scripts/ingest-cards.ts",
+    "sync:decks": "tsx scripts/sync_gumgum_decks.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.4.1",

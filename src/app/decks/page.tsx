@@ -17,7 +17,7 @@ import {
 import { RECOMMENDED_DECKS, RecommendedDeck } from '@/lib/recommended-decks';
 import { getEditionCardImageUrl } from '@/lib/card-image';
 
-type MetaFilter = 'ALL' | 'TIER_1' | 'FLAGSHIP' | 'CHAMPIONSHIP' | 'STANDARD_BATTLE' | 'TREASURE_CUP' | 'OP16' | 'OP15' | 'EB04' | 'OP09' | 'OP08' | 'OP17';
+type MetaFilter = 'ALL' | 'TIER_1' | 'FLAGSHIP' | 'CHAMPIONSHIP' | 'STANDARD_BATTLE' | 'TREASURE_CUP' | 'OP16' | 'OP15' | 'OP14' | 'EB04' | 'OP09' | 'OP08' | 'OP17';
 type ColorFilter = 'ALL' | 'Red' | 'Blue' | 'Green' | 'Purple' | 'Black' | 'Yellow';
 
 const COLOR_CHIPS: { label: string; value: ColorFilter; bg: string; text: string }[] = [
@@ -64,14 +64,14 @@ export default function RecommendedDecksPage() {
         }
       }
 
-      // Tournament & Meta filter
       if (activeMeta === 'TIER_1' && deck.tier !== 'Tier 1') return false;
       if (activeMeta === 'FLAGSHIP' && !deck.tournamentType?.includes('Flagship')) return false;
-      if (activeMeta === 'CHAMPIONSHIP' && !deck.tournamentType?.includes('Championship') && !deck.tournamentType?.includes('3v3')) return false;
+      if (activeMeta === 'CHAMPIONSHIP' && !deck.tournamentType?.includes('Championship') && !deck.tournamentType?.includes('3v3') && !deck.tournamentType?.includes('Regional') && !deck.tournamentType?.includes('CS')) return false;
       if (activeMeta === 'STANDARD_BATTLE' && !deck.tournamentType?.includes('Standard Battle')) return false;
       if (activeMeta === 'TREASURE_CUP' && !deck.tournamentType?.includes('Treasure Cup')) return false;
       if (activeMeta === 'OP16' && deck.metaEra !== 'OP-16') return false;
       if (activeMeta === 'OP15' && deck.metaEra !== 'OP-15') return false;
+      if (activeMeta === 'OP14' && deck.metaEra !== 'OP-14' && deck.metaEra !== 'OP-14.5') return false;
       if (activeMeta === 'EB04' && deck.metaEra !== 'EB-04') return false;
       if (activeMeta === 'OP09' && deck.metaEra !== 'OP-09') return false;
       if (activeMeta === 'OP08' && deck.metaEra !== 'OP-08') return false;
@@ -88,7 +88,7 @@ export default function RecommendedDecksPage() {
 
   return (
     <div className="min-h-screen pb-24 font-sans text-gray-100 max-w-lg md:max-w-5xl lg:max-w-7xl mx-auto w-full">
-      {/* Top App Bar matching reference: [←] Recommended Decks */}
+      {/* Top App Bar */}
       <header className="sticky top-0 z-30 bg-[#1e212b]/95 backdrop-blur-md px-3 sm:px-4 py-2.5 sm:py-3 border-b border-[#2d3242] flex items-center justify-between">
         <div className="flex items-center gap-2.5 sm:gap-3">
           <Link
@@ -100,10 +100,10 @@ export default function RecommendedDecksPage() {
           </Link>
           <div className="min-w-0">
             <h1 className="text-sm sm:text-lg font-black text-white tracking-wide truncate">
-              Recommended Decks
+              Tournament Decks
             </h1>
             <p className="text-[10px] text-gray-400 font-medium leading-none mt-0.5 truncate">
-              OnePieceTopDecks &amp; Tournament Meta
+              GumGum.gg Tournament Meta
             </p>
           </div>
         </div>
@@ -218,6 +218,16 @@ export default function RecommendedDecksPage() {
             }`}
           >
             OP-15 Meta
+          </button>
+          <button
+            onClick={() => setActiveMeta('OP14')}
+            className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${
+              activeMeta === 'OP14'
+                ? 'bg-white text-[#181a24] font-black border-white shadow-sm'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40] hover:text-white'
+            }`}
+          >
+            OP-14 Worlds
           </button>
           <button
             onClick={() => setActiveMeta('EB04')}
@@ -414,7 +424,9 @@ export default function RecommendedDecksPage() {
         {/* Source attribution pill */}
         <div className="pt-5 text-center">
           <p className="text-[11px] text-gray-500 font-medium">
-            Curated from <strong className="text-gray-400">OnePieceTopDecks</strong> &amp; Asian Regional Tournament Champions
+            Tournament decklists sourced from{' '}
+            <a href="https://gumgum.gg" target="_blank" rel="noopener noreferrer" className="text-gray-400 font-bold hover:underline">GumGum.gg</a>
+            {' '}· Japanese card data &amp; prices from Yuyu-tei
           </p>
         </div>
       </main>
