@@ -147,28 +147,37 @@ export function matchCardToApparel(card: any, apparels: SnkrdunkApparel[]): Snkr
 
     if (isSpecial) {
       if (appIsSpecial && !appIsManga) score += 60;
-      else if (!appIsSpecial) score -= 20;
     } else {
       if (appIsSpecial && !isParallel && !isManga) score -= 40;
     }
 
     // Standard Parallel matching
     const appIsStandardParallel =
-      (rawTitle.includes('-P ') ||
-       rawTitle.includes('-P[') ||
-       rawTitle.includes('-P(') ||
-       rawTitle.includes('パラレル') ||
-       rawTitle.includes('Parallel') ||
-       rawName.includes('-P ') ||
-       rawName.includes('-P[') ||
-       rawName.includes('-P(')) && !appIsManga && !appIsSpecial;
+      rawTitle.includes('-P ') ||
+      rawTitle.includes('-P[') ||
+      rawTitle.includes('-P(') ||
+      rawTitle.includes('R-P') ||
+      rawTitle.includes('SR-P') ||
+      rawTitle.includes('L-P') ||
+      rawTitle.includes('SEC-P') ||
+      rawTitle.includes('C-P') ||
+      rawTitle.includes('UC-P') ||
+      rawTitle.includes('パラレル') ||
+      rawTitle.includes('Parallel') ||
+      rawName.includes('-P ') ||
+      rawName.includes('-P[') ||
+      rawName.includes('-P(') ||
+      rawName.includes('R-P') ||
+      rawName.includes('SR-P') ||
+      rawName.includes('L-P') ||
+      rawName.includes('SEC-P');
 
-    if (isParallel && !isManga && !isSpecial) {
-      if (appIsStandardParallel) score += 50;
-      else score -= 30;
-    } else if (!isParallel && !isManga && !isSpecial) {
-      if (!appIsStandardParallel && !appIsManga && !appIsSpecial) score += 40;
-      else score -= 40;
+    if (isParallel && !isManga) {
+      if (appIsStandardParallel) score += 60;
+      else score -= 50;
+    } else if (!isParallel && !isManga) {
+      if (!appIsStandardParallel) score += 50;
+      else score -= 50;
     }
 
     // Reprint matching (PRB-01 / THE BEST)
@@ -191,18 +200,49 @@ export function matchCardToApparel(card: any, apparels: SnkrdunkApparel[]): Snkr
       rawTitle.includes('フラッグシップ') ||
       rawTitle.includes('チャンピオンシップ') ||
       rawTitle.includes('Promotional') ||
+      rawTitle.includes('プロモ') ||
+      rawTitle.includes('キャンペーン') ||
+      rawTitle.includes('Campaign') ||
       rawName.includes('Flagship') ||
       rawName.includes('Serial') ||
-      rawName.includes('Promotional');
+      rawName.includes('Promotional') ||
+      rawName.includes('Campaign') ||
+      rawName.includes('Championship');
 
     if (isPromo) {
-      if (appIsPromo) score += 40;
+      if (appIsPromo) score += 70;
+      else score -= 40;
     } else {
-      if (appIsPromo) score -= 50;
+      if (!appIsPromo) score += 40;
+      else score -= 50;
     }
 
-    // Pack / Set Name matching
-    if (card.pack?.name) {
+    // Explicit Promo Source Keywords matching
+    if (card.promoSource) {
+      const ps = card.promoSource.toLowerCase();
+      if ((ps.includes('始めよう') || ps.includes('campaign') || ps.includes('start')) &&
+          (name.includes('campaign') || name.includes('started') || title.includes('始めよう'))) {
+        score += 150;
+      }
+      if ((ps.includes('フラッグシップ') || ps.includes('flagship')) &&
+          (name.includes('flagship') || title.includes('フラッグシップ'))) {
+        score += 150;
+      }
+      if ((ps.includes('チャンピオンシップ') || ps.includes('championship')) &&
+          (name.includes('championship') || title.includes('チャンピオンシップ'))) {
+        score += 150;
+      }
+      if ((ps.includes('プレミアムカードコレクション') || ps.includes('premium card collection')) &&
+          (name.includes('premium card collection') || title.includes('プレミアムカードコレクション'))) {
+        score += 150;
+      }
+      if (ps.includes('lecafig') && (name.includes('lecafig') || title.includes('lecafig'))) {
+        score += 150;
+      }
+    }
+
+    // Pack / Set Name matching (only if NOT promo card)
+    if (!isPromo && card.pack?.name) {
       const pName = card.pack.name.toLowerCase();
       const cleanTokens = pName
         .replace(/[^a-z0-9 ]/g, ' ')
