@@ -28,15 +28,23 @@ interface CleanHomeViewProps {
   totalCards: number;
   totalPacks: number;
   userCardsCount: number;
-  featuredCards?: Array<{ id: string; name: string; imageUrl: string | null }>;
+  featuredCards?: Array<{ 
+    id: string; 
+    name: string; 
+    imageUrl: string | null;
+    rarity?: string;
+    yuyuPrice?: number | null;
+    marketPrice?: number | null;
+  }>;
 }
 
 export function CleanHomeView({ 
   totalCards, 
   totalPacks, 
+  featuredCards = [],
 }: CleanHomeViewProps) {
   const router = useRouter();
-  const { user, openSettings } = useSettings();
+  const { user, openSettings, formatPrice } = useSettings();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
@@ -59,7 +67,7 @@ export function CleanHomeView({
   };
 
   return (
-    <div className="w-full max-w-md sm:max-w-lg mx-auto py-2 sm:py-5 px-3 sm:px-4 space-y-3.5 select-none font-sans">
+    <div className="w-full max-w-md sm:max-w-lg md:max-w-5xl lg:max-w-6xl mx-auto py-2 sm:py-5 px-3 sm:px-6 space-y-4 md:space-y-6 select-none font-sans">
       {/* =========================================================================
           1. BRAND HEADER: Compass Badge + ONE PIECE TCG + Actions
          ========================================================================= */}
@@ -124,24 +132,93 @@ export function CleanHomeView({
         </div>
       </div>
 
-      {/* =========================================================================
-          2. SEAMLESS QUICK CARD SEARCH BAR (No Search button, pure input)
-         ========================================================================= */}
-      <form onSubmit={handleSearchSubmit} className="relative">
-        <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-        <input
-          type="text"
-          value={homeSearch}
-          onChange={(e) => setHomeSearch(e.target.value)}
-          placeholder="Search card name, code, or leader (e.g. Luffy, OP0)"
-          className="w-full bg-[#202330] border border-[#313647] focus:border-[#3b82f6] rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm text-gray-100 placeholder-gray-500 focus:outline-none transition shadow-inner font-medium"
-        />
-      </form>
+      {/* Desktop Quick Stats Banner */}
+      <div className="hidden md:grid grid-cols-3 gap-3.5 p-4 rounded-2xl bg-gradient-to-r from-[#202330] via-[#242839] to-[#202330] border border-[#313647] shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#3b82f6]/20 border border-[#3b82f6]/30 flex items-center justify-center text-[#3b82f6]">
+            <Boxes className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
+              Cards in Database
+            </span>
+            <span className="text-lg font-black text-white">
+              {totalCards > 0 ? totalCards.toLocaleString() : '4,390+'} Cards
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 border-x border-white/10 px-4">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <Compass className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
+              Expansion Sets
+            </span>
+            <span className="text-lg font-black text-emerald-400">
+              {totalPacks > 0 ? totalPacks : '60'} Sets &amp; Starters
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 pl-2">
+          <div className="w-10 h-10 rounded-xl bg-[#f59e0b]/20 border border-[#f59e0b]/30 flex items-center justify-center text-[#f59e0b]">
+            <Flame className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">
+              Live Price Feeds
+            </span>
+            <span className="text-xs font-bold text-gray-200">
+              Yuyu-tei &bull; SNKRDUNK &bull; eBay
+            </span>
+          </div>
+        </div>
+      </div>
 
       {/* =========================================================================
-          4. 6-TILE FEATURE GRID (2 Columns x 3 Rows)
+          2. SEAMLESS QUICK CARD SEARCH BAR + POPULAR KEYWORDS
          ========================================================================= */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-3.5">
+      <div className="space-y-2">
+        <form onSubmit={handleSearchSubmit} className="relative">
+          <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={homeSearch}
+            onChange={(e) => setHomeSearch(e.target.value)}
+            placeholder="Search card name, code, or leader (e.g. Luffy, OP05-119, Nami)..."
+            className="w-full bg-[#202330] border border-[#313647] focus:border-[#3b82f6] rounded-2xl pl-10 pr-4 py-3 text-xs sm:text-sm text-gray-100 placeholder-gray-500 focus:outline-none transition shadow-inner font-medium"
+          />
+        </form>
+
+        {/* Quick Search Chips */}
+        <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto text-[11px] font-medium text-gray-400">
+          <span className="text-gray-500 font-semibold mr-1">Trending:</span>
+          {[
+            { label: 'OP05-119 Luffy', q: 'OP05-119' },
+            { label: 'OP09-050 Nami', q: 'OP09-050' },
+            { label: 'EB01-006 Chopper', q: 'EB01-006' },
+            { label: 'OP14-108 Rayleigh', q: 'OP14-108' },
+            { label: 'Manga Parallel', q: 'Manga' },
+            { label: 'Leader Cards', q: 'Leader' },
+          ].map((item) => (
+            <button
+              key={item.q}
+              type="button"
+              onClick={() => router.push(`/cards?q=${encodeURIComponent(item.q)}`)}
+              className="px-2.5 py-1 rounded-lg bg-[#242838] hover:bg-[#2e3448] text-gray-300 hover:text-white border border-[#343a4e] transition cursor-pointer shrink-0"
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* =========================================================================
+          3. 6-TILE FEATURE GRID (Responsive: 2 cols on mobile, 3 on tablet, 6 on desktop)
+         ========================================================================= */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-3.5">
         {/* Tile 1: Collection */}
         <Link
           href="/collection"
@@ -257,6 +334,75 @@ export function CleanHomeView({
           </div>
         </Link>
       </div>
+
+      {/* =========================================================================
+          4. MARKET SPOTLIGHT & ICONIC CARDS (Desktop & Tablet Spotlight)
+         ========================================================================= */}
+      {featuredCards.length > 0 && (
+        <div className="pt-2 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#e76d78]" />
+              <h2 className="font-black text-sm sm:text-base text-white tracking-wide">
+                Market Spotlight &amp; Chases
+              </h2>
+            </div>
+            <Link
+              href="/cards?sort=price-desc"
+              className="text-xs font-bold text-[#3b82f6] hover:underline flex items-center gap-1"
+            >
+              <span>View All</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 sm:gap-3">
+            {featuredCards.map((card) => {
+              const priceVal = card.yuyuPrice || Math.round((card.marketPrice || 1) * 140);
+              return (
+                <Link
+                  key={card.id}
+                  href={`/cards/${card.id}`}
+                  className="group relative rounded-2xl bg-[#202330] hover:bg-[#272b3b] border border-[#313647] hover:border-[#3b82f6]/50 p-2 flex flex-col transition-all duration-200 shadow-md hover:shadow-xl active:scale-[0.98] cursor-pointer"
+                >
+                  <div className="relative aspect-[2.5/3.5] w-full rounded-xl overflow-hidden bg-[#14161f] border border-white/5">
+                    {card.imageUrl ? (
+                      <img
+                        src={card.imageUrl}
+                        alt={card.name}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs text-gray-500">
+                        No Art
+                      </div>
+                    )}
+                    {card.rarity && (
+                      <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-xs text-[9px] font-black text-amber-300 border border-white/10">
+                        {card.rarity}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-2 min-w-0">
+                    <h3 className="text-xs font-bold text-white truncate group-hover:text-[#3b82f6] transition-colors">
+                      {card.name}
+                    </h3>
+                    <div className="flex items-center justify-between mt-0.5">
+                      <span className="font-mono text-[10px] text-gray-400 font-semibold truncate">
+                        {card.id}
+                      </span>
+                      <span className="text-[11px] font-black text-emerald-400 font-mono">
+                        {formatPrice(priceVal, { source: 'yuyutei' }).full}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* =========================================================================
           5. SUPPORT THE APPLICATION BANNER

@@ -87,7 +87,7 @@ export default function RecommendedDecksPage() {
   }, [searchQuery, activeMeta, activeColor]);
 
   return (
-    <div className="min-h-screen pb-24 font-sans text-gray-100 max-w-lg mx-auto w-full">
+    <div className="min-h-screen pb-24 font-sans text-gray-100 max-w-lg md:max-w-5xl lg:max-w-7xl mx-auto w-full">
       {/* Top App Bar matching reference: [←] Recommended Decks */}
       <header className="sticky top-0 z-30 bg-[#1e212b]/95 backdrop-blur-md px-3 sm:px-4 py-2.5 sm:py-3 border-b border-[#2d3242] flex items-center justify-between">
         <div className="flex items-center gap-2.5 sm:gap-3">
@@ -281,10 +281,10 @@ export default function RecommendedDecksPage() {
           })}
         </div>
 
-        {/* Decks List */}
-        <div className="space-y-2.5 pt-1">
+        {/* Decks List - Responsive Desktop Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
           {filteredDecks.length === 0 ? (
-            <div className="bg-[#242735] border border-[#343a4c] rounded-2xl p-8 text-center">
+            <div className="col-span-full bg-[#242735] border border-[#343a4c] rounded-2xl p-8 text-center">
               <Layers className="w-8 h-8 text-gray-500 mx-auto mb-2" />
               <p className="text-sm font-bold text-gray-300">No decks found</p>
               <p className="text-xs text-gray-500 mt-1">Try adjusting your filters or search keywords.</p>

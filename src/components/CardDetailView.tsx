@@ -531,7 +531,7 @@ export function CardDetailView({
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto bg-[#1a1c24] text-white sm:rounded-3xl border-0 sm:border border-[#32384a] overflow-hidden shadow-2xl font-sans relative">
+    <div className="w-full max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto bg-[#1a1c24] text-white sm:rounded-3xl border-0 sm:border border-[#32384a] overflow-hidden shadow-2xl font-sans relative">
       {/* Floating Toast Notification */}
       {toastMessage && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-[#1d202c] border border-[#e76d78] text-white text-xs font-bold px-4 py-2 rounded-2xl shadow-2xl flex items-center gap-2 animate-bounce">
@@ -575,11 +575,14 @@ export function CardDetailView({
         </div>
       </div>
 
-      <div className="p-2.5 sm:p-3 space-y-2.5 sm:space-y-3">
-        {/* Main 2-Column Section: Card Image (Left) + Stats Box (Right) */}
-        <div className="grid grid-cols-[38%_62%] sm:grid-cols-[40%_60%] gap-2 sm:gap-2.5 items-stretch">
-          {/* Left Column: Card Artwork */}
-          <div className="relative aspect-[7/10] w-full rounded-2xl overflow-hidden bg-[#14161f] border border-[#2d3142] shadow-md flex items-center justify-center group">
+      <div className="p-2.5 sm:p-4 lg:p-6">
+        <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-6 items-start">
+          {/* Left Column (Desktop 5-cols): Card Art, Stats, Rules, CTA */}
+          <div className="lg:col-span-5 space-y-3">
+            {/* Main 2-Column Section on Mobile / 1-Column on Desktop */}
+            <div className="grid grid-cols-[38%_62%] sm:grid-cols-[40%_60%] lg:grid-cols-1 gap-2.5 items-stretch">
+              {/* Left Column: Card Artwork */}
+              <div className="relative aspect-[7/10] w-full rounded-2xl overflow-hidden bg-[#14161f] border border-[#2d3142] shadow-md flex items-center justify-center group lg:max-w-[320px] lg:mx-auto">
             {!imgErrorJp ? (
               <img
                 src={getSafeCardImageUrl(card.imageUrl) || jpImageUrl}
@@ -727,8 +730,36 @@ export function CardDetailView({
           </div>
         </div>
 
-        {/* BOX 1: MARKET & GRADING Tabs Container */}
-        <div className="bg-[#242735] rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-[#363a4c] shadow-lg">
+        {/* Rules & Effect Section */}
+          <div className="bg-[#242735] rounded-2xl p-3.5 border border-[#34384c] flex items-start gap-2.5 text-xs text-gray-200 leading-relaxed shadow-sm">
+            <FileText className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              {renderFormattedEffect(card.effect) || <span className="text-gray-500 italic">No effect text.</span>}
+              {card.trigger && (
+                <div className="mt-2 text-xs text-amber-200 bg-amber-950/25 border border-amber-800/40 p-2.5 rounded-xl leading-relaxed">
+                  <span className="font-bold text-[#f59e0b] block mb-1">TRIGGER:</span>
+                  {card.trigger}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Bottom CTA: Add to Collection */}
+          {onAddToCollection && (
+            <button
+              onClick={() => onAddToCollection(card, selectedLang)}
+              className="w-full py-3 rounded-2xl bg-[#e76d78] hover:bg-[#d45b66] text-white font-extrabold text-sm shadow-xl shadow-[#e76d78]/20 flex items-center justify-center gap-2 transition cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              Add to My Collection
+            </button>
+          )}
+        </div>
+
+        {/* Right Column (Desktop 7-cols): Market & Grading, Interactive Chart, Variations */}
+        <div className="lg:col-span-7 space-y-3">
+          {/* BOX 1: MARKET & GRADING Tabs Container */}
+          <div className="bg-[#242735] rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-[#363a4c] shadow-lg">
           {/* Tab Navigation */}
           <div className="flex items-center justify-between border-b border-[#363a4c] pb-3">
             <div className="flex items-center gap-6 sm:gap-8">
@@ -1704,31 +1735,8 @@ export function CardDetailView({
             </div>
           );
         })()}
-
-        {/* Rules & Effect Section */}
-        <div className="bg-[#242735] rounded-2xl p-3.5 border border-[#34384c] flex items-start gap-2.5 text-xs text-gray-200 leading-relaxed shadow-sm">
-          <FileText className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            {renderFormattedEffect(card.effect) || <span className="text-gray-500 italic">No effect text.</span>}
-            {card.trigger && (
-              <div className="mt-2 text-xs text-amber-200 bg-amber-950/25 border border-amber-800/40 p-2.5 rounded-xl leading-relaxed">
-                <span className="font-bold text-[#f59e0b] block mb-1">TRIGGER:</span>
-                {card.trigger}
-              </div>
-            )}
           </div>
         </div>
-
-        {/* Bottom CTA: Add to Collection */}
-        {onAddToCollection && (
-          <button
-            onClick={() => onAddToCollection(card, selectedLang)}
-            className="w-full py-3 rounded-2xl bg-[#e76d78] hover:bg-[#d45b66] text-white font-extrabold text-sm shadow-xl shadow-[#e76d78]/20 flex items-center justify-center gap-2 transition cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            Add to My Collection
-          </button>
-        )}
       </div>
 
       {/* ================= MODAL 1: ARTIST PORTFOLIO MODAL ================= */}

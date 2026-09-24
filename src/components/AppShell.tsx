@@ -11,18 +11,33 @@ import {
   ChevronRight, 
   Boxes, 
   Smartphone,
-  Users
+  Users,
+  Star,
 } from 'lucide-react';
 import { SettingsTriggerButton } from '@/components/SettingsTriggerButton';
+import { useSettings } from '@/context/SettingsContext';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { user } = useSettings();
   const isPreview = pathname === '/preview';
 
   // In /preview mode, render dedicated studio canvas without outer desktop sidebar
   if (isPreview) {
     return <div className="min-h-screen bg-[#13151b]">{children}</div>;
   }
+
+  const isActive = (path: string) => {
+    if (path === '/') return pathname === '/';
+    return pathname.startsWith(path);
+  };
+
+  const navItemClass = (path: string) =>
+    `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 ${
+      isActive(path)
+        ? 'bg-[#3b82f6]/15 text-white font-bold border border-[#3b82f6]/30 shadow-sm'
+        : 'text-gray-300 hover:text-white hover:bg-[#2c3140] font-medium'
+    }`;
 
   return (
     <div className="flex min-h-screen">
@@ -54,62 +69,46 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Navigation Links */}
         <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
-          <Link
-            href="/"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-[#2c3140] transition"
-          >
-            <TrendingUp className="w-4 h-4 text-[#e76d78]" />
-            Dashboard
+          <Link href="/" className={navItemClass('/')}>
+            <TrendingUp className={`w-4 h-4 ${isActive('/') ? 'text-[#e76d78]' : 'text-[#e76d78]/80'}`} />
+            <span>Dashboard</span>
           </Link>
 
-          <Link
-            href="/cards"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-[#2c3140] transition"
-          >
-            <Layers className="w-4 h-4 text-[#3b82f6]" />
-            Card Database
+          <Link href="/cards" className={navItemClass('/cards')}>
+            <Layers className={`w-4 h-4 ${isActive('/cards') ? 'text-[#3b82f6]' : 'text-[#3b82f6]/80'}`} />
+            <span>Card Database</span>
           </Link>
 
-          <Link
-            href="/sets"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-[#2c3140] transition"
-          >
-            <Boxes className="w-4 h-4 text-emerald-400" />
-            Expansion Sets
+          <Link href="/sets" className={navItemClass('/sets')}>
+            <Boxes className={`w-4 h-4 ${isActive('/sets') ? 'text-emerald-400' : 'text-emerald-400/80'}`} />
+            <span>Expansion Sets</span>
           </Link>
 
-          <Link
-            href="/collection"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-[#2c3140] transition"
-          >
-            <FolderHeart className="w-4 h-4 text-[#f59e0b]" />
-            My Collection
+          <Link href="/collection" className={navItemClass('/collection')}>
+            <FolderHeart className={`w-4 h-4 ${isActive('/collection') ? 'text-[#f59e0b]' : 'text-[#f59e0b]/80'}`} />
+            <span>My Collection</span>
           </Link>
 
-          <Link
-            href="/decks"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-[#2c3140] transition"
-          >
-            <Swords className="w-4 h-4 text-[#f4727d]" />
-            Recommended Decks
+          <Link href="/favorites" className={navItemClass('/favorites')}>
+            <Star className={`w-4 h-4 ${isActive('/favorites') ? 'text-[#c084fc]' : 'text-[#c084fc]/80'}`} />
+            <span>Favorites</span>
           </Link>
 
-          <Link
-            href="/friends"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-300 hover:text-white hover:bg-[#2c3140] transition"
-          >
-            <Users className="w-4 h-4 text-purple-400" />
-            Friends &amp; Trades
+          <Link href="/decks" className={navItemClass('/decks')}>
+            <Swords className={`w-4 h-4 ${isActive('/decks') ? 'text-[#f4727d]' : 'text-[#f4727d]/80'}`} />
+            <span>Recommended Decks</span>
           </Link>
 
-          <Link
-            href="/preview"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-[#e76d78] hover:text-white hover:bg-[#2c3140] transition"
-          >
+          <Link href="/friends" className={navItemClass('/friends')}>
+            <Users className={`w-4 h-4 ${isActive('/friends') ? 'text-purple-400' : 'text-purple-400/80'}`} />
+            <span>Friends &amp; Trades</span>
+          </Link>
+
+          <Link href="/preview" className={navItemClass('/preview')}>
             <Smartphone className="w-4 h-4 text-[#e76d78]" />
             <span>Phone Simulator</span>
             <span className="ml-auto text-[9px] font-black px-1.5 py-0.2 rounded bg-[#e76d78]/20 text-[#e76d78] border border-[#e76d78]/30">
-              NEW
+              SIM
             </span>
           </Link>
 
@@ -151,14 +150,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* User / Storage Status */}
         <div className="p-4 border-t border-[#2d3242]">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-[#3b82f6]/20 border border-[#3b82f6]/40 flex items-center justify-center font-bold text-xs text-[#3b82f6]">
-              LP
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#3b82f6] to-[#c084fc] p-0.5 flex items-center justify-center font-bold text-xs text-white shadow">
+              <div className="w-full h-full bg-[#1e212b] rounded-full flex items-center justify-center">
+                {user ? user.name.slice(0, 2).toUpperCase() : 'LP'}
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-semibold text-gray-200">Straw Hat Collector</span>
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs font-semibold text-gray-200 truncate">
+                {user ? user.name : 'Guest Collector'}
+              </span>
               <div className="flex items-center gap-1.5 text-[10px] text-emerald-400">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Local DB Active
+                <span>{user ? `${user.crew} (Cloud)` : 'Local DB Active'}</span>
               </div>
             </div>
           </div>

@@ -106,7 +106,7 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
   };
 
   return (
-    <div className="min-h-screen pb-24 font-sans text-gray-100 max-w-lg mx-auto w-full">
+    <div className="min-h-screen pb-24 font-sans text-gray-100 max-w-lg md:max-w-5xl lg:max-w-7xl mx-auto w-full">
       {/* Top Header Bar matching Screenshot 2 */}
       <header className="sticky top-0 z-30 bg-[#1e212b]/95 backdrop-blur-md px-3 sm:px-4 py-2.5 sm:py-3 border-b border-[#2d3242] flex items-center justify-between gap-1.5">
         {/* Left: Back button */}
@@ -349,7 +349,7 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
       {/* ================= TAB 1: CARDS (3-COLUMN ART GRID MATCHING SCREENSHOT 2) ================= */}
       {activeTab === 'CARDS' && (
         <section className="p-1 sm:p-3">
-          <div className="grid grid-cols-3 gap-1.5 sm:gap-2.5">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-1.5 sm:gap-2.5">
             {deck.cards.map((cardItem: DeckCardItem) => {
               const unitPrice = cardItem.yuyuPrice || 100;
 

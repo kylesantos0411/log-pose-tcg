@@ -133,7 +133,7 @@ export default function CollectionPage() {
   });
 
   return (
-    <div className="w-full max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-5xl mx-auto space-y-3 pb-32 sm:pb-24 font-sans select-none px-2 sm:px-3">
+    <div className="w-full max-w-md sm:max-w-xl md:max-w-4xl lg:max-w-7xl mx-auto space-y-3 pb-32 sm:pb-24 font-sans select-none px-2 sm:px-3">
       {/* 1. Sleek Single-Line Header Bar */}
       <header className="sticky top-0 z-30 bg-[#1e202a]/95 backdrop-blur-md border-b border-[#2d3140]/60 -mx-2 sm:-mx-3 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -302,7 +302,7 @@ export default function CollectionPage() {
 
       {/* 2. Compact Portfolio Stats Summary (Never cut off) */}
       {stats && (
-        <div className="grid grid-cols-2 gap-2 pt-1">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 pt-1">
           {/* Total Estimated Value */}
           <div className="p-3 sm:p-3.5 rounded-2xl bg-[#242836] border border-[#343a4c] shadow-sm flex flex-col justify-between">
             <span className="text-[10px] sm:text-xs text-gray-400 font-bold uppercase tracking-wider">
@@ -513,7 +513,7 @@ export default function CollectionPage() {
         </div>
       ) : (
         /* GRID BINDER VIEW (Visual 3-column binder matching /cards) */
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 sm:gap-2.5">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2 sm:gap-2.5">
           {filteredItems.map((item) => {
             const card = item.card;
             const currentPrice = card.yuyuPrice || Math.round((card.marketPrice || 1) * 140);
@@ -560,7 +560,7 @@ export default function CollectionPage() {
       {/* Card Detail Modal */}
       {activeCard && (
         <div className="fixed inset-0 z-50 bg-[#181a22] overflow-y-auto sm:bg-black/85 sm:backdrop-blur-md sm:flex sm:items-center sm:justify-center sm:p-4">
-          <div className="w-full sm:max-w-2xl min-h-screen sm:min-h-0 sm:my-auto">
+          <div className="w-full sm:max-w-3xl lg:max-w-5xl xl:max-w-6xl min-h-screen sm:min-h-0 sm:my-auto">
             <CardDetailView
               card={activeCard}
               initialLanguage="jp"

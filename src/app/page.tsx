@@ -19,12 +19,15 @@ export default async function HomePage() {
           imageUrl: { not: null },
           OR: [
             { id: 'OP05-119_p1' },
-            { id: 'OP01-120' },
-            { id: 'OP01-016' },
+            { id: 'OP09-050_p3' },
+            { id: 'EB01-006_p2' },
+            { id: 'OP01-120_p1' },
+            { id: 'OP06-118_p1' },
+            { id: 'OP14-108_p3' },
           ],
         },
-        select: { id: true, name: true, imageUrl: true },
-        take: 3,
+        select: { id: true, name: true, imageUrl: true, rarity: true, yuyuPrice: true, marketPrice: true },
+        take: 6,
       }),
     ]);
 

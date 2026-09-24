@@ -317,7 +317,7 @@ function CardsContent() {
   }
 
   return (
-    <div className="w-full max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-5xl mx-auto pb-16 select-none">
+    <div className="w-full max-w-md sm:max-w-xl md:max-w-4xl lg:max-w-7xl mx-auto pb-16 select-none">
       {/* 1. Sleek Top Bar with Permanent Always-Visible Search Bar */}
       <header className="sticky top-0 z-30 bg-[#1e202a]/95 backdrop-blur-md border-b border-[#2d3140]/60 px-2 sm:px-4 py-2 sm:py-2.5 shadow-sm space-y-2">
         {/* Top Row: Navigation, Page Title, and Quick Actions */}
@@ -652,7 +652,7 @@ function CardsContent() {
         {(() => {
           if (loading) {
             return (
-              <div className={`grid ${gridCols === 3 ? 'grid-cols-3' : 'grid-cols-2'} sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3`}>
+              <div className={`grid ${gridCols === 3 ? 'grid-cols-3' : 'grid-cols-2'} sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2 sm:gap-3`}>
                 {Array.from({ length: 12 }).map((_, i) => (
                   <div
                     key={i}
@@ -681,7 +681,7 @@ function CardsContent() {
           }
 
           return (
-            <div className={`grid ${gridCols === 3 ? 'grid-cols-3' : 'grid-cols-2'} sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-2.5`}>
+            <div className={`grid ${gridCols === 3 ? 'grid-cols-3' : 'grid-cols-2'} sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2 sm:gap-2.5`}>
               {cards.map((card) => {
                 const ownedQty = (card.userCards || []).reduce((sum, u) => sum + u.quantity, 0);
 
@@ -767,7 +767,7 @@ function CardsContent() {
       {/* Card Detail Modal */}
       {activeCard && (
         <div className="fixed inset-0 z-50 bg-[#181a22] overflow-y-auto sm:bg-black/85 sm:backdrop-blur-md sm:flex sm:items-center sm:justify-center sm:p-4">
-          <div className="w-full sm:max-w-2xl min-h-screen sm:min-h-0 sm:my-auto">
+          <div className="w-full sm:max-w-3xl lg:max-w-5xl xl:max-w-6xl min-h-screen sm:min-h-0 sm:my-auto">
             <CardDetailView
               card={activeCard}
               initialLanguage="jp"

@@ -349,7 +349,7 @@ export default function FavoritesPage() {
       {/* 4. Active Card Detail Modal */}
       {activeCard && (
         <div className="fixed inset-0 z-50 bg-[#181a22] overflow-y-auto sm:bg-black/85 sm:backdrop-blur-md sm:flex sm:items-center sm:justify-center sm:p-4">
-          <div className="w-full sm:max-w-2xl min-h-screen sm:min-h-0 sm:my-auto">
+          <div className="w-full sm:max-w-3xl lg:max-w-5xl xl:max-w-6xl min-h-screen sm:min-h-0 sm:my-auto">
             <CardDetailView
               card={activeCard as any}
               initialLanguage="jp"

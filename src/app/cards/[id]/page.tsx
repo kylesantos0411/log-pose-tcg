@@ -52,7 +52,7 @@ export default async function CardPage({ params, searchParams }: Props) {
   });
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4 py-4">
+    <div className="max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto space-y-4 py-4 px-2 sm:px-4">
       <Link
         href="/cards"
         className="inline-flex items-center gap-2 text-xs font-bold text-gray-300 hover:text-white transition px-3.5 py-1.5 rounded-xl bg-[#242836] border border-[#343a4c] hover:bg-[#2d3244]"

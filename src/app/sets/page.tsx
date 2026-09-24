@@ -229,11 +229,11 @@ export default function SetsPage() {
   const gridClass = useMemo(() => {
     if (columnCount === '1') return 'grid grid-cols-1 max-w-lg mx-auto gap-2 sm:gap-2.5 pt-1';
     if (columnCount === '2') return 'grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-2.5 pt-1';
-    return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5 pt-1';
+    return 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 pt-1';
   }, [columnCount]);
 
   return (
-    <div className="w-full max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-5xl mx-auto space-y-3 pb-32 sm:pb-24 font-sans select-none px-2 sm:px-3">
+    <div className="w-full max-w-md sm:max-w-xl md:max-w-4xl lg:max-w-7xl mx-auto space-y-3 pb-32 sm:pb-24 font-sans select-none px-2 sm:px-3">
       {/* Sleek Top Header Bar: Back Button, Clean Title, View Mode Switcher */}
       <header className="sticky top-0 z-30 bg-[#1e202a]/95 backdrop-blur-md border-b border-[#2d3140]/60 -mx-2 sm:-mx-3 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
