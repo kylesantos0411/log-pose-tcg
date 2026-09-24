@@ -11,7 +11,8 @@ import {
   Flame, 
   Filter,
   Layers,
-  ChevronRight
+  ChevronRight,
+  User
 } from 'lucide-react';
 import { RECOMMENDED_DECKS, RecommendedDeck } from '@/lib/recommended-decks';
 import { getEditionCardImageUrl } from '@/lib/card-image';
@@ -107,8 +108,8 @@ export default function RecommendedDecksPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#f4727d]/15 border border-[#f4727d]/30 text-[#f4727d] text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-sm shrink-0">
-          <Flame className="w-3.5 h-3.5 fill-[#f4727d]" />
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-gray-300 text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider shrink-0">
+          <Layers className="w-3.5 h-3.5 text-gray-400" />
           <span>{filteredDecks.length} Decks</span>
         </div>
       </header>
@@ -123,7 +124,7 @@ export default function RecommendedDecksPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search deck, leader name, or card code..."
-            className="w-full pl-10 pr-9 py-2.5 bg-[#242735] border border-[#343a4c] focus:border-[#f4727d] focus:outline-none rounded-xl text-xs sm:text-sm text-white placeholder-gray-400 transition shadow-inner"
+            className="w-full pl-10 pr-9 py-2.5 bg-[#242735] border border-[#343a4c] focus:border-white/40 focus:outline-none rounded-xl text-xs sm:text-sm text-white placeholder-gray-400 transition shadow-inner"
           />
           {searchQuery && (
             <button
@@ -141,8 +142,8 @@ export default function RecommendedDecksPage() {
             onClick={() => setActiveMeta('ALL')}
             className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${
               activeMeta === 'ALL'
-                ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md shadow-[#f4727d]/20'
-                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
+                ? 'bg-white text-[#181a24] font-black border-white shadow-sm'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40] hover:text-white'
             }`}
           >
             All Decks ({RECOMMENDED_DECKS.length})
@@ -151,59 +152,59 @@ export default function RecommendedDecksPage() {
             onClick={() => setActiveMeta('TIER_1')}
             className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 flex items-center gap-1.5 ${
               activeMeta === 'TIER_1'
-                ? 'bg-amber-500 text-black font-black border-amber-500 shadow-md'
-                : 'bg-[#242735] text-amber-400 border-[#34384c] hover:bg-[#2a2e40]'
+                ? 'bg-white text-[#181a24] font-black border-white shadow-sm'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40] hover:text-white'
             }`}
           >
-            <Trophy className="w-3.5 h-3.5 fill-current" />
+            <Trophy className={`w-3.5 h-3.5 ${activeMeta === 'TIER_1' ? 'text-amber-500 fill-amber-500' : 'text-amber-400'}`} />
             <span>Tier 1 Meta</span>
           </button>
           <button
             onClick={() => setActiveMeta('FLAGSHIP')}
-            className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 flex items-center gap-1 ${
+            className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${
               activeMeta === 'FLAGSHIP'
-                ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md'
-                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
+                ? 'bg-white text-[#181a24] font-black border-white shadow-sm'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40] hover:text-white'
             }`}
           >
-            <span>🏆 Flagship (FS)</span>
+            Flagship (FS)
           </button>
           <button
             onClick={() => setActiveMeta('CHAMPIONSHIP')}
-            className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 flex items-center gap-1 ${
+            className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${
               activeMeta === 'CHAMPIONSHIP'
-                ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md'
-                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
+                ? 'bg-white text-[#181a24] font-black border-white shadow-sm'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40] hover:text-white'
             }`}
           >
-            <span>👑 Regionals / CS</span>
+            Regionals / CS
           </button>
           <button
             onClick={() => setActiveMeta('STANDARD_BATTLE')}
-            className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 flex items-center gap-1 ${
+            className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${
               activeMeta === 'STANDARD_BATTLE'
-                ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md'
-                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
+                ? 'bg-white text-[#181a24] font-black border-white shadow-sm'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40] hover:text-white'
             }`}
           >
-            <span>⚔️ Standard Battle</span>
+            Standard Battle
           </button>
           <button
             onClick={() => setActiveMeta('TREASURE_CUP')}
-            className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 flex items-center gap-1 ${
+            className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${
               activeMeta === 'TREASURE_CUP'
-                ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md'
-                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
+                ? 'bg-white text-[#181a24] font-black border-white shadow-sm'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40] hover:text-white'
             }`}
           >
-            <span>💎 Treasure Cup</span>
+            Treasure Cup
           </button>
           <button
             onClick={() => setActiveMeta('OP16')}
             className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${
               activeMeta === 'OP16'
-                ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md'
-                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
+                ? 'bg-white text-[#181a24] font-black border-white shadow-sm'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40] hover:text-white'
             }`}
           >
             OP-16 Future
@@ -212,8 +213,8 @@ export default function RecommendedDecksPage() {
             onClick={() => setActiveMeta('OP15')}
             className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${
               activeMeta === 'OP15'
-                ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md'
-                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
+                ? 'bg-white text-[#181a24] font-black border-white shadow-sm'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40] hover:text-white'
             }`}
           >
             OP-15 Meta
@@ -222,8 +223,8 @@ export default function RecommendedDecksPage() {
             onClick={() => setActiveMeta('EB04')}
             className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${
               activeMeta === 'EB04'
-                ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md'
-                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
+                ? 'bg-white text-[#181a24] font-black border-white shadow-sm'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40] hover:text-white'
             }`}
           >
             EB-04 Extra
@@ -232,8 +233,8 @@ export default function RecommendedDecksPage() {
             onClick={() => setActiveMeta('OP09')}
             className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${
               activeMeta === 'OP09'
-                ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md'
-                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
+                ? 'bg-white text-[#181a24] font-black border-white shadow-sm'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40] hover:text-white'
             }`}
           >
             OP-09 Meta
@@ -242,8 +243,8 @@ export default function RecommendedDecksPage() {
             onClick={() => setActiveMeta('OP08')}
             className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${
               activeMeta === 'OP08'
-                ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md'
-                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
+                ? 'bg-white text-[#181a24] font-black border-white shadow-sm'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40] hover:text-white'
             }`}
           >
             OP-08 Meta
@@ -252,8 +253,8 @@ export default function RecommendedDecksPage() {
             onClick={() => setActiveMeta('OP17')}
             className={`px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${
               activeMeta === 'OP17'
-                ? 'bg-[#f4727d] text-white border-[#f4727d] shadow-md'
-                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40]'
+                ? 'bg-white text-[#181a24] font-black border-white shadow-sm'
+                : 'bg-[#242735] text-gray-300 border-[#34384c] hover:bg-[#2a2e40] hover:text-white'
             }`}
           >
             OP-17 Future
@@ -305,7 +306,7 @@ export default function RecommendedDecksPage() {
                 <Link
                   key={deck.id}
                   href={`/decks/${deck.id}`}
-                  className="group bg-[#242735] hover:bg-[#2c3042] border border-[#343a4c] hover:border-[#f4727d]/60 rounded-2xl p-2.5 sm:p-3.5 flex items-center justify-between transition-all duration-200 shadow-md hover:shadow-xl active:scale-[0.98] cursor-pointer min-w-0 w-full"
+                  className="group bg-[#242735] hover:bg-[#2c3042] border border-[#343a4c] hover:border-[#4e556e] rounded-2xl p-2.5 sm:p-3.5 flex items-center justify-between transition-all duration-200 shadow-md hover:shadow-xl active:scale-[0.98] cursor-pointer min-w-0 w-full"
                 >
                   {/* Left Column: Leader Art + Text Info */}
                   <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1 pr-1.5 sm:pr-2">
@@ -329,50 +330,52 @@ export default function RecommendedDecksPage() {
                     {/* Deck Title & Leader Subtitles */}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <h3 className="text-sm sm:text-base font-black text-white tracking-tight truncate group-hover:text-[#f4727d] transition-colors">
+                        <h3 className="text-sm sm:text-base font-bold text-white tracking-tight truncate group-hover:text-white transition-colors">
                           {deck.name}
                         </h3>
                       </div>
 
-                      <div className="text-[11px] sm:text-xs text-gray-300 font-medium truncate mt-0.5">
+                      <div className="text-[11px] sm:text-xs text-gray-400 font-normal truncate mt-0.5">
                         {deck.subname}
                       </div>
 
-                      {/* OnePieceTopDecks Pilot & Tournament Badges */}
-                      <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                      {/* Tournament Badges */}
+                      <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
                         {deck.player && (
-                          <span className="px-1.5 py-0.5 rounded bg-blue-500/15 border border-blue-500/30 text-[9px] sm:text-[10px] font-bold text-blue-300 truncate max-w-[140px]">
-                            👤 {deck.player}
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] sm:text-[10px] font-medium text-gray-300 truncate max-w-[140px]">
+                            <User className="w-2.5 h-2.5 text-gray-400 flex-shrink-0" />
+                            <span className="truncate">{deck.player}</span>
                           </span>
                         )}
                         {deck.placement && (
-                          <span className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-[9px] sm:text-[10px] font-black text-amber-300 whitespace-nowrap">
-                            🏆 {deck.placement}
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] sm:text-[10px] font-medium text-gray-200 whitespace-nowrap">
+                            <Trophy className="w-2.5 h-2.5 text-amber-400/90 flex-shrink-0" />
+                            <span>{deck.placement}</span>
                           </span>
                         )}
                         {deck.tournamentType && (
-                          <span className="px-1.5 py-0.5 rounded bg-purple-500/15 border border-purple-500/30 text-[9px] sm:text-[10px] font-bold text-purple-300 truncate max-w-[130px]">
+                          <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] sm:text-[10px] font-medium text-gray-400 truncate max-w-[130px]">
                             {deck.tournamentType}
                           </span>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1.5 flex-wrap mt-1">
-                        <span className="font-mono text-[10px] sm:text-xs font-bold text-gray-400">
+                      <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                        <span className="font-mono text-[10px] sm:text-xs font-semibold text-gray-400">
                           {deck.leaderId}
                         </span>
                         {isTier1 && (
-                          <span className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-[9px] sm:text-[10px] font-black text-amber-300 whitespace-nowrap">
+                          <span className="px-1.5 py-0.5 rounded bg-white/10 border border-white/15 text-[9px] sm:text-[10px] font-bold text-gray-200 uppercase tracking-wider whitespace-nowrap">
                             TIER 1
                           </span>
                         )}
                         {deck.record && (
-                          <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-[9px] sm:text-[10px] font-bold text-emerald-400 whitespace-nowrap">
+                          <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] sm:text-[10px] font-mono font-medium text-gray-300 whitespace-nowrap">
                             Record {deck.record}
                           </span>
                         )}
                         {deck.winrate && deck.winrate !== '0%' && (
-                          <span className="text-[9px] sm:text-[10px] font-bold text-emerald-400 whitespace-nowrap">
+                          <span className="text-[9px] sm:text-[10px] font-semibold text-emerald-400 whitespace-nowrap">
                             {deck.winrate} WR
                           </span>
                         )}
@@ -390,7 +393,7 @@ export default function RecommendedDecksPage() {
                     />
 
                     {/* Tournament / Release Date Pill */}
-                    <div className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl bg-[#1b1e2a] border border-[#313648] text-[10px] sm:text-[11px] font-bold font-mono text-gray-300 shadow-inner mt-2 sm:mt-4 group-hover:border-gray-500 transition-colors whitespace-nowrap">
+                    <div className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg bg-[#1b1e2a] border border-[#2d3242] text-[10px] sm:text-[11px] font-medium font-mono text-gray-400 mt-2 sm:mt-4 group-hover:border-gray-500 transition-colors whitespace-nowrap">
                       {deck.date}
                     </div>
                   </div>

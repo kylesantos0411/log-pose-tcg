@@ -212,13 +212,15 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
               {/* Pilot & Tournament Placement row */}
               <div className="flex items-center gap-1.5 flex-wrap mt-2">
                 {deck.player && (
-                  <span className="px-1.5 py-0.5 rounded bg-blue-500/20 border border-blue-500/30 text-[9px] sm:text-[10px] font-bold text-blue-300 truncate max-w-[150px]">
-                    👤 {deck.player}
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] sm:text-[10px] font-medium text-gray-300 truncate max-w-[150px]">
+                    <User className="w-2.5 h-2.5 text-gray-400 flex-shrink-0" />
+                    <span className="truncate">{deck.player}</span>
                   </span>
                 )}
                 {deck.placement && (
-                  <span className="px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-[9px] sm:text-[10px] font-black text-amber-300 whitespace-nowrap">
-                    🏆 {deck.placement}
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] sm:text-[10px] font-medium text-gray-200 whitespace-nowrap">
+                    <Trophy className="w-2.5 h-2.5 text-amber-400/90 flex-shrink-0" />
+                    <span>{deck.placement}</span>
                   </span>
                 )}
               </div>
@@ -227,7 +229,7 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
             {/* Middle row: Winrate pill & Record */}
             <div className="flex items-center justify-end gap-1.5 mt-2">
               {deck.record && (
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[10px] sm:text-xs font-bold text-emerald-400 font-mono">
+                <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[10px] sm:text-xs font-medium text-gray-300 font-mono">
                   {deck.record}
                 </span>
               )}
@@ -280,7 +282,7 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
             </div>
 
             <span className="text-[11px] font-bold text-gray-400">
-              {currency === 'source' ? '🇯🇵 Native JPY' : `Converted ${currency}`}
+              {currency === 'source' ? 'Native JPY' : `Converted ${currency}`}
             </span>
           </div>
         )}
