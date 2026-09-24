@@ -827,17 +827,8 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
             </div>
           )}
 
-          {/* Guest Mode Notice */}
-          <div className="pt-2 text-center">
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-[11px] font-medium text-gray-400 hover:text-gray-200 transition cursor-pointer"
-            >
-              Continue in Guest Mode (Offline Binder) &rarr;
-            </button>
-          </div>
         </div>
+
       </div>
     </div>
   );
