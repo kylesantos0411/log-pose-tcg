@@ -394,7 +394,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register', isManda
                   type="text"
                   required
                   maxLength={24}
-                  placeholder="e.g. kyle_tcg"
+                  placeholder="Enter your username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#f45d6a] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition shadow-inner font-medium"
@@ -476,7 +476,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register', isManda
                 <input
                   type="text"
                   required
-                  placeholder="e.g. POSE-TT9W-BGZ2"
+                  placeholder="POSE-XXXX-XXXX"
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                   className="w-full bg-[#181a24] border border-[#343a4c] focus:border-purple-500 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 outline-none transition font-mono font-bold tracking-widest uppercase"
@@ -696,7 +696,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register', isManda
                   <input
                     type="text"
                     required
-                    placeholder="e.g. kyle_tcg or name@example.com"
+                    placeholder="Enter username or email"
                     value={loginIdentifier}
                     onChange={(e) => setLoginIdentifier(e.target.value)}
                     className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#3b82f6] rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-gray-500 outline-none transition font-medium"
