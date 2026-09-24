@@ -11,22 +11,20 @@ import {
   HelpCircle, 
   Globe, 
   Sparkles,
-  Eye,
-  EyeOff,
-  Star,
-  Download,
-  Upload,
-  FileJson,
-  Bug,
-  ChevronRight,
-  LogIn,
-  LogOut,
-  AlertTriangle,
-  Heart,
-  Smartphone,
-  User
+  Star, 
+  Download, 
+  Upload, 
+  FileJson, 
+  Bug, 
+  ChevronRight, 
+  LogIn, 
+  LogOut, 
+  AlertTriangle, 
+  Heart, 
+  Smartphone, 
+  User 
 } from 'lucide-react';
-import { useSettings, CURRENCIES, CurrencyCode, PriceSource } from '@/context/SettingsContext';
+import { useSettings, CURRENCIES, CurrencyCode } from '@/context/SettingsContext';
 import { SupportModal } from '@/components/SupportModal';
 import { AccountModal } from '@/components/AccountModal';
 import { exportBinderToJSON, importBinderFromJSON, getLocalBinder } from '@/lib/user-collection';
@@ -35,19 +33,16 @@ export function SettingsModal() {
   const { 
     currency, 
     setCurrency, 
-    altArtStyle,
-    setAltArtStyle,
-    enabledPriceSources,
-    togglePriceSource,
+    altArtStyle, 
+    setAltArtStyle, 
     isSettingsOpen, 
     closeSettings, 
-    formatPrice,
-    shareCrashReports,
-    setShareCrashReports,
-    user,
-    login,
-    logout,
-    clearUserData
+    shareCrashReports, 
+    setShareCrashReports, 
+    user, 
+    login, 
+    logout, 
+    clearUserData 
   } = useSettings();
 
   const [copiedNotification, setCopiedNotification] = useState<string | null>(null);
@@ -59,14 +54,6 @@ export function SettingsModal() {
   const [isDownloading, setIsDownloading] = useState(false);
 
   if (!isSettingsOpen) return null;
-
-  // Sample card price of $25.00 for live preview
-  const sampleUsd = 25.0;
-  const sampleYuyu = formatPrice(sampleUsd, { source: 'yuyutei' });
-  const sampleCardmarket = formatPrice(sampleUsd, { source: 'cardmarket' });
-  const sampleEbay = formatPrice(sampleUsd, { source: 'ebay' });
-  const sampleSnkrdunk = formatPrice(sampleUsd, { source: 'snkrdunk' });
-  const samplePsa = formatPrice(sampleUsd * 2.85, { source: 'psa' });
 
   const handleSelectCurrency = (code: CurrencyCode) => {
     setCurrency(code);
@@ -208,206 +195,6 @@ export function SettingsModal() {
                     </button>
                   );
                 })}
-            </div>
-          </div>
-
-          {/* Real-Time Price Preview & Marketplace Visibility Toggles */}
-          <div className="p-4 rounded-2xl bg-[#1e212c] border border-[#32384a] space-y-2.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-gray-300 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-[#e76d78]" />
-                Live Price Preview &amp; Visibility
-              </span>
-              <span className="text-[10px] text-gray-400">
-                Mode: {currency === 'source' ? 'Source Native' : `${currency} Converted`}
-              </span>
-            </div>
-
-            <p className="text-[11px] text-gray-400">
-              Tap any marketplace below to toggle its pricing box and chart curve on or off across the app.
-            </p>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 pt-1">
-              {/* Yuyu-tei */}
-              <button
-                type="button"
-                onClick={() => {
-                  togglePriceSource('yuyutei');
-                  setCopiedNotification(enabledPriceSources.yuyutei ? 'Yuyu-tei pricing hidden' : 'Yuyu-tei pricing enabled');
-                  setTimeout(() => setCopiedNotification(null), 2500);
-                }}
-                className={`p-2.5 rounded-xl border text-center transition cursor-pointer flex flex-col justify-between items-center ${
-                  enabledPriceSources.yuyutei
-                    ? 'bg-[#242836] border-[#3b82f6] shadow-sm hover:border-[#60a5fa]'
-                    : 'bg-[#181a24] border-dashed border-gray-700 opacity-50 hover:opacity-75'
-                }`}
-                title="Click to toggle Yuyu-tei"
-              >
-                <div className="flex items-center justify-between w-full text-[10px] text-gray-300 font-bold mb-1">
-                  <div className="flex items-center gap-1.5">
-                    <img src="/logos/yuyutei.png" alt="Yuyu-tei" className="w-3.5 h-3.5 object-contain rounded-full bg-white p-0.5" />
-                    <span>Yuyu-tei</span>
-                  </div>
-                  <span className={`px-1 rounded text-[8px] font-black ${
-                    enabledPriceSources.yuyutei ? 'bg-[#3b82f6]/20 text-[#60a5fa]' : 'bg-gray-800 text-gray-500'
-                  }`}>
-                    {enabledPriceSources.yuyutei ? 'ON' : 'OFF'}
-                  </span>
-                </div>
-                <div className={`text-xs sm:text-sm font-black transition ${
-                  enabledPriceSources.yuyutei ? 'text-[#f59e0b]' : 'text-gray-500 line-through'
-                }`}>
-                  {sampleYuyu.full}
-                </div>
-                <div className="text-[9px] text-gray-500 mt-1 flex items-center gap-1">
-                  {enabledPriceSources.yuyutei ? <Eye className="w-2.5 h-2.5 text-[#3b82f6]" /> : <EyeOff className="w-2.5 h-2.5 text-gray-600" />}
-                  <span>{enabledPriceSources.yuyutei ? 'Showing' : 'Hidden'}</span>
-                </div>
-              </button>
-
-              {/* Cardmarket */}
-              <button
-                type="button"
-                onClick={() => {
-                  togglePriceSource('cardmarket');
-                  setCopiedNotification(enabledPriceSources.cardmarket ? 'Cardmarket pricing hidden' : 'Cardmarket pricing enabled');
-                  setTimeout(() => setCopiedNotification(null), 2500);
-                }}
-                className={`p-2.5 rounded-xl border text-center transition cursor-pointer flex flex-col justify-between items-center ${
-                  enabledPriceSources.cardmarket
-                    ? 'bg-[#242836] border-[#0284c7] shadow-sm hover:border-[#38bdf8]'
-                    : 'bg-[#181a24] border-dashed border-gray-700 opacity-50 hover:opacity-75'
-                }`}
-                title="Click to toggle Cardmarket"
-              >
-                <div className="flex items-center justify-between w-full text-[10px] text-gray-300 font-bold mb-1">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <img src="/logos/cardmarket.svg" alt="Cardmarket" className="w-3.5 h-3.5 object-contain" />
-                    <span className="truncate">Cardmarket</span>
-                  </div>
-                  <span className={`px-1 rounded text-[8px] font-black ${
-                    enabledPriceSources.cardmarket ? 'bg-sky-500/20 text-sky-400' : 'bg-gray-800 text-gray-500'
-                  }`}>
-                    {enabledPriceSources.cardmarket ? 'ON' : 'OFF'}
-                  </span>
-                </div>
-                <div className={`text-xs sm:text-sm font-black transition ${
-                  enabledPriceSources.cardmarket ? 'text-sky-400' : 'text-gray-500 line-through'
-                }`}>
-                  {sampleCardmarket.full}
-                </div>
-                <div className="text-[9px] text-gray-500 mt-1 flex items-center gap-1">
-                  {enabledPriceSources.cardmarket ? <Eye className="w-2.5 h-2.5 text-[#0284c7]" /> : <EyeOff className="w-2.5 h-2.5 text-gray-600" />}
-                  <span>{enabledPriceSources.cardmarket ? 'Showing' : 'Hidden'}</span>
-                </div>
-              </button>
-
-              {/* SNKRDUNK */}
-              <button
-                type="button"
-                onClick={() => {
-                  togglePriceSource('snkrdunk');
-                  setCopiedNotification(enabledPriceSources.snkrdunk ? 'SNKRDUNK pricing hidden' : 'SNKRDUNK pricing enabled');
-                  setTimeout(() => setCopiedNotification(null), 2500);
-                }}
-                className={`p-2.5 rounded-xl border text-center transition cursor-pointer flex flex-col justify-between items-center ${
-                  enabledPriceSources.snkrdunk
-                    ? 'bg-[#242836] border-[#10b981] shadow-sm hover:border-[#34d399]'
-                    : 'bg-[#181a24] border-dashed border-gray-700 opacity-50 hover:opacity-75'
-                }`}
-                title="Click to toggle SNKRDUNK"
-              >
-                <div className="flex items-center justify-between w-full text-[10px] text-gray-300 font-bold mb-1">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="w-3.5 h-3.5 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-[8px] flex items-center justify-center flex-shrink-0">
-                      SD
-                    </span>
-                    <span className="truncate">SNKRDUNK</span>
-                  </div>
-                  <span className={`px-1 rounded text-[8px] font-black ${
-                    enabledPriceSources.snkrdunk ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-800 text-gray-500'
-                  }`}>
-                    {enabledPriceSources.snkrdunk ? 'ON' : 'OFF'}
-                  </span>
-                </div>
-                <div className={`text-xs sm:text-sm font-black transition ${
-                  enabledPriceSources.snkrdunk ? 'text-emerald-400' : 'text-gray-500 line-through'
-                }`}>
-                  {sampleSnkrdunk.full}
-                </div>
-                <div className="text-[9px] text-gray-500 mt-1 flex items-center gap-1">
-                  {enabledPriceSources.snkrdunk ? <Eye className="w-2.5 h-2.5 text-[#10b981]" /> : <EyeOff className="w-2.5 h-2.5 text-gray-600" />}
-                  <span>{enabledPriceSources.snkrdunk ? 'Showing' : 'Hidden'}</span>
-                </div>
-              </button>
-
-              {/* eBay */}
-              <button
-                type="button"
-                onClick={() => {
-                  togglePriceSource('ebay');
-                  setCopiedNotification(enabledPriceSources.ebay ? 'eBay pricing hidden' : 'eBay pricing enabled');
-                  setTimeout(() => setCopiedNotification(null), 2500);
-                }}
-                className={`p-2.5 rounded-xl border text-center transition cursor-pointer flex flex-col justify-between items-center ${
-                  enabledPriceSources.ebay
-                    ? 'bg-[#242836] border-[#84cc16] shadow-sm hover:border-[#a3e635]'
-                    : 'bg-[#181a24] border-dashed border-gray-700 opacity-50 hover:opacity-75'
-                }`}
-                title="Click to toggle eBay"
-              >
-                <div className="flex items-center justify-between w-full text-[10px] text-gray-300 font-bold mb-1">
-                  <span>eBay</span>
-                  <span className={`px-1 rounded text-[8px] font-black ${
-                    enabledPriceSources.ebay ? 'bg-lime-500/20 text-lime-400' : 'bg-gray-800 text-gray-500'
-                  }`}>
-                    {enabledPriceSources.ebay ? 'ON' : 'OFF'}
-                  </span>
-                </div>
-                <div className={`text-xs sm:text-sm font-black transition ${
-                  enabledPriceSources.ebay ? 'text-[#3b82f6]' : 'text-gray-500 line-through'
-                }`}>
-                  {sampleEbay.full}
-                </div>
-                <div className="text-[9px] text-gray-500 mt-1 flex items-center gap-1">
-                  {enabledPriceSources.ebay ? <Eye className="w-2.5 h-2.5 text-[#84cc16]" /> : <EyeOff className="w-2.5 h-2.5 text-gray-600" />}
-                  <span>{enabledPriceSources.ebay ? 'Showing' : 'Hidden'}</span>
-                </div>
-              </button>
-
-              {/* PSA */}
-              <button
-                type="button"
-                onClick={() => {
-                  togglePriceSource('psa');
-                  setCopiedNotification(enabledPriceSources.psa ? 'PSA pricing hidden' : 'PSA pricing enabled');
-                  setTimeout(() => setCopiedNotification(null), 2500);
-                }}
-                className={`p-2.5 rounded-xl border text-center transition cursor-pointer flex flex-col justify-between items-center ${
-                  enabledPriceSources.psa
-                    ? 'bg-[#242836] border-[#ef4444] shadow-sm hover:border-[#f87171]'
-                    : 'bg-[#181a24] border-dashed border-gray-700 opacity-50 hover:opacity-75'
-                }`}
-                title="Click to toggle PSA"
-              >
-                <div className="flex items-center justify-between w-full text-[10px] text-gray-300 font-bold mb-1">
-                  <span>PSA (Slab)</span>
-                  <span className={`px-1 rounded text-[8px] font-black ${
-                    enabledPriceSources.psa ? 'bg-red-500/20 text-red-400' : 'bg-gray-800 text-gray-500'
-                  }`}>
-                    {enabledPriceSources.psa ? 'ON' : 'OFF'}
-                  </span>
-                </div>
-                <div className={`text-xs sm:text-sm font-black transition ${
-                  enabledPriceSources.psa ? 'text-red-400' : 'text-gray-500 line-through'
-                }`}>
-                  {samplePsa.full}
-                </div>
-                <div className="text-[9px] text-gray-500 mt-1 flex items-center gap-1">
-                  {enabledPriceSources.psa ? <Eye className="w-2.5 h-2.5 text-[#ef4444]" /> : <EyeOff className="w-2.5 h-2.5 text-gray-600" />}
-                  <span>{enabledPriceSources.psa ? 'Showing' : 'Hidden'}</span>
-                </div>
-              </button>
             </div>
           </div>
 
