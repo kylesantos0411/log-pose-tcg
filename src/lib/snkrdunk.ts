@@ -63,9 +63,9 @@ export function matchCardToApparel(card: any, apparels: SnkrdunkApparel[]): Snkr
   let candidates = apparels.filter((a) => {
     const loc = a.localizedName || a.name || '';
     const n = a.name || '';
-    const isEn = loc.includes('【英語版】') || n.includes('[EN]');
-    const isCn = loc.includes('【中国語版】') || n.includes('[CN]');
-    const isAsia = loc.includes('【アジア版】') || n.includes('[Aisa ver.]');
+    const isEn = loc.includes('【英語版】') || n.includes('[EN]') || n.includes('English');
+    const isCn = loc.includes('【中国語版】') || n.includes('[CN]') || n.includes('[CHN]');
+    const isAsia = loc.includes('【アジア版】') || n.includes('[Aisa ver.]') || n.includes('For Asia');
     if (card.hasJpPrint === false) {
       return isEn;
     }
@@ -75,28 +75,47 @@ export function matchCardToApparel(card: any, apparels: SnkrdunkApparel[]): Snkr
   if (candidates.length === 0) candidates = apparels;
 
   const cardNum = (card.cardNumber || card.card_number || card.id.split('_')[0]).toUpperCase();
-  const isManga =
-    card.id.includes('_p2') ||
-    (card.yuyuteiTitle && (card.yuyuteiTitle.includes('スーパーパラレル') || card.yuyuteiTitle.includes('コミパラ'))) ||
-    (card.name && card.name.toLowerCase().includes('manga'));
-  const isParallel =
+
+  // Manga identification: ONLY if explicitly marked as Super Parallel / Comic Parallel / Manga
+  const isManga = Boolean(
+    (card.yuyuteiTitle && (card.yuyuteiTitle.includes('スーパーパラレル') || card.yuyuteiTitle.includes('コミパラ') || card.yuyuteiTitle.toLowerCase().includes('manga'))) ||
+    (card.name && card.name.toLowerCase().includes('manga')) ||
+    ['OP05-119_p2', 'OP01-120_p2', 'OP02-013_p2', 'OP04-083_p2', 'OP06-118_p2', 'OP07-109_p2', 'OP08-118_p2', 'OP09-119_p2', 'EB01-006_p2'].includes(card.id)
+  );
+
+  // Parallel identification
+  const isParallel = Boolean(
     card.isAltArt ||
     card.id.includes('_p') ||
-    (card.yuyuteiTitle && card.yuyuteiTitle.includes('パラレル'));
+    card.rarity === 'SP' ||
+    card.rarity === 'Special' ||
+    (card.yuyuteiTitle && (card.yuyuteiTitle.includes('パラレル') || card.yuyuteiTitle.includes('SP') || card.yuyuteiTitle.includes('箔押し')))
+  );
+
+  // Special card (-SPC, -SP, Anime 25th, etc.)
+  const isSpecial = Boolean(
+    card.rarity === 'SP' ||
+    card.rarity === 'Special' ||
+    (card.yuyuteiTitle && (card.yuyuteiTitle.includes('SP') || card.yuyuteiTitle.includes('手配書') || card.yuyuteiTitle.includes('箔押し') || card.yuyuteiTitle.includes('スペシャル'))) ||
+    (card.pack?.code === 'EB-02' && card.id.includes('_p')) ||
+    (card.pack?.name && card.pack.name.includes('25th'))
+  );
+
   const isReprint = card.pack?.code === 'PRB-01' || (card.pack?.name && card.pack.name.includes('BEST'));
-  const isPromo = Boolean(card.promoSource || card.id.startsWith('P-') || card.pack?.code?.startsWith('P-'));
+  const isPromo = Boolean(card.promoSource || card.id.startsWith('P-') || card.pack?.code?.startsWith('P-') || card.pack?.code === 'PROMO');
 
   const scored = candidates.map((app) => {
-    let score = 0;
-    const title = (app.localizedName || app.name || '').toLowerCase();
+    let score = 100; // Positive baseline
     const rawTitle = app.localizedName || app.name || '';
     const rawName = app.name || '';
+    const title = rawTitle.toLowerCase();
+    const name = rawName.toLowerCase();
 
     // Must match card number
-    if (!title.includes(cardNum.toLowerCase())) {
-      score -= 50;
+    if (!title.includes(cardNum.toLowerCase()) && !name.includes(cardNum.toLowerCase())) {
+      score -= 80;
     } else {
-      score += 20;
+      score += 40;
     }
 
     // Manga / Comic Parallel matching
@@ -108,34 +127,47 @@ export function matchCardToApparel(card: any, apparels: SnkrdunkApparel[]): Snkr
       rawName.includes('Comic Parallel');
 
     if (isManga) {
-      if (appIsManga) score += 60;
-      else score -= 50;
+      if (appIsManga) score += 80;
+      else score -= 60;
     } else {
-      if (appIsManga) score -= 50;
+      if (appIsManga) score -= 60;
     }
 
-    // Parallel matching (when not manga)
-    if (!isManga && isParallel) {
-      const appIsParallel =
-        rawTitle.includes('-P ') ||
-        rawTitle.includes('-P[') ||
-        rawTitle.includes('パラレル') ||
-        rawTitle.includes('Parallel') ||
-        rawName.includes('-P ') ||
-        rawName.includes('-P[');
+    // Special card (-SPC, -SP) matching
+    const appIsSpecial =
+      rawTitle.includes('-SPC') ||
+      rawTitle.includes('-SP ') ||
+      rawTitle.includes('-SP[') ||
+      rawTitle.includes('手配書') ||
+      rawTitle.includes('Wanted') ||
+      rawTitle.includes('スペシャル') ||
+      rawName.includes('-SPC') ||
+      rawName.includes('-SP ') ||
+      rawName.includes('-SP[');
 
-      if (appIsParallel && !appIsManga) score += 40;
-      else if (!appIsParallel) score -= 30;
-    } else if (!isManga && !isParallel) {
-      const appIsParallel =
-        rawTitle.includes('-P ') ||
-        rawTitle.includes('-P[') ||
-        rawTitle.includes('パラレル') ||
-        rawTitle.includes('Parallel') ||
-        rawName.includes('-P ') ||
-        appIsManga;
+    if (isSpecial) {
+      if (appIsSpecial && !appIsManga) score += 60;
+      else if (!appIsSpecial) score -= 20;
+    } else {
+      if (appIsSpecial && !isParallel && !isManga) score -= 40;
+    }
 
-      if (!appIsParallel) score += 30;
+    // Standard Parallel matching
+    const appIsStandardParallel =
+      (rawTitle.includes('-P ') ||
+       rawTitle.includes('-P[') ||
+       rawTitle.includes('-P(') ||
+       rawTitle.includes('パラレル') ||
+       rawTitle.includes('Parallel') ||
+       rawName.includes('-P ') ||
+       rawName.includes('-P[') ||
+       rawName.includes('-P(')) && !appIsManga && !appIsSpecial;
+
+    if (isParallel && !isManga && !isSpecial) {
+      if (appIsStandardParallel) score += 50;
+      else score -= 30;
+    } else if (!isParallel && !isManga && !isSpecial) {
+      if (!appIsStandardParallel && !appIsManga && !appIsSpecial) score += 40;
       else score -= 40;
     }
 
@@ -152,42 +184,42 @@ export function matchCardToApparel(card: any, apparels: SnkrdunkApparel[]): Snkr
       if (appIsTheBest) score -= 40;
     }
 
-    // Promo / Special Trophy matching
+    // Promo matching
     const appIsPromo =
       rawTitle.includes('記念品') ||
       rawTitle.includes('シリアルナンバー') ||
       rawTitle.includes('フラッグシップ') ||
       rawTitle.includes('チャンピオンシップ') ||
+      rawTitle.includes('Promotional') ||
       rawName.includes('Flagship') ||
-      rawName.includes('Serial');
+      rawName.includes('Serial') ||
+      rawName.includes('Promotional');
 
     if (isPromo) {
       if (appIsPromo) score += 40;
     } else {
-      if (appIsPromo) score -= 60; // Strongly penalize trophy/promo cards when matching standard pack cards
+      if (appIsPromo) score -= 50;
     }
 
-    // Set Name matching
+    // Pack / Set Name matching
     if (card.pack?.name) {
       const pName = card.pack.name.toLowerCase();
-      if (pName.includes('straw hat') && (rawTitle.includes('麦わらの一味') || rawTitle.includes('スタートデッキ') || rawName.includes('Straw Hat'))) score += 30;
-      if (pName.includes('romance dawn') && (rawTitle.includes('ロマンスドーン') || rawTitle.includes('ROMANCE DAWN') || rawName.includes('ROMANCE DAWN'))) score += 30;
-      if (pName.includes('new era') && (rawTitle.includes('新時代の主役') || rawTitle.includes('Awakening') || rawName.includes('New Era'))) score += 30;
-      if (pName.includes('paramount war') && (rawTitle.includes('頂上決戦') || rawTitle.includes('Paramount') || rawName.includes('Paramount'))) score += 30;
-      if (pName.includes('pillars of strength') && (rawTitle.includes('強大な敵') || rawTitle.includes('Pillars'))) score += 30;
-      if (pName.includes('kingdoms of intrigue') && (rawTitle.includes('謀略の王国') || rawTitle.includes('Kingdoms'))) score += 30;
-      if (pName.includes('wings of the captain') && (rawTitle.includes('双璧の覇者') || rawTitle.includes('Wings'))) score += 30;
-      if (pName.includes('500 years') && (rawTitle.includes('500年後の未来') || rawTitle.includes('500 Years'))) score += 30;
-      if (pName.includes('two legends') && (rawTitle.includes('二つの伝説') || rawTitle.includes('Two Legends'))) score += 30;
-      if (pName.includes('emperors') && (rawTitle.includes('新たなる皇帝') || rawTitle.includes('Emperors'))) score += 30;
-      if (pName.includes('royal blood') && (rawTitle.includes('王族の血統') || rawTitle.includes('Royal Blood'))) score += 30;
+      const cleanTokens = pName
+        .replace(/[^a-z0-9 ]/g, ' ')
+        .split(/\s+/)
+        .filter((w: string) => w.length > 3 && !['pack', 'booster', 'card', 'deck'].includes(w));
+      for (const token of cleanTokens) {
+        if (title.includes(token) || name.includes(token)) {
+          score += 25;
+        }
+      }
     }
 
     return { app, score };
   });
 
   scored.sort((a, b) => b.score - a.score);
-  return scored[0]?.score > 0 ? scored[0].app : null;
+  return scored[0]?.app || null;
 }
 
 export async function fetchSnkrdunkPricing(card: any): Promise<SnkrdunkPricing | null> {
@@ -303,7 +335,12 @@ export async function fetchSnkrdunkPricing(card: any): Promise<SnkrdunkPricing |
     const psa8 = psa8List.length > 0 ? psa8List[0] : null;
 
     // User Requirement 4: BGS exact grades only. Lowest active listing.
-    const bgs10List = [...(grouped['BGS10 BL'] || []), ...(grouped['BGS10 GL'] || [])].sort((a, b) => a - b);
+    const bgs10List = [
+      ...(grouped['BGS10 BL'] || []),
+      ...(grouped['BGS10 GL'] || []),
+      ...(grouped['BGS10'] || []),
+      ...(grouped['tradingCardSingleConditionBGS10'] || []),
+    ].sort((a, b) => a - b);
     const bgs95List = grouped['BGS9.5'] || grouped['tradingCardSingleConditionBGS95'] || [];
     const bgs10 = bgs10List.length > 0 ? bgs10List[0] : null;
     const bgs95 = bgs95List.length > 0 ? bgs95List[0] : null;
@@ -311,13 +348,18 @@ export async function fetchSnkrdunkPricing(card: any): Promise<SnkrdunkPricing |
     // User Requirement 5: ARS exact grades only. Lowest active listing.
     const ars10plusList = grouped['ARS10+'] || grouped['tradingCardSingleConditionARS10plus'] || [];
     const ars10List = grouped['ARS10'] || grouped['tradingCardSingleConditionARS10'] || [];
-    const ars9List = grouped['ARS9'] || [];
+    const ars9List = grouped['ARS9'] || grouped['tradingCardSingleConditionARS9'] || [];
     const ars10plus = ars10plusList.length > 0 ? ars10plusList[0] : null;
     const ars10 = ars10List.length > 0 ? ars10List[0] : null;
     const ars9 = ars9List.length > 0 ? ars9List[0] : null;
 
     // CGC / Other:
-    const cgcList = grouped['他鑑定品'] || grouped['tradingCardSingleConditionOtherGradingCompany'] || [];
+    const cgcList =
+      grouped['他鑑定品'] ||
+      grouped['tradingCardSingleConditionOtherGradingCompany'] ||
+      grouped['CGC10'] ||
+      grouped['CGC'] ||
+      [];
     const cgc10 = cgcList.length > 0 ? cgcList[0] : null;
 
     const result: SnkrdunkPricing = {
