@@ -30,7 +30,7 @@ import {
 } from '@/lib/supabase-sync';
 
 export type CurrencyCode =
-  | 'source' // Default: uses each marketplace source's native currency (Yuyu-tei: JPY ¥, TCGPlayer/eBay/PSA: USD $)
+  | 'source' // Default: uses each marketplace source's native currency (Yuyu-tei: JPY ¥, Cardmarket: EUR €, eBay/PSA: USD $)
   | 'USD'
   | 'JPY'
   | 'EUR'
@@ -58,7 +58,7 @@ export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
     symbol: 'Auto',
     flag: '🌐',
     rateToUSD: 1.0,
-    description: 'Uses each marketplace original currency (Yuyu-tei: ¥ JPY, TCGPlayer/eBay/PSA: $ USD)',
+    description: 'Uses each marketplace original currency (Yuyu-tei: ¥ JPY, Cardmarket: € EUR, eBay/PSA: $ USD)',
   },
   USD: {
     code: 'USD',
@@ -67,7 +67,7 @@ export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
     symbol: '$',
     flag: '🇺🇸',
     rateToUSD: 1.0,
-    description: 'Universal benchmark currency used by TCGPlayer, eBay US, and PSA',
+    description: 'Universal benchmark currency used by Cardmarket conversion, eBay US, and PSA',
   },
   JPY: {
     code: 'JPY',
@@ -142,11 +142,11 @@ interface FormattedPriceResult {
   currencyCode: string;
 }
 
-export type PriceSource = 'yuyutei' | 'tcgplayer' | 'ebay' | 'psa';
+export type PriceSource = 'yuyutei' | 'cardmarket' | 'ebay' | 'psa';
 
 export interface EnabledPriceSources {
   yuyutei: boolean;
-  tcgplayer: boolean;
+  cardmarket: boolean;
   ebay: boolean;
   psa: boolean;
 }
@@ -212,7 +212,7 @@ interface SettingsContextType {
   formatPrice: (
     amountUSD: number,
     options?: {
-      source?: 'yuyutei' | 'tcgplayer' | 'ebay' | 'psa' | 'generic';
+      source?: 'yuyutei' | 'cardmarket' | 'ebay' | 'psa' | 'generic';
       lang?: 'en' | 'jp';
       decimals?: number;
       /** Pass the raw JPY amount directly when source=yuyutei so no USD→JPY conversion is needed */
@@ -222,11 +222,11 @@ interface SettingsContextType {
   convertPrice: (
     amountUSD: number,
     targetCurrency?: CurrencyCode,
-    source?: 'yuyutei' | 'tcgplayer' | 'ebay' | 'psa' | 'generic'
+    source?: 'yuyutei' | 'cardmarket' | 'ebay' | 'psa' | 'generic'
   ) => number;
   /** Format a raw JPY price (Yuyu-tei) into the user's chosen currency */
   formatYuyuPrice: (yenAmount: number) => FormattedPriceResult;
-  /** Format a raw USD price (TCGPlayer/eBay/PSA) into the user's chosen currency */
+  /** Format a raw USD price (Cardmarket/eBay/PSA) into the user's chosen currency */
   formatUsdPrice: (usdAmount: number) => FormattedPriceResult;
 }
 
@@ -241,7 +241,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [altArtStyle, setAltArtStyleState] = useState<AltArtLabelStyle>('alt_art');
   const [enabledPriceSources, setEnabledPriceSourcesState] = useState<EnabledPriceSources>({
     yuyutei: true,
-    tcgplayer: true,
+    cardmarket: true,
     ebay: true,
     psa: true,
   });
@@ -276,7 +276,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           if (parsed && typeof parsed === 'object') {
             setEnabledPriceSourcesState({
               yuyutei: parsed.yuyutei !== false,
-              tcgplayer: parsed.tcgplayer !== false,
+              cardmarket: parsed.cardmarket !== undefined ? Boolean(parsed.cardmarket) : (parsed.tcgplayer !== false),
               ebay: parsed.ebay !== false,
               psa: parsed.psa !== false,
             });
@@ -674,7 +674,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const convertPrice = (
     amountUSD: number,
     targetCurrency?: CurrencyCode,
-    source: 'yuyutei' | 'tcgplayer' | 'ebay' | 'psa' | 'generic' = 'generic'
+    source: 'yuyutei' | 'cardmarket' | 'ebay' | 'psa' | 'generic' = 'generic'
   ): number => {
     const activeCurr = targetCurrency || currency;
 
@@ -682,6 +682,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       if (source === 'yuyutei') {
         // Yuyu-tei native is JPY
         return Math.round(amountUSD * 0.92 * 152);
+      }
+      if (source === 'cardmarket') {
+        // Cardmarket native is EUR
+        return Math.round(amountUSD * 0.92 * 100) / 100;
       }
       return amountUSD;
     }
@@ -693,7 +697,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const formatPrice = (
     amountUSD: number,
     options?: {
-      source?: 'yuyutei' | 'tcgplayer' | 'ebay' | 'psa' | 'generic';
+      source?: 'yuyutei' | 'cardmarket' | 'ebay' | 'psa' | 'generic';
       lang?: 'en' | 'jp';
       decimals?: number;
       rawJPY?: number;
@@ -721,6 +725,23 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
+      if (source === 'cardmarket') {
+        const eurVal = Math.round(amountUSD * 0.92 * 100) / 100;
+        return {
+          symbol: '€',
+          value: eurVal,
+          formatted: eurVal.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }),
+          full: `€${eurVal.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`,
+          currencyCode: 'EUR',
+        };
+      }
+
       if (source === 'generic' && lang === 'jp') {
         const yenVal = options?.rawJPY !== undefined ? Math.round(options.rawJPY) : Math.round(amountUSD * 152);
         return {
@@ -732,7 +753,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
-      // Default USD for TCGPlayer, eBay, PSA, and generic EN
+      // Default USD for eBay, PSA, and generic EN
       const val = amountUSD;
       const dec = decimals !== undefined ? decimals : val >= 100 ? 0 : 2;
       return {
@@ -811,7 +832,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   };
 
   /**
-   * formatUsdPrice — converts a raw USD market price (TCGPlayer / eBay / PSA) to the user's selected currency.
+   * formatUsdPrice — converts a raw USD market price (Cardmarket / eBay / PSA) to the user's selected currency.
    * Source of truth: marketPrice field in DB (already in USD $).
    */
   const formatUsdPrice = (usdAmount: number): FormattedPriceResult => {

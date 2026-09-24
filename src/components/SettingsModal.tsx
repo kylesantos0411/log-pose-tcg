@@ -62,7 +62,7 @@ export function SettingsModal() {
   // Sample card price of $25.00 for live preview
   const sampleUsd = 25.0;
   const sampleYuyu = formatPrice(sampleUsd, { source: 'yuyutei' });
-  const sampleTcg = formatPrice(sampleUsd, { source: 'tcgplayer' });
+  const sampleCardmarket = formatPrice(sampleUsd, { source: 'cardmarket' });
   const sampleEbay = formatPrice(sampleUsd, { source: 'ebay' });
   const samplePsa = formatPrice(sampleUsd * 2.85, { source: 'psa' });
 
@@ -155,7 +155,7 @@ export function SettingsModal() {
                       </span>
                     </div>
                     <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">
-                      Uses each marketplace original currency: <strong className="text-[#f59e0b] font-semibold">Yuyu-tei (¥ JPY)</strong>, and <strong className="text-emerald-400 font-semibold">TCGPlayer, eBay, PSA ($ USD)</strong>.
+                      Uses each marketplace original currency: <strong className="text-[#f59e0b] font-semibold">Yuyu-tei (¥ JPY)</strong>, <strong className="text-sky-400 font-semibold">Cardmarket (€ EUR)</strong>, and <strong className="text-emerald-400 font-semibold">eBay, PSA ($ USD)</strong>.
                     </p>
                   </div>
                 </div>
@@ -263,37 +263,40 @@ export function SettingsModal() {
                 </div>
               </button>
 
-              {/* TCGPlayer */}
+              {/* Cardmarket */}
               <button
                 type="button"
                 onClick={() => {
-                  togglePriceSource('tcgplayer');
-                  setCopiedNotification(enabledPriceSources.tcgplayer ? 'TCGPlayer pricing hidden' : 'TCGPlayer pricing enabled');
+                  togglePriceSource('cardmarket');
+                  setCopiedNotification(enabledPriceSources.cardmarket ? 'Cardmarket pricing hidden' : 'Cardmarket pricing enabled');
                   setTimeout(() => setCopiedNotification(null), 2500);
                 }}
                 className={`p-2.5 rounded-xl border text-center transition cursor-pointer flex flex-col justify-between items-center ${
-                  enabledPriceSources.tcgplayer
-                    ? 'bg-[#242836] border-[#f97316] shadow-sm hover:border-[#fb923c]'
+                  enabledPriceSources.cardmarket
+                    ? 'bg-[#242836] border-[#0284c7] shadow-sm hover:border-[#38bdf8]'
                     : 'bg-[#181a24] border-dashed border-gray-700 opacity-50 hover:opacity-75'
                 }`}
-                title="Click to toggle TCGPlayer"
+                title="Click to toggle Cardmarket"
               >
                 <div className="flex items-center justify-between w-full text-[10px] text-gray-300 font-bold mb-1">
-                  <span>TCGPlayer</span>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <img src="/logos/cardmarket.svg" alt="Cardmarket" className="w-3.5 h-3.5 object-contain" />
+                    <span className="truncate">Cardmarket</span>
+                  </div>
                   <span className={`px-1 rounded text-[8px] font-black ${
-                    enabledPriceSources.tcgplayer ? 'bg-orange-500/20 text-orange-400' : 'bg-gray-800 text-gray-500'
+                    enabledPriceSources.cardmarket ? 'bg-sky-500/20 text-sky-400' : 'bg-gray-800 text-gray-500'
                   }`}>
-                    {enabledPriceSources.tcgplayer ? 'ON' : 'OFF'}
+                    {enabledPriceSources.cardmarket ? 'ON' : 'OFF'}
                   </span>
                 </div>
                 <div className={`text-xs sm:text-sm font-black transition ${
-                  enabledPriceSources.tcgplayer ? 'text-emerald-400' : 'text-gray-500 line-through'
+                  enabledPriceSources.cardmarket ? 'text-sky-400' : 'text-gray-500 line-through'
                 }`}>
-                  {sampleTcg.full}
+                  {sampleCardmarket.full}
                 </div>
                 <div className="text-[9px] text-gray-500 mt-1 flex items-center gap-1">
-                  {enabledPriceSources.tcgplayer ? <Eye className="w-2.5 h-2.5 text-[#f97316]" /> : <EyeOff className="w-2.5 h-2.5 text-gray-600" />}
-                  <span>{enabledPriceSources.tcgplayer ? 'Showing' : 'Hidden'}</span>
+                  {enabledPriceSources.cardmarket ? <Eye className="w-2.5 h-2.5 text-[#0284c7]" /> : <EyeOff className="w-2.5 h-2.5 text-gray-600" />}
+                  <span>{enabledPriceSources.cardmarket ? 'Showing' : 'Hidden'}</span>
                 </div>
               </button>
 

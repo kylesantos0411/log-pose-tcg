@@ -41,12 +41,18 @@ export async function GET(req: NextRequest) {
     'asia-en.onepiece-cardgame.com',
     'card.yuyu-tei.jp',
     'yuyu-tei.jp',
+    'cardmarket.com',
+    'static.cardmarket.com',
     'tcgplayer.com',
     'tcgplayer-cdn.tcgplayer.com'
   ]);
 
   const hostname = parsedUrl.hostname.toLowerCase();
-  const isAllowed = ALLOWED_HOSTS.has(hostname) || hostname.endsWith('.onepiece-cardgame.com') || hostname.endsWith('.yuyu-tei.jp');
+  const isAllowed = 
+    ALLOWED_HOSTS.has(hostname) || 
+    hostname.endsWith('.onepiece-cardgame.com') || 
+    hostname.endsWith('.yuyu-tei.jp') ||
+    hostname.endsWith('.cardmarket.com');
 
   if (!isAllowed) {
     return new NextResponse('Forbidden host domain', { status: 403 });

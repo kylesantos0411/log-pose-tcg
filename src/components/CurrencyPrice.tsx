@@ -5,7 +5,7 @@ import { useSettings } from '@/context/SettingsContext';
 
 interface CurrencyPriceProps {
   amountUSD: number;
-  source?: 'yuyutei' | 'tcgplayer' | 'ebay' | 'psa' | 'generic';
+  source?: 'yuyutei' | 'cardmarket' | 'ebay' | 'psa' | 'generic';
   lang?: 'en' | 'jp';
   className?: string;
   decimals?: number;

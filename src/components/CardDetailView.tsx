@@ -92,7 +92,7 @@ interface CardDetailViewProps {
 interface ChartDataPoint {
   date: string;
   yuyuYen: number;
-  tcg: number;
+  cardmarket: number;
   ebay: number;
   psa: number;
 }
@@ -212,15 +212,15 @@ export function CardDetailView({
   const convertedYuyuYen = card.yuyuPrice ? (card.yuyuPrice / 152) : basePrice;
   const convertedYuyuYenChange = convertedYuyuYen * 0.0274;
 
-  const tcgPlayerPrice = card.marketPrice || 25.0;
-  const ebayPrice = Math.round(tcgPlayerPrice * 1.15 * 100) / 100;
-  const psaPrice = Math.round(tcgPlayerPrice * 2.85 * 100) / 100;
+  const cardmarketPrice = card.marketPrice || 25.0;
+  const ebayPrice = Math.round(cardmarketPrice * 1.15 * 100) / 100;
+  const psaPrice = Math.round(cardmarketPrice * 2.85 * 100) / 100;
 
   // Chart scaling dynamically adapted to enabled sources
   let activeMaxPrice = 10;
   if (enabledPriceSources.psa) activeMaxPrice = Math.max(activeMaxPrice, psaPrice);
   if (enabledPriceSources.ebay) activeMaxPrice = Math.max(activeMaxPrice, ebayPrice);
-  if (enabledPriceSources.tcgplayer) activeMaxPrice = Math.max(activeMaxPrice, tcgPlayerPrice);
+  if (enabledPriceSources.cardmarket) activeMaxPrice = Math.max(activeMaxPrice, cardmarketPrice);
   if (enabledPriceSources.yuyutei) activeMaxPrice = Math.max(activeMaxPrice, Math.round(yuyuteiYen / 152));
   const maxChartVal = Math.ceil((activeMaxPrice * 1.35) / 50) * 50 || 200;
   const step = Math.round(maxChartVal / 4);
@@ -399,7 +399,7 @@ export function CardDetailView({
   // External reference URLs for market pricing sources
   const cleanCardId = card.id.split('_')[0];
   const yuyuteiUrl = `https://yuyu-tei.jp/sell/opc/s/search?search_word=${encodeURIComponent(cleanCardId)}`;
-  const tcgplayerUrl = `https://www.tcgplayer.com/search/one-piece-card-game/product?q=${encodeURIComponent(card.id + ' ' + card.name)}`;
+  const cardmarketUrl = `https://www.cardmarket.com/en/OnePiece/Products/Search?searchString=${encodeURIComponent((card.cardNumber || cleanCardId) + ' ' + card.name)}`;
   const ebayUrl = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent('One Piece Card Game ' + card.id + ' ' + card.name)}`;
   const psaUrl = `https://www.psacard.com/search#q=${encodeURIComponent('One Piece ' + card.id)}`;
 
@@ -408,35 +408,35 @@ export function CardDetailView({
     if (timeframe === '7D') {
       const dates = ['09/15', '09/16', '09/17', '09/18', '09/19', '09/20', '09/21'];
       return [
-        { date: dates[0], yuyuYen: Math.round(yuyuteiYen * 0.96), tcg: Math.round(tcgPlayerPrice * 0.93), ebay: Math.round(ebayPrice * 0.95), psa: Math.round(psaPrice * 0.98) },
-        { date: dates[1], yuyuYen: Math.round(yuyuteiYen * 0.97), tcg: Math.round(tcgPlayerPrice * 0.94), ebay: Math.round(ebayPrice * 0.96), psa: Math.round(psaPrice * 0.98) },
-        { date: dates[2], yuyuYen: Math.round(yuyuteiYen * 0.97), tcg: Math.round(tcgPlayerPrice * 0.96), ebay: Math.round(ebayPrice * 0.98), psa: Math.round(psaPrice * 0.99) },
-        { date: dates[3], yuyuYen: Math.round(yuyuteiYen * 0.98), tcg: Math.round(tcgPlayerPrice * 0.96), ebay: Math.round(ebayPrice * 0.97), psa: Math.round(psaPrice * 0.99) },
-        { date: dates[4], yuyuYen: Math.round(yuyuteiYen * 0.99), tcg: Math.round(tcgPlayerPrice * 0.98), ebay: Math.round(ebayPrice * 1.01), psa: Math.round(psaPrice * 1.00) },
-        { date: dates[5], yuyuYen: Math.round(yuyuteiYen * 1.01), tcg: Math.round(tcgPlayerPrice * 1.02), ebay: Math.round(ebayPrice * 1.02), psa: Math.round(psaPrice * 1.01) },
-        { date: dates[6], yuyuYen: yuyuteiYen, tcg: tcgPlayerPrice, ebay: ebayPrice, psa: psaPrice },
+        { date: dates[0], yuyuYen: Math.round(yuyuteiYen * 0.96), cardmarket: Math.round(cardmarketPrice * 0.93), ebay: Math.round(ebayPrice * 0.95), psa: Math.round(psaPrice * 0.98) },
+        { date: dates[1], yuyuYen: Math.round(yuyuteiYen * 0.97), cardmarket: Math.round(cardmarketPrice * 0.94), ebay: Math.round(ebayPrice * 0.96), psa: Math.round(psaPrice * 0.98) },
+        { date: dates[2], yuyuYen: Math.round(yuyuteiYen * 0.97), cardmarket: Math.round(cardmarketPrice * 0.96), ebay: Math.round(ebayPrice * 0.98), psa: Math.round(psaPrice * 0.99) },
+        { date: dates[3], yuyuYen: Math.round(yuyuteiYen * 0.98), cardmarket: Math.round(cardmarketPrice * 0.96), ebay: Math.round(ebayPrice * 0.97), psa: Math.round(psaPrice * 0.99) },
+        { date: dates[4], yuyuYen: Math.round(yuyuteiYen * 0.99), cardmarket: Math.round(cardmarketPrice * 0.98), ebay: Math.round(ebayPrice * 1.01), psa: Math.round(psaPrice * 1.00) },
+        { date: dates[5], yuyuYen: Math.round(yuyuteiYen * 1.01), cardmarket: Math.round(cardmarketPrice * 1.02), ebay: Math.round(ebayPrice * 1.02), psa: Math.round(psaPrice * 1.01) },
+        { date: dates[6], yuyuYen: yuyuteiYen, cardmarket: cardmarketPrice, ebay: ebayPrice, psa: psaPrice },
       ];
     }
 
     if (timeframe === '1M') {
       // Matches the exact OP.TCG screenshot points: 04/27, 05/04, 05/12, 05/19, 05/26
       return [
-        { date: '04/27', yuyuYen: Math.round(yuyuteiYen * 0.62), tcg: Math.round(tcgPlayerPrice * 0.65), ebay: Math.round(ebayPrice * 0.47), psa: 0 },
-        { date: '05/04', yuyuYen: Math.round(yuyuteiYen * 0.65), tcg: Math.round(tcgPlayerPrice * 0.65), ebay: Math.round(ebayPrice * 0.47), psa: Math.round(psaPrice * 1.16) },
-        { date: '05/12', yuyuYen: Math.round(yuyuteiYen * 0.74), tcg: Math.round(tcgPlayerPrice * 0.74), ebay: Math.round(ebayPrice * 1.53), psa: Math.round(psaPrice * 1.16) },
-        { date: '05/19', yuyuYen: Math.round(yuyuteiYen * 0.95), tcg: Math.round(tcgPlayerPrice * 1.15), ebay: Math.round(ebayPrice * 1.12), psa: Math.round(psaPrice * 0.75) },
-        { date: '05/26', yuyuYen: yuyuteiYen, tcg: tcgPlayerPrice, ebay: ebayPrice, psa: psaPrice },
+        { date: '04/27', yuyuYen: Math.round(yuyuteiYen * 0.62), cardmarket: Math.round(cardmarketPrice * 0.65), ebay: Math.round(ebayPrice * 0.47), psa: 0 },
+        { date: '05/04', yuyuYen: Math.round(yuyuteiYen * 0.65), cardmarket: Math.round(cardmarketPrice * 0.65), ebay: Math.round(ebayPrice * 0.47), psa: Math.round(psaPrice * 1.16) },
+        { date: '05/12', yuyuYen: Math.round(yuyuteiYen * 0.74), cardmarket: Math.round(cardmarketPrice * 0.74), ebay: Math.round(ebayPrice * 1.53), psa: Math.round(psaPrice * 1.16) },
+        { date: '05/19', yuyuYen: Math.round(yuyuteiYen * 0.95), cardmarket: Math.round(cardmarketPrice * 1.15), ebay: Math.round(ebayPrice * 1.12), psa: Math.round(psaPrice * 0.75) },
+        { date: '05/26', yuyuYen: yuyuteiYen, cardmarket: cardmarketPrice, ebay: ebayPrice, psa: psaPrice },
       ];
     }
 
     // 3M
     return [
-      { date: '02/20', yuyuYen: Math.round(yuyuteiYen * 0.45), tcg: Math.round(tcgPlayerPrice * 0.45), ebay: Math.round(ebayPrice * 0.40), psa: 0 },
-      { date: '03/10', yuyuYen: Math.round(yuyuteiYen * 0.50), tcg: Math.round(tcgPlayerPrice * 0.50), ebay: Math.round(ebayPrice * 0.45), psa: 0 },
-      { date: '04/01', yuyuYen: Math.round(yuyuteiYen * 0.60), tcg: Math.round(tcgPlayerPrice * 0.62), ebay: Math.round(ebayPrice * 0.52), psa: Math.round(psaPrice * 0.85) },
-      { date: '04/25', yuyuYen: Math.round(yuyuteiYen * 0.70), tcg: Math.round(tcgPlayerPrice * 0.75), ebay: Math.round(ebayPrice * 0.70), psa: Math.round(psaPrice * 1.10) },
-      { date: '05/10', yuyuYen: Math.round(yuyuteiYen * 0.85), tcg: Math.round(tcgPlayerPrice * 0.90), ebay: Math.round(ebayPrice * 1.25), psa: Math.round(psaPrice * 1.12) },
-      { date: '05/26', yuyuYen: yuyuteiYen, tcg: tcgPlayerPrice, ebay: ebayPrice, psa: psaPrice },
+      { date: '02/20', yuyuYen: Math.round(yuyuteiYen * 0.45), cardmarket: Math.round(cardmarketPrice * 0.45), ebay: Math.round(ebayPrice * 0.40), psa: 0 },
+      { date: '03/10', yuyuYen: Math.round(yuyuteiYen * 0.50), cardmarket: Math.round(cardmarketPrice * 0.50), ebay: Math.round(ebayPrice * 0.45), psa: 0 },
+      { date: '04/01', yuyuYen: Math.round(yuyuteiYen * 0.60), cardmarket: Math.round(cardmarketPrice * 0.62), ebay: Math.round(ebayPrice * 0.52), psa: Math.round(psaPrice * 0.85) },
+      { date: '04/25', yuyuYen: Math.round(yuyuteiYen * 0.70), cardmarket: Math.round(cardmarketPrice * 0.75), ebay: Math.round(ebayPrice * 0.70), psa: Math.round(psaPrice * 1.10) },
+      { date: '05/10', yuyuYen: Math.round(yuyuteiYen * 0.85), cardmarket: Math.round(cardmarketPrice * 0.90), ebay: Math.round(ebayPrice * 1.25), psa: Math.round(psaPrice * 1.12) },
+      { date: '05/26', yuyuYen: yuyuteiYen, cardmarket: cardmarketPrice, ebay: ebayPrice, psa: psaPrice },
     ];
   };
 
@@ -775,7 +775,7 @@ export function CardDetailView({
               {(() => {
                 const activeCount = [
                   enabledPriceSources.yuyutei,
-                  enabledPriceSources.tcgplayer,
+                  enabledPriceSources.cardmarket,
                   enabledPriceSources.ebay,
                   enabledPriceSources.psa,
                 ].filter(Boolean).length;
@@ -818,29 +818,29 @@ export function CardDetailView({
                       );
                     })()}
 
-                    {/* 2. TCGPlayer */}
-                    {enabledPriceSources.tcgplayer && (() => {
-                      const priceFormatted = formatPrice(tcgPlayerPrice).full;
-                      const changeVal = Math.round(tcgPlayerPrice * 0.0561 * 100) / 100;
-                      const changeFormatted = formatPrice(changeVal).full;
+                    {/* 2. Cardmarket */}
+                    {enabledPriceSources.cardmarket && (() => {
+                      const priceFormatted = formatPrice(cardmarketPrice, { source: 'cardmarket' }).full;
+                      const changeVal = Math.round(cardmarketPrice * 0.0561 * 100) / 100;
+                      const changeFormatted = formatPrice(changeVal, { source: 'cardmarket' }).full;
                       return (
                         <a
-                          href={tcgplayerUrl}
+                          href={cardmarketUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          title="View on TCGPlayer"
+                          title="View on Cardmarket"
                           className="flex items-center gap-2 sm:gap-2.5 group cursor-pointer min-w-0"
                         >
                           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white flex items-center justify-center flex-shrink-0 shadow-md overflow-hidden p-1.5">
                             <img
-                              src="/logos/tcgplayer.svg"
-                              alt="TCGPlayer"
+                              src="/logos/cardmarket.svg"
+                              alt="Cardmarket"
                               className="w-full h-full object-contain"
                               onError={(e) => {
                                 (e.currentTarget as HTMLElement).style.display = 'none';
                                 if (e.currentTarget.parentElement) {
-                                  e.currentTarget.parentElement.innerText = 'TCG';
-                                  e.currentTarget.parentElement.className = 'w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#0352ad] text-white font-black text-[11px] sm:text-xs flex items-center justify-center flex-shrink-0 shadow-md';
+                                  e.currentTarget.parentElement.innerText = 'CM';
+                                  e.currentTarget.parentElement.className = 'w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#005bb5] text-white font-black text-[11px] sm:text-xs flex items-center justify-center flex-shrink-0 shadow-md';
                                 }
                               }}
                             />
@@ -1208,12 +1208,12 @@ export function CardDetailView({
                         />
                       )}
 
-                      {/* Orange line: TCGPlayer */}
-                      {enabledPriceSources.tcgplayer && (
+                      {/* Sky line: Cardmarket */}
+                      {enabledPriceSources.cardmarket && (
                         <path
-                          d={getSvgPath((d) => d.tcg)}
+                          d={getSvgPath((d) => d.cardmarket)}
                           fill="none"
-                          stroke="#f97316"
+                          stroke="#0284c7"
                           strokeWidth="2.5"
                           strokeLinecap="round"
                         />
@@ -1273,12 +1273,12 @@ export function CardDetailView({
                               strokeWidth="1.5"
                             />
                           )}
-                          {enabledPriceSources.tcgplayer && (
+                          {enabledPriceSources.cardmarket && (
                             <circle
                               cx={(hoverIndex / (currentSeries.length - 1)) * 320}
-                              cy={Math.max(8, Math.min(115, Math.round(115 - (currentSeries[hoverIndex].tcg / maxChartVal) * 105)))}
+                              cy={Math.max(8, Math.min(115, Math.round(115 - (currentSeries[hoverIndex].cardmarket / maxChartVal) * 105)))}
                               r="4"
-                              fill="#f97316"
+                              fill="#0284c7"
                               stroke="#ffffff"
                               strokeWidth="1.5"
                             />
@@ -1316,8 +1316,8 @@ export function CardDetailView({
                           {enabledPriceSources.ebay && (
                             <div className="text-lime-400">eBay: {formatPrice(currentSeries[hoverIndex].ebay).full}</div>
                           )}
-                          {enabledPriceSources.tcgplayer && (
-                            <div className="text-orange-400">TCG: {formatPrice(currentSeries[hoverIndex].tcg).full}</div>
+                          {enabledPriceSources.cardmarket && (
+                            <div className="text-sky-400">CM: {formatPrice(currentSeries[hoverIndex].cardmarket, { source: 'cardmarket' }).full}</div>
                           )}
                           {enabledPriceSources.yuyutei && (
                             <div className="text-blue-400">Yuyu: {formatPrice(Math.round(currentSeries[hoverIndex].yuyuYen / 152)).full}</div>
@@ -1398,25 +1398,25 @@ export function CardDetailView({
                 </span>
               </button>
 
-              {/* TCGPlayer */}
+              {/* Cardmarket */}
               <button
                 type="button"
                 onClick={() => {
-                  togglePriceSource('tcgplayer');
-                  showToast(enabledPriceSources.tcgplayer ? 'Hidden TCGPlayer pricing' : 'Showing TCGPlayer pricing');
+                  togglePriceSource('cardmarket');
+                  showToast(enabledPriceSources.cardmarket ? 'Hidden Cardmarket pricing' : 'Showing Cardmarket pricing');
                 }}
-                title={enabledPriceSources.tcgplayer ? 'Tap to hide TCGPlayer' : 'Tap to show TCGPlayer'}
+                title={enabledPriceSources.cardmarket ? 'Tap to hide Cardmarket' : 'Tap to show Cardmarket'}
                 className={`py-2.5 px-2 flex items-center justify-center gap-1.5 sm:gap-2 border-r border-[#343a4c] transition cursor-pointer ${
-                  enabledPriceSources.tcgplayer
+                  enabledPriceSources.cardmarket
                     ? 'hover:bg-white/5 text-gray-200 hover:text-white'
                     : 'opacity-40 text-gray-500 hover:opacity-70 bg-black/20'
                 }`}
               >
                 <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 transition ${
-                  enabledPriceSources.tcgplayer ? 'bg-[#f97316] shadow' : 'bg-transparent border border-gray-600'
+                  enabledPriceSources.cardmarket ? 'bg-[#0284c7] shadow' : 'bg-transparent border border-gray-600'
                 }`} />
-                <span className={`truncate ${enabledPriceSources.tcgplayer ? '' : 'line-through text-gray-500'}`}>
-                  TCGPlayer
+                <span className={`truncate ${enabledPriceSources.cardmarket ? '' : 'line-through text-gray-500'}`}>
+                  Cardmarket
                 </span>
               </button>
 
@@ -1752,7 +1752,7 @@ export function CardDetailView({
                 <line x1="0" y1="60" x2="300" y2="60" stroke="#2a2d3c" strokeDasharray="2 2" />
                 <line x1="0" y1="90" x2="300" y2="90" stroke="#2a2d3c" strokeDasharray="2 2" />
                 <path d={getSvgPath((d) => Math.round(d.yuyuYen / 152))} fill="none" stroke="#3b82f6" strokeWidth="3" />
-                <path d={getSvgPath((d) => d.tcg)} fill="none" stroke="#f97316" strokeWidth="3" />
+                <path d={getSvgPath((d) => d.cardmarket)} fill="none" stroke="#0284c7" strokeWidth="3" />
                 <path d={getSvgPath((d) => d.ebay)} fill="none" stroke="#84cc16" strokeWidth="3" />
                 <path d={getSvgPath((d) => d.psa)} fill="none" stroke="#ef4444" strokeWidth="3" />
               </svg>
