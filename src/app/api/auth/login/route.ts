@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
       const isValid = verifyPassword(cleanPass, user.passwordHash);
       if (!isValid) {
         return NextResponse.json({
-          error: 'Incorrect password. You can also sign in using a 6-digit verification code.',
+          error: 'Incorrect password. Please check your credentials or reset your password.',
         }, { status: 401 });
       }
 

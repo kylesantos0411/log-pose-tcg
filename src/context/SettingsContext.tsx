@@ -647,7 +647,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       } else {
         // Direct password sign up without OTP (when Confirm email is turned off in Supabase)
         try {
-          const { user: authUser, session, error } = await signUpWithEmailPassword({
+          const { user: authUser, session, profile: createdProfile, error } = await signUpWithEmailPassword({
             email: rawEmail,
             password: rawPassword,
             username: rawUsername,
@@ -663,12 +663,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             return { success: false, error };
           }
 
-          if (session && authUser) {
+          if (authUser) {
             const client = getSupabaseBrowserClient();
-            let profile = null;
-            if (client) {
-              const { data: p } = await client.from('profiles').select('*').eq('id', authUser.id).single();
-              profile = p;
+            let profile = createdProfile;
+            if (!profile && client) {
+              try {
+                const { data: p } = await client.from('profiles').select('*').eq('id', authUser.id).single();
+                profile = p;
+              } catch (_) {}
             }
 
             const userProfile: UserProfile = {
@@ -689,10 +691,24 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             transferGuestCardsToAccount(userProfile.tag);
             setAccountsState(getStoredAccounts());
 
+            // Also sync to local database in background for multi-layer persistence
+            fetch('/api/auth/register', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                username: rawUsername,
+                email: rawEmail,
+                password: rawPassword,
+                avatar: data.avatar,
+                crew: data.crew,
+                customTag: userProfile.tag,
+              }),
+            }).catch(console.warn);
+
             return { success: true, user: userProfile };
           }
 
-          return { success: false, error: 'Verification required. Please check your email or disable "Confirm email" in Supabase Auth.' };
+          return { success: false, error: 'Account creation failed. Please try again.' };
         } catch (sbErr: any) {
           return { success: false, error: sbErr.message || 'Registration failed.' };
         }

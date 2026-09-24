@@ -22,14 +22,12 @@ export async function POST(req: NextRequest) {
     if (!cleanPassword || cleanPassword.length < 6) {
       return NextResponse.json({ error: 'Password must be at least 6 characters long.' }, { status: 400 });
     }
-    if (!cleanCode || cleanCode.length < 6) {
-      return NextResponse.json({ error: 'Please enter the 6-digit verification code.' }, { status: 400 });
-    }
-
-    // 1. Verify 6-digit code (using signed token or database record)
-    const verification = await verifyCode(cleanEmail, cleanCode, 'register', verificationToken);
-    if (!verification.valid) {
-      return NextResponse.json({ error: verification.error || 'Invalid or expired verification code.' }, { status: 400 });
+    // 1. Optional 6-digit code verification (if provided)
+    if (cleanCode && cleanCode.length === 6) {
+      const verification = await verifyCode(cleanEmail, cleanCode, 'register', verificationToken);
+      if (!verification.valid) {
+        return NextResponse.json({ error: verification.error || 'Invalid or expired verification code.' }, { status: 400 });
+      }
     }
 
     // 2. Check if email or username is already taken
@@ -45,7 +43,7 @@ export async function POST(req: NextRequest) {
 
       if (existing) {
         if (existing.email === cleanEmail) {
-          return NextResponse.json({ error: 'An account with this email already exists.' }, { status: 400 });
+          return NextResponse.json({ error: 'An account with this email already exists. Please sign in.' }, { status: 400 });
         }
         return NextResponse.json({ error: 'This username is already taken. Please choose another.' }, { status: 400 });
       }

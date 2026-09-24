@@ -145,11 +145,13 @@ export async function signUpWithEmailPassword(params: {
   avatar?: string;
   crew?: string;
   tag?: string;
-}): Promise<{ user?: any; error?: string; session?: any }> {
+}): Promise<{ user?: any; error?: string; session?: any; profile?: any }> {
   const client = getSupabaseBrowserClient();
   if (!client) {
     return { error: 'Supabase is not configured yet.' };
   }
+
+  const generatedTag = params.tag || `PIRATE-${params.username.toUpperCase().slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`;
 
   const { data, error } = await client.auth.signUp({
     email: params.email,
@@ -159,7 +161,7 @@ export async function signUpWithEmailPassword(params: {
         username: params.username,
         avatar: params.avatar || '👒',
         crew: params.crew || 'Straw Hat Pirates',
-        tag: params.tag || `PIRATE-${params.username.toUpperCase().slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`,
+        tag: generatedTag,
       },
     },
   });
@@ -168,7 +170,46 @@ export async function signUpWithEmailPassword(params: {
     return { error: error.message };
   }
 
-  return { user: data.user, session: data.session };
+  let session = data.session;
+  let user = data.user;
+
+  // If no session returned directly, attempt instant sign in with password so the user is immediately authenticated
+  if (!session && user) {
+    try {
+      const signInRes = await client.auth.signInWithPassword({
+        email: params.email,
+        password: params.password,
+      });
+      if (signInRes.data?.session) {
+        session = signInRes.data.session;
+        user = signInRes.data.user || user;
+      }
+    } catch (e) {
+      console.warn('Instant sign-in after signup warning:', e);
+    }
+  }
+
+  // Ensure profile is saved to public.profiles table in Supabase
+  let profile = null;
+  if (user?.id) {
+    try {
+      const profileData = {
+        id: user.id,
+        email: params.email,
+        username: params.username,
+        avatar: params.avatar || '👒',
+        crew: params.crew || 'Straw Hat Pirates',
+        tag: generatedTag,
+        updated_at: new Date().toISOString(),
+      };
+      const { data: p } = await client.from('profiles').upsert(profileData, { onConflict: 'id' }).select().single();
+      profile = p || profileData;
+    } catch (e) {
+      console.warn('Profile upsert warning:', e);
+    }
+  }
+
+  return { user, session, profile };
 }
 
 /**
