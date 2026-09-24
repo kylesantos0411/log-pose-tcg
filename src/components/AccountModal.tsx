@@ -19,6 +19,7 @@ import {
   KeyRound,
   RotateCcw,
   ArrowLeft,
+  Info,
 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 
@@ -112,7 +113,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
   // Live calculated tag
   const liveTag = `PIRATE-${(username.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8) || 'CAPTAIN')}-${tagNumber}`;
 
-  // 1. Send verification code for registration
+  // 1. Create account / send verification code
   const handleRequestRegisterCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -127,11 +128,22 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
       setIsSubmitting(false);
       return;
     }
-    if (!cleanEmail || !cleanEmail.includes('@')) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!cleanEmail || !emailRegex.test(cleanEmail)) {
       setErrorMsg('Please enter a valid email address.');
       setIsSubmitting(false);
       return;
     }
+
+    // Protect against fake/placeholder domains that trigger Supabase email bounce warnings
+    const domain = cleanEmail.split('@')[1];
+    const invalidDomains = ['test.com', 'example.com', 'example.org', 'fake.com', 'sample.com', 'tempmail.com', 'mailinator.com', 'invalid.com'];
+    if (invalidDomains.includes(domain)) {
+      setErrorMsg(`Please enter a real active email address. Placeholder "@${domain}" addresses trigger Supabase mail bounce warnings.`);
+      setIsSubmitting(false);
+      return;
+    }
+
     if (!cleanPass || cleanPass.length < 6) {
       setErrorMsg('Password must be at least 6 characters long.');
       setIsSubmitting(false);
@@ -152,8 +164,19 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
         tag: liveTag,
       });
       if (!res.success) {
-        setErrorMsg(res.error || 'Failed to send verification code.');
+        setErrorMsg(res.error || 'Failed to create account.');
         setIsSubmitting(false);
+        return;
+      }
+
+      // If Supabase created account directly (e.g. Confirm email is turned off)
+      if (res.directLogin && res.user) {
+        setSuccessMsg(`Welcome aboard, ${res.user.name}! Your account has been created.`);
+        setTimeout(() => {
+          setSuccessMsg(null);
+          setIsSubmitting(false);
+          onClose();
+        }, 1200);
         return;
       }
 
@@ -165,7 +188,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
       setSuccessMsg(`Verification code sent to ${cleanEmail}! Please check your email inbox.`);
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to request verification code.');
+      setErrorMsg(err.message || 'Failed to create account.');
     } finally {
       setIsSubmitting(false);
     }
@@ -525,7 +548,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
                 {/* Email */}
                 <div>
                   <label className="block text-xs font-bold text-gray-300 mb-1.5">
-                    Email Address <span className="text-[#f45d6a]">* (A 6-digit code will be sent)</span>
+                    Email Address <span className="text-gray-400 font-normal text-[11px]">(Real email for cloud sync & recovery)</span>
                   </label>
                   <input
                     type="email"
@@ -636,18 +659,18 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
                   </div>
                 </div>
 
-                {/* Request Verification Code Button */}
+                {/* Create Account Button */}
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   className="w-full bg-gradient-to-r from-[#f45d6a] to-[#e64956] hover:opacity-90 disabled:opacity-50 text-white font-extrabold text-xs uppercase tracking-wider py-3 px-4 rounded-xl transition cursor-pointer shadow-lg shadow-[#f45d6a]/20 flex items-center justify-center gap-2"
                 >
-                  <Mail className="w-4 h-4" />
-                  <span>{isSubmitting ? 'Sending Code...' : 'Send Verification Code & Continue'}</span>
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>{isSubmitting ? 'Creating Cloud Account...' : 'Create Account'}</span>
                 </button>
               </form>
             ) : (
-              /* Registration Step 2: Verification Code Confirmation */
+              /* Registration Step 2: Verification Code Confirmation (Only if Confirm email is active) */
               <form onSubmit={handleVerifyRegisterCode} className="space-y-4 animate-fadeIn">
                 <div className="text-center py-2 space-y-1">
                   <div className="w-12 h-12 rounded-2xl bg-[#f45d6a]/15 border border-[#f45d6a]/30 flex items-center justify-center text-[#f45d6a] mx-auto mb-2">
@@ -684,6 +707,29 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
                   <ShieldCheck className="w-4 h-4" />
                   <span>{isSubmitting ? 'Verifying Account...' : 'Confirm & Complete Registration'}</span>
                 </button>
+
+                {/* Helpful Troubleshooting Card for Email Delays / Bounces */}
+                <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-200/90 space-y-1.5 text-left">
+                  <div className="font-bold flex items-center gap-1.5 text-amber-400">
+                    <Info className="w-4 h-4 flex-shrink-0" />
+                    <span>Didn't receive the email code?</span>
+                  </div>
+                  <p className="text-[11px] text-gray-300 leading-relaxed">
+                    Supabase's default mail service has strict rate limits (3 emails/hr) and can drop or delay emails if bounce restrictions are active.
+                  </p>
+                  <p className="text-[11px] text-emerald-400 leading-relaxed">
+                    💡 <strong>Instant fix:</strong> In Supabase Dashboard &gt; <em>Authentication &gt; Providers &gt; Email</em>, toggle OFF <strong>&quot;Confirm email&quot;</strong> to activate accounts instantly with password.
+                  </p>
+                  <div className="pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => { setTab('login'); setLoginMode('password'); setErrorMsg(null); }}
+                      className="text-[11px] text-sky-400 hover:underline font-bold"
+                    >
+                      Already registered? Sign in with password &rarr;
+                    </button>
+                  </div>
+                </div>
 
                 {/* Footer Controls: Back & Resend */}
                 <div className="flex items-center justify-between pt-2 border-t border-[#343a4c] text-xs">

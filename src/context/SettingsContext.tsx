@@ -195,7 +195,7 @@ interface SettingsContextType {
       crew?: string;
       tag?: string;
     }
-  ) => Promise<{ success: boolean; error?: string; devCode?: string; message?: string; token?: string }>;
+  ) => Promise<{ success: boolean; error?: string; devCode?: string; message?: string; token?: string; directLogin?: boolean; user?: UserProfile }>;
   loginWithGoogle: () => Promise<{ error?: string }>;
   loginWithSupabaseEmail: (email: string, password: string) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
   registerWithSupabaseEmail: (data: { email: string; password: string; username: string; avatar?: string; crew?: string }) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
@@ -494,14 +494,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       crew?: string;
       tag?: string;
     }
-  ): Promise<{ success: boolean; error?: string; devCode?: string; message?: string; token?: string }> => {
+  ): Promise<{ success: boolean; error?: string; devCode?: string; message?: string; token?: string; directLogin?: boolean; user?: UserProfile }> => {
     const cleanEmail = email.trim().toLowerCase();
 
     // 1. Direct Supabase Cloud Auth (Zero-loss persistent cloud accounts + real email delivery)
     if (isSupabaseConfigured()) {
       try {
         if (type === 'register') {
-          const { error } = await signUpWithEmailPassword({
+          const { user: authUser, session, error } = await signUpWithEmailPassword({
             email: cleanEmail,
             password: registrationData?.password || 'password123',
             username: registrationData?.username || cleanEmail.split('@')[0],
@@ -516,6 +516,42 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             }
             return { success: false, error };
           }
+
+          // If session is returned immediately (e.g. "Confirm email" is turned off in Supabase)
+          if (session && authUser) {
+            const client = getSupabaseBrowserClient();
+            let profile = null;
+            if (client) {
+              const { data: p } = await client.from('profiles').select('*').eq('id', authUser.id).single();
+              profile = p;
+            }
+
+            const userProfile: UserProfile = {
+              id: profile?.id || authUser.id,
+              name: profile?.username || registrationData?.username || cleanEmail.split('@')[0],
+              tag: profile?.tag || registrationData?.tag || `PIRATE-${(registrationData?.username || 'CAPTAIN').toUpperCase().slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`,
+              email: profile?.email || cleanEmail,
+              avatar: profile?.avatar || registrationData?.avatar || '👒',
+              crew: profile?.crew || registrationData?.crew || 'Straw Hat Pirates',
+              rank: profile?.rank || 'Cabin Boy',
+              rankBadge: profile?.rank_badge || profile?.rankBadge || '⚓',
+              createdAt: profile?.created_at || new Date().toISOString(),
+            };
+
+            setUserState(userProfile);
+            setActiveSession(userProfile);
+            saveStoredAccountFromSession(userProfile);
+            transferGuestCardsToAccount(userProfile.tag);
+            setAccountsState(getStoredAccounts());
+
+            return { 
+              success: true, 
+              directLogin: true, 
+              user: userProfile, 
+              message: `Welcome aboard, ${userProfile.name}! Your account has been created.` 
+            };
+          }
+
           return { success: true, message: `Verification code sent to ${cleanEmail}. Please check your email inbox.` };
         }
 
@@ -573,39 +609,93 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const rawPassword = (data.password || 'password123').trim();
     const rawCode = (data.code || '').trim();
 
-    // 1. Direct Supabase Cloud Registration Verification
-    if (isSupabaseConfigured() && rawCode) {
-      try {
-        const { user: authUser, profile, error } = await verifySignupOtp({
-          email: rawEmail,
-          token: rawCode,
-        });
+    // 1. Direct Supabase Cloud Registration
+    if (isSupabaseConfigured()) {
+      if (rawCode) {
+        try {
+          const { user: authUser, profile, error } = await verifySignupOtp({
+            email: rawEmail,
+            token: rawCode,
+          });
 
-        if (error || !authUser) {
-          return { success: false, error: error || 'Invalid or expired verification code. Please check your email.' };
+          if (error || !authUser) {
+            return { success: false, error: error || 'Invalid or expired verification code. Please check your email.' };
+          }
+
+          const userProfile: UserProfile = {
+            id: profile?.id || authUser.id,
+            name: profile?.username || rawUsername || 'Collector',
+            tag: profile?.tag || data.customTag || data.tag || `PIRATE-${(rawUsername || 'CAPTAIN').toUpperCase().slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`,
+            email: profile?.email || rawEmail,
+            avatar: profile?.avatar || data.avatar || '👒',
+            crew: profile?.crew || data.crew || 'Straw Hat Pirates',
+            rank: profile?.rank || 'Cabin Boy',
+            rankBadge: profile?.rank_badge || profile?.rankBadge || '⚓',
+            createdAt: profile?.created_at || new Date().toISOString(),
+          };
+
+          setUserState(userProfile);
+          setActiveSession(userProfile);
+          saveStoredAccountFromSession(userProfile);
+          transferGuestCardsToAccount(userProfile.tag);
+          setAccountsState(getStoredAccounts());
+
+          return { success: true, user: userProfile };
+        } catch (sbErr: any) {
+          return { success: false, error: sbErr.message || 'Failed to complete registration.' };
         }
+      } else {
+        // Direct password sign up without OTP (when Confirm email is turned off in Supabase)
+        try {
+          const { user: authUser, session, error } = await signUpWithEmailPassword({
+            email: rawEmail,
+            password: rawPassword,
+            username: rawUsername,
+            avatar: data.avatar,
+            crew: data.crew,
+            tag: data.customTag || data.tag,
+          });
 
-        const userProfile: UserProfile = {
-          id: profile?.id || authUser.id,
-          name: profile?.username || rawUsername || 'Collector',
-          tag: profile?.tag || data.customTag || data.tag || `PIRATE-${(rawUsername || 'CAPTAIN').toUpperCase().slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`,
-          email: profile?.email || rawEmail,
-          avatar: profile?.avatar || data.avatar || '👒',
-          crew: profile?.crew || data.crew || 'Straw Hat Pirates',
-          rank: profile?.rank || 'Cabin Boy',
-          rankBadge: profile?.rank_badge || profile?.rankBadge || '⚓',
-          createdAt: profile?.created_at || new Date().toISOString(),
-        };
+          if (error) {
+            if (error.toLowerCase().includes('already registered')) {
+              return { success: false, error: 'An account with this email already exists. Please sign in or reset your password.' };
+            }
+            return { success: false, error };
+          }
 
-        setUserState(userProfile);
-        setActiveSession(userProfile);
-        saveStoredAccountFromSession(userProfile);
-        transferGuestCardsToAccount(userProfile.tag);
-        setAccountsState(getStoredAccounts());
+          if (session && authUser) {
+            const client = getSupabaseBrowserClient();
+            let profile = null;
+            if (client) {
+              const { data: p } = await client.from('profiles').select('*').eq('id', authUser.id).single();
+              profile = p;
+            }
 
-        return { success: true, user: userProfile };
-      } catch (sbErr: any) {
-        return { success: false, error: sbErr.message || 'Failed to complete registration.' };
+            const userProfile: UserProfile = {
+              id: profile?.id || authUser.id,
+              name: profile?.username || rawUsername || 'Collector',
+              tag: profile?.tag || data.customTag || data.tag || `PIRATE-${(rawUsername || 'CAPTAIN').toUpperCase().slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`,
+              email: profile?.email || rawEmail,
+              avatar: profile?.avatar || data.avatar || '👒',
+              crew: profile?.crew || data.crew || 'Straw Hat Pirates',
+              rank: profile?.rank || 'Cabin Boy',
+              rankBadge: profile?.rank_badge || profile?.rankBadge || '⚓',
+              createdAt: profile?.created_at || new Date().toISOString(),
+            };
+
+            setUserState(userProfile);
+            setActiveSession(userProfile);
+            saveStoredAccountFromSession(userProfile);
+            transferGuestCardsToAccount(userProfile.tag);
+            setAccountsState(getStoredAccounts());
+
+            return { success: true, user: userProfile };
+          }
+
+          return { success: false, error: 'Verification required. Please check your email or disable "Confirm email" in Supabase Auth.' };
+        } catch (sbErr: any) {
+          return { success: false, error: sbErr.message || 'Registration failed.' };
+        }
       }
     }
 
