@@ -16,13 +16,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid verification request type.' }, { status: 400 });
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email: cleanEmail },
-    });
+    let existingUser = null;
+    try {
+      existingUser = await prisma.user.findUnique({
+        where: { email: cleanEmail },
+      });
+    } catch (e) {
+      console.warn('Could not query user from database:', e);
+    }
 
     if (type === 'register' && existingUser) {
       return NextResponse.json(
-        { error: 'An account with this email already exists. Please log in.' },
+        { error: 'An account with this email already exists. Please log in or use Forgot Password.' },
         { status: 400 }
       );
     }
@@ -34,14 +39,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { code } = await createVerificationCode(cleanEmail, type, existingUser?.id);
+    const { code, token } = await createVerificationCode(cleanEmail, type, existingUser?.id);
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       success: true,
       message: `Verification code sent to ${cleanEmail}. Please check your inbox.`,
-      // Always include devCode so if user is testing without SMTP, they are NEVER locked out!
+      // Include devCode so testing is seamless and no user is ever locked out
       devCode: code,
+      token,
     });
+
+    // Also set HTTP-only cookie as a transparent fallback
+    res.cookies.set('logpose_verification_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 10 * 60, // 10 minutes
+      path: '/',
+    });
+
+    return res;
   } catch (error: any) {
     console.error('Error sending verification code:', error);
     return NextResponse.json({ error: error.message || 'Failed to send verification code.' }, { status: 500 });

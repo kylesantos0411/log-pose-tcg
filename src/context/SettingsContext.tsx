@@ -177,7 +177,7 @@ interface SettingsContextType {
   user: UserProfile | null;
   accounts: StoredAccount[];
   isCloudConnected: boolean;
-  sendVerificationCode: (email: string, type: 'register' | 'login' | 'reset') => Promise<{ success: boolean; error?: string; devCode?: string; message?: string }>;
+  sendVerificationCode: (email: string, type: 'register' | 'login' | 'reset') => Promise<{ success: boolean; error?: string; devCode?: string; message?: string; token?: string }>;
   loginWithGoogle: () => Promise<{ error?: string }>;
   loginWithSupabaseEmail: (email: string, password: string) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
   registerWithSupabaseEmail: (data: { email: string; password: string; username: string; avatar?: string; crew?: string }) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
@@ -191,16 +191,19 @@ interface SettingsContextType {
     tag?: string;
     customTag?: string;
     code?: string;
+    token?: string;
   }) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
   login: (
     identifier: string,
     password?: string,
-    code?: string
+    code?: string,
+    token?: string
   ) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
   resetPassword: (data: {
     email: string;
     code: string;
     newPassword: string;
+    token?: string;
   }) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
   updateProfile: (data: Partial<UserProfile>) => void;
   logout: () => void;
@@ -472,7 +475,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const sendVerificationCode = async (
     email: string,
     type: 'register' | 'login' | 'reset'
-  ): Promise<{ success: boolean; error?: string; devCode?: string; message?: string }> => {
+  ): Promise<{ success: boolean; error?: string; devCode?: string; message?: string; token?: string }> => {
     try {
       const res = await fetch('/api/auth/send-code', {
         method: 'POST',
@@ -483,7 +486,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       if (!res.ok || data.error) {
         return { success: false, error: data.error || 'Failed to send verification code.' };
       }
-      return { success: true, devCode: data.devCode, message: data.message };
+      return { success: true, devCode: data.devCode, message: data.message, token: data.token };
     } catch (err: any) {
       return { success: false, error: err.message || 'Network error sending verification code.' };
     }
@@ -499,6 +502,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     tag?: string;
     customTag?: string;
     code?: string;
+    token?: string;
   }): Promise<{ success: boolean; user?: UserProfile; error?: string }> => {
     const rawUsername = (data.username || data.name || '').trim();
     const rawEmail = (data.email || '').trim();
@@ -514,6 +518,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           email: rawEmail,
           password: rawPassword,
           code: rawCode,
+          token: data.token,
           avatar: data.avatar,
           crew: data.crew,
           customTag: data.customTag || data.tag,
@@ -541,7 +546,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const login = async (
     identifier: string,
     password?: string,
-    code?: string
+    code?: string,
+    token?: string
   ): Promise<{ success: boolean; user?: UserProfile; error?: string }> => {
     const cleanId = (identifier || '').trim();
     const cleanPass = (password || '').trim();
@@ -555,6 +561,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           identifier: cleanId,
           password: cleanPass || undefined,
           code: cleanCode || undefined,
+          token,
         }),
       });
 
@@ -592,6 +599,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     email: string;
     code: string;
     newPassword: string;
+    token?: string;
   }): Promise<{ success: boolean; user?: UserProfile; error?: string }> => {
     try {
       const res = await fetch('/api/auth/reset-password', {

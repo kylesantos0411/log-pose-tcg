@@ -30,8 +30,12 @@ export async function generateUniqueTag(username: string): Promise<string> {
   while (exists && attempts < 10) {
     const num = Math.floor(1000 + Math.random() * 9000);
     tag = `PIRATE-${clean}-${num}`;
-    const user = await prisma.user.findUnique({ where: { tag } });
-    if (!user) {
+    try {
+      const user = await prisma.user.findUnique({ where: { tag } });
+      if (!user) {
+        exists = false;
+      }
+    } catch {
       exists = false;
     }
     attempts++;
@@ -40,83 +44,170 @@ export async function generateUniqueTag(username: string): Promise<string> {
 }
 
 /**
+ * Generate a stateless cryptographic HMAC token for verification codes
+ * This guarantees verification works across separate serverless instances/lambdas.
+ */
+export function signVerificationToken(
+  email: string,
+  code: string,
+  type: string,
+  expiresAt: Date
+): string {
+  const exp = expiresAt.getTime();
+  const payload = `${email.trim().toLowerCase()}:${code.trim()}:${type}:${exp}`;
+  const sig = crypto.createHmac('sha256', SALT).update(payload).digest('hex');
+  return Buffer.from(
+    JSON.stringify({ email: email.trim().toLowerCase(), code: code.trim(), type, exp, sig })
+  ).toString('base64');
+}
+
+/**
+ * Verify a stateless cryptographic HMAC verification token
+ */
+export function verifyVerificationToken(
+  email: string,
+  code: string,
+  type: string,
+  token?: string | null
+): boolean {
+  if (!token) return false;
+  try {
+    const raw = Buffer.from(token, 'base64').toString('utf-8');
+    const json = JSON.parse(raw);
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanCode = code.trim();
+
+    if (json.email !== cleanEmail || json.code !== cleanCode || json.type !== type) {
+      return false;
+    }
+
+    if (Date.now() > json.exp) {
+      return false; // Expired
+    }
+
+    const payload = `${cleanEmail}:${cleanCode}:${type}:${json.exp}`;
+    const expectedSig = crypto.createHmac('sha256', SALT).update(payload).digest('hex');
+
+    const sigBuf = Buffer.from(json.sig);
+    const expBuf = Buffer.from(expectedSig);
+    if (sigBuf.length !== expBuf.length) return false;
+
+    return crypto.timingSafeEqual(sigBuf, expBuf);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Generate a 6-digit verification code and store in DB with 10 minute expiry
+ * Also returns a stateless signed token so serverless instances never block verification.
  */
 export async function createVerificationCode(
   email: string,
   type: 'register' | 'login' | 'reset',
   userId?: string
-): Promise<{ code: string; expiresAt: Date }> {
+): Promise<{ code: string; expiresAt: Date; token: string }> {
   const cleanEmail = email.trim().toLowerCase();
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-  // Invalidate any previous unused codes for this email and type
-  await prisma.verificationCode.updateMany({
-    where: {
-      email: cleanEmail,
-      type,
-      used: false,
-    },
-    data: {
-      used: true,
-    },
-  });
+  // Generate cryptographic token
+  const token = signVerificationToken(cleanEmail, code, type, expiresAt);
 
-  // Store new code
-  await prisma.verificationCode.create({
-    data: {
-      email: cleanEmail,
-      code,
-      type,
-      expiresAt,
-      userId,
-    },
-  });
+  // Invalidate any previous unused codes for this email and type in database (safe try/catch)
+  try {
+    await prisma.verificationCode.updateMany({
+      where: {
+        email: cleanEmail,
+        type,
+        used: false,
+      },
+      data: {
+        used: true,
+      },
+    });
+
+    // Store new code
+    await prisma.verificationCode.create({
+      data: {
+        email: cleanEmail,
+        code,
+        type,
+        expiresAt,
+        userId,
+      },
+    });
+  } catch (err: any) {
+    console.warn('[Verification] Database write skipped or unavailable; proceeding with signed token:', err?.message || err);
+  }
 
   // Attempt to send email via nodemailer if SMTP configured
   await sendVerificationEmail(cleanEmail, code, type);
 
-  return { code, expiresAt };
+  return { code, expiresAt, token };
 }
 
 /**
- * Validate a verification code
+ * Validate a verification code using either signed token or database record
  */
 export async function verifyCode(
   email: string,
   code: string,
-  type: 'register' | 'login' | 'reset'
+  type: 'register' | 'login' | 'reset',
+  token?: string | null
 ): Promise<{ valid: boolean; error?: string; userId?: string | null }> {
   const cleanEmail = email.trim().toLowerCase();
   const cleanCode = code.trim();
 
-  const record = await prisma.verificationCode.findFirst({
-    where: {
-      email: cleanEmail,
-      code: cleanCode,
-      type,
-      used: false,
-      expiresAt: {
-        gt: new Date(),
-      },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  });
-
-  if (!record) {
-    return { valid: false, error: 'Invalid or expired 6-digit verification code. Please request a new one.' };
+  // 1. First check stateless HMAC verification token
+  if (token && verifyVerificationToken(cleanEmail, cleanCode, type, token)) {
+    // Optionally attempt to mark DB record as used
+    try {
+      await prisma.verificationCode.updateMany({
+        where: { email: cleanEmail, code: cleanCode, type, used: false },
+        data: { used: true },
+      });
+    } catch {
+      // Ignore DB write errors if in read-only mode
+    }
+    return { valid: true };
   }
 
-  // Mark as used
-  await prisma.verificationCode.update({
-    where: { id: record.id },
-    data: { used: true },
-  });
+  // 2. Fall back to database query if token wasn't provided or token check needs DB confirmation
+  try {
+    const record = await prisma.verificationCode.findFirst({
+      where: {
+        email: cleanEmail,
+        code: cleanCode,
+        type,
+        used: false,
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
 
-  return { valid: true, userId: record.userId };
+    if (record) {
+      // Mark as used
+      try {
+        await prisma.verificationCode.update({
+          where: { id: record.id },
+          data: { used: true },
+        });
+      } catch {
+        // Ignore DB write error
+      }
+      return { valid: true, userId: record.userId };
+    }
+  } catch (err) {
+    console.warn('[Verification] DB query failed during code verification:', err);
+  }
+
+  return { valid: false, error: 'Invalid or expired 6-digit verification code. Please request a new one.' };
 }
 
 /**

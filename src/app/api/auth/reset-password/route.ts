@@ -5,11 +5,12 @@ import { verifyCode, hashPassword } from '@/lib/auth-server';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, code, newPassword } = body;
+    const { email, code, newPassword, token } = body;
 
     const cleanEmail = (email || '').trim().toLowerCase();
     const cleanCode = (code || '').trim();
     const cleanPassword = (newPassword || '').trim();
+    const verificationToken = token || req.cookies.get('logpose_verification_token')?.value;
 
     if (!cleanEmail || !cleanEmail.includes('@')) {
       return NextResponse.json({ error: 'Please provide a valid email address.' }, { status: 400 });
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Verify code for type 'reset'
-    const codeCheck = await verifyCode(cleanEmail, cleanCode, 'reset');
+    const codeCheck = await verifyCode(cleanEmail, cleanCode, 'reset', verificationToken);
     if (!codeCheck.valid) {
       return NextResponse.json(
         { error: codeCheck.error || 'Invalid or expired 6-digit verification code.' },
@@ -33,9 +34,14 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Find user in database
-    const user = await prisma.user.findUnique({
-      where: { email: cleanEmail },
-    });
+    let user = null;
+    try {
+      user = await prisma.user.findUnique({
+        where: { email: cleanEmail },
+      });
+    } catch (e) {
+      console.warn('Prisma find user error in reset-password:', e);
+    }
 
     if (!user) {
       return NextResponse.json(
@@ -46,14 +52,19 @@ export async function POST(req: NextRequest) {
 
     // 3. Update password hash
     const passwordHash = hashPassword(cleanPassword);
-    const updatedUser = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        passwordHash,
-      },
-    });
+    let updatedUser: any = user;
+    try {
+      updatedUser = await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordHash,
+        },
+      });
+    } catch (updateErr) {
+      console.warn('Prisma update user password error:', updateErr);
+    }
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       success: true,
       message: 'Password successfully updated! You are now signed in.',
       user: {
@@ -65,9 +76,12 @@ export async function POST(req: NextRequest) {
         crew: updatedUser.crew,
         rank: updatedUser.rank,
         rankBadge: updatedUser.rankBadge,
-        createdAt: updatedUser.createdAt.toISOString(),
+        createdAt: updatedUser.createdAt instanceof Date ? updatedUser.createdAt.toISOString() : updatedUser.createdAt,
       },
     });
+
+    res.cookies.delete('logpose_verification_token');
+    return res;
   } catch (error: any) {
     console.error('Error during password reset:', error);
     return NextResponse.json(

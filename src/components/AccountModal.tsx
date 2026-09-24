@@ -73,6 +73,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
   const [tagNumber] = useState(() => Math.floor(1000 + Math.random() * 9000));
   const [registerCode, setRegisterCode] = useState('');
   const [registerDevCode, setRegisterDevCode] = useState<string | null>(null);
+  const [registerToken, setRegisterToken] = useState<string | null>(null);
 
   // Login mode: 'password' | 'code'
   const [loginMode, setLoginMode] = useState<'password' | 'code'>('password');
@@ -82,6 +83,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
   const [loginStep, setLoginStep] = useState<'enter_id' | 'verify_code'>('enter_id');
   const [loginCode, setLoginCode] = useState('');
   const [loginDevCode, setLoginDevCode] = useState<string | null>(null);
+  const [loginToken, setLoginToken] = useState<string | null>(null);
 
   // Forgot Password state
   const [forgotStep, setForgotStep] = useState<'enter_email' | 'enter_code_and_password'>('enter_email');
@@ -91,6 +93,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
   const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
   const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
   const [forgotDevCode, setForgotDevCode] = useState<string | null>(null);
+  const [forgotToken, setForgotToken] = useState<string | null>(null);
 
   // Timer for resending code
   const [countdown, setCountdown] = useState(0);
@@ -154,6 +157,9 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
       if (res.devCode) {
         setRegisterDevCode(res.devCode);
       }
+      if (res.token) {
+        setRegisterToken(res.token);
+      }
       setRegisterStep('verify');
       setCountdown(60);
       setSuccessMsg(`Verification code sent to ${cleanEmail}! Please check your email.`);
@@ -187,6 +193,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
         crew: selectedCrew,
         customTag: liveTag,
         code: cleanCode,
+        token: registerToken || undefined,
       });
 
       if (!res.success) {
@@ -271,6 +278,9 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
       if (res.devCode) {
         setLoginDevCode(res.devCode);
       }
+      if (res.token) {
+        setLoginToken(res.token);
+      }
       setLoginStep('verify_code');
       setCountdown(60);
       setSuccessMsg(`Login code sent to ${cleanId}!`);
@@ -296,7 +306,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
     }
 
     try {
-      const res = await login(loginIdentifier.trim(), undefined, cleanCode);
+      const res = await login(loginIdentifier.trim(), undefined, cleanCode, loginToken || undefined);
       if (!res.success) {
         setErrorMsg(res.error || 'Invalid or expired login code.');
         setIsSubmitting(false);
@@ -339,6 +349,9 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
       if (res.devCode) {
         setForgotDevCode(res.devCode);
       }
+      if (res.token) {
+        setForgotToken(res.token);
+      }
       setForgotStep('enter_code_and_password');
       setCountdown(60);
       setSuccessMsg(`Recovery code sent to ${cleanEmail}! Please check your email.`);
@@ -380,6 +393,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
         email: forgotEmail.trim().toLowerCase(),
         code: cleanCode,
         newPassword: cleanPass,
+        token: forgotToken || undefined,
       });
 
       if (!res.success) {

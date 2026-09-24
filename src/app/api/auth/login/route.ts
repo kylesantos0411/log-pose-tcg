@@ -5,26 +5,32 @@ import { verifyPassword, verifyCode } from '@/lib/auth-server';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { identifier, password, code } = body;
+    const { identifier, password, code, token } = body;
 
     const cleanId = (identifier || '').trim();
     if (!cleanId) {
       return NextResponse.json({ error: 'Please enter your email, Collector Tag, or username.' }, { status: 400 });
     }
 
+    const verificationToken = token || req.cookies.get('logpose_verification_token')?.value;
     const cleanIdLower = cleanId.toLowerCase();
 
     // 1. Find user in database by email, username, or tag
-    const user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: cleanIdLower },
-          { username: cleanId },
-          { tag: cleanId.toUpperCase() },
-          { tag: cleanId },
-        ],
-      },
-    });
+    let user = null;
+    try {
+      user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { email: cleanIdLower },
+            { username: cleanId },
+            { tag: cleanId.toUpperCase() },
+            { tag: cleanId },
+          ],
+        },
+      });
+    } catch (findErr) {
+      console.warn('Prisma find user error:', findErr);
+    }
 
     if (!user) {
       return NextResponse.json({
@@ -35,7 +41,7 @@ export async function POST(req: NextRequest) {
     // 2. Authentication via 6-digit verification code
     if (code) {
       const cleanCode = code.trim();
-      const verification = await verifyCode(user.email, cleanCode, 'login');
+      const verification = await verifyCode(user.email, cleanCode, 'login', verificationToken);
       if (!verification.valid) {
         return NextResponse.json({
           error: verification.error || 'Invalid or expired 6-digit verification code.',
@@ -51,14 +57,16 @@ export async function POST(req: NextRequest) {
         crew: user.crew,
         rank: user.rank,
         rankBadge: user.rankBadge,
-        createdAt: user.createdAt.toISOString(),
+        createdAt: user.createdAt instanceof Date ? user.createdAt.toISOString() : user.createdAt,
       };
 
-      return NextResponse.json({
+      const res = NextResponse.json({
         success: true,
         user: userSession,
         message: `Welcome back, ${user.username}!`,
       });
+      res.cookies.delete('logpose_verification_token');
+      return res;
     }
 
     // 3. Authentication via password
@@ -80,7 +88,7 @@ export async function POST(req: NextRequest) {
         crew: user.crew,
         rank: user.rank,
         rankBadge: user.rankBadge,
-        createdAt: user.createdAt.toISOString(),
+        createdAt: user.createdAt instanceof Date ? user.createdAt.toISOString() : user.createdAt,
       };
 
       return NextResponse.json({
