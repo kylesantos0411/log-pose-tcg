@@ -17,6 +17,7 @@ export interface StoredAccount {
 export interface UserSession {
   id: string;
   name: string;
+  username?: string;
   tag: string;
   email?: string;
   avatar: string;
@@ -144,6 +145,7 @@ export function registerAccount(data: {
   const sessionUser: UserSession = {
     id: newAccount.id,
     name: newAccount.username,
+    username: newAccount.username,
     tag: newAccount.tag,
     email: newAccount.email,
     avatar: newAccount.avatar,
@@ -194,6 +196,7 @@ export function authenticateAccount(
   const sessionUser: UserSession = {
     id: account.id,
     name: account.username,
+    username: account.username,
     tag: account.tag,
     email: account.email,
     avatar: account.avatar,

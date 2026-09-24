@@ -207,8 +207,8 @@ export default function CollectionPage() {
       {user ? (
         <div className="flex items-center justify-between p-3 rounded-2xl bg-[#202433] border border-[#343a4c] shadow-sm">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-[#2a2e40] border border-[#3f455c] flex items-center justify-center text-xl flex-shrink-0">
-              {user.avatar || '👒'}
+            <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-300 flex items-center justify-center flex-shrink-0">
+              <User className="w-5 h-5 text-purple-300" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">

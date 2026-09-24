@@ -23,7 +23,8 @@ import {
   LogOut,
   AlertTriangle,
   Heart,
-  Smartphone
+  Smartphone,
+  User
 } from 'lucide-react';
 import { useSettings, CURRENCIES, CurrencyCode, PriceSource } from '@/context/SettingsContext';
 import { SupportModal } from '@/components/SupportModal';
@@ -719,7 +720,9 @@ export function SettingsModal() {
                 <div className="p-3 rounded-2xl bg-[#1e212c] border border-[#343a4c] space-y-1.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="text-2xl">{user.avatar || '👒'}</span>
+                      <div className="w-9 h-9 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-300 flex items-center justify-center flex-shrink-0">
+                        <User className="w-5 h-5 text-purple-300" />
+                      </div>
                       <div className="min-w-0">
                         <div className="text-xs font-black text-white truncate">{user.name}</div>
                         <div className="font-mono text-[10px] text-amber-400 truncate">{user.tag}</div>

@@ -23,7 +23,8 @@ import {
   Award,
   Trash2,
   LogIn,
-  UserMinus
+  UserMinus,
+  User,
 } from 'lucide-react';
 import { getSafeCardImageUrl, getEditionCardImageUrl } from '@/lib/card-image';
 import { useSettings } from '@/context/SettingsContext';
@@ -91,8 +92,8 @@ export default function FriendsPage() {
   const [unfriendingTarget, setUnfriendingTarget] = useState<FriendProfile | null>(null);
   const [toastNotice, setToastNotice] = useState<string | null>(null);
 
-  // My Collector Code
-  const myCode = user?.tag || '';
+  // My Collector Code / Username
+  const myCode = user?.username ? `@${user.username}` : (user?.tag ? (user.tag.startsWith('@') ? user.tag : `@${user.tag}`) : '');
   const [copiedCode, setCopiedCode] = useState(false);
   const [newFriendInput, setNewFriendInput] = useState('');
   const [addSuccessMessage, setAddSuccessMessage] = useState<string | null>(null);
@@ -178,42 +179,33 @@ export default function FriendsPage() {
     const input = newFriendInput.trim();
     if (!input) return;
 
-    let normalizedTag = input.toUpperCase().replace(/\s+/g, '');
-    if (!normalizedTag.startsWith('PIRATE-')) {
-      normalizedTag = `PIRATE-${normalizedTag}`;
-    }
+    const normalized = input.replace(/^@/, '').trim();
+    if (!normalized) return;
+
+    const currentUserName = (user?.username || user?.name || '').toLowerCase();
+    const currentUserTag = (user?.tag || '').toLowerCase().replace(/^@/, '');
 
     // Check if adding self
-    if (user && normalizedTag === user.tag.toUpperCase()) {
-      setAddSuccessMessage("That is your own Collector Tag!");
+    if (normalized.toLowerCase() === currentUserName || normalized.toLowerCase() === currentUserTag) {
+      setAddSuccessMessage("You cannot add yourself as a friend!");
       setTimeout(() => setAddSuccessMessage(null), 2500);
       return;
     }
 
     // Check if already friends
-    if (friendsList.some((f) => f.tag.toUpperCase() === normalizedTag)) {
-      setAddSuccessMessage(`${normalizedTag} is already in your crew!`);
+    if (friendsList.some((f) => f.name.toLowerCase() === normalized.toLowerCase() || f.tag.toLowerCase() === `@${normalized}`.toLowerCase())) {
+      setAddSuccessMessage(`${normalized} is already in your friends list!`);
       setTimeout(() => setAddSuccessMessage(null), 2500);
       return;
     }
 
-    // Parse friend name
-    const parts = normalizedTag.replace(/^PIRATE-/, '').split('-');
-    const friendName = parts[0] ? parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase() : 'Collector';
-
-    const avatarPool = ['⚔️', '🦅', '💎', '💛', '👑', '🐺', '🔥', '🌸', '🍖', '⚡'];
-    const rankPool = ['Yonko Collector', 'Wano Champion', 'Supernova', 'Grand Line Captain'];
-    const rankBadgePool = ['👑', '🗡️', '🏴‍☠️', '⚓'];
-    const randIdx = Math.floor(Math.random() * avatarPool.length);
-    const rankIdx = Math.floor(Math.random() * rankPool.length);
-
     const newFriend: FriendProfile = {
       id: `friend-${Date.now()}`,
-      name: friendName,
-      tag: normalizedTag,
-      avatar: avatarPool[randIdx],
-      rank: rankPool[rankIdx],
-      rankBadge: rankBadgePool[rankIdx],
+      name: normalized,
+      tag: `@${normalized}`,
+      avatar: 'default',
+      rank: 'Collector',
+      rankBadge: '',
       status: 'online',
       statusText: 'Online now',
       cardCount: Math.floor(180 + Math.random() * 350),
@@ -230,7 +222,7 @@ export default function FriendsPage() {
     const updated = [newFriend, ...friendsList];
     saveFriends(updated);
 
-    setAddSuccessMessage(`Added ${newFriend.name} (${newFriend.tag}) to your Crew!`);
+    setAddSuccessMessage(`Added ${newFriend.name} to your friends!`);
     setNewFriendInput('');
     setTimeout(() => {
       setAddSuccessMessage(null);
@@ -249,9 +241,9 @@ export default function FriendsPage() {
       id: `friend-${Date.now()}`,
       name: req.name,
       tag: req.tag,
-      avatar: req.avatar || '🐺',
-      rank: req.rank || 'Samurai Collector',
-      rankBadge: '🛡️',
+      avatar: 'default',
+      rank: req.rank || 'Collector',
+      rankBadge: '',
       status: 'online',
       statusText: 'Connected now',
       cardCount: req.cardCount || 156,
@@ -343,8 +335,8 @@ export default function FriendsPage() {
       {/* ================= 2. COLLECTOR SOCIAL STATS BANNER ================= */}
       <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-r from-[#262138] via-[#212433] to-[#202738] border border-purple-500/20 p-4 sm:p-5 shadow-lg flex items-center justify-between gap-3">
         <div className="flex items-center gap-3.5 min-w-0">
-          <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/40 text-purple-300 flex items-center justify-center text-2xl shadow-inner flex-shrink-0">
-            {user?.avatar || '🏴‍☠️'}
+          <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/40 text-purple-300 flex items-center justify-center shadow-inner flex-shrink-0">
+            <User className="w-6 h-6 text-purple-300" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -468,7 +460,7 @@ export default function FriendsPage() {
                   className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md transition cursor-pointer active:scale-95"
                 >
                   <UserPlus className="w-4 h-4" />
-                  <span>Add Friend by Tag</span>
+                  <span>Add Friend</span>
                 </button>
               </div>
             </div>
@@ -481,8 +473,8 @@ export default function FriendsPage() {
                 {/* Left: Friend Info */}
                 <div className="flex items-start sm:items-center gap-3 min-w-0">
                   <div className="relative flex-shrink-0">
-                    <div className="w-12 h-12 rounded-2xl bg-[#1d202c] border border-[#363b4f] flex items-center justify-center text-2xl shadow-inner">
-                      {friend.avatar}
+                    <div className="w-12 h-12 rounded-2xl bg-[#1d202c] border border-[#363b4f] flex items-center justify-center text-purple-300 shadow-inner">
+                      <User className="w-6 h-6 text-purple-300" />
                     </div>
                     {/* Status Indicator */}
                     <div 
@@ -501,7 +493,7 @@ export default function FriendsPage() {
                         {friend.tag}
                       </span>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30 flex items-center gap-1">
-                        <span>{friend.rankBadge}</span>
+                        <Award className="w-3 h-3 text-purple-300" />
                         <span>{friend.rank}</span>
                       </span>
                     </div>
@@ -584,7 +576,7 @@ export default function FriendsPage() {
               <Sparkles className="w-4 h-4 animate-pulse" />
             </div>
             <div>
-              <strong className="text-white">Live Trade Matchmaker:</strong> Cross-referencing your collection and wishlist with your crew members to suggest balanced, fair trades.
+              <strong className="text-white">Live Trade Matchmaker:</strong> Cross-referencing your collection and wishlist with your friends to suggest balanced, fair trades.
             </div>
           </div>
 
@@ -596,7 +588,7 @@ export default function FriendsPage() {
               <div className="space-y-1">
                 <h3 className="text-base font-black text-white">No Active Trade Matches</h3>
                 <p className="text-xs text-gray-400 max-w-sm mx-auto leading-relaxed">
-                  Add friends to your crew to see live matching trade proposals based on your collection and wishlist!
+                  Add friends to see live matching trade proposals based on your collection and wishlist!
                 </p>
               </div>
               <div className="pt-2 flex items-center justify-center">
@@ -619,7 +611,9 @@ export default function FriendsPage() {
                 {/* Top Trade Header */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">{match.friendAvatar}</span>
+                    <div className="w-6 h-6 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                      <User className="w-3.5 h-3.5 text-purple-300" />
+                    </div>
                     <span className="font-black text-sm text-white">
                       Trade with {match.friendName}
                     </span>
@@ -759,8 +753,8 @@ export default function FriendsPage() {
                   className="rounded-2xl bg-[#242836] border border-[#343a4c] p-4 flex items-center justify-between gap-3 shadow-md"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#1d202c] border border-[#363b4f] flex items-center justify-center text-xl">
-                      {req.avatar || '🐺'}
+                    <div className="w-10 h-10 rounded-xl bg-[#1d202c] border border-[#363b4f] flex items-center justify-center">
+                      <User className="w-5 h-5 text-purple-300" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -807,8 +801,8 @@ export default function FriendsPage() {
             {/* Header */}
             <div className="flex items-center justify-between border-b border-[#31364a] pb-4 flex-shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-[#1a1d27] border border-[#383e54] flex items-center justify-center text-2xl shadow-inner">
-                  {inspectingFriend.avatar}
+                <div className="w-12 h-12 rounded-2xl bg-[#1a1d27] border border-[#383e54] flex items-center justify-center shadow-inner">
+                  <User className="w-6 h-6 text-purple-300" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -949,7 +943,9 @@ export default function FriendsPage() {
                     {proposingTrade.friendCard.id} ({formatPrice(proposingTrade.friendCard.priceUSD, { source: 'yuyutei' }).full})
                   </span>
                 </div>
-                <span className="text-xl">{proposingTrade.friendAvatar}</span>
+                <div className="w-7 h-7 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                  <User className="w-4 h-4 text-purple-300" />
+                </div>
               </div>
 
               <div className="bg-[#1b1e2a] border border-[#32364a] rounded-2xl p-3 flex items-center justify-between">
@@ -964,7 +960,9 @@ export default function FriendsPage() {
                     {proposingTrade.myCard.id} ({formatPrice(proposingTrade.myCard.priceUSD, { source: 'yuyutei' }).full})
                   </span>
                 </div>
-                <span className="text-xl">🏴‍☠️</span>
+                <div className="w-7 h-7 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                  <User className="w-4 h-4 text-purple-300" />
+                </div>
               </div>
             </div>
 
@@ -977,7 +975,7 @@ export default function FriendsPage() {
               {tradeProposedSuccess ? (
                 <>
                   <Check className="w-4 h-4 stroke-[3] animate-bounce" />
-                  <span>PROPOSAL SENT TO {proposingTrade.friendName.toUpperCase()}! 🚀</span>
+                  <span>PROPOSAL SENT TO {proposingTrade.friendName.toUpperCase()}!</span>
                 </>
               ) : (
                 <>
@@ -1000,7 +998,7 @@ export default function FriendsPage() {
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
                 <UserPlus className="w-4 h-4 text-purple-400" />
-                <span>Add Collector Friend</span>
+                <span>Add Friend</span>
               </h3>
               <button
                 type="button"
@@ -1012,7 +1010,7 @@ export default function FriendsPage() {
             </div>
 
             <p className="text-xs text-gray-300 mb-3">
-              Enter their unique pirate tag or code (e.g. <code>PIRATE-SHANKS-7721</code> or <code>PIRATE-CAPTAIN-1234</code>):
+              Enter their username to connect and trade cards:
             </p>
 
             <form onSubmit={handleSendFriendRequest} className="space-y-3">
@@ -1020,12 +1018,12 @@ export default function FriendsPage() {
                 type="text"
                 value={newFriendInput}
                 onChange={(e) => setNewFriendInput(e.target.value)}
-                placeholder="e.g. PIRATE-SHANKS-7721..."
-                className="w-full bg-[#1a1d27] border border-[#3b4156] focus:border-purple-500 rounded-xl px-3.5 py-2.5 text-xs text-white uppercase font-mono placeholder-gray-500 focus:outline-none"
+                placeholder="e.g. alex99, luffy_collector..."
+                className="w-full bg-[#1a1d27] border border-[#3b4156] focus:border-purple-500 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none"
               />
 
               <p className="text-[10px] text-gray-400">
-                Your crew members and trade proposals are safely saved to your local device.
+                Your friends and trade proposals are safely saved to your account.
               </p>
 
               {addSuccessMessage && (
@@ -1039,7 +1037,7 @@ export default function FriendsPage() {
                 type="submit"
                 className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-purple-600/25 transition hover:brightness-110 active:scale-95 cursor-pointer"
               >
-                Add to Crew
+                Add Friend
               </button>
             </form>
           </div>
@@ -1060,12 +1058,12 @@ export default function FriendsPage() {
               <X className="w-4 h-4 stroke-[2.5]" />
             </button>
 
-            <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/40 text-purple-300 flex items-center justify-center text-2xl mx-auto mb-3 shadow-inner">
-              {user?.avatar || '🏴‍☠️'}
+            <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/40 text-purple-300 flex items-center justify-center mx-auto mb-3 shadow-inner">
+              <User className="w-6 h-6 text-purple-300" />
             </div>
 
             <h3 className="text-base font-black text-white">
-              {user?.name || 'Pirate Collector'}
+              {user?.name || user?.username || 'Collector'}
             </h3>
             <p className="text-xs text-gray-400 mb-4 font-mono font-bold text-amber-400">
               {myCode}
@@ -1115,7 +1113,7 @@ export default function FriendsPage() {
 
                 {/* Central Brand Emblem */}
                 <circle cx="50" cy="50" r="10" fill="#9333ea" />
-                <text x="50" y="54" fontSize="10" fill="white" textAnchor="middle" fontWeight="bold">⚓</text>
+                <text x="50" y="54" fontSize="10" fill="white" textAnchor="middle" fontWeight="bold">LP</text>
               </svg>
             </div>
 
@@ -1179,8 +1177,8 @@ export default function FriendsPage() {
             </h3>
 
             <div className="mt-3 p-3 rounded-2xl bg-[#1b1e2a] border border-[#31364a] flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#25293a] flex items-center justify-center text-xl flex-shrink-0">
-                {unfriendingTarget.avatar}
+              <div className="w-10 h-10 rounded-xl bg-[#25293a] flex items-center justify-center flex-shrink-0">
+                <User className="w-5 h-5 text-purple-300" />
               </div>
               <div className="min-w-0">
                 <div className="text-sm font-bold text-white truncate">
@@ -1193,7 +1191,7 @@ export default function FriendsPage() {
             </div>
 
             <p className="text-xs text-gray-400 text-center mt-3.5 leading-relaxed">
-              Are you sure you want to remove this collector from your crew? You will no longer see their showcase binder or be able to initiate peer trades.
+              Are you sure you want to remove this collector from your friends list? You will no longer see their showcase binder or be able to initiate peer trades.
             </p>
 
             {/* Action Buttons */}

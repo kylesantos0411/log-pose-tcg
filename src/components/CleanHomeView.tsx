@@ -99,8 +99,8 @@ export function CleanHomeView({
           >
             {user ? (
               <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#3b82f6] to-[#c084fc] p-0.5 shadow-sm">
-                <div className="w-full h-full bg-[#1e212c] rounded-full flex items-center justify-center text-[11px]">
-                  {user.avatar || '👒'}
+                <div className="w-full h-full bg-[#1e212c] rounded-full flex items-center justify-center">
+                  <UserIcon className="w-3.5 h-3.5 text-purple-300" />
                 </div>
               </div>
             ) : (
