@@ -24,12 +24,12 @@ export interface RecommendedDeck {
   winrate: string;
   date: string;
   tournament: string;
-  tournamentType?: string; // Flagship (FS), Standard Battle (SB), Championship Regional, Treasure Cup (TC), 3v3 Team CS
-  player?: string;         // Pilot / Author from OnePieceTopDecks
-  placement?: string;      // 1st Place (Champion), 1st Place (5-0), etc.
-  host?: string;           // Store / Venue organizer
-  record?: string;         // Win-loss record (e.g. 5-0, 13-2)
-  topDecksUrl?: string;    // Direct URL to OnePieceTopDecks
+  tournamentType?: string;
+  player?: string;
+  placement?: string;
+  host?: string;
+  record?: string;
+  topDecksUrl?: string;
   source: string;
   metaEra?: string;
   tier?: string;
@@ -47,13 +47,13 @@ export interface RecommendedDeck {
 }
 
 export const RECOMMENDED_DECKS: RecommendedDeck[] = [
-{
+  {
     "id": "red-portgas-d-ace-op16",
     "name": "(Red) Portgas.D.Ace",
     "subname": "Portgas.D.Ace",
     "leaderId": "OP16-001",
     "leaderName": "Portgas.D.Ace",
-    "leaderImage": "/cards/leaders/OP16-001.png",
+    "leaderImage": "https://card.yuyu-tei.jp/opc/front/op16/10001.jpg",
     "color": "Red",
     "colorDot": "#ef4444",
     "rank": "#1 Meta",
@@ -79,9 +79,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 7000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10013.jpg",
-        "yuyuPrice": 380,
-        "marketPrice": 2.7
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10017.jpg",
+        "yuyuPrice": 220,
+        "marketPrice": 1.57
       },
       {
         "cardId": "OP02-004",
@@ -91,33 +91,33 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 10000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10004.jpg",
-        "yuyuPrice": 580,
-        "marketPrice": 4.1
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10006.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP02-018",
-        "name": "Marco",
-        "quantity": 4,
-        "cost": 5,
-        "power": 6000,
-        "category": "Character",
-        "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10018.jpg",
-        "yuyuPrice": 320,
-        "marketPrice": 2.2
-      },
-      {
-        "cardId": "OP03-013",
         "name": "Marco",
         "quantity": 4,
         "cost": 4,
         "power": 5000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10013.jpg",
-        "yuyuPrice": 280,
-        "marketPrice": 1.9
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10025.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
+      },
+      {
+        "cardId": "OP03-013",
+        "name": "Marco",
+        "quantity": 4,
+        "cost": 5,
+        "power": 6000,
+        "category": "Character",
+        "colors": "Red",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10014.jpg",
+        "yuyuPrice": 220,
+        "marketPrice": 1.57
       },
       {
         "cardId": "OP02-008",
@@ -127,21 +127,21 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 4000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10008.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10011.jpg",
         "yuyuPrice": 120,
-        "marketPrice": 0.8
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP02-005",
-        "name": "Curiel",
+        "name": "Curly.Dadan",
         "quantity": 4,
-        "cost": 3,
-        "power": 5000,
+        "cost": 2,
+        "power": 3000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10005.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10008.jpg",
         "yuyuPrice": 80,
-        "marketPrice": 0.5
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP02-015",
@@ -151,21 +151,21 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10015.jpg",
-        "yuyuPrice": 100,
-        "marketPrice": 0.7
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10021.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP01-016",
         "name": "Nami",
         "quantity": 4,
         "cost": 1,
-        "power": null,
+        "power": 2000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10016.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10021.jpg",
         "yuyuPrice": 220,
-        "marketPrice": 1.5
+        "marketPrice": 1.57
       },
       {
         "cardId": "OP01-006",
@@ -175,9 +175,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10006.jpg",
-        "yuyuPrice": 150,
-        "marketPrice": 1
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10009.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP01-029",
@@ -187,33 +187,33 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10029.jpg",
-        "yuyuPrice": 200,
-        "marketPrice": 1.4
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10037.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
-        "cardId": "OP02-024",
+        "cardId": "OP03-018",
         "name": "Fire Fist",
         "quantity": 4,
         "cost": 3,
         "power": null,
         "category": "Event",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10024.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10020.jpg",
         "yuyuPrice": 120,
-        "marketPrice": 0.8
+        "marketPrice": 0.86
       },
       {
-        "cardId": "OP02-021",
+        "cardId": "OP02-024",
         "name": "Moby Dick",
         "quantity": 2,
         "cost": 2,
         "power": null,
         "category": "Stage",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10021.jpg",
-        "yuyuPrice": 180,
-        "marketPrice": 1.2
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10032.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP02-019",
@@ -223,9 +223,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 4000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10019.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10027.jpg",
         "yuyuPrice": 80,
-        "marketPrice": 0.5
+        "marketPrice": 0.57
       }
     ],
     "stats": {
@@ -235,7 +235,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters2000": 12,
       "counters1000": 24,
       "noCounter": 14,
-      "avgCost": 3.5
+      "avgCost": 3.4
     }
   },
   {
@@ -244,7 +244,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "subname": "Monkey.D.Luffy",
     "leaderId": "OP16-022",
     "leaderName": "Monkey.D.Luffy",
-    "leaderImage": "/cards/leaders/OP16-022.png",
+    "leaderImage": "https://card.yuyu-tei.jp/opc/front/op16/10027.jpg",
     "color": "Green/Blue",
     "colorDot": "linear-gradient(to right, #059669 20%, #06b6d4 80%)",
     "rank": "#2 Meta",
@@ -263,16 +263,16 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "description": "Dual Green/Blue hybrid synergy blending Green rest-and-strike control with Blue bounce removal and top-deck manipulation.",
     "cards": [
       {
-        "cardId": "OP01-025",
-        "name": "Roronoa Zoro",
+        "cardId": "OP06-035",
+        "name": "Hody Jones",
         "quantity": 4,
-        "cost": 3,
-        "power": 5000,
+        "cost": 7,
+        "power": 8000,
         "category": "Character",
         "colors": "Green",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10025.jpg",
-        "yuyuPrice": 350,
-        "marketPrice": 2.5
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op06/10043.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP01-047",
@@ -282,9 +282,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 6000,
         "category": "Character",
         "colors": "Green",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10059.jpg",
-        "yuyuPrice": 420,
-        "marketPrice": 3
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10058.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP01-070",
@@ -318,19 +318,19 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 4000,
         "category": "Character",
         "colors": "Blue",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st17/10007.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10093.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP01-033",
         "name": "Izo",
         "quantity": 4,
         "cost": 3,
-        "power": 4000,
+        "power": 3000,
         "category": "Character",
         "colors": "Green",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10037.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10042.jpg",
         "yuyuPrice": 80,
         "marketPrice": 0.57
       },
@@ -342,9 +342,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 5000,
         "category": "Character",
         "colors": "Green",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10039.jpg",
-        "yuyuPrice": 120,
-        "marketPrice": 0.86
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10045.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP03-044",
@@ -378,7 +378,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Blue",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb01/10086.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10068.jpg",
         "yuyuPrice": 120,
         "marketPrice": 0.86
       },
@@ -390,9 +390,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Green",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10074.jpg",
-        "yuyuPrice": 180,
-        "marketPrice": 1.29
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10072.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP06-058",
@@ -408,15 +408,15 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       },
       {
         "cardId": "OP02-040",
-        "name": "Curly.Dadan",
+        "name": "Brook",
         "quantity": 4,
-        "cost": 2,
-        "power": 3000,
+        "cost": 4,
+        "power": 5000,
         "category": "Character",
         "colors": "Green",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10040.jpg",
-        "yuyuPrice": 100,
-        "marketPrice": 0.71
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10053.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       }
     ],
     "stats": {
@@ -426,7 +426,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters2000": 12,
       "counters1000": 22,
       "noCounter": 16,
-      "avgCost": 3.7
+      "avgCost": 4.3
     }
   },
   {
@@ -435,7 +435,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "subname": "Buggy",
     "leaderId": "OP16-041",
     "leaderName": "Buggy",
-    "leaderImage": "/cards/leaders/OP16-041.png",
+    "leaderImage": "https://card.yuyu-tei.jp/opc/front/op16/10050.jpg",
     "color": "Blue",
     "colorDot": "#0284c7",
     "rank": "#3 Meta",
@@ -469,13 +469,13 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "cardId": "OP01-067",
         "name": "Crocodile",
         "quantity": 4,
-        "cost": 5,
-        "power": 6000,
+        "cost": 7,
+        "power": 7000,
         "category": "Character",
         "colors": "Blue",
         "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10085.jpg",
-        "yuyuPrice": 90,
-        "marketPrice": 0.64
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP01-073",
@@ -485,9 +485,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 4000,
         "category": "Character",
         "colors": "Blue",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st17/10007.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10093.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP01-078",
@@ -581,7 +581,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Blue",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb01/10086.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10068.jpg",
         "yuyuPrice": 120,
         "marketPrice": 0.86
       },
@@ -593,9 +593,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Blue",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st17/10008.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10109.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP03-057",
@@ -605,7 +605,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Blue",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10066.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10067.jpg",
         "yuyuPrice": 80,
         "marketPrice": 0.57
       }
@@ -617,7 +617,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters2000": 8,
       "counters1000": 24,
       "noCounter": 18,
-      "avgCost": 3.6
+      "avgCost": 4.1
     }
   },
   {
@@ -626,7 +626,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "subname": "Sengoku",
     "leaderId": "OP16-060",
     "leaderName": "Sengoku",
-    "leaderImage": "/cards/leaders/OP16-060.png",
+    "leaderImage": "https://card.yuyu-tei.jp/opc/front/op16/10073.jpg",
     "color": "Purple",
     "colorDot": "#9333ea",
     "rank": "#4 Meta",
@@ -652,9 +652,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 6000,
         "category": "Character",
         "colors": "Purple",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10103.jpg",
-        "yuyuPrice": 150,
-        "marketPrice": 1
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10107.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP05-074",
@@ -664,36 +664,36 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 6000,
         "category": "Character",
         "colors": "Purple",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10086.jpg",
-        "yuyuPrice": 480,
-        "marketPrice": 3.4
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10090.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP01-094",
         "name": "Kaido",
         "quantity": 4,
-        "cost": 9,
-        "power": 10000,
+        "cost": 10,
+        "power": 12000,
         "category": "Character",
         "colors": "Purple",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10116.jpg",
-        "yuyuPrice": 280,
-        "marketPrice": 2
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10119.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
-        "cardId": "OP01-100",
+        "cardId": "OP01-096",
         "name": "King",
         "quantity": 4,
-        "cost": 6,
+        "cost": 7,
         "power": 7000,
         "category": "Character",
         "colors": "Purple",
         "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10122.jpg",
-        "yuyuPrice": 100,
-        "marketPrice": 0.7
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
-        "cardId": "OP01-102",
+        "cardId": "ST04-005",
         "name": "Queen",
         "quantity": 4,
         "cost": 5,
@@ -701,68 +701,68 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "category": "Character",
         "colors": "Purple",
         "imageUrl": "https://card.yuyu-tei.jp/opc/front/st04/10005.jpg",
-        "yuyuPrice": 350,
-        "marketPrice": 2.5
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
-        "cardId": "OP01-096",
+        "cardId": "OP01-100",
         "name": "Kurozumi Higurashi",
         "quantity": 4,
         "cost": 2,
         "power": 3000,
         "category": "Character",
         "colors": "Purple",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10118.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10128.jpg",
         "yuyuPrice": 80,
-        "marketPrice": 0.5
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP02-073",
-        "name": "Sadi",
+        "name": "Little Sadi",
         "quantity": 4,
         "cost": 3,
         "power": 3000,
         "category": "Character",
         "colors": "Purple",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10091.jpg",
-        "yuyuPrice": 120,
-        "marketPrice": 0.8
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10094.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
-        "cardId": "OP02-071",
+        "cardId": "OP02-086",
         "name": "Minokoala",
         "quantity": 4,
         "cost": 4,
         "power": 5000,
         "category": "Character",
         "colors": "Purple",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10089.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10109.jpg",
         "yuyuPrice": 80,
-        "marketPrice": 0.5
-      },
-      {
-        "cardId": "OP01-110",
-        "name": "Judgement of Hell",
-        "quantity": 4,
-        "cost": 2,
-        "power": null,
-        "category": "Event",
-        "colors": "Purple",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10132.jpg",
-        "yuyuPrice": 150,
-        "marketPrice": 1
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP02-089",
-        "name": "Hell's Judgement",
+        "name": "Judgment of Hell",
         "quantity": 4,
         "cost": 2,
         "power": null,
         "category": "Event",
         "colors": "Purple",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10107.jpg",
-        "yuyuPrice": 150,
-        "marketPrice": 1
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10113.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
+      },
+      {
+        "cardId": "OP02-089",
+        "name": "Judgment of Hell",
+        "quantity": 4,
+        "cost": 2,
+        "power": null,
+        "category": "Event",
+        "colors": "Purple",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10113.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP01-119",
@@ -772,12 +772,12 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Purple",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10141.jpg",
-        "yuyuPrice": 80,
-        "marketPrice": 0.5
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10149.jpg",
+        "yuyuPrice": 180,
+        "marketPrice": 1.29
       },
       {
-        "cardId": "OP01-107",
+        "cardId": "ST04-017",
         "name": "Onigashima Island",
         "quantity": 4,
         "cost": 3,
@@ -785,20 +785,20 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "category": "Stage",
         "colors": "Purple",
         "imageUrl": "https://card.yuyu-tei.jp/opc/front/st04/10017.jpg",
-        "yuyuPrice": 200,
-        "marketPrice": 1.4
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP05-070",
-        "name": "Fra-nosuke",
+        "name": "Fra-Nosuke",
         "quantity": 2,
-        "cost": 3,
+        "cost": 5,
         "power": 4000,
         "category": "Character",
         "colors": "Purple",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10082.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10086.jpg",
         "yuyuPrice": 80,
-        "marketPrice": 0.5
+        "marketPrice": 0.57
       }
     ],
     "stats": {
@@ -808,7 +808,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters2000": 12,
       "counters1000": 20,
       "noCounter": 18,
-      "avgCost": 3.9
+      "avgCost": 4.2
     }
   },
   {
@@ -817,7 +817,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "subname": "Yamato",
     "leaderId": "OP16-079",
     "leaderName": "Yamato",
-    "leaderImage": "/cards/leaders/OP16-079.png",
+    "leaderImage": "https://card.yuyu-tei.jp/opc/front/op16/10099.jpg",
     "color": "Black",
     "colorDot": "#374151",
     "rank": "#5 Meta",
@@ -844,8 +844,8 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "category": "Character",
         "colors": "Black",
         "imageUrl": "https://card.yuyu-tei.jp/opc/front/op06/10103.jpg",
-        "yuyuPrice": 680,
-        "marketPrice": 4.8
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP02-099",
@@ -855,9 +855,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 7000,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10118.jpg",
-        "yuyuPrice": 220,
-        "marketPrice": 1.5
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10125.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP02-096",
@@ -867,9 +867,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 5000,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10115.jpg",
-        "yuyuPrice": 380,
-        "marketPrice": 2.7
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10121.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP02-114",
@@ -879,21 +879,21 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 5000,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10133.jpg",
-        "yuyuPrice": 450,
-        "marketPrice": 3.2
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10143.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP03-089",
         "name": "Brannew",
         "quantity": 4,
-        "cost": 1,
-        "power": 1000,
+        "cost": 2,
+        "power": 3000,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10102.jpg",
-        "yuyuPrice": 180,
-        "marketPrice": 1.2
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10107.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP04-083",
@@ -903,9 +903,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 6000,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10091.jpg",
-        "yuyuPrice": 420,
-        "marketPrice": 3
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10100.jpg",
+        "yuyuPrice": 220,
+        "marketPrice": 1.57
       },
       {
         "cardId": "OP05-093",
@@ -915,9 +915,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 6000,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10106.jpg",
-        "yuyuPrice": 300,
-        "marketPrice": 2.1
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10113.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP06-093",
@@ -927,69 +927,69 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 5000,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op06/10110.jpg",
-        "yuyuPrice": 250,
-        "marketPrice": 1.8
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op06/10111.jpg",
+        "yuyuPrice": 220,
+        "marketPrice": 1.57
       },
       {
         "cardId": "OP02-106",
         "name": "Tsuru",
         "quantity": 4,
         "cost": 1,
-        "power": 500,
+        "power": null,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10125.jpg",
-        "yuyuPrice": 120,
-        "marketPrice": 0.8
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10134.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
-        "cardId": "OP02-117",
+        "cardId": "ST06-015",
         "name": "Great Eruption",
         "quantity": 4,
         "cost": 1,
         "power": null,
         "category": "Event",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10136.jpg",
-        "yuyuPrice": 200,
-        "marketPrice": 1.4
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st06/10015.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
-        "cardId": "OP06-097",
-        "name": "Tempest Kick",
+        "cardId": "OP05-095",
+        "name": "Dragon Claw",
         "quantity": 4,
-        "cost": 1,
+        "cost": 2,
         "power": null,
         "category": "Event",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op06/10114.jpg",
-        "yuyuPrice": 100,
-        "marketPrice": 0.7
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10116.jpg",
+        "yuyuPrice": 30,
+        "marketPrice": 0.21
       },
       {
-        "cardId": "OP03-097",
+        "cardId": "OP03-094",
         "name": "Air Door",
         "quantity": 4,
-        "cost": 3,
+        "cost": 4,
         "power": null,
         "category": "Event",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10110.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10113.jpg",
         "yuyuPrice": 80,
-        "marketPrice": 0.5
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP02-105",
         "name": "Tashigi",
         "quantity": 2,
         "cost": 3,
-        "power": 4000,
+        "power": 5000,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10124.jpg",
-        "yuyuPrice": 80,
-        "marketPrice": 0.5
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10132.jpg",
+        "yuyuPrice": 30,
+        "marketPrice": 0.21
       }
     ],
     "stats": {
@@ -999,7 +999,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters2000": 12,
       "counters1000": 24,
       "noCounter": 14,
-      "avgCost": 3.8
+      "avgCost": 3.7
     }
   },
   {
@@ -1008,7 +1008,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "subname": "Marshall.D.Teach",
     "leaderId": "OP16-080",
     "leaderName": "Marshall.D.Teach",
-    "leaderImage": "/cards/leaders/OP16-080.png",
+    "leaderImage": "https://card.yuyu-tei.jp/opc/front/op16/10101.jpg",
     "color": "Black/Yellow",
     "colorDot": "linear-gradient(to right, #1f2937 20%, #eab308 80%)",
     "rank": "#6 Meta",
@@ -1035,32 +1035,32 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "category": "Character",
         "colors": "Black",
         "imageUrl": "https://card.yuyu-tei.jp/opc/front/op06/10103.jpg",
-        "yuyuPrice": 680,
-        "marketPrice": 4.8
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP04-100",
         "name": "Capone\"Gang\"Bege",
         "quantity": 4,
-        "cost": 1,
-        "power": 1000,
+        "cost": 3,
+        "power": 3000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10110.jpg",
-        "yuyuPrice": 150,
-        "marketPrice": 1
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10120.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP03-112",
-        "name": "Charlotte Charlotte",
+        "name": "Charlotte Pudding",
         "quantity": 4,
-        "cost": 4,
-        "power": 5000,
+        "cost": 1,
+        "power": 2000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10126.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10133.jpg",
         "yuyuPrice": 120,
-        "marketPrice": 0.8
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP05-102",
@@ -1070,9 +1070,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 6000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10116.jpg",
-        "yuyuPrice": 280,
-        "marketPrice": 2
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10125.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP04-112",
@@ -1082,9 +1082,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 9000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10123.jpg",
-        "yuyuPrice": 550,
-        "marketPrice": 3.9
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10134.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP02-114",
@@ -1094,9 +1094,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 5000,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10133.jpg",
-        "yuyuPrice": 450,
-        "marketPrice": 3.2
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10143.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP04-083",
@@ -1106,9 +1106,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 6000,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10091.jpg",
-        "yuyuPrice": 420,
-        "marketPrice": 3
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10100.jpg",
+        "yuyuPrice": 220,
+        "marketPrice": 1.57
       },
       {
         "cardId": "OP05-093",
@@ -1118,21 +1118,21 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 6000,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10106.jpg",
-        "yuyuPrice": 300,
-        "marketPrice": 2.1
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10113.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP02-106",
         "name": "Tsuru",
         "quantity": 4,
         "cost": 1,
-        "power": 500,
+        "power": null,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10125.jpg",
-        "yuyuPrice": 120,
-        "marketPrice": 0.8
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10134.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP03-121",
@@ -1142,45 +1142,45 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10136.jpg",
-        "yuyuPrice": 150,
-        "marketPrice": 1
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10145.jpg",
+        "yuyuPrice": 30,
+        "marketPrice": 0.21
       },
       {
-        "cardId": "OP02-117",
+        "cardId": "ST06-015",
         "name": "Great Eruption",
         "quantity": 4,
         "cost": 1,
         "power": null,
         "category": "Event",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10136.jpg",
-        "yuyuPrice": 200,
-        "marketPrice": 1.4
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st06/10015.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
-        "cardId": "OP04-116",
+        "cardId": "OP06-116",
         "name": "Reject",
         "quantity": 4,
         "cost": 4,
         "power": null,
         "category": "Event",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10127.jpg",
-        "yuyuPrice": 180,
-        "marketPrice": 1.2
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op06/10138.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP03-089",
         "name": "Brannew",
         "quantity": 2,
-        "cost": 1,
-        "power": 1000,
+        "cost": 2,
+        "power": 3000,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10102.jpg",
-        "yuyuPrice": 180,
-        "marketPrice": 1.2
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10107.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       }
     ],
     "stats": {
@@ -1190,7 +1190,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters2000": 12,
       "counters1000": 22,
       "noCounter": 16,
-      "avgCost": 4.1
+      "avgCost": 3.8
     }
   },
   {
@@ -1199,7 +1199,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "subname": "Krieg",
     "leaderId": "OP15-001",
     "leaderName": "Krieg",
-    "leaderImage": "/cards/leaders/OP15-001.png",
+    "leaderImage": "https://card.yuyu-tei.jp/opc/front/op15/10001.jpg",
     "color": "Red/Green",
     "colorDot": "linear-gradient(to right, #dc2626 20%, #16a34a 80%)",
     "rank": "#1 Meta",
@@ -1225,9 +1225,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 5000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10025.jpg",
-        "yuyuPrice": 350,
-        "marketPrice": 2.5
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10032.jpg",
+        "yuyuPrice": 220,
+        "marketPrice": 1.57
       },
       {
         "cardId": "OP02-013",
@@ -1237,9 +1237,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 7000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10013.jpg",
-        "yuyuPrice": 380,
-        "marketPrice": 2.7
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10017.jpg",
+        "yuyuPrice": 220,
+        "marketPrice": 1.57
       },
       {
         "cardId": "OP01-047",
@@ -1249,9 +1249,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 6000,
         "category": "Character",
         "colors": "Green",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10059.jpg",
-        "yuyuPrice": 420,
-        "marketPrice": 3
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10058.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP01-035",
@@ -1261,21 +1261,21 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 5000,
         "category": "Character",
         "colors": "Green",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10039.jpg",
-        "yuyuPrice": 120,
-        "marketPrice": 0.86
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10045.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP01-016",
         "name": "Nami",
         "quantity": 4,
         "cost": 1,
-        "power": null,
+        "power": 2000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10016.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10021.jpg",
         "yuyuPrice": 220,
-        "marketPrice": 1.5
+        "marketPrice": 1.57
       },
       {
         "cardId": "OP01-006",
@@ -1285,45 +1285,45 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10006.jpg",
-        "yuyuPrice": 150,
-        "marketPrice": 1
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10009.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP01-033",
         "name": "Izo",
         "quantity": 4,
         "cost": 3,
-        "power": 4000,
+        "power": 3000,
         "category": "Character",
         "colors": "Green",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10037.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10042.jpg",
         "yuyuPrice": 80,
         "marketPrice": 0.57
       },
       {
         "cardId": "OP02-005",
-        "name": "Curiel",
-        "quantity": 4,
-        "cost": 3,
-        "power": 5000,
-        "category": "Character",
-        "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10005.jpg",
-        "yuyuPrice": 80,
-        "marketPrice": 0.5
-      },
-      {
-        "cardId": "OP02-040",
         "name": "Curly.Dadan",
         "quantity": 4,
         "cost": 2,
         "power": 3000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10040.jpg",
-        "yuyuPrice": 100,
-        "marketPrice": 0.71
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10008.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
+      },
+      {
+        "cardId": "OP02-040",
+        "name": "Brook",
+        "quantity": 4,
+        "cost": 4,
+        "power": 5000,
+        "category": "Character",
+        "colors": "Green",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10053.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP01-029",
@@ -1333,9 +1333,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10029.jpg",
-        "yuyuPrice": 200,
-        "marketPrice": 1.4
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10037.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP01-058",
@@ -1345,33 +1345,33 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Green",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10074.jpg",
-        "yuyuPrice": 180,
-        "marketPrice": 1.29
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10072.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
-        "cardId": "OP02-024",
+        "cardId": "OP03-018",
         "name": "Fire Fist",
         "quantity": 4,
         "cost": 3,
         "power": null,
         "category": "Event",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10024.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10020.jpg",
         "yuyuPrice": 120,
-        "marketPrice": 0.8
+        "marketPrice": 0.86
       },
       {
-        "cardId": "OP01-052",
+        "cardId": "ST02-005",
         "name": "Killer",
         "quantity": 2,
-        "cost": 2,
+        "cost": 3,
         "power": 3000,
         "category": "Character",
         "colors": "Green",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10066.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st02/10005.jpg",
         "yuyuPrice": 80,
-        "marketPrice": 0.5
+        "marketPrice": 0.57
       }
     ],
     "stats": {
@@ -1381,7 +1381,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters2000": 12,
       "counters1000": 24,
       "noCounter": 14,
-      "avgCost": 3.2
+      "avgCost": 2.9
     }
   },
   {
@@ -1390,7 +1390,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "subname": "Lucy",
     "leaderId": "OP15-002",
     "leaderName": "Lucy",
-    "leaderImage": "/cards/leaders/OP15-002.png",
+    "leaderImage": "https://card.yuyu-tei.jp/opc/front/op15/10003.jpg",
     "color": "Red/Blue",
     "colorDot": "linear-gradient(to right, #dc2626 20%, #0284c7 80%)",
     "rank": "#2 Meta",
@@ -1416,9 +1416,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 5000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10025.jpg",
-        "yuyuPrice": 350,
-        "marketPrice": 2.5
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10032.jpg",
+        "yuyuPrice": 220,
+        "marketPrice": 1.57
       },
       {
         "cardId": "OP01-070",
@@ -1448,13 +1448,13 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "cardId": "OP02-018",
         "name": "Marco",
         "quantity": 4,
-        "cost": 5,
-        "power": 6000,
+        "cost": 4,
+        "power": 5000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10018.jpg",
-        "yuyuPrice": 320,
-        "marketPrice": 2.2
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10025.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP03-044",
@@ -1473,12 +1473,12 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "name": "Nami",
         "quantity": 4,
         "cost": 1,
-        "power": null,
+        "power": 2000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10016.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10021.jpg",
         "yuyuPrice": 220,
-        "marketPrice": 1.5
+        "marketPrice": 1.57
       },
       {
         "cardId": "OP01-006",
@@ -1488,9 +1488,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10006.jpg",
-        "yuyuPrice": 150,
-        "marketPrice": 1
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10009.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP01-071",
@@ -1512,7 +1512,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Blue",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb01/10086.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10068.jpg",
         "yuyuPrice": 120,
         "marketPrice": 0.86
       },
@@ -1524,9 +1524,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10029.jpg",
-        "yuyuPrice": 200,
-        "marketPrice": 1.4
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10037.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP06-058",
@@ -1541,16 +1541,16 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "marketPrice": 1.57
       },
       {
-        "cardId": "OP02-024",
+        "cardId": "OP03-018",
         "name": "Fire Fist",
         "quantity": 4,
         "cost": 3,
         "power": null,
         "category": "Event",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10024.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10020.jpg",
         "yuyuPrice": 120,
-        "marketPrice": 0.8
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP01-086",
@@ -1560,9 +1560,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Blue",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st17/10008.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10109.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       }
     ],
     "stats": {
@@ -1572,7 +1572,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters2000": 8,
       "counters1000": 22,
       "noCounter": 20,
-      "avgCost": 3.8
+      "avgCost": 3.5
     }
   },
   {
@@ -1581,7 +1581,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "subname": "Brook",
     "leaderId": "OP15-022",
     "leaderName": "Brook",
-    "leaderImage": "/cards/leaders/OP15-022.png",
+    "leaderImage": "https://card.yuyu-tei.jp/opc/front/op15/10027.jpg",
     "color": "Green/Black",
     "colorDot": "linear-gradient(to right, #059669 20%, #1f2937 80%)",
     "rank": "#3 Meta",
@@ -1608,8 +1608,8 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "category": "Character",
         "colors": "Black",
         "imageUrl": "https://card.yuyu-tei.jp/opc/front/op06/10103.jpg",
-        "yuyuPrice": 680,
-        "marketPrice": 4.8
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP01-047",
@@ -1619,9 +1619,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 6000,
         "category": "Character",
         "colors": "Green",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10059.jpg",
-        "yuyuPrice": 420,
-        "marketPrice": 3
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10058.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP01-035",
@@ -1631,9 +1631,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 5000,
         "category": "Character",
         "colors": "Green",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10039.jpg",
-        "yuyuPrice": 120,
-        "marketPrice": 0.86
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10045.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP02-114",
@@ -1643,9 +1643,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 5000,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10133.jpg",
-        "yuyuPrice": 450,
-        "marketPrice": 3.2
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10143.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP04-083",
@@ -1655,9 +1655,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 6000,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10091.jpg",
-        "yuyuPrice": 420,
-        "marketPrice": 3
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10100.jpg",
+        "yuyuPrice": 220,
+        "marketPrice": 1.57
       },
       {
         "cardId": "OP05-093",
@@ -1667,19 +1667,19 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 6000,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10106.jpg",
-        "yuyuPrice": 300,
-        "marketPrice": 2.1
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10113.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP01-033",
         "name": "Izo",
         "quantity": 4,
         "cost": 3,
-        "power": 4000,
+        "power": 3000,
         "category": "Character",
         "colors": "Green",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10037.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10042.jpg",
         "yuyuPrice": 80,
         "marketPrice": 0.57
       },
@@ -1688,24 +1688,24 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "name": "Tsuru",
         "quantity": 4,
         "cost": 1,
-        "power": 500,
+        "power": null,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10125.jpg",
-        "yuyuPrice": 120,
-        "marketPrice": 0.8
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10134.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP03-089",
         "name": "Brannew",
         "quantity": 4,
-        "cost": 1,
-        "power": 1000,
+        "cost": 2,
+        "power": 3000,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10102.jpg",
-        "yuyuPrice": 180,
-        "marketPrice": 1.2
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10107.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP01-058",
@@ -1715,45 +1715,45 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Green",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10074.jpg",
-        "yuyuPrice": 180,
-        "marketPrice": 1.29
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10072.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
-        "cardId": "OP02-117",
+        "cardId": "ST06-015",
         "name": "Great Eruption",
         "quantity": 4,
         "cost": 1,
         "power": null,
         "category": "Event",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10136.jpg",
-        "yuyuPrice": 200,
-        "marketPrice": 1.4
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st06/10015.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
-        "cardId": "OP06-097",
-        "name": "Tempest Kick",
+        "cardId": "OP05-095",
+        "name": "Dragon Claw",
         "quantity": 4,
-        "cost": 1,
+        "cost": 2,
         "power": null,
         "category": "Event",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op06/10114.jpg",
-        "yuyuPrice": 100,
-        "marketPrice": 0.7
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10116.jpg",
+        "yuyuPrice": 30,
+        "marketPrice": 0.21
       },
       {
-        "cardId": "OP01-052",
+        "cardId": "ST02-005",
         "name": "Killer",
         "quantity": 2,
-        "cost": 2,
+        "cost": 3,
         "power": 3000,
         "category": "Character",
         "colors": "Green",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10066.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st02/10005.jpg",
         "yuyuPrice": 80,
-        "marketPrice": 0.5
+        "marketPrice": 0.57
       }
     ],
     "stats": {
@@ -1763,7 +1763,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters2000": 12,
       "counters1000": 24,
       "noCounter": 14,
-      "avgCost": 3.6
+      "avgCost": 3.3
     }
   },
   {
@@ -1772,7 +1772,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "subname": "Rebecca",
     "leaderId": "OP15-039",
     "leaderName": "Rebecca",
-    "leaderImage": "/cards/leaders/OP15-039.png",
+    "leaderImage": "https://card.yuyu-tei.jp/opc/front/op15/10047.jpg",
     "color": "Blue",
     "colorDot": "#0284c7",
     "rank": "#4 Meta",
@@ -1822,9 +1822,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 4000,
         "category": "Character",
         "colors": "Blue",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st17/10007.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10093.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP03-044",
@@ -1906,7 +1906,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Blue",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb01/10086.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10068.jpg",
         "yuyuPrice": 120,
         "marketPrice": 0.86
       },
@@ -1918,9 +1918,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Blue",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st17/10008.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10109.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP03-057",
@@ -1930,7 +1930,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Blue",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10066.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10067.jpg",
         "yuyuPrice": 80,
         "marketPrice": 0.57
       },
@@ -1942,7 +1942,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 5000,
         "category": "Character",
         "colors": "Blue",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb02/10070.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op07/10048.jpg",
         "yuyuPrice": 80,
         "marketPrice": 0.57
       }
@@ -1954,7 +1954,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters2000": 8,
       "counters1000": 24,
       "noCounter": 18,
-      "avgCost": 3.5
+      "avgCost": 3.8
     }
   },
   {
@@ -1963,7 +1963,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "subname": "Enel",
     "leaderId": "OP15-058",
     "leaderName": "Enel",
-    "leaderImage": "/cards/leaders/OP15-058.png",
+    "leaderImage": "https://card.yuyu-tei.jp/opc/front/op15/10070.jpg",
     "color": "Purple",
     "colorDot": "#9333ea",
     "rank": "#5 Meta",
@@ -1985,13 +1985,13 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "cardId": "OP01-094",
         "name": "Kaido",
         "quantity": 4,
-        "cost": 9,
-        "power": 10000,
+        "cost": 10,
+        "power": 12000,
         "category": "Character",
         "colors": "Purple",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10116.jpg",
-        "yuyuPrice": 280,
-        "marketPrice": 2
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10119.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP05-074",
@@ -2001,24 +2001,24 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 6000,
         "category": "Character",
         "colors": "Purple",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10086.jpg",
-        "yuyuPrice": 480,
-        "marketPrice": 3.4
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10090.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
-        "cardId": "OP01-100",
+        "cardId": "OP01-096",
         "name": "King",
         "quantity": 4,
-        "cost": 6,
+        "cost": 7,
         "power": 7000,
         "category": "Character",
         "colors": "Purple",
         "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10122.jpg",
-        "yuyuPrice": 100,
-        "marketPrice": 0.7
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
-        "cardId": "OP01-102",
+        "cardId": "ST04-005",
         "name": "Queen",
         "quantity": 4,
         "cost": 5,
@@ -2026,8 +2026,8 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "category": "Character",
         "colors": "Purple",
         "imageUrl": "https://card.yuyu-tei.jp/opc/front/st04/10005.jpg",
-        "yuyuPrice": 350,
-        "marketPrice": 2.5
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP02-085",
@@ -2037,57 +2037,57 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 6000,
         "category": "Character",
         "colors": "Purple",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10103.jpg",
-        "yuyuPrice": 150,
-        "marketPrice": 1
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10107.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
-        "cardId": "OP01-096",
+        "cardId": "OP01-100",
         "name": "Kurozumi Higurashi",
         "quantity": 4,
         "cost": 2,
         "power": 3000,
         "category": "Character",
         "colors": "Purple",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10118.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10128.jpg",
         "yuyuPrice": 80,
-        "marketPrice": 0.5
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP02-073",
-        "name": "Sadi",
+        "name": "Little Sadi",
         "quantity": 4,
         "cost": 3,
         "power": 3000,
         "category": "Character",
         "colors": "Purple",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10091.jpg",
-        "yuyuPrice": 120,
-        "marketPrice": 0.8
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10094.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
-        "cardId": "OP02-071",
+        "cardId": "OP02-086",
         "name": "Minokoala",
         "quantity": 4,
         "cost": 4,
         "power": 5000,
         "category": "Character",
         "colors": "Purple",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10089.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10109.jpg",
         "yuyuPrice": 80,
-        "marketPrice": 0.5
+        "marketPrice": 0.57
       },
       {
-        "cardId": "OP01-110",
-        "name": "Judgement of Hell",
+        "cardId": "OP02-089",
+        "name": "Judgment of Hell",
         "quantity": 4,
         "cost": 2,
         "power": null,
         "category": "Event",
         "colors": "Purple",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10132.jpg",
-        "yuyuPrice": 150,
-        "marketPrice": 1
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10113.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP01-119",
@@ -2097,24 +2097,24 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Purple",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10141.jpg",
-        "yuyuPrice": 80,
-        "marketPrice": 0.5
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10149.jpg",
+        "yuyuPrice": 180,
+        "marketPrice": 1.29
       },
       {
         "cardId": "OP02-089",
-        "name": "Hell's Judgement",
+        "name": "Judgment of Hell",
         "quantity": 4,
         "cost": 2,
         "power": null,
         "category": "Event",
         "colors": "Purple",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10107.jpg",
-        "yuyuPrice": 150,
-        "marketPrice": 1
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10113.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
-        "cardId": "OP01-107",
+        "cardId": "ST04-017",
         "name": "Onigashima Island",
         "quantity": 4,
         "cost": 3,
@@ -2122,20 +2122,20 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "category": "Stage",
         "colors": "Purple",
         "imageUrl": "https://card.yuyu-tei.jp/opc/front/st04/10017.jpg",
-        "yuyuPrice": 200,
-        "marketPrice": 1.4
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP05-070",
-        "name": "Fra-nosuke",
+        "name": "Fra-Nosuke",
         "quantity": 2,
-        "cost": 3,
+        "cost": 5,
         "power": 4000,
         "category": "Character",
         "colors": "Purple",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10082.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10086.jpg",
         "yuyuPrice": 80,
-        "marketPrice": 0.5
+        "marketPrice": 0.57
       }
     ],
     "stats": {
@@ -2154,7 +2154,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "subname": "Monkey.D.Luffy",
     "leaderId": "OP15-098",
     "leaderName": "Monkey.D.Luffy",
-    "leaderImage": "/cards/leaders/OP15-098.png",
+    "leaderImage": "https://card.yuyu-tei.jp/opc/front/op15/10117.jpg",
     "color": "Yellow",
     "colorDot": "#eab308",
     "rank": "#6 Meta",
@@ -2173,16 +2173,16 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "description": "Gear 5 Sun God Nika awakening: manipulate life cards dynamically to trigger free high-cost characters and unstoppable final blows.",
     "cards": [
       {
-        "cardId": "OP05-119",
+        "cardId": "OP07-109",
         "name": "Monkey.D.Luffy",
         "quantity": 4,
-        "cost": 10,
-        "power": 12000,
+        "cost": 5,
+        "power": 6000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10137.jpg",
-        "yuyuPrice": 780,
-        "marketPrice": 5.5
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op07/10130.jpg",
+        "yuyuPrice": 320,
+        "marketPrice": 2.29
       },
       {
         "cardId": "OP04-112",
@@ -2192,9 +2192,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 9000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10123.jpg",
-        "yuyuPrice": 550,
-        "marketPrice": 3.9
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10134.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP05-102",
@@ -2204,33 +2204,33 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 6000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10116.jpg",
-        "yuyuPrice": 280,
-        "marketPrice": 2
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10125.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP04-100",
         "name": "Capone\"Gang\"Bege",
         "quantity": 4,
-        "cost": 1,
-        "power": 1000,
+        "cost": 3,
+        "power": 3000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10110.jpg",
-        "yuyuPrice": 150,
-        "marketPrice": 1
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10120.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP03-112",
-        "name": "Charlotte Charlotte",
+        "name": "Charlotte Pudding",
         "quantity": 4,
-        "cost": 4,
-        "power": 5000,
+        "cost": 1,
+        "power": 2000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10126.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10133.jpg",
         "yuyuPrice": 120,
-        "marketPrice": 0.8
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP03-116",
@@ -2240,21 +2240,21 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10130.jpg",
-        "yuyuPrice": 180,
-        "marketPrice": 1.2
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10140.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP03-115",
-        "name": "Sanji",
+        "name": "Streusen",
         "quantity": 4,
-        "cost": 2,
-        "power": 3000,
+        "cost": 1,
+        "power": 1000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10129.jpg",
-        "yuyuPrice": 100,
-        "marketPrice": 0.7
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10139.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP04-104",
@@ -2264,9 +2264,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 5000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10114.jpg",
-        "yuyuPrice": 120,
-        "marketPrice": 0.8
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10125.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP03-121",
@@ -2276,33 +2276,33 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10136.jpg",
-        "yuyuPrice": 150,
-        "marketPrice": 1
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10145.jpg",
+        "yuyuPrice": 30,
+        "marketPrice": 0.21
       },
       {
-        "cardId": "OP04-116",
+        "cardId": "OP06-116",
         "name": "Reject",
         "quantity": 4,
         "cost": 4,
         "power": null,
         "category": "Event",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10127.jpg",
-        "yuyuPrice": 180,
-        "marketPrice": 1.2
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op06/10138.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
-        "cardId": "OP03-122",
-        "name": "Soul Pocus",
+        "cardId": "OP03-123",
+        "name": "Charlotte Katakuri",
         "quantity": 4,
-        "cost": 5,
-        "power": null,
-        "category": "Event",
+        "cost": 8,
+        "power": 8000,
+        "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10137.jpg",
-        "yuyuPrice": 120,
-        "marketPrice": 0.8
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10149.jpg",
+        "yuyuPrice": 420,
+        "marketPrice": 3
       },
       {
         "cardId": "OP05-115",
@@ -2312,31 +2312,31 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10132.jpg",
-        "yuyuPrice": 200,
-        "marketPrice": 1.4
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10139.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP04-107",
-        "name": "Franky",
+        "name": "Charlotte Perospero",
         "quantity": 2,
-        "cost": 3,
-        "power": 4000,
+        "cost": 6,
+        "power": 8000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10117.jpg",
-        "yuyuPrice": 80,
-        "marketPrice": 0.5
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10129.jpg",
+        "yuyuPrice": 30,
+        "marketPrice": 0.21
       }
     ],
     "stats": {
-      "charactersCount": 34,
-      "eventsCount": 16,
+      "charactersCount": 38,
+      "eventsCount": 12,
       "stagesCount": 0,
       "counters2000": 12,
       "counters1000": 22,
       "noCounter": 16,
-      "avgCost": 4.4
+      "avgCost": 4.2
     }
   },
   {
@@ -2345,7 +2345,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "subname": "Jewelry Bonney",
     "leaderId": "EB04-001",
     "leaderName": "Jewelry Bonney",
-    "leaderImage": "/cards/leaders/EB04-001.png",
+    "leaderImage": "https://card.yuyu-tei.jp/opc/front/eb04/10001.jpg",
     "color": "Red/Yellow",
     "colorDot": "linear-gradient(to right, #dc2626 20%, #eab308 80%)",
     "rank": "#1 Meta",
@@ -2364,16 +2364,16 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "description": "Nika-like Distorted Future transcendence: pairs Red aggressive rush pressure with Yellow trigger sustain and Bartholomew Kuma protection.",
     "cards": [
       {
-        "cardId": "OP05-119",
+        "cardId": "ST01-012",
         "name": "Monkey.D.Luffy",
         "quantity": 4,
-        "cost": 10,
-        "power": 12000,
+        "cost": 5,
+        "power": 6000,
         "category": "Character",
-        "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10137.jpg",
-        "yuyuPrice": 780,
-        "marketPrice": 5.5
+        "colors": "Red",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st01/10012.jpg",
+        "yuyuPrice": 320,
+        "marketPrice": 2.29
       },
       {
         "cardId": "OP02-013",
@@ -2383,9 +2383,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 7000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10013.jpg",
-        "yuyuPrice": 380,
-        "marketPrice": 2.7
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10017.jpg",
+        "yuyuPrice": 220,
+        "marketPrice": 1.57
       },
       {
         "cardId": "OP04-112",
@@ -2395,45 +2395,45 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 9000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10123.jpg",
-        "yuyuPrice": 550,
-        "marketPrice": 3.9
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10134.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP02-018",
         "name": "Marco",
         "quantity": 4,
-        "cost": 5,
-        "power": 6000,
+        "cost": 4,
+        "power": 5000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10018.jpg",
-        "yuyuPrice": 320,
-        "marketPrice": 2.2
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10025.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP04-100",
         "name": "Capone\"Gang\"Bege",
         "quantity": 4,
-        "cost": 1,
-        "power": 1000,
+        "cost": 3,
+        "power": 3000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10110.jpg",
-        "yuyuPrice": 150,
-        "marketPrice": 1
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10120.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP01-016",
         "name": "Nami",
         "quantity": 4,
         "cost": 1,
-        "power": null,
+        "power": 2000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10016.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10021.jpg",
         "yuyuPrice": 220,
-        "marketPrice": 1.5
+        "marketPrice": 1.57
       },
       {
         "cardId": "OP01-006",
@@ -2443,21 +2443,21 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10006.jpg",
-        "yuyuPrice": 150,
-        "marketPrice": 1
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10009.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP03-112",
-        "name": "Charlotte Charlotte",
+        "name": "Charlotte Pudding",
         "quantity": 4,
-        "cost": 4,
-        "power": 5000,
+        "cost": 1,
+        "power": 2000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10126.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10133.jpg",
         "yuyuPrice": 120,
-        "marketPrice": 0.8
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP01-029",
@@ -2467,9 +2467,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10029.jpg",
-        "yuyuPrice": 200,
-        "marketPrice": 1.4
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10037.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP03-121",
@@ -2479,45 +2479,45 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10136.jpg",
-        "yuyuPrice": 150,
-        "marketPrice": 1
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10145.jpg",
+        "yuyuPrice": 30,
+        "marketPrice": 0.21
       },
       {
-        "cardId": "OP04-116",
+        "cardId": "OP06-116",
         "name": "Reject",
         "quantity": 4,
         "cost": 4,
         "power": null,
         "category": "Event",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10127.jpg",
-        "yuyuPrice": 180,
-        "marketPrice": 1.2
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op06/10138.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
-        "cardId": "OP02-024",
+        "cardId": "OP03-018",
         "name": "Fire Fist",
         "quantity": 4,
         "cost": 3,
         "power": null,
         "category": "Event",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10024.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10020.jpg",
         "yuyuPrice": 120,
-        "marketPrice": 0.8
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP04-107",
-        "name": "Franky",
+        "name": "Charlotte Perospero",
         "quantity": 2,
-        "cost": 3,
-        "power": 4000,
+        "cost": 6,
+        "power": 8000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10117.jpg",
-        "yuyuPrice": 80,
-        "marketPrice": 0.5
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10129.jpg",
+        "yuyuPrice": 30,
+        "marketPrice": 0.21
       }
     ],
     "stats": {
@@ -2527,17 +2527,16 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters2000": 12,
       "counters1000": 22,
       "noCounter": 16,
-      "avgCost": 4
+      "avgCost": 3.5
     }
   },
-
   {
     "id": "blue-donquixote-doflamingo-op01",
     "name": "(Blue) Donquixote Doflamingo",
     "subname": "Seven Warlords of the Sea",
     "leaderId": "OP01-060",
     "leaderName": "Donquixote Doflamingo",
-    "leaderImage": "https://card.yuyu-tei.jp/opc/front/st17/10006.jpg",
+    "leaderImage": "https://card.yuyu-tei.jp/opc/front/op01/10074.jpg",
     "color": "Blue",
     "colorDot": "#3b82f6",
     "rank": "#1 Tier 1",
@@ -2557,9 +2556,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 4000,
         "category": "Character",
         "colors": "Blue",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st17/10007.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10093.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP01-070",
@@ -2593,7 +2592,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 5000,
         "category": "Character",
         "colors": "Blue",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb02/10070.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op07/10048.jpg",
         "yuyuPrice": 80,
         "marketPrice": 0.57
       },
@@ -2641,7 +2640,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 1000,
         "category": "Character",
         "colors": "Blue",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb01/10187.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st03/10008.jpg",
         "yuyuPrice": 50,
         "marketPrice": 0.36
       },
@@ -2689,7 +2688,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Blue",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb01/10086.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10068.jpg",
         "yuyuPrice": 120,
         "marketPrice": 0.86
       },
@@ -2701,9 +2700,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Blue",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st17/10008.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10109.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       }
     ],
     "stats": {
@@ -2785,7 +2784,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "category": "Character",
         "colors": "Black",
         "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10110.jpg",
-        "yuyuPrice": 180,
+        "yuyuPrice": 120,
         "marketPrice": 1.29
       },
       {
@@ -2796,9 +2795,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 3000,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st19/10008.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10107.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP06-092",
@@ -2868,7 +2867,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 10000,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb01/10044.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10153.jpg",
         "yuyuPrice": 220,
         "marketPrice": 1.57
       },
@@ -2901,9 +2900,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "charactersCount": 42,
       "eventsCount": 8,
       "stagesCount": 0,
-      "counters2000": 0,
+      "counters2000": 8,
       "counters1000": 20,
-      "noCounter": 30,
+      "noCounter": 22,
       "avgCost": 4.5
     },
     "player": "Azu",
@@ -2951,9 +2950,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 5000,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st27/10008.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op09/10107.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP09-082",
@@ -3036,7 +3035,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "category": "Character",
         "colors": "Black",
         "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10110.jpg",
-        "yuyuPrice": 180,
+        "yuyuPrice": 120,
         "marketPrice": 1.29
       },
       {
@@ -3059,7 +3058,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb02/10093.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op09/10121.jpg",
         "yuyuPrice": 80,
         "marketPrice": 0.57
       },
@@ -3142,9 +3141,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 1000,
         "category": "Character",
         "colors": "Green",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb02/10104.jpg",
-        "yuyuPrice": 80,
-        "marketPrice": 0.57
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st02/10007.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP01-051",
@@ -3178,7 +3177,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 1000,
         "category": "Character",
         "colors": "Green",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb01/10081.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10040.jpg",
         "yuyuPrice": 80,
         "marketPrice": 0.57
       },
@@ -3190,7 +3189,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 2000,
         "category": "Character",
         "colors": "Green",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb02/10037.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10049.jpg",
         "yuyuPrice": 80,
         "marketPrice": 0.57
       },
@@ -3381,9 +3380,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 8000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb01/10076.jpg",
-        "yuyuPrice": 220,
-        "marketPrice": 1.57
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10149.jpg",
+        "yuyuPrice": 420,
+        "marketPrice": 3
       },
       {
         "cardId": "OP03-112",
@@ -3393,9 +3392,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 2000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st20/10008.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10133.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP03-114",
@@ -3429,7 +3428,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 5000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb01/10123.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10129.jpg",
         "yuyuPrice": 120,
         "marketPrice": 0.86
       },
@@ -3465,7 +3464,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb01/10126.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10138.jpg",
         "yuyuPrice": 80,
         "marketPrice": 0.57
       }
@@ -3493,7 +3492,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "leaderId": "OP08-002",
     "leaderName": "Marco",
     "leaderImage": "https://card.yuyu-tei.jp/opc/front/op08/10003.jpg",
-    "color": "Red",
+    "color": "Red/Blue",
     "colorDot": "#ef4444",
     "rank": "#2 Tier 1",
     "winrate": "60.4%",
@@ -3524,9 +3523,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 5000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st15/10008.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10025.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP03-003",
@@ -3536,9 +3535,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 2000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st15/10009.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10004.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP02-013",
@@ -3572,9 +3571,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 4000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st15/10007.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10011.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP01-073",
@@ -3584,9 +3583,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 4000,
         "category": "Character",
         "colors": "Blue",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st17/10007.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10093.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP01-078",
@@ -3632,9 +3631,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": null,
         "category": "Event",
         "colors": "Blue",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st17/10008.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10109.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP02-024",
@@ -3715,9 +3714,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 6000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st23/10007.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op09/10018.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP09-014",
@@ -3727,7 +3726,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 3000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb02/10078.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op09/10019.jpg",
         "yuyuPrice": 80,
         "marketPrice": 0.57
       },
@@ -3739,9 +3738,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 5000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st23/10008.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op09/10020.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP09-003",
@@ -3763,9 +3762,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 2000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st31/10006.jpg",
-        "yuyuPrice": 120,
-        "marketPrice": 0.86
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10021.jpg",
+        "yuyuPrice": 220,
+        "marketPrice": 1.57
       },
       {
         "cardId": "OP01-006",
@@ -3811,7 +3810,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 3000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb02/10039.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10008.jpg",
         "yuyuPrice": 80,
         "marketPrice": 0.57
       },
@@ -3918,7 +3917,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 2000,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb01/10168.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op06/10109.jpg",
         "yuyuPrice": 80,
         "marketPrice": 0.57
       },
@@ -3967,7 +3966,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "category": "Character",
         "colors": "Black",
         "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10110.jpg",
-        "yuyuPrice": 180,
+        "yuyuPrice": 120,
         "marketPrice": 1.29
       },
       {
@@ -3978,9 +3977,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 3000,
         "category": "Character",
         "colors": "Black",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st19/10008.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10107.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP02-096",
@@ -4066,7 +4065,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "leaderId": "OP06-022",
     "leaderName": "Yamato",
     "leaderImage": "https://card.yuyu-tei.jp/opc/front/op06/10028.jpg",
-    "color": "Green",
+    "color": "Green/Yellow",
     "colorDot": "#84cc16",
     "rank": "#3 Tier 1.5",
     "winrate": "58.9%",
@@ -4181,9 +4180,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 1000,
         "category": "Character",
         "colors": "Green",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb02/10104.jpg",
-        "yuyuPrice": 80,
-        "marketPrice": 0.57
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st02/10007.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP02-036",
@@ -4241,7 +4240,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters2000": 4,
       "counters1000": 16,
       "noCounter": 30,
-      "avgCost": 4.1
+      "avgCost": 3.8
     },
     "player": "Yamato7",
     "tournamentType": "Treasure Cup (TC)",
@@ -4257,7 +4256,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "leaderId": "ST10-002",
     "leaderName": "Monkey.D.Luffy",
     "leaderImage": "https://card.yuyu-tei.jp/opc/front/st10/10002.jpg",
-    "color": "Purple",
+    "color": "Red/Purple",
     "colorDot": "#9333ea",
     "rank": "#3 Tier 1.5",
     "winrate": "58.4%",
@@ -4288,7 +4287,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 12000,
         "category": "Character",
         "colors": "Purple",
-        "imageUrl": "https://onepiece-cardgame.com/images/cardlist/card/OP05-119.png?260828",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op05/10144.jpg",
         "yuyuPrice": 780,
         "marketPrice": 38
       },
@@ -4324,9 +4323,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 5000,
         "category": "Character",
         "colors": "Purple",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb02/10108.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st10/10008.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "ST10-005",
@@ -4336,9 +4335,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 2000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb02/10106.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st10/10005.jpg",
+        "yuyuPrice": 220,
+        "marketPrice": 1.57
       },
       {
         "cardId": "OP01-016",
@@ -4348,9 +4347,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 2000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st31/10006.jpg",
-        "yuyuPrice": 120,
-        "marketPrice": 0.86
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10021.jpg",
+        "yuyuPrice": 220,
+        "marketPrice": 1.57
       },
       {
         "cardId": "OP01-006",
@@ -4384,7 +4383,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 3000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb02/10039.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10008.jpg",
         "yuyuPrice": 80,
         "marketPrice": 0.57
       },
@@ -4479,9 +4478,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 5000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st15/10008.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10025.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP01-016",
@@ -4491,9 +4490,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 2000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st31/10006.jpg",
-        "yuyuPrice": 120,
-        "marketPrice": 0.86
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op01/10021.jpg",
+        "yuyuPrice": 220,
+        "marketPrice": 1.57
       },
       {
         "cardId": "OP01-006",
@@ -4527,7 +4526,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 3000,
         "category": "Character",
         "colors": "Red",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb02/10039.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op02/10008.jpg",
         "yuyuPrice": 80,
         "marketPrice": 0.57
       },
@@ -4829,7 +4828,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "subname": "Egghead Gear 5 Combo",
     "leaderId": "OP17-079",
     "leaderName": "Monkey.D.Luffy",
-    "leaderImage": "https://card.yuyu-tei.jp/opc/front/op17/10103.jpg",
+    "leaderImage": "https://card.yuyu-tei.jp/opc/front/op17/10104.jpg",
     "color": "Black",
     "colorDot": "#6b7280",
     "rank": "#1 Tier 1",
@@ -4934,8 +4933,8 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "category": "Character",
         "colors": "Black",
         "imageUrl": "https://card.yuyu-tei.jp/opc/front/op17/10115.jpg",
-        "yuyuPrice": 120,
-        "marketPrice": 0.86
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP17-088",
@@ -5211,7 +5210,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "subname": "God Valley Legend",
     "leaderId": "OP17-039",
     "leaderName": "Rocks.D.Xebec",
-    "leaderImage": "https://card.yuyu-tei.jp/opc/front/op17/10050.jpg",
+    "leaderImage": "https://card.yuyu-tei.jp/opc/front/op17/10051.jpg",
     "color": "Blue",
     "colorDot": "#3b82f6",
     "rank": "#2 Tier 1",
@@ -5385,8 +5384,8 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "eventsCount": 0,
       "stagesCount": 0,
       "counters2000": 4,
-      "counters1000": 0,
-      "noCounter": 46,
+      "counters1000": 12,
+      "noCounter": 34,
       "avgCost": 4.8
     },
     "player": "Hachinosu01",
@@ -5402,7 +5401,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "subname": "Red Hair Pirates Film Slash",
     "leaderId": "OP17-020",
     "leaderName": "Shanks",
-    "leaderImage": "https://card.yuyu-tei.jp/opc/front/op17/10025.jpg",
+    "leaderImage": "https://card.yuyu-tei.jp/opc/front/op17/10024.jpg",
     "color": "Green",
     "colorDot": "#22c55e",
     "rank": "#3 Tier 1.5",
@@ -5784,7 +5783,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
     "subname": "Big Mom Pirates 7000 Powerhouse",
     "leaderId": "OP03-099",
     "leaderName": "Charlotte Katakuri",
-    "leaderImage": "https://card.yuyu-tei.jp/opc/front/st20/10006.jpg",
+    "leaderImage": "https://card.yuyu-tei.jp/opc/front/op03/10118.jpg",
     "color": "Yellow",
     "colorDot": "#eab308",
     "rank": "#3 Tier 1.5",
@@ -5804,9 +5803,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 8000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb01/10076.jpg",
-        "yuyuPrice": 220,
-        "marketPrice": 1.57
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10149.jpg",
+        "yuyuPrice": 420,
+        "marketPrice": 3
       },
       {
         "cardId": "OP03-114",
@@ -5828,9 +5827,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 2000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st20/10008.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10133.jpg",
+        "yuyuPrice": 120,
+        "marketPrice": 0.86
       },
       {
         "cardId": "OP03-113",
@@ -5852,9 +5851,9 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 1000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/st20/10009.jpg",
-        "yuyuPrice": 50,
-        "marketPrice": 0.36
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10139.jpg",
+        "yuyuPrice": 80,
+        "marketPrice": 0.57
       },
       {
         "cardId": "OP03-108",
@@ -5888,7 +5887,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "power": 3000,
         "category": "Character",
         "colors": "Yellow",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/prb01/10095.jpg",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op04/10120.jpg",
         "yuyuPrice": 120,
         "marketPrice": 0.86
       },
@@ -5929,16 +5928,16 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
         "marketPrice": 0.21
       },
       {
-        "cardId": "OP03-122",
-        "name": "Sogeking",
+        "cardId": "OP03-123",
+        "name": "Charlotte Katakuri",
         "quantity": 4,
-        "cost": 7,
-        "power": 6000,
+        "cost": 8,
+        "power": 8000,
         "category": "Character",
-        "colors": "Blue",
-        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10146.jpg",
-        "yuyuPrice": 580,
-        "marketPrice": 4.14
+        "colors": "Yellow",
+        "imageUrl": "https://card.yuyu-tei.jp/opc/front/op03/10149.jpg",
+        "yuyuPrice": 420,
+        "marketPrice": 3
       },
       {
         "cardId": "OP05-115",
@@ -5960,7 +5959,7 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
       "counters2000": 12,
       "counters1000": 16,
       "noCounter": 22,
-      "avgCost": 4.4
+      "avgCost": 4.5
     },
     "player": "MochiKing",
     "tournamentType": "Treasure Cup (TC)",
@@ -5972,15 +5971,15 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
 ];
 
 export function getDeckById(id: string): RecommendedDeck | undefined {
-  return RECOMMENDED_DECKS.find((d) => d.id === id || d.leaderId.toLowerCase() === id.toLowerCase());
+  return RECOMMENDED_DECKS.find((d) => d.id === id);
 }
 
 export function formatDeckExport(deck: RecommendedDeck): string {
-  const lines: string[] = [];
-  lines.push(`// Leader: ${deck.leaderName} (${deck.leaderId})`);
-  lines.push(`1x${deck.leaderId}`);
-  for (const c of deck.cards) {
+  const lines: string[] = [
+    `1x${deck.leaderId}`,
+  ];
+  deck.cards.forEach((c) => {
     lines.push(`${c.quantity}x${c.cardId}`);
-  }
+  });
   return lines.join('\n');
 }

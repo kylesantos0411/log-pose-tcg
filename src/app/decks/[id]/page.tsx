@@ -176,6 +176,14 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
               alt={deck.name}
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                const baseId = (deck.leaderId || '').split('_')[0];
+                const fallback = `/api/card-image?url=${encodeURIComponent(`https://onepiece-cardgame.com/images/cardlist/card/${baseId}.png`)}`;
+                if (target.src !== fallback) {
+                  target.src = fallback;
+                }
+              }}
             />
             {/* SAMPLE watermark badge if desired */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
@@ -358,6 +366,14 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
                       alt={cardItem.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       referrerPolicy="no-referrer"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        const baseId = (cardItem.cardId || '').split('_')[0];
+                        const fallback = `/api/card-image?url=${encodeURIComponent(`https://onepiece-cardgame.com/images/cardlist/card/${baseId}.png`)}`;
+                        if (target.src !== fallback) {
+                          target.src = fallback;
+                        }
+                      }}
                     />
 
                     {/* Top Left: Cost */}
