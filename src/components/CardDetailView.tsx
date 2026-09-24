@@ -289,6 +289,29 @@ export function CardDetailView({
     return 'text-[11px] sm:text-sm';
   };
 
+  // Set code helper for circular badge (e.g. OP01, OP17, ST01, EB01, PRB01)
+  const getCardSetCode = (c: CardDetailData): string => {
+    if (c.pack?.code) {
+      const clean = c.pack.code.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      if (clean.length >= 2 && clean.length <= 6) return clean;
+    }
+    const display = c.displaySet || (c as any).display_set;
+    if (display) {
+      const clean = String(display).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      if (clean.length >= 2 && clean.length <= 6) return clean;
+    }
+    const printed = c.printedSetCode || (c as any).printed_set_code;
+    if (printed) {
+      const clean = String(printed).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      if (clean.length >= 2 && clean.length <= 6) return clean;
+    }
+    const rawId = c.cardNumber || (c as any).card_number || c.id || '';
+    const firstPart = rawId.split('-')[0]?.split('_')[0]?.replace(/[^A-Za-z0-9]/g, '').trim().toUpperCase();
+    return firstPart || 'OP01';
+  };
+
+  const cardSetBadge = getCardSetCode(card);
+
   // Set code parts e.g. "OP-05" -> "OP 05"
   const packCode = card.pack?.code || card.id.split('-')[0] || 'OP';
   const packDisplay = packCode.replace('-', ' ');
@@ -650,12 +673,18 @@ export function CardDetailView({
                 {card.cost ?? '-'}
               </div>
 
-              {/* Version / Parallel White Circle Badge */}
+              {/* Set Code White Circle Badge (e.g. OP01, OP17, ST01) */}
               <div
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white flex items-center justify-center font-black text-sm sm:text-base text-[#1e212b] shadow-md"
-                title="Parallel / Alternate Art Edition"
+                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white flex items-center justify-center font-black text-[#1e212b] shadow-md select-none shrink-0 ${
+                  cardSetBadge.length >= 5
+                    ? 'text-[9px] sm:text-[10px] tracking-tighter'
+                    : cardSetBadge.length >= 4
+                    ? 'text-[11px] sm:text-xs tracking-tight'
+                    : 'text-xs sm:text-sm tracking-normal'
+                }`}
+                title={`Set: ${cardSetBadge}`}
               >
-                P
+                {cardSetBadge}
               </div>
             </div>
 
