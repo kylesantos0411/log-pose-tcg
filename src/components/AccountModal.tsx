@@ -27,6 +27,7 @@ interface AccountModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultTab?: 'register' | 'login';
+  isMandatory?: boolean;
 }
 
 const PIRATE_AVATARS = [
@@ -49,7 +50,7 @@ const PIRATE_CREWS = [
   'Revolutionary Army',
 ];
 
-export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: AccountModalProps) {
+export function AccountModal({ isOpen, onClose, defaultTab = 'register', isMandatory = false }: AccountModalProps) {
   const { 
     user, 
     accounts, 
@@ -298,7 +299,7 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div className="fixed inset-0" onClick={onClose} />
+      <div className="fixed inset-0" onClick={isMandatory ? undefined : onClose} />
 
       <div 
         className="relative bg-[#202330] border border-[#3b4056] rounded-3xl w-full max-w-md p-5 sm:p-6 space-y-4 shadow-2xl z-10 overflow-hidden max-h-[92vh] flex flex-col"
@@ -318,26 +319,38 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register' }: Accou
             <div>
               <div className="flex items-center gap-1.5">
                 <h3 className="text-base font-black text-white leading-tight">
-                  {tab === 'register' ? 'Create Verified Account' : tab === 'forgot' ? 'Reset Password' : 'Sign In to Account'}
+                  {isMandatory 
+                    ? (tab === 'register' ? 'Private Beta Registration' : tab === 'forgot' ? 'Reset Password' : 'Beta Tester Login')
+                    : (tab === 'register' ? 'Create Verified Account' : tab === 'forgot' ? 'Reset Password' : 'Sign In to Account')}
                 </h3>
-                <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[9px] font-bold text-emerald-400 flex items-center gap-0.5">
-                  <Cloud className="w-2.5 h-2.5" />
-                  Cloud Database
-                </span>
+                {isMandatory ? (
+                  <span className="px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/40 text-[9px] font-bold text-purple-300 flex items-center gap-0.5">
+                    🔒 Private Beta
+                  </span>
+                ) : (
+                  <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[9px] font-bold text-emerald-400 flex items-center gap-0.5">
+                    <Cloud className="w-2.5 h-2.5" />
+                    Cloud Database
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-gray-400 font-medium">
-                {tab === 'register' ? 'Protected with 6-digit code verification' : tab === 'forgot' ? 'Recover your account with a 6-digit verification code' : 'Access your permanent cloud binder & cards'}
+                {isMandatory
+                  ? (tab === 'register' ? 'Enter your invite code to join the private beta' : tab === 'forgot' ? 'Recover your account with a verification code' : 'Sign in with your tester account to access the app')
+                  : (tab === 'register' ? 'Create your permanent cloud account' : tab === 'forgot' ? 'Recover your account with a 6-digit verification code' : 'Access your permanent cloud binder & cards')}
               </p>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-gray-400 hover:text-white p-1.5 rounded-xl hover:bg-white/5 transition cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          {!isMandatory && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-gray-400 hover:text-white p-1.5 rounded-xl hover:bg-white/5 transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
         </div>
 
         {/* Success Banner */}

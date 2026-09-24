@@ -210,6 +210,7 @@ interface SettingsContextType {
     customTag?: string;
     code?: string;
     token?: string;
+    inviteCode?: string;
   }) => Promise<{ success: boolean; user?: UserProfile; error?: string }>;
   login: (
     identifier: string,
