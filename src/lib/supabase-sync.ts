@@ -33,10 +33,10 @@ export async function fetchCloudProfile(userId: string): Promise<CloudProfile | 
       username: data.username,
       tag: data.tag,
       email: data.email,
-      avatar: data.avatar || '👒',
-      crew: data.crew || 'Straw Hat Pirates',
-      rank: data.rank || 'Cabin Boy',
-      rankBadge: data.rank_badge || '⚓',
+      avatar: 'default',
+      crew: data.crew?.startsWith('CODE:') ? 'Collector' : (data.crew || 'Collector'),
+      rank: data.rank || 'Collector',
+      rankBadge: '',
     };
   } catch (err) {
     console.error('Failed to fetch cloud profile:', err);

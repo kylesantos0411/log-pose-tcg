@@ -36,6 +36,24 @@ import {
   migrateLocalBinderToCloud 
 } from '@/lib/supabase-sync';
 
+export const BETA_INVITE_CODES = [
+  'POSE-TT9W-BGZ2',
+  'POSE-FM5C-53JT',
+  'POSE-3ZJ3-KSGT',
+  'POSE-DMC2-F3FD',
+  'POSE-TNBZ-S9GE',
+  'POSE-FVFE-868K',
+  'POSE-QBMZ-RZM7',
+  'POSE-2NR5-WK5H',
+  'POSE-ZDH9-RY4G',
+  'POSE-XZAP-WHWF',
+  'POSE-7Y8P-NG9X',
+  'POSE-NAJY-JWTA',
+  'POSE-VZXH-FRPW',
+  'POSE-XPZU-69EF',
+  'POSE-4BQ2-QTQF',
+];
+
 export type CurrencyCode =
   | 'source' // Default: uses each marketplace source's native currency (Yuyu-tei: JPY ¥, Cardmarket: EUR €, eBay/PSA: USD $)
   | 'USD'
@@ -426,19 +444,20 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     try {
       const cloud = await fetchCloudProfile(sbUser.id);
       const name = cloud?.username || sbUser.user_metadata?.username || sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'Collector';
-      const tag = cloud?.tag || sbUser.user_metadata?.tag || `PIRATE-${name.toUpperCase().slice(0, 8)}-${sbUser.id.slice(0, 4)}`;
-      const avatar = cloud?.avatar || sbUser.user_metadata?.avatar || '👒';
-      const crew = cloud?.crew || sbUser.user_metadata?.crew || 'Straw Hat Pirates';
+      const tag = cloud?.tag || sbUser.user_metadata?.tag || (name.startsWith('@') ? name : `@${name}`);
+      const avatar = 'default';
+      const crew = cloud?.crew?.startsWith('CODE:') ? 'Collector' : (cloud?.crew || 'Collector');
 
       const userProfile: UserProfile = {
         id: sbUser.id,
         name,
+        username: name,
         tag,
         email: sbUser.email,
         avatar,
         crew,
-        rank: cloud?.rank || 'Cabin Boy',
-        rankBadge: cloud?.rankBadge || '⚓',
+        rank: cloud?.rank || 'Collector',
+        rankBadge: '',
         createdAt: sbUser.created_at,
       };
 
@@ -609,84 +628,88 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const rawUsername = (data.username || data.name || '').trim();
     const rawEmail = (data.email || '').trim().toLowerCase();
     const rawPassword = (data.password || 'password123').trim();
-    const rawCode = (data.code || '').trim();
     const rawInviteCode = (data.inviteCode || '').trim().toUpperCase();
 
+    if (!rawUsername || rawUsername.length < 2) {
+      return { success: false, error: 'Username must be at least 2 characters long.' };
+    }
+    if (!rawEmail || !rawEmail.includes('@')) {
+      return { success: false, error: 'Please enter a valid email address.' };
+    }
+    if (!rawPassword || rawPassword.length < 6) {
+      return { success: false, error: 'Password must be at least 6 characters long.' };
+    }
 
-    // 1. Direct Supabase Cloud Registration
+    // 1. Mandatory invite code validation
+    if (!rawInviteCode) {
+      return { success: false, error: 'An invite code is required to create an account. This is a private beta.' };
+    }
+
+    if (!BETA_INVITE_CODES.includes(rawInviteCode)) {
+      return { success: false, error: 'Invalid invite code. Please check your code and try again.' };
+    }
+
+    const strippedUser = rawUsername.replace(/^@/, '');
+
+    // 2. Direct Supabase Cloud Registration (Cross-device, multi-phone persistence)
     if (isSupabaseConfigured()) {
-      if (rawCode) {
+      const client = getSupabaseBrowserClient();
+      if (client) {
         try {
-          const { user: authUser, profile, error } = await verifySignupOtp({
-            email: rawEmail,
-            token: rawCode,
-          });
+          // Check if invite code has already been claimed in Supabase cloud
+          const { data: usedInvites } = await client
+            .from('profiles')
+            .select('id')
+            .eq('crew', `CODE:${rawInviteCode}`)
+            .limit(1);
 
-          if (error || !authUser) {
-            return { success: false, error: error || 'Invalid or expired verification code. Please check your email.' };
+          if (usedInvites && usedInvites.length > 0) {
+            return { success: false, error: 'This invite code has already been used.' };
           }
 
-          const userProfile: UserProfile = {
-            id: profile?.id || authUser.id,
-            name: profile?.username || rawUsername || 'Collector',
-            tag: profile?.tag || data.customTag || data.tag || `PIRATE-${(rawUsername || 'CAPTAIN').toUpperCase().slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`,
-            email: profile?.email || rawEmail,
-            avatar: profile?.avatar || data.avatar || '👒',
-            crew: profile?.crew || data.crew || 'Straw Hat Pirates',
-            rank: profile?.rank || 'Cabin Boy',
-            rankBadge: profile?.rank_badge || profile?.rankBadge || '⚓',
-            createdAt: profile?.created_at || new Date().toISOString(),
-          };
+          // Check if username or email already exists in Supabase
+          const { data: existingProfiles } = await client
+            .from('profiles')
+            .select('username, email')
+            .or(`username.ilike.${strippedUser},email.ilike.${rawEmail}`)
+            .limit(1);
 
-          setUserState(userProfile);
-          setActiveSession(userProfile);
-          saveStoredAccountFromSession(userProfile);
-          transferGuestCardsToAccount(userProfile.tag);
-          setAccountsState(getStoredAccounts());
+          if (existingProfiles && existingProfiles.length > 0) {
+            if (existingProfiles[0].email?.toLowerCase() === rawEmail) {
+              return { success: false, error: 'An account with this email already exists. Please sign in.' };
+            }
+            return { success: false, error: 'This username is already taken. Please choose another.' };
+          }
 
-          return { success: true, user: userProfile };
-        } catch (sbErr: any) {
-          return { success: false, error: sbErr.message || 'Failed to complete registration.' };
-        }
-      } else {
-        // Direct password sign up without OTP (when Confirm email is turned off in Supabase)
-        try {
-          const { user: authUser, session, profile: createdProfile, error } = await signUpWithEmailPassword({
+          // Sign up user in Supabase
+          const { user: authUser, error: authErr } = await signUpWithEmailPassword({
             email: rawEmail,
             password: rawPassword,
-            username: rawUsername,
-            avatar: data.avatar,
-            crew: data.crew,
-            tag: data.customTag || data.tag,
+            username: strippedUser,
+            avatar: 'default',
+            crew: `CODE:${rawInviteCode}`,
+            tag: `@${strippedUser}`,
           });
 
-          if (error) {
-            if (error.toLowerCase().includes('already registered')) {
-              return { success: false, error: 'An account with this email already exists. Please sign in or reset your password.' };
+          if (authErr) {
+            if (authErr.toLowerCase().includes('already registered')) {
+              return { success: false, error: 'An account with this email already exists. Please sign in.' };
             }
-            return { success: false, error };
+            return { success: false, error: authErr };
           }
 
           if (authUser) {
-            const client = getSupabaseBrowserClient();
-            let profile = createdProfile;
-            if (!profile && client) {
-              try {
-                const { data: p } = await client.from('profiles').select('*').eq('id', authUser.id).single();
-                profile = p;
-              } catch (_) {}
-            }
-
             const userProfile: UserProfile = {
-              id: profile?.id || authUser.id,
-              name: profile?.username || rawUsername || 'Collector',
-              tag: profile?.tag || data.customTag || data.tag || `PIRATE-${(rawUsername || 'CAPTAIN').toUpperCase().slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`,
-              email: profile?.email || rawEmail,
-              avatar: profile?.avatar || data.avatar || '👒',
-              crew: profile?.crew || data.crew || 'Straw Hat Pirates',
-              rank: profile?.rank || 'Cabin Boy',
-              rankBadge: profile?.rank_badge || profile?.rankBadge || '⚓',
-              createdAt: profile?.created_at || new Date().toISOString(),
+              id: authUser.id,
+              name: strippedUser,
+              username: strippedUser,
+              tag: `@${strippedUser}`,
+              email: rawEmail,
+              avatar: 'default',
+              crew: 'Collector',
+              rank: 'Collector',
+              rankBadge: '',
+              createdAt: new Date().toISOString(),
             };
 
             setUserState(userProfile);
@@ -694,21 +717,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             saveStoredAccountFromSession(userProfile);
             transferGuestCardsToAccount(userProfile.tag);
             setAccountsState(getStoredAccounts());
-
-            // Also sync to local database in background for multi-layer persistence
-            fetch('/api/auth/register', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                username: rawUsername,
-                email: rawEmail,
-                password: rawPassword,
-                avatar: data.avatar,
-                crew: data.crew,
-                customTag: userProfile.tag,
-                inviteCode: rawInviteCode,
-              }),
-            }).catch(console.warn);
 
             return { success: true, user: userProfile };
           }
@@ -726,14 +734,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: rawUsername,
+          username: strippedUser,
           email: rawEmail,
           password: rawPassword,
-          code: rawCode,
+          code: data.code,
           token: data.token,
-          avatar: data.avatar,
-          crew: data.crew,
-          customTag: data.customTag || data.tag,
+          avatar: 'default',
+          crew: 'Collector',
+          customTag: `@${strippedUser}`,
           inviteCode: rawInviteCode,
         }),
       });
@@ -766,7 +774,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const cleanPass = (password || '').trim();
     const cleanCode = (code || '').trim();
 
-    // 1. Direct Supabase Cloud Authentication (Persistent across browsing data deletion)
+    // 1. Direct Supabase Cloud Authentication (Persistent across browsing data deletion and phones)
     if (isSupabaseConfigured()) {
       if (cleanPass) {
         try {
@@ -775,15 +783,17 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             return { success: false, error: error || 'Invalid credentials. Please verify your details.' };
           }
 
+          const rawName = profile?.username || cleanId.replace(/^@/, '');
           const userProfile: UserProfile = {
             id: profile?.id || authUser.id,
-            name: profile?.username || cleanId,
-            tag: profile?.tag || `PIRATE-${(profile?.username || cleanId).toUpperCase().slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`,
+            name: rawName,
+            username: rawName,
+            tag: profile?.tag || `@${rawName}`,
             email: profile?.email || authUser.email || (cleanId.includes('@') ? cleanId : null),
-            avatar: profile?.avatar || '👒',
-            crew: profile?.crew || 'Straw Hat Pirates',
-            rank: profile?.rank || 'Cabin Boy',
-            rankBadge: profile?.rank_badge || profile?.rankBadge || '⚓',
+            avatar: 'default',
+            crew: profile?.crew?.startsWith('CODE:') ? 'Collector' : (profile?.crew || 'Collector'),
+            rank: profile?.rank || 'Collector',
+            rankBadge: '',
             createdAt: profile?.created_at || new Date().toISOString(),
           };
 
@@ -810,15 +820,17 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             return { success: false, error: error || 'Invalid or expired login code. Please request a new one.' };
           }
 
+          const rawName = profile?.username || cleanId.split('@')[0];
           const userProfile: UserProfile = {
             id: profile?.id || authUser.id,
-            name: profile?.username || cleanId.split('@')[0],
-            tag: profile?.tag || `PIRATE-${(profile?.username || cleanId.split('@')[0]).toUpperCase().slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`,
+            name: rawName,
+            username: rawName,
+            tag: profile?.tag || `@${rawName}`,
             email: profile?.email || authUser.email || cleanId,
-            avatar: profile?.avatar || '👒',
-            crew: profile?.crew || 'Straw Hat Pirates',
-            rank: profile?.rank || 'Cabin Boy',
-            rankBadge: profile?.rank_badge || profile?.rankBadge || '⚓',
+            avatar: 'default',
+            crew: profile?.crew?.startsWith('CODE:') ? 'Collector' : (profile?.crew || 'Collector'),
+            rank: profile?.rank || 'Collector',
+            rankBadge: '',
             createdAt: profile?.created_at || new Date().toISOString(),
           };
 

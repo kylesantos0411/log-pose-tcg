@@ -1,8 +1,11 @@
 import { createBrowserClient } from '@supabase/ssr';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const DEFAULT_SUPABASE_URL = 'https://miywbfkbdscnzxbnycme.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_fv6BrsbJZV-hutcDA-pOcA_cR6rxvLE';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || DEFAULT_SUPABASE_ANON_KEY;
 
 export function isSupabaseConfigured(): boolean {
   return Boolean(
@@ -25,7 +28,7 @@ export function getSupabaseBrowserClient(): SupabaseClient | null {
   }
 
   if (!browserClient) {
-    browserClient = createBrowserClient(supabaseUrl!, supabaseAnonKey!);
+    browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
   }
 
   return browserClient;
@@ -61,7 +64,7 @@ export async function signInWithGoogle(redirectTo?: string): Promise<{ error?: s
 }
 
 /**
- * Sign in with email, username, or pirate tag and password
+ * Sign in with email, username, or tag and password
  */
 export async function signInWithIdentifier(
   identifier: string,
@@ -73,18 +76,19 @@ export async function signInWithIdentifier(
   }
 
   const clean = identifier.trim();
+  const stripped = clean.replace(/^@/, '');
   let targetEmail = clean;
 
-  if (!clean.includes('@')) {
+  if (!clean.includes('@') || !clean.includes('.')) {
     // Resolve email by matching tag or username in public profiles
     const { data: matched, error: lookupErr } = await client
       .from('profiles')
       .select('email, username, tag')
-      .or(`tag.ilike.${clean},username.ilike.${clean}`)
+      .or(`tag.ilike.${clean},tag.ilike.@${stripped},username.ilike.${clean},username.ilike.${stripped}`)
       .limit(1);
 
     if (lookupErr || !matched || matched.length === 0 || !matched[0].email) {
-      return { error: 'No account found matching this Collector Tag or Username.' };
+      return { error: 'No account found matching this Username or Email.' };
     }
     targetEmail = matched[0].email;
   }
@@ -151,17 +155,18 @@ export async function signUpWithEmailPassword(params: {
     return { error: 'Supabase is not configured yet.' };
   }
 
-  const generatedTag = params.tag || `PIRATE-${params.username.toUpperCase().slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`;
+  const cleanUsername = params.username.trim();
+  const cleanTag = params.tag?.trim() || (cleanUsername.startsWith('@') ? cleanUsername : `@${cleanUsername}`);
 
   const { data, error } = await client.auth.signUp({
     email: params.email,
     password: params.password,
     options: {
       data: {
-        username: params.username,
-        avatar: params.avatar || '👒',
-        crew: params.crew || 'Straw Hat Pirates',
-        tag: generatedTag,
+        username: cleanUsername,
+        avatar: params.avatar || 'default',
+        crew: params.crew || 'Collector',
+        tag: cleanTag,
       },
     },
   });
@@ -196,10 +201,12 @@ export async function signUpWithEmailPassword(params: {
       const profileData = {
         id: user.id,
         email: params.email,
-        username: params.username,
-        avatar: params.avatar || '👒',
-        crew: params.crew || 'Straw Hat Pirates',
-        tag: generatedTag,
+        username: cleanUsername,
+        avatar: params.avatar || 'default',
+        crew: params.crew || 'Collector',
+        tag: cleanTag,
+        rank: 'Collector',
+        rank_badge: '',
         updated_at: new Date().toISOString(),
       };
       const { data: p } = await client.from('profiles').upsert(profileData, { onConflict: 'id' }).select().single();

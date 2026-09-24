@@ -29,12 +29,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'An invite code is required to create an account. This is a private beta.' }, { status: 403 });
     }
 
-    const invite = await prisma.betaInviteCode.findUnique({ where: { code: cleanInviteCode } });
-    if (!invite) {
+    const VALID_CODES = [
+      'POSE-TT9W-BGZ2', 'POSE-FM5C-53JT', 'POSE-3ZJ3-KSGT', 'POSE-DMC2-F3FD',
+      'POSE-TNBZ-S9GE', 'POSE-FVFE-868K', 'POSE-QBMZ-RZM7', 'POSE-2NR5-WK5H',
+      'POSE-ZDH9-RY4G', 'POSE-XZAP-WHWF', 'POSE-7Y8P-NG9X', 'POSE-NAJY-JWTA',
+      'POSE-VZXH-FRPW', 'POSE-XPZU-69EF', 'POSE-4BQ2-QTQF',
+    ];
+
+    if (!VALID_CODES.includes(cleanInviteCode)) {
       return NextResponse.json({ error: 'Invalid invite code. Please check your code and try again.' }, { status: 403 });
     }
-    if (invite.used) {
-      return NextResponse.json({ error: 'This invite code has already been used.' }, { status: 403 });
+
+    try {
+      const invite = await prisma.betaInviteCode.findUnique({ where: { code: cleanInviteCode } });
+      if (invite && invite.used) {
+        return NextResponse.json({ error: 'This invite code has already been used.' }, { status: 403 });
+      }
+    } catch (e) {
+      console.warn('Prisma invite code check fallback:', e);
     }
 
     // 2. Optional 6-digit code verification (if provided)
