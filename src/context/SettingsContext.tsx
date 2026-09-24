@@ -180,9 +180,8 @@ export interface EnabledPriceSources {
 export type UserProfile = UserSession;
 
 export function generateCollectorTag(name: string): string {
-  const clean = name.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8) || 'PIRATE';
-  const num = Math.floor(1000 + Math.random() * 9000);
-  return `PIRATE-${clean}-${num}`;
+  const clean = name.trim().replace(/^@/, '');
+  return clean ? `@${clean}` : '@collector';
 }
 
 interface SettingsContextType {
@@ -546,15 +545,19 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
               profile = p;
             }
 
+            const rawUsername = profile?.username || registrationData?.username || cleanEmail.split('@')[0];
+            const cleanTag = profile?.tag || registrationData?.tag || (rawUsername.startsWith('@') ? rawUsername : `@${rawUsername}`);
+
             const userProfile: UserProfile = {
               id: profile?.id || authUser.id,
-              name: profile?.username || registrationData?.username || cleanEmail.split('@')[0],
-              tag: profile?.tag || registrationData?.tag || `PIRATE-${(registrationData?.username || 'CAPTAIN').toUpperCase().slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`,
+              name: rawUsername,
+              username: rawUsername,
+              tag: cleanTag,
               email: profile?.email || cleanEmail,
-              avatar: profile?.avatar || registrationData?.avatar || '👒',
-              crew: profile?.crew || registrationData?.crew || 'Straw Hat Pirates',
-              rank: profile?.rank || 'Cabin Boy',
-              rankBadge: profile?.rank_badge || profile?.rankBadge || '⚓',
+              avatar: 'default',
+              crew: 'Collector',
+              rank: 'Collector',
+              rankBadge: '',
               createdAt: profile?.created_at || new Date().toISOString(),
             };
 
@@ -912,15 +915,19 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           return { success: false, error: error || 'Failed to reset password. Please verify the code.' };
         }
 
+        const rawName = profile?.username || cleanEmail.split('@')[0];
+        const cleanTag = profile?.tag || (rawName.startsWith('@') ? rawName : `@${rawName}`);
+
         const userProfile: UserProfile = {
           id: profile?.id || authUser.id,
-          name: profile?.username || cleanEmail.split('@')[0],
-          tag: profile?.tag || `PIRATE-${(profile?.username || cleanEmail.split('@')[0]).toUpperCase().slice(0, 8)}-${Math.floor(1000 + Math.random() * 9000)}`,
+          name: rawName,
+          username: rawName,
+          tag: cleanTag,
           email: profile?.email || authUser.email || cleanEmail,
-          avatar: profile?.avatar || '👒',
-          crew: profile?.crew || 'Straw Hat Pirates',
-          rank: profile?.rank || 'Cabin Boy',
-          rankBadge: profile?.rank_badge || profile?.rankBadge || '⚓',
+          avatar: 'default',
+          crew: 'Collector',
+          rank: 'Collector',
+          rankBadge: '',
           createdAt: profile?.created_at || new Date().toISOString(),
         };
 

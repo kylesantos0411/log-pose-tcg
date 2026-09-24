@@ -22,25 +22,8 @@ export function verifyPassword(password: string, hash: string): boolean {
  * Generate unique Collector Pirate Tag
  */
 export async function generateUniqueTag(username: string): Promise<string> {
-  const clean = username.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10) || 'PIRATE';
-  let tag = '';
-  let exists = true;
-  let attempts = 0;
-
-  while (exists && attempts < 10) {
-    const num = Math.floor(1000 + Math.random() * 9000);
-    tag = `PIRATE-${clean}-${num}`;
-    try {
-      const user = await prisma.user.findUnique({ where: { tag } });
-      if (!user) {
-        exists = false;
-      }
-    } catch {
-      exists = false;
-    }
-    attempts++;
-  }
-  return tag;
+  const clean = username.trim().replace(/^@/, '');
+  return clean ? `@${clean}` : '@collector';
 }
 
 /**

@@ -115,26 +115,20 @@ export function registerAccount(data: {
     return { success: false, error: `Email "${email}" is already registered. Please sign in instead.` };
   }
 
-  // Generate unique collector tag
-  let cleanName = username.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8) || 'CAPTAIN';
-  let tag = data.customTag ? data.customTag.toUpperCase() : `PIRATE-${cleanName}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-  // Ensure tag is strictly unique
-  while (existingAccounts.some((a) => a.tag.toUpperCase() === tag)) {
-    tag = `PIRATE-${cleanName}-${Math.floor(1000 + Math.random() * 9000)}`;
-  }
+  const cleanUser = username.trim().replace(/^@/, '');
+  let tag = data.customTag ? (data.customTag.startsWith('@') ? data.customTag : `@${data.customTag}`) : `@${cleanUser}`;
 
   const now = new Date().toISOString();
   const newAccount: StoredAccount = {
     id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-    username,
+    username: cleanUser,
     tag,
     email,
     password,
-    avatar: data.avatar || '👒',
-    crew: data.crew || 'Straw Hat Pirates',
-    rank: 'Supernova Collector',
-    rankBadge: '🏴‍☠️',
+    avatar: 'default',
+    crew: 'Collector',
+    rank: 'Collector',
+    rankBadge: '',
     createdAt: now,
     lastLoginAt: now,
   };
