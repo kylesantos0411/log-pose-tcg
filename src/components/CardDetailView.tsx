@@ -94,6 +94,7 @@ interface ChartDataPoint {
   yuyuYen: number;
   cardmarket: number;
   ebay: number;
+  snkrdunk?: number;
   psa: number;
 }
 
@@ -121,10 +122,28 @@ export function CardDetailView({
   const [selectedLang, setSelectedLang] = useState<'en' | 'jp'>('jp');
   const [card, setCard] = useState<CardDetailData>(initialCard);
   const [allVariants, setAllVariants] = useState<CardDetailData[]>(initialVariants || []);
+  const [snkrdunkPricing, setSnkrdunkPricing] = useState<any>(null);
 
   useEffect(() => {
     setCard(initialCard);
   }, [initialCard]);
+
+  // Fetch live SNKRDUNK pricing (raw A-grade & all graded listings)
+  useEffect(() => {
+    let isMounted = true;
+    if (!card.id) return;
+    fetch(`/api/pricing/snkrdunk?cardId=${encodeURIComponent(card.id)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && data.success && data.pricing) {
+          setSnkrdunkPricing(data.pricing);
+        }
+      })
+      .catch((err) => console.error('Failed to load SNKRDUNK pricing:', err));
+    return () => {
+      isMounted = false;
+    };
+  }, [card.id]);
 
   useEffect(() => {
     if (initialVariants && initialVariants.length > 0) {
@@ -214,7 +233,25 @@ export function CardDetailView({
 
   const cardmarketPrice = card.marketPrice || 25.0;
   const ebayPrice = Math.round(cardmarketPrice * 1.15 * 100) / 100;
-  const psaPrice = Math.round(cardmarketPrice * 2.85 * 100) / 100;
+
+  // SNKRDUNK live pricing
+  const snkrdunkRawYen: number | null = snkrdunkPricing?.rawA ?? null;
+  const snkrdunkRawUsd: number | null = snkrdunkRawYen ? snkrdunkRawYen / 152 : null;
+  const snkrdunkUrl = snkrdunkPricing?.url || `https://snkrdunk.com/search?keywords=${encodeURIComponent(card.cardNumber || card.id.split('_')[0])}`;
+
+  // All graded card prices are sourced exclusively from SNKRDUNK
+  const snkrdunkPsa10: number | null = snkrdunkPricing?.psa10 ?? null;
+  const snkrdunkPsa9: number | null = snkrdunkPricing?.psa9 ?? null;
+  const snkrdunkPsa8: number | null = snkrdunkPricing?.psa8 ?? null;
+  const snkrdunkBgs10: number | null = snkrdunkPricing?.bgs10 ?? null;
+  const snkrdunkBgs95: number | null = snkrdunkPricing?.bgs95 ?? null;
+  const snkrdunkArs10plus: number | null = snkrdunkPricing?.ars10plus ?? null;
+  const snkrdunkArs10: number | null = snkrdunkPricing?.ars10 ?? null;
+  const snkrdunkArs9: number | null = snkrdunkPricing?.ars9 ?? null;
+  const snkrdunkCgc10: number | null = snkrdunkPricing?.cgc10 ?? null;
+
+  // Sourced from SNKRDUNK PSA 10 (or fallback if pending)
+  const psaPrice = snkrdunkPsa10 ? Math.round((snkrdunkPsa10 / 152) * 100) / 100 : Math.round(cardmarketPrice * 2.85 * 100) / 100;
 
   // Chart scaling dynamically adapted to enabled sources
   let activeMaxPrice = 10;
@@ -222,6 +259,7 @@ export function CardDetailView({
   if (enabledPriceSources.ebay) activeMaxPrice = Math.max(activeMaxPrice, ebayPrice);
   if (enabledPriceSources.cardmarket) activeMaxPrice = Math.max(activeMaxPrice, cardmarketPrice);
   if (enabledPriceSources.yuyutei) activeMaxPrice = Math.max(activeMaxPrice, Math.round(yuyuteiYen / 152));
+  if (enabledPriceSources.snkrdunk && snkrdunkRawUsd) activeMaxPrice = Math.max(activeMaxPrice, snkrdunkRawUsd);
   const maxChartVal = Math.ceil((activeMaxPrice * 1.35) / 50) * 50 || 200;
   const step = Math.round(maxChartVal / 4);
 
@@ -405,38 +443,39 @@ export function CardDetailView({
 
   // Multi-point time series data dynamically driven by selected timeframe
   const getChartData = (): ChartDataPoint[] => {
+    const snkVal = snkrdunkRawUsd !== null ? snkrdunkRawUsd : (snkrdunkRawYen ? snkrdunkRawYen / 152 : yuyuteiYen / 152);
     if (timeframe === '7D') {
       const dates = ['09/15', '09/16', '09/17', '09/18', '09/19', '09/20', '09/21'];
       return [
-        { date: dates[0], yuyuYen: Math.round(yuyuteiYen * 0.96), cardmarket: Math.round(cardmarketPrice * 0.93), ebay: Math.round(ebayPrice * 0.95), psa: Math.round(psaPrice * 0.98) },
-        { date: dates[1], yuyuYen: Math.round(yuyuteiYen * 0.97), cardmarket: Math.round(cardmarketPrice * 0.94), ebay: Math.round(ebayPrice * 0.96), psa: Math.round(psaPrice * 0.98) },
-        { date: dates[2], yuyuYen: Math.round(yuyuteiYen * 0.97), cardmarket: Math.round(cardmarketPrice * 0.96), ebay: Math.round(ebayPrice * 0.98), psa: Math.round(psaPrice * 0.99) },
-        { date: dates[3], yuyuYen: Math.round(yuyuteiYen * 0.98), cardmarket: Math.round(cardmarketPrice * 0.96), ebay: Math.round(ebayPrice * 0.97), psa: Math.round(psaPrice * 0.99) },
-        { date: dates[4], yuyuYen: Math.round(yuyuteiYen * 0.99), cardmarket: Math.round(cardmarketPrice * 0.98), ebay: Math.round(ebayPrice * 1.01), psa: Math.round(psaPrice * 1.00) },
-        { date: dates[5], yuyuYen: Math.round(yuyuteiYen * 1.01), cardmarket: Math.round(cardmarketPrice * 1.02), ebay: Math.round(ebayPrice * 1.02), psa: Math.round(psaPrice * 1.01) },
-        { date: dates[6], yuyuYen: yuyuteiYen, cardmarket: cardmarketPrice, ebay: ebayPrice, psa: psaPrice },
+        { date: dates[0], yuyuYen: Math.round(yuyuteiYen * 0.96), cardmarket: Math.round(cardmarketPrice * 0.93), ebay: Math.round(ebayPrice * 0.95), snkrdunk: Math.round(snkVal * 0.95), psa: Math.round(psaPrice * 0.98) },
+        { date: dates[1], yuyuYen: Math.round(yuyuteiYen * 0.97), cardmarket: Math.round(cardmarketPrice * 0.94), ebay: Math.round(ebayPrice * 0.96), snkrdunk: Math.round(snkVal * 0.96), psa: Math.round(psaPrice * 0.98) },
+        { date: dates[2], yuyuYen: Math.round(yuyuteiYen * 0.97), cardmarket: Math.round(cardmarketPrice * 0.96), ebay: Math.round(ebayPrice * 0.98), snkrdunk: Math.round(snkVal * 0.97), psa: Math.round(psaPrice * 0.99) },
+        { date: dates[3], yuyuYen: Math.round(yuyuteiYen * 0.98), cardmarket: Math.round(cardmarketPrice * 0.96), ebay: Math.round(ebayPrice * 0.97), snkrdunk: Math.round(snkVal * 0.98), psa: Math.round(psaPrice * 0.99) },
+        { date: dates[4], yuyuYen: Math.round(yuyuteiYen * 0.99), cardmarket: Math.round(cardmarketPrice * 0.98), ebay: Math.round(ebayPrice * 1.01), snkrdunk: Math.round(snkVal * 0.99), psa: Math.round(psaPrice * 1.00) },
+        { date: dates[5], yuyuYen: Math.round(yuyuteiYen * 1.01), cardmarket: Math.round(cardmarketPrice * 1.02), ebay: Math.round(ebayPrice * 1.02), snkrdunk: Math.round(snkVal * 1.01), psa: Math.round(psaPrice * 1.01) },
+        { date: dates[6], yuyuYen: yuyuteiYen, cardmarket: cardmarketPrice, ebay: ebayPrice, snkrdunk: Math.round(snkVal), psa: psaPrice },
       ];
     }
 
     if (timeframe === '1M') {
       // Matches the exact OP.TCG screenshot points: 04/27, 05/04, 05/12, 05/19, 05/26
       return [
-        { date: '04/27', yuyuYen: Math.round(yuyuteiYen * 0.62), cardmarket: Math.round(cardmarketPrice * 0.65), ebay: Math.round(ebayPrice * 0.47), psa: 0 },
-        { date: '05/04', yuyuYen: Math.round(yuyuteiYen * 0.65), cardmarket: Math.round(cardmarketPrice * 0.65), ebay: Math.round(ebayPrice * 0.47), psa: Math.round(psaPrice * 1.16) },
-        { date: '05/12', yuyuYen: Math.round(yuyuteiYen * 0.74), cardmarket: Math.round(cardmarketPrice * 0.74), ebay: Math.round(ebayPrice * 1.53), psa: Math.round(psaPrice * 1.16) },
-        { date: '05/19', yuyuYen: Math.round(yuyuteiYen * 0.95), cardmarket: Math.round(cardmarketPrice * 1.15), ebay: Math.round(ebayPrice * 1.12), psa: Math.round(psaPrice * 0.75) },
-        { date: '05/26', yuyuYen: yuyuteiYen, cardmarket: cardmarketPrice, ebay: ebayPrice, psa: psaPrice },
+        { date: '04/27', yuyuYen: Math.round(yuyuteiYen * 0.62), cardmarket: Math.round(cardmarketPrice * 0.65), ebay: Math.round(ebayPrice * 0.47), snkrdunk: Math.round(snkVal * 0.63), psa: 0 },
+        { date: '05/04', yuyuYen: Math.round(yuyuteiYen * 0.65), cardmarket: Math.round(cardmarketPrice * 0.65), ebay: Math.round(ebayPrice * 0.47), snkrdunk: Math.round(snkVal * 0.66), psa: Math.round(psaPrice * 1.16) },
+        { date: '05/12', yuyuYen: Math.round(yuyuteiYen * 0.74), cardmarket: Math.round(cardmarketPrice * 0.74), ebay: Math.round(ebayPrice * 1.53), snkrdunk: Math.round(snkVal * 0.76), psa: Math.round(psaPrice * 1.16) },
+        { date: '05/19', yuyuYen: Math.round(yuyuteiYen * 0.95), cardmarket: Math.round(cardmarketPrice * 1.15), ebay: Math.round(ebayPrice * 1.12), snkrdunk: Math.round(snkVal * 0.94), psa: Math.round(psaPrice * 0.75) },
+        { date: '05/26', yuyuYen: yuyuteiYen, cardmarket: cardmarketPrice, ebay: ebayPrice, snkrdunk: Math.round(snkVal), psa: psaPrice },
       ];
     }
 
     // 3M
     return [
-      { date: '02/20', yuyuYen: Math.round(yuyuteiYen * 0.45), cardmarket: Math.round(cardmarketPrice * 0.45), ebay: Math.round(ebayPrice * 0.40), psa: 0 },
-      { date: '03/10', yuyuYen: Math.round(yuyuteiYen * 0.50), cardmarket: Math.round(cardmarketPrice * 0.50), ebay: Math.round(ebayPrice * 0.45), psa: 0 },
-      { date: '04/01', yuyuYen: Math.round(yuyuteiYen * 0.60), cardmarket: Math.round(cardmarketPrice * 0.62), ebay: Math.round(ebayPrice * 0.52), psa: Math.round(psaPrice * 0.85) },
-      { date: '04/25', yuyuYen: Math.round(yuyuteiYen * 0.70), cardmarket: Math.round(cardmarketPrice * 0.75), ebay: Math.round(ebayPrice * 0.70), psa: Math.round(psaPrice * 1.10) },
-      { date: '05/10', yuyuYen: Math.round(yuyuteiYen * 0.85), cardmarket: Math.round(cardmarketPrice * 0.90), ebay: Math.round(ebayPrice * 1.25), psa: Math.round(psaPrice * 1.12) },
-      { date: '05/26', yuyuYen: yuyuteiYen, cardmarket: cardmarketPrice, ebay: ebayPrice, psa: psaPrice },
+      { date: '02/20', yuyuYen: Math.round(yuyuteiYen * 0.45), cardmarket: Math.round(cardmarketPrice * 0.45), ebay: Math.round(ebayPrice * 0.40), snkrdunk: Math.round(snkVal * 0.44), psa: 0 },
+      { date: '03/10', yuyuYen: Math.round(yuyuteiYen * 0.50), cardmarket: Math.round(cardmarketPrice * 0.50), ebay: Math.round(ebayPrice * 0.45), snkrdunk: Math.round(snkVal * 0.51), psa: 0 },
+      { date: '04/01', yuyuYen: Math.round(yuyuteiYen * 0.60), cardmarket: Math.round(cardmarketPrice * 0.62), ebay: Math.round(ebayPrice * 0.52), snkrdunk: Math.round(snkVal * 0.61), psa: Math.round(psaPrice * 0.85) },
+      { date: '04/25', yuyuYen: Math.round(yuyuteiYen * 0.70), cardmarket: Math.round(cardmarketPrice * 0.75), ebay: Math.round(ebayPrice * 0.70), snkrdunk: Math.round(snkVal * 0.72), psa: Math.round(psaPrice * 1.10) },
+      { date: '05/10', yuyuYen: Math.round(yuyuteiYen * 0.85), cardmarket: Math.round(cardmarketPrice * 0.90), ebay: Math.round(ebayPrice * 1.25), snkrdunk: Math.round(snkVal * 0.86), psa: Math.round(psaPrice * 1.12) },
+      { date: '05/26', yuyuYen: yuyuteiYen, cardmarket: cardmarketPrice, ebay: ebayPrice, snkrdunk: Math.round(snkVal), psa: psaPrice },
     ];
   };
 
@@ -777,6 +816,7 @@ export function CardDetailView({
                   enabledPriceSources.yuyutei,
                   enabledPriceSources.cardmarket,
                   enabledPriceSources.ebay,
+                  enabledPriceSources.snkrdunk,
                   enabledPriceSources.psa,
                 ].filter(Boolean).length;
 
@@ -784,6 +824,8 @@ export function CardDetailView({
                   ? 'grid-cols-1' 
                   : activeCount === 3 
                   ? 'grid-cols-1 sm:grid-cols-3' 
+                  : activeCount >= 4
+                  ? 'grid-cols-2 sm:grid-cols-3'
                   : 'grid-cols-2';
 
                 return (
@@ -883,23 +925,73 @@ export function CardDetailView({
                       );
                     })()}
 
-                    {/* 4. PSA */}
-                    {enabledPriceSources.psa && (() => {
-                      const priceFormatted = formatPrice(psaPrice).full;
+                    {/* 4. SNKRDUNK (Raw Condition A) */}
+                    {enabledPriceSources.snkrdunk && (() => {
+                      const hasPrice = snkrdunkRawYen !== null;
+                      const priceFormatted = hasPrice
+                        ? formatPrice(snkrdunkRawYen, { source: 'snkrdunk', rawJPY: snkrdunkRawYen }).full
+                        : 'Unavailable';
                       return (
                         <a
-                          href={psaUrl}
+                          href={snkrdunkUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          title="View on PSA"
+                          title="View Condition A on SNKRDUNK (スニダン)"
+                          className="flex items-center gap-2 sm:gap-2.5 group cursor-pointer min-w-0"
+                        >
+                          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white border border-white/20 flex items-center justify-center flex-shrink-0 shadow-md overflow-hidden p-1.5">
+                            <img
+                              src="/logos/snkrdunk.svg"
+                              alt="SNKRDUNK"
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLElement).style.display = 'none';
+                                if (e.currentTarget.parentElement) {
+                                  e.currentTarget.parentElement.innerText = 'SD';
+                                  e.currentTarget.parentElement.className = 'w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#10b981] text-white font-black text-[11px] sm:text-xs flex items-center justify-center flex-shrink-0 shadow-md';
+                                }
+                              }}
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1 overflow-hidden">
+                            <div className="flex items-center gap-1 leading-tight">
+                              <span className={`font-black text-white group-hover:text-[#10b981] transition whitespace-nowrap ${hasPrice ? getPriceFontSizeClass(priceFormatted) : 'text-xs text-gray-400'}`}>
+                                {priceFormatted}
+                              </span>
+                            </div>
+                            <div className="text-[10px] sm:text-[11px] text-emerald-400 font-bold mt-0.5 leading-tight whitespace-nowrap overflow-hidden text-ellipsis flex items-center gap-1">
+                              <span className="bg-emerald-500/20 text-emerald-300 px-1 py-0.2 rounded text-[9px] font-extrabold">Grade A</span>
+                              <span className="text-gray-400 font-normal">SNKRDUNK</span>
+                            </div>
+                          </div>
+                        </a>
+                      );
+                    })()}
+
+                    {/* 5. PSA (Sourced from SNKRDUNK PSA 10) */}
+                    {enabledPriceSources.psa && (() => {
+                      const hasPrice = snkrdunkPsa10 !== null;
+                      const priceFormatted = hasPrice
+                        ? formatPrice(snkrdunkPsa10, { source: 'snkrdunk', rawJPY: snkrdunkPsa10 }).full
+                        : (psaPrice ? formatPrice(psaPrice).full : 'Unavailable');
+                      return (
+                        <a
+                          href={snkrdunkUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="View PSA 10 on SNKRDUNK"
                           className="flex items-center gap-2 sm:gap-2.5 group cursor-pointer min-w-0"
                         >
                           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#dc2626] flex items-center justify-center flex-shrink-0 shadow-md text-white font-black text-[11px] sm:text-xs tracking-wider">
                             PSA
                           </div>
-                          <div className="min-w-0 flex-1">
+                          <div className="min-w-0 flex-1 overflow-hidden">
                             <div className={`font-black text-white group-hover:text-red-400 transition leading-tight whitespace-nowrap ${getPriceFontSizeClass(priceFormatted)}`}>
                               {priceFormatted}
+                            </div>
+                            <div className="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5 whitespace-nowrap">
+                              <span>PSA 10</span>
+                              <span className="text-[9px] text-gray-400 font-medium">(SNKRDUNK)</span>
                             </div>
                           </div>
                         </a>
@@ -922,7 +1014,7 @@ export function CardDetailView({
                     <span>Graded Slab Pop Report &amp; Valuations</span>
                   </div>
                   <div className="text-[11px] text-gray-400 mt-0.5">
-                    Live market sales from PSA, Beckett (BGS), and CGC
+                    All graded valuations sourced directly from live SNKRDUNK listings
                   </div>
                 </div>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
@@ -934,10 +1026,13 @@ export function CardDetailView({
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {/* PSA 10 */}
                 {(() => {
-                  const pFormatted = formatPrice(psaPrice, { source: 'psa', lang: selectedLang }).full;
+                  const hasPrice = snkrdunkPsa10 !== null;
+                  const pFormatted = hasPrice
+                    ? formatPrice(snkrdunkPsa10, { source: 'snkrdunk', rawJPY: snkrdunkPsa10 }).full
+                    : 'Unavailable';
                   return (
                     <a
-                      href={`https://www.psacard.com/search#q=One%20Piece%20${card.id}`}
+                      href={snkrdunkUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="p-3 rounded-xl bg-[#1e212c] hover:bg-[#282c3a] border border-red-500/40 transition group cursor-pointer overflow-hidden"
@@ -946,11 +1041,14 @@ export function CardDetailView({
                         <span className="text-xs font-black text-red-400">PSA 10</span>
                         <span className="text-[10px] text-gray-400">Pop: {popStats.psa10Pop.toLocaleString()}</span>
                       </div>
-                      <div className={`font-extrabold text-white mt-1 group-hover:text-red-300 transition whitespace-nowrap ${getPriceFontSizeClass(pFormatted)}`}>
+                      <div className={`font-extrabold text-white mt-1 group-hover:text-red-300 transition whitespace-nowrap ${hasPrice ? getPriceFontSizeClass(pFormatted) : 'text-xs text-gray-400'}`}>
                         {pFormatted}
                       </div>
                       <div className="text-[10px] text-emerald-400 font-semibold mt-0.5 flex items-center justify-between">
-                        <span>Gem Mint</span>
+                        <span className="flex items-center gap-1">
+                          <span>Gem Mint</span>
+                          <span className="text-[9px] text-gray-500 font-normal">(SNKRDUNK)</span>
+                        </span>
                         <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" />
                       </div>
                     </a>
@@ -959,10 +1057,13 @@ export function CardDetailView({
 
                 {/* PSA 9 */}
                 {(() => {
-                  const pFormatted = formatPrice(psaPrice * 0.38, { source: 'psa', lang: selectedLang }).full;
+                  const hasPrice = snkrdunkPsa9 !== null;
+                  const pFormatted = hasPrice
+                    ? formatPrice(snkrdunkPsa9, { source: 'snkrdunk', rawJPY: snkrdunkPsa9 }).full
+                    : 'Unavailable';
                   return (
                     <a
-                      href={`https://www.psacard.com/search#q=One%20Piece%20${card.id}`}
+                      href={snkrdunkUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="p-3 rounded-xl bg-[#1e212c] hover:bg-[#282c3a] border border-[#32384a] transition group cursor-pointer overflow-hidden"
@@ -971,23 +1072,29 @@ export function CardDetailView({
                         <span className="text-xs font-black text-gray-300">PSA 9</span>
                         <span className="text-[10px] text-gray-400">Pop: {popStats.psa9Pop.toLocaleString()}</span>
                       </div>
-                      <div className={`font-extrabold text-white mt-1 group-hover:text-gray-200 transition whitespace-nowrap ${getPriceFontSizeClass(pFormatted)}`}>
+                      <div className={`font-extrabold text-white mt-1 group-hover:text-gray-200 transition whitespace-nowrap ${hasPrice ? getPriceFontSizeClass(pFormatted) : 'text-xs text-gray-400'}`}>
                         {pFormatted}
                       </div>
                       <div className="text-[10px] text-gray-400 font-semibold mt-0.5 flex items-center justify-between">
-                        <span>Mint</span>
+                        <span className="flex items-center gap-1">
+                          <span>Mint</span>
+                          <span className="text-[9px] text-gray-500 font-normal">(SNKRDUNK)</span>
+                        </span>
                         <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" />
                       </div>
                     </a>
                   );
                 })()}
 
-                {/* BGS 10 Black Label */}
+                {/* BGS 10 Black/Gold */}
                 {(() => {
-                  const pFormatted = formatPrice(psaPrice * 3.2, { source: 'psa', lang: selectedLang }).full;
+                  const hasPrice = snkrdunkBgs10 !== null;
+                  const pFormatted = hasPrice
+                    ? formatPrice(snkrdunkBgs10, { source: 'snkrdunk', rawJPY: snkrdunkBgs10 }).full
+                    : 'Unavailable';
                   return (
                     <a
-                      href="https://www.beckett.com/grading/pop-report"
+                      href={snkrdunkUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="p-3 rounded-xl bg-[#14161f] hover:bg-[#1e212c] border border-amber-500/50 transition group cursor-pointer overflow-hidden"
@@ -995,15 +1102,18 @@ export function CardDetailView({
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-black text-amber-400 flex items-center gap-1">
                           <span>BGS 10</span>
-                          <span className="text-[9px] bg-amber-500/20 px-1 rounded text-amber-300 font-bold">Black</span>
+                          <span className="text-[9px] bg-amber-500/20 px-1 rounded text-amber-300 font-bold">Black/Gold</span>
                         </span>
                         <span className="text-[10px] text-amber-400/80 font-bold">Pop: {popStats.bgs10Pop.toLocaleString()}</span>
                       </div>
-                      <div className={`font-extrabold text-amber-300 mt-1 whitespace-nowrap ${getPriceFontSizeClass(pFormatted)}`}>
+                      <div className={`font-extrabold text-amber-300 mt-1 whitespace-nowrap ${hasPrice ? getPriceFontSizeClass(pFormatted) : 'text-xs text-gray-400'}`}>
                         {pFormatted}
                       </div>
                       <div className="text-[10px] text-amber-400/90 font-semibold mt-0.5 flex items-center justify-between">
-                        <span>Quad 10s</span>
+                        <span className="flex items-center gap-1">
+                          <span>Pristine</span>
+                          <span className="text-[9px] text-gray-500 font-normal">(SNKRDUNK)</span>
+                        </span>
                         <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" />
                       </div>
                     </a>
@@ -1012,10 +1122,13 @@ export function CardDetailView({
 
                 {/* BGS 9.5 */}
                 {(() => {
-                  const pFormatted = formatPrice(psaPrice * 0.78, { source: 'psa', lang: selectedLang }).full;
+                  const hasPrice = snkrdunkBgs95 !== null;
+                  const pFormatted = hasPrice
+                    ? formatPrice(snkrdunkBgs95, { source: 'snkrdunk', rawJPY: snkrdunkBgs95 }).full
+                    : 'Unavailable';
                   return (
                     <a
-                      href="https://www.beckett.com/grading/pop-report"
+                      href={snkrdunkUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="p-3 rounded-xl bg-[#1e212c] hover:bg-[#282c3a] border border-[#32384a] transition group cursor-pointer overflow-hidden"
@@ -1024,35 +1137,50 @@ export function CardDetailView({
                         <span className="text-xs font-black text-sky-400">BGS 9.5</span>
                         <span className="text-[10px] text-gray-400">Pop: {popStats.bgs95Pop.toLocaleString()}</span>
                       </div>
-                      <div className={`font-extrabold text-white mt-1 whitespace-nowrap ${getPriceFontSizeClass(pFormatted)}`}>
+                      <div className={`font-extrabold text-white mt-1 whitespace-nowrap ${hasPrice ? getPriceFontSizeClass(pFormatted) : 'text-xs text-gray-400'}`}>
                         {pFormatted}
                       </div>
-                      <div className="text-[10px] text-sky-400 font-semibold mt-0.5">
-                        Gem Mint
+                      <div className="text-[10px] text-sky-400 font-semibold mt-0.5 flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <span>Gem Mint</span>
+                          <span className="text-[9px] text-gray-500 font-normal">(SNKRDUNK)</span>
+                        </span>
+                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" />
                       </div>
                     </a>
                   );
                 })()}
 
-                {/* CGC 10 */}
+                {/* ARS 10+ / ARS 10 */}
                 {(() => {
-                  const pFormatted = formatPrice(psaPrice * 0.88, { source: 'psa', lang: selectedLang }).full;
+                  const hasArs10Plus = snkrdunkArs10plus !== null;
+                  const hasArs10 = snkrdunkArs10 !== null;
+                  const price = hasArs10Plus ? snkrdunkArs10plus : snkrdunkArs10;
+                  const hasPrice = price !== null && price !== undefined;
+                  const label = hasArs10Plus ? 'ARS 10+' : 'ARS 10';
+                  const pFormatted = hasPrice
+                    ? formatPrice(price!, { source: 'snkrdunk', rawJPY: price! }).full
+                    : 'Unavailable';
                   return (
                     <a
-                      href="https://www.cgccards.com/population-report/"
+                      href={snkrdunkUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="p-3 rounded-xl bg-[#1e212c] hover:bg-[#282c3a] border border-[#32384a] transition group cursor-pointer overflow-hidden"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-black text-teal-400">CGC 10</span>
-                        <span className="text-[10px] text-gray-400">Pop: {popStats.cgc10Pop.toLocaleString()}</span>
+                        <span className="text-xs font-black text-purple-400">{label}</span>
+                        <span className="text-[10px] text-gray-400">Japan Grade</span>
                       </div>
-                      <div className={`font-extrabold text-white mt-1 whitespace-nowrap ${getPriceFontSizeClass(pFormatted)}`}>
+                      <div className={`font-extrabold text-white mt-1 whitespace-nowrap ${hasPrice ? getPriceFontSizeClass(pFormatted) : 'text-xs text-gray-400'}`}>
                         {pFormatted}
                       </div>
-                      <div className="text-[10px] text-teal-400 font-semibold mt-0.5">
-                        Pristine
+                      <div className="text-[10px] text-purple-400 font-semibold mt-0.5 flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <span>ARS鑑定</span>
+                          <span className="text-[9px] text-gray-500 font-normal">(SNKRDUNK)</span>
+                        </span>
+                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" />
                       </div>
                     </a>
                   );
@@ -1060,20 +1188,32 @@ export function CardDetailView({
 
                 {/* PSA 8 */}
                 {(() => {
-                  const pFormatted = formatPrice(psaPrice * 0.22, { source: 'psa', lang: selectedLang }).full;
+                  const hasPrice = snkrdunkPsa8 !== null;
+                  const pFormatted = hasPrice
+                    ? formatPrice(snkrdunkPsa8, { source: 'snkrdunk', rawJPY: snkrdunkPsa8 }).full
+                    : 'Unavailable';
                   return (
-                    <div className="p-3 rounded-xl bg-[#1e212c] border border-[#32384a] overflow-hidden">
+                    <a
+                      href={snkrdunkUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-3 rounded-xl bg-[#1e212c] hover:bg-[#282c3a] border border-[#32384a] transition group cursor-pointer overflow-hidden"
+                    >
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-black text-gray-400">PSA 8</span>
                         <span className="text-[10px] text-gray-500">Pop: {popStats.psa8Pop.toLocaleString()}</span>
                       </div>
-                      <div className={`font-extrabold text-white mt-1 whitespace-nowrap ${getPriceFontSizeClass(pFormatted)}`}>
+                      <div className={`font-extrabold text-white mt-1 whitespace-nowrap ${hasPrice ? getPriceFontSizeClass(pFormatted) : 'text-xs text-gray-400'}`}>
                         {pFormatted}
                       </div>
-                      <div className="text-[10px] text-gray-400 font-semibold mt-0.5">
-                        NM-Mint
+                      <div className="text-[10px] text-gray-400 font-semibold mt-0.5 flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <span>NM-Mint</span>
+                          <span className="text-[9px] text-gray-500 font-normal">(SNKRDUNK)</span>
+                        </span>
+                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" />
                       </div>
-                    </div>
+                    </a>
                   );
                 })()}
               </div>
@@ -1172,6 +1312,10 @@ export function CardDetailView({
                           <stop offset="0%" stopColor="#84cc16" stopOpacity="0.25" />
                           <stop offset="100%" stopColor="#84cc16" stopOpacity="0.02" />
                         </linearGradient>
+                        <linearGradient id="snkrdunkArea" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
+                          <stop offset="100%" stopColor="#10b981" stopOpacity="0.02" />
+                        </linearGradient>
                       </defs>
 
                       {/* Horizontal Grid lines */}
@@ -1189,12 +1333,15 @@ export function CardDetailView({
                         );
                       })}
 
-                      {/* Shaded Area Gradients under PSA & eBay */}
+                      {/* Shaded Area Gradients under PSA, eBay & SNKRDUNK */}
                       {enabledPriceSources.psa && (
                         <path d={getSvgAreaPath((d) => d.psa)} fill="url(#psaArea)" />
                       )}
                       {enabledPriceSources.ebay && (
                         <path d={getSvgAreaPath((d) => d.ebay)} fill="url(#ebayArea)" />
+                      )}
+                      {enabledPriceSources.snkrdunk && (
+                        <path d={getSvgAreaPath((d) => d.snkrdunk || 0)} fill="url(#snkrdunkArea)" />
                       )}
 
                       {/* Blue line: Yuyu-tei */}
@@ -1225,6 +1372,17 @@ export function CardDetailView({
                           d={getSvgPath((d) => d.ebay)}
                           fill="none"
                           stroke="#84cc16"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                        />
+                      )}
+
+                      {/* Emerald line: SNKRDUNK */}
+                      {enabledPriceSources.snkrdunk && (
+                        <path
+                          d={getSvgPath((d) => d.snkrdunk || 0)}
+                          fill="none"
+                          stroke="#10b981"
                           strokeWidth="2.5"
                           strokeLinecap="round"
                         />
@@ -1273,6 +1431,16 @@ export function CardDetailView({
                               strokeWidth="1.5"
                             />
                           )}
+                          {enabledPriceSources.snkrdunk && currentSeries[hoverIndex].snkrdunk !== undefined && (
+                            <circle
+                              cx={(hoverIndex / (currentSeries.length - 1)) * 320}
+                              cy={Math.max(8, Math.min(115, Math.round(115 - ((currentSeries[hoverIndex].snkrdunk || 0) / maxChartVal) * 105)))}
+                              r="4"
+                              fill="#10b981"
+                              stroke="#ffffff"
+                              strokeWidth="1.5"
+                            />
+                          )}
                           {enabledPriceSources.cardmarket && (
                             <circle
                               cx={(hoverIndex / (currentSeries.length - 1)) * 320}
@@ -1315,6 +1483,11 @@ export function CardDetailView({
                           )}
                           {enabledPriceSources.ebay && (
                             <div className="text-lime-400">eBay: {formatPrice(currentSeries[hoverIndex].ebay).full}</div>
+                          )}
+                          {enabledPriceSources.snkrdunk && (
+                            <div className="text-emerald-400">
+                              SNKRDUNK: {snkrdunkRawYen !== null ? formatPrice(snkrdunkRawYen, { source: 'snkrdunk', rawJPY: snkrdunkRawYen }).full : 'Unavailable'}
+                            </div>
                           )}
                           {enabledPriceSources.cardmarket && (
                             <div className="text-sky-400">CM: {formatPrice(currentSeries[hoverIndex].cardmarket, { source: 'cardmarket' }).full}</div>
@@ -1375,7 +1548,7 @@ export function CardDetailView({
             </div>
 
             {/* Legend Footer & Interactive On/Off Toggles */}
-            <div className="grid grid-cols-4 border-t border-[#343a4c] bg-[#171922] text-[11px] sm:text-xs font-bold text-gray-300 select-none">
+            <div className="grid grid-cols-2 sm:grid-cols-5 border-t border-[#343a4c] bg-[#171922] text-[11px] sm:text-xs font-bold text-gray-300 select-none">
               {/* Yuyu-tei */}
               <button
                 type="button"
@@ -1384,7 +1557,7 @@ export function CardDetailView({
                   showToast(enabledPriceSources.yuyutei ? 'Hidden Yuyu-tei pricing' : 'Showing Yuyu-tei pricing');
                 }}
                 title={enabledPriceSources.yuyutei ? 'Tap to hide Yuyu-tei' : 'Tap to show Yuyu-tei'}
-                className={`py-2.5 px-2 flex items-center justify-center gap-1.5 sm:gap-2 border-r border-[#343a4c] transition cursor-pointer ${
+                className={`py-2.5 px-2 flex items-center justify-center gap-1.5 sm:gap-2 border-r border-b sm:border-b-0 border-[#343a4c] transition cursor-pointer ${
                   enabledPriceSources.yuyutei
                     ? 'hover:bg-white/5 text-gray-200 hover:text-white'
                     : 'opacity-40 text-gray-500 hover:opacity-70 bg-black/20'
@@ -1406,7 +1579,7 @@ export function CardDetailView({
                   showToast(enabledPriceSources.cardmarket ? 'Hidden Cardmarket pricing' : 'Showing Cardmarket pricing');
                 }}
                 title={enabledPriceSources.cardmarket ? 'Tap to hide Cardmarket' : 'Tap to show Cardmarket'}
-                className={`py-2.5 px-2 flex items-center justify-center gap-1.5 sm:gap-2 border-r border-[#343a4c] transition cursor-pointer ${
+                className={`py-2.5 px-2 flex items-center justify-center gap-1.5 sm:gap-2 border-r border-b sm:border-b-0 border-[#343a4c] transition cursor-pointer ${
                   enabledPriceSources.cardmarket
                     ? 'hover:bg-white/5 text-gray-200 hover:text-white'
                     : 'opacity-40 text-gray-500 hover:opacity-70 bg-black/20'
@@ -1428,7 +1601,7 @@ export function CardDetailView({
                   showToast(enabledPriceSources.ebay ? 'Hidden eBay pricing' : 'Showing eBay pricing');
                 }}
                 title={enabledPriceSources.ebay ? 'Tap to hide eBay' : 'Tap to show eBay'}
-                className={`py-2.5 px-2 flex items-center justify-center gap-1.5 sm:gap-2 border-r border-[#343a4c] transition cursor-pointer ${
+                className={`py-2.5 px-2 flex items-center justify-center gap-1.5 sm:gap-2 border-r border-b sm:border-b-0 border-[#343a4c] transition cursor-pointer ${
                   enabledPriceSources.ebay
                     ? 'hover:bg-white/5 text-gray-200 hover:text-white'
                     : 'opacity-40 text-gray-500 hover:opacity-70 bg-black/20'
@@ -1439,6 +1612,28 @@ export function CardDetailView({
                 }`} />
                 <span className={`truncate ${enabledPriceSources.ebay ? '' : 'line-through text-gray-500'}`}>
                   eBay
+                </span>
+              </button>
+
+              {/* SNKRDUNK */}
+              <button
+                type="button"
+                onClick={() => {
+                  togglePriceSource('snkrdunk');
+                  showToast(enabledPriceSources.snkrdunk ? 'Hidden SNKRDUNK pricing' : 'Showing SNKRDUNK pricing');
+                }}
+                title={enabledPriceSources.snkrdunk ? 'Tap to hide SNKRDUNK' : 'Tap to show SNKRDUNK'}
+                className={`py-2.5 px-2 flex items-center justify-center gap-1.5 sm:gap-2 border-r border-[#343a4c] transition cursor-pointer ${
+                  enabledPriceSources.snkrdunk
+                    ? 'hover:bg-white/5 text-gray-200 hover:text-white'
+                    : 'opacity-40 text-gray-500 hover:opacity-70 bg-black/20'
+                }`}
+              >
+                <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 transition ${
+                  enabledPriceSources.snkrdunk ? 'bg-[#10b981] shadow' : 'bg-transparent border border-gray-600'
+                }`} />
+                <span className={`truncate ${enabledPriceSources.snkrdunk ? '' : 'line-through text-gray-500'}`}>
+                  SNKRDUNK
                 </span>
               </button>
 
@@ -1754,6 +1949,7 @@ export function CardDetailView({
                 <path d={getSvgPath((d) => Math.round(d.yuyuYen / 152))} fill="none" stroke="#3b82f6" strokeWidth="3" />
                 <path d={getSvgPath((d) => d.cardmarket)} fill="none" stroke="#0284c7" strokeWidth="3" />
                 <path d={getSvgPath((d) => d.ebay)} fill="none" stroke="#84cc16" strokeWidth="3" />
+                <path d={getSvgPath((d) => d.snkrdunk || 0)} fill="none" stroke="#10b981" strokeWidth="3" />
                 <path d={getSvgPath((d) => d.psa)} fill="none" stroke="#ef4444" strokeWidth="3" />
               </svg>
             </div>

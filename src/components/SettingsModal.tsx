@@ -64,6 +64,7 @@ export function SettingsModal() {
   const sampleYuyu = formatPrice(sampleUsd, { source: 'yuyutei' });
   const sampleCardmarket = formatPrice(sampleUsd, { source: 'cardmarket' });
   const sampleEbay = formatPrice(sampleUsd, { source: 'ebay' });
+  const sampleSnkrdunk = formatPrice(sampleUsd, { source: 'snkrdunk' });
   const samplePsa = formatPrice(sampleUsd * 2.85, { source: 'psa' });
 
   const handleSelectCurrency = (code: CurrencyCode) => {
@@ -225,7 +226,7 @@ export function SettingsModal() {
               Tap any marketplace below to toggle its pricing box and chart curve on or off across the app.
             </p>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 pt-1">
               {/* Yuyu-tei */}
               <button
                 type="button"
@@ -297,6 +298,45 @@ export function SettingsModal() {
                 <div className="text-[9px] text-gray-500 mt-1 flex items-center gap-1">
                   {enabledPriceSources.cardmarket ? <Eye className="w-2.5 h-2.5 text-[#0284c7]" /> : <EyeOff className="w-2.5 h-2.5 text-gray-600" />}
                   <span>{enabledPriceSources.cardmarket ? 'Showing' : 'Hidden'}</span>
+                </div>
+              </button>
+
+              {/* SNKRDUNK */}
+              <button
+                type="button"
+                onClick={() => {
+                  togglePriceSource('snkrdunk');
+                  setCopiedNotification(enabledPriceSources.snkrdunk ? 'SNKRDUNK pricing hidden' : 'SNKRDUNK pricing enabled');
+                  setTimeout(() => setCopiedNotification(null), 2500);
+                }}
+                className={`p-2.5 rounded-xl border text-center transition cursor-pointer flex flex-col justify-between items-center ${
+                  enabledPriceSources.snkrdunk
+                    ? 'bg-[#242836] border-[#10b981] shadow-sm hover:border-[#34d399]'
+                    : 'bg-[#181a24] border-dashed border-gray-700 opacity-50 hover:opacity-75'
+                }`}
+                title="Click to toggle SNKRDUNK"
+              >
+                <div className="flex items-center justify-between w-full text-[10px] text-gray-300 font-bold mb-1">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="w-3.5 h-3.5 rounded-full bg-emerald-500/20 text-emerald-400 font-black text-[8px] flex items-center justify-center flex-shrink-0">
+                      SD
+                    </span>
+                    <span className="truncate">SNKRDUNK</span>
+                  </div>
+                  <span className={`px-1 rounded text-[8px] font-black ${
+                    enabledPriceSources.snkrdunk ? 'bg-emerald-500/20 text-emerald-400' : 'bg-gray-800 text-gray-500'
+                  }`}>
+                    {enabledPriceSources.snkrdunk ? 'ON' : 'OFF'}
+                  </span>
+                </div>
+                <div className={`text-xs sm:text-sm font-black transition ${
+                  enabledPriceSources.snkrdunk ? 'text-emerald-400' : 'text-gray-500 line-through'
+                }`}>
+                  {sampleSnkrdunk.full}
+                </div>
+                <div className="text-[9px] text-gray-500 mt-1 flex items-center gap-1">
+                  {enabledPriceSources.snkrdunk ? <Eye className="w-2.5 h-2.5 text-[#10b981]" /> : <EyeOff className="w-2.5 h-2.5 text-gray-600" />}
+                  <span>{enabledPriceSources.snkrdunk ? 'Showing' : 'Hidden'}</span>
                 </div>
               </button>
 

@@ -149,12 +149,13 @@ interface FormattedPriceResult {
   currencyCode: string;
 }
 
-export type PriceSource = 'yuyutei' | 'cardmarket' | 'ebay' | 'psa';
+export type PriceSource = 'yuyutei' | 'cardmarket' | 'ebay' | 'snkrdunk' | 'psa';
 
 export interface EnabledPriceSources {
   yuyutei: boolean;
   cardmarket: boolean;
   ebay: boolean;
+  snkrdunk: boolean;
   psa: boolean;
 }
 
@@ -229,17 +230,17 @@ interface SettingsContextType {
   formatPrice: (
     amountUSD: number,
     options?: {
-      source?: 'yuyutei' | 'cardmarket' | 'ebay' | 'psa' | 'generic';
+      source?: 'yuyutei' | 'cardmarket' | 'ebay' | 'snkrdunk' | 'psa' | 'generic';
       lang?: 'en' | 'jp';
       decimals?: number;
-      /** Pass the raw JPY amount directly when source=yuyutei so no USD→JPY conversion is needed */
+      /** Pass the raw JPY amount directly when source=yuyutei/snkrdunk so no USD→JPY conversion is needed */
       rawJPY?: number;
     }
   ) => FormattedPriceResult;
   convertPrice: (
     amountUSD: number,
     targetCurrency?: CurrencyCode,
-    source?: 'yuyutei' | 'cardmarket' | 'ebay' | 'psa' | 'generic'
+    source?: 'yuyutei' | 'cardmarket' | 'ebay' | 'snkrdunk' | 'psa' | 'generic'
   ) => number;
   /** Format a raw JPY price (Yuyu-tei) into the user's chosen currency */
   formatYuyuPrice: (yenAmount: number) => FormattedPriceResult;
@@ -260,6 +261,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     yuyutei: true,
     cardmarket: true,
     ebay: true,
+    snkrdunk: true,
     psa: true,
   });
   const [shareCrashReports, setShareCrashReportsState] = useState<boolean>(true);
@@ -295,6 +297,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
               yuyutei: parsed.yuyutei !== false,
               cardmarket: parsed.cardmarket !== undefined ? Boolean(parsed.cardmarket) : (parsed.tcgplayer !== false),
               ebay: parsed.ebay !== false,
+              snkrdunk: parsed.snkrdunk !== false,
               psa: parsed.psa !== false,
             });
           }
@@ -883,13 +886,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const convertPrice = (
     amountUSD: number,
     targetCurrency?: CurrencyCode,
-    source: 'yuyutei' | 'cardmarket' | 'ebay' | 'psa' | 'generic' = 'generic'
+    source: 'yuyutei' | 'cardmarket' | 'ebay' | 'snkrdunk' | 'psa' | 'generic' = 'generic'
   ): number => {
     const activeCurr = targetCurrency || currency;
 
     if (activeCurr === 'source') {
-      if (source === 'yuyutei') {
-        // Yuyu-tei native is JPY
+      if (source === 'yuyutei' || source === 'snkrdunk') {
+        // Japanese marketplace native is JPY
         return Math.round(amountUSD * 0.92 * 152);
       }
       if (source === 'cardmarket') {
@@ -906,7 +909,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const formatPrice = (
     amountUSD: number,
     options?: {
-      source?: 'yuyutei' | 'cardmarket' | 'ebay' | 'psa' | 'generic';
+      source?: 'yuyutei' | 'cardmarket' | 'ebay' | 'snkrdunk' | 'psa' | 'generic';
       lang?: 'en' | 'jp';
       decimals?: number;
       rawJPY?: number;
@@ -916,14 +919,14 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const lang = options?.lang || 'jp';
     const decimals = options?.decimals;
 
-    // If rawJPY was supplied for yuyutei source or japanese language
-    if (options?.rawJPY !== undefined && (source === 'yuyutei' || lang === 'jp')) {
+    // If rawJPY was supplied for yuyutei/snkrdunk source or japanese language
+    if (options?.rawJPY !== undefined && (source === 'yuyutei' || source === 'snkrdunk' || lang === 'jp')) {
       return formatYuyuPrice(options.rawJPY);
     }
 
     // 1. If Currency is set to 'source' (Default):
     if (currency === 'source') {
-      if (source === 'yuyutei') {
+      if (source === 'yuyutei' || source === 'snkrdunk') {
         const yenVal = options?.rawJPY !== undefined ? Math.round(options.rawJPY) : Math.round(amountUSD * 152);
         return {
           symbol: '¥',
@@ -984,8 +987,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const config = CURRENCIES[currency] || CURRENCIES.USD;
     let baseUsd = amountUSD;
 
-    // If computing for Yuyu-tei specifically when converting to another currency
-    if (source === 'yuyutei') {
+    // If computing for Yuyu-tei or SNKRDUNK specifically when converting to another currency
+    if (source === 'yuyutei' || source === 'snkrdunk') {
       if (options?.rawJPY !== undefined) {
         baseUsd = options.rawJPY * JPY_TO_USD;
       }

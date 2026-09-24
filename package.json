@@ -29,6 +29,7 @@
     "@types/nodemailer": "^8.0.2",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
+    "playwright": "^1.63.0",
     "postcss": "^8.4.38",
     "prisma": "^6.4.1",
     "puppeteer-core": "^25.11.0",
