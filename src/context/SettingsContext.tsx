@@ -21,7 +21,6 @@ import {
   isSupabaseConfigured, 
   signInWithGoogle, 
   signInWithEmailPassword, 
-  signUpWithEmailPassword, 
   signOutSupabase 
 } from '@/lib/supabase/client';
 import { 
@@ -461,15 +460,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     avatar?: string;
     crew?: string;
   }): Promise<{ success: boolean; user?: UserProfile; error?: string }> => {
-    const res = await signUpWithEmailPassword(data);
-    if (res.error) {
-      return { success: false, error: res.error };
-    }
-    if (res.user) {
-      await syncSupabaseSession(res.user);
-      return { success: true, user: getActiveSession() || undefined };
-    }
-    return { success: true };
+    return register(data);
   };
 
   const sendVerificationCode = async (
