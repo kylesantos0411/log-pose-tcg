@@ -1370,16 +1370,16 @@ export function CardDetailView({
                     >
                       <defs>
                         <linearGradient id="psaArea" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#ef4444" stopOpacity="0.30" />
-                          <stop offset="100%" stopColor="#ef4444" stopOpacity="0.02" />
+                          <stop offset="0%" stopColor="#ef4444" stopOpacity="0.16" />
+                          <stop offset="100%" stopColor="#ef4444" stopOpacity="0.0" />
                         </linearGradient>
                         <linearGradient id="ebayArea" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#84cc16" stopOpacity="0.25" />
-                          <stop offset="100%" stopColor="#84cc16" stopOpacity="0.02" />
+                          <stop offset="0%" stopColor="#84cc16" stopOpacity="0.14" />
+                          <stop offset="100%" stopColor="#84cc16" stopOpacity="0.0" />
                         </linearGradient>
                         <linearGradient id="snkrdunkArea" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
-                          <stop offset="100%" stopColor="#10b981" stopOpacity="0.02" />
+                          <stop offset="0%" stopColor="#10b981" stopOpacity="0.14" />
+                          <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
                         </linearGradient>
                       </defs>
 
@@ -1415,7 +1415,7 @@ export function CardDetailView({
                           d={getSvgPath((d) => Math.round(d.yuyuYen / 152))}
                           fill="none"
                           stroke="#2563eb"
-                          strokeWidth="2.5"
+                          strokeWidth="1.2"
                           strokeLinecap="round"
                         />
                       )}
@@ -1426,7 +1426,7 @@ export function CardDetailView({
                           d={getSvgPath((d) => d.cardmarket)}
                           fill="none"
                           stroke="#0284c7"
-                          strokeWidth="2.5"
+                          strokeWidth="1.2"
                           strokeLinecap="round"
                         />
                       )}
@@ -1437,7 +1437,7 @@ export function CardDetailView({
                           d={getSvgPath((d) => d.ebay)}
                           fill="none"
                           stroke="#84cc16"
-                          strokeWidth="2.5"
+                          strokeWidth="1.2"
                           strokeLinecap="round"
                         />
                       )}
@@ -1448,7 +1448,7 @@ export function CardDetailView({
                           d={getSvgPath((d) => d.snkrdunk || 0)}
                           fill="none"
                           stroke="#10b981"
-                          strokeWidth="2.5"
+                          strokeWidth="1.2"
                           strokeLinecap="round"
                         />
                       )}
@@ -1459,7 +1459,7 @@ export function CardDetailView({
                           d={getSvgPath((d) => d.psa)}
                           fill="none"
                           stroke="#ef4444"
-                          strokeWidth="2.5"
+                          strokeWidth="1.2"
                           strokeLinecap="round"
                         />
                       )}
@@ -1473,57 +1473,57 @@ export function CardDetailView({
                             x2={(hoverIndex / (currentSeries.length - 1)) * 320}
                             y2="118"
                             stroke="#e76d78"
-                            strokeWidth="1.5"
+                            strokeWidth="1"
                             strokeDasharray="3 3"
                           />
                           {enabledPriceSources.psa && (
                             <circle
                               cx={(hoverIndex / (currentSeries.length - 1)) * 320}
                               cy={Math.max(8, Math.min(115, Math.round(115 - (currentSeries[hoverIndex].psa / maxChartVal) * 105)))}
-                              r="4"
+                              r="3.5"
                               fill="#ef4444"
                               stroke="#ffffff"
-                              strokeWidth="1.5"
+                              strokeWidth="1.2"
                             />
                           )}
                           {enabledPriceSources.ebay && (
                             <circle
                               cx={(hoverIndex / (currentSeries.length - 1)) * 320}
                               cy={Math.max(8, Math.min(115, Math.round(115 - (currentSeries[hoverIndex].ebay / maxChartVal) * 105)))}
-                              r="4"
+                              r="3.5"
                               fill="#84cc16"
                               stroke="#ffffff"
-                              strokeWidth="1.5"
+                              strokeWidth="1.2"
                             />
                           )}
                           {enabledPriceSources.snkrdunk && currentSeries[hoverIndex].snkrdunk !== undefined && (
                             <circle
                               cx={(hoverIndex / (currentSeries.length - 1)) * 320}
                               cy={Math.max(8, Math.min(115, Math.round(115 - ((currentSeries[hoverIndex].snkrdunk || 0) / maxChartVal) * 105)))}
-                              r="4"
+                              r="3.5"
                               fill="#10b981"
                               stroke="#ffffff"
-                              strokeWidth="1.5"
+                              strokeWidth="1.2"
                             />
                           )}
                           {enabledPriceSources.cardmarket && (
                             <circle
                               cx={(hoverIndex / (currentSeries.length - 1)) * 320}
                               cy={Math.max(8, Math.min(115, Math.round(115 - (currentSeries[hoverIndex].cardmarket / maxChartVal) * 105)))}
-                              r="4"
+                              r="3.5"
                               fill="#0284c7"
                               stroke="#ffffff"
-                              strokeWidth="1.5"
+                              strokeWidth="1.2"
                             />
                           )}
                           {enabledPriceSources.yuyutei && (
                             <circle
                               cx={(hoverIndex / (currentSeries.length - 1)) * 320}
                               cy={Math.max(8, Math.min(115, Math.round(115 - (Math.round(currentSeries[hoverIndex].yuyuYen / 152) / maxChartVal) * 105)))}
-                              r="4"
+                              r="3.5"
                               fill="#2563eb"
                               stroke="#ffffff"
-                              strokeWidth="1.5"
+                              strokeWidth="1.2"
                             />
                           )}
                         </g>
@@ -2011,11 +2011,11 @@ export function CardDetailView({
                 <line x1="0" y1="30" x2="300" y2="30" stroke="#2a2d3c" strokeDasharray="2 2" />
                 <line x1="0" y1="60" x2="300" y2="60" stroke="#2a2d3c" strokeDasharray="2 2" />
                 <line x1="0" y1="90" x2="300" y2="90" stroke="#2a2d3c" strokeDasharray="2 2" />
-                <path d={getSvgPath((d) => Math.round(d.yuyuYen / 152))} fill="none" stroke="#3b82f6" strokeWidth="3" />
-                <path d={getSvgPath((d) => d.cardmarket)} fill="none" stroke="#0284c7" strokeWidth="3" />
-                <path d={getSvgPath((d) => d.ebay)} fill="none" stroke="#84cc16" strokeWidth="3" />
-                <path d={getSvgPath((d) => d.snkrdunk || 0)} fill="none" stroke="#10b981" strokeWidth="3" />
-                <path d={getSvgPath((d) => d.psa)} fill="none" stroke="#ef4444" strokeWidth="3" />
+                <path d={getSvgPath((d) => Math.round(d.yuyuYen / 152))} fill="none" stroke="#3b82f6" strokeWidth="1.5" />
+                <path d={getSvgPath((d) => d.cardmarket)} fill="none" stroke="#0284c7" strokeWidth="1.5" />
+                <path d={getSvgPath((d) => d.ebay)} fill="none" stroke="#84cc16" strokeWidth="1.5" />
+                <path d={getSvgPath((d) => d.snkrdunk || 0)} fill="none" stroke="#10b981" strokeWidth="1.5" />
+                <path d={getSvgPath((d) => d.psa)} fill="none" stroke="#ef4444" strokeWidth="1.5" />
               </svg>
             </div>
 
