@@ -741,23 +741,13 @@ export function AccountModal({ isOpen, onClose, defaultTab = 'register', isManda
                   </div>
                 </div>
 
-                <div className="bg-[#181a24] border border-[#343a4c] rounded-2xl p-3 text-[11px] text-gray-400 space-y-1">
-                  <div className="font-bold text-white flex items-center gap-1.5">
-                    <Compass className="w-3.5 h-3.5 text-[#3b82f6]" />
-                    <span>Permanent Cloud Database Storage</span>
-                  </div>
-                  <p>
-                    Your account is securely saved in the database and is never lost even if you clear your browser history or cache.
-                  </p>
-                </div>
-
                 <button
                   type="submit"
                   disabled={isSubmitting || !loginIdentifier.trim() || !loginPassword.trim()}
                   className="w-full bg-gradient-to-r from-[#3b82f6] to-[#2563eb] hover:opacity-90 disabled:opacity-50 text-white font-extrabold text-xs uppercase tracking-wider py-3 px-4 rounded-xl transition cursor-pointer shadow-lg shadow-[#3b82f6]/20 flex items-center justify-center gap-2"
                 >
                   <LogIn className="w-4 h-4" />
-                  <span>{isSubmitting ? 'Signing in...' : 'Sign In to Account'}</span>
+                  <span>{isSubmitting ? 'Signing In...' : 'Sign In'}</span>
                 </button>
               </form>
             </div>
