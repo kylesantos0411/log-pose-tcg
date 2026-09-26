@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ChevronLeft,
   Users,
@@ -17,15 +18,21 @@ import {
   Bell,
   Clock,
   LogIn,
+  Eye,
+  Sparkles,
+  ExternalLink,
 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { AccountModal } from '@/components/AccountModal';
+import { getEditionCardImageUrl } from '@/lib/card-image';
+import type { LocalUserCard } from '@/lib/user-collection';
 import {
   fetchFriendships,
   sendFriendRequest,
   acceptFriendRequest,
   removeFriendship,
   searchUserByUsername,
+  fetchCloudCards,
   type FriendshipProfile,
   type SearchedUser,
 } from '@/lib/supabase-sync';
@@ -55,7 +62,8 @@ function AvatarCircle({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' 
 }
 
 export default function FriendsPage() {
-  const { user } = useSettings();
+  const router = useRouter();
+  const { user, formatPrice } = useSettings();
 
   const [activeTab, setActiveTab] = useState<'friends' | 'requests'>('friends');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -78,6 +86,12 @@ export default function FriendsPage() {
   const [friendships, setFriendships] = useState<FriendshipProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [unfriendTarget, setUnfriendTarget] = useState<FriendshipProfile | null>(null);
+
+  // Inspecting Friend Binder
+  const [inspectingFriend, setInspectingFriend] = useState<FriendshipProfile | null>(null);
+  const [friendCards, setFriendCards] = useState<LocalUserCard[]>([]);
+  const [isLoadingFriendCards, setIsLoadingFriendCards] = useState(false);
+  const [cardSearch, setCardSearch] = useState('');
 
   const friends = friendships.filter((f) => f.status === 'accepted');
   const pendingReceived = friendships.filter((f) => f.status === 'pending_received');
@@ -107,6 +121,40 @@ export default function FriendsPage() {
     setCopiedHandle(true);
     setTimeout(() => setCopiedHandle(false), 2000);
   };
+
+  const handleOpenFriendBinder = async (friend: FriendshipProfile) => {
+    setInspectingFriend(friend);
+    setCardSearch('');
+    setIsLoadingFriendCards(true);
+    try {
+      const cards = await fetchCloudCards(friend.userId);
+      setFriendCards(cards);
+    } catch (err) {
+      console.error('Failed to load friend cards:', err);
+      setFriendCards([]);
+    } finally {
+      setIsLoadingFriendCards(false);
+    }
+  };
+
+  const filteredFriendCards = useMemo(() => {
+    if (!cardSearch.trim()) return friendCards;
+    const q = cardSearch.toLowerCase().trim();
+    return friendCards.filter(
+      (c) =>
+        c.card.name.toLowerCase().includes(q) ||
+        c.cardId.toLowerCase().includes(q) ||
+        c.card.category?.toLowerCase().includes(q) ||
+        c.card.colors?.toLowerCase().includes(q)
+    );
+  }, [friendCards, cardSearch]);
+
+  const friendTotalValue = useMemo(() => {
+    return friendCards.reduce((acc, c) => {
+      const p = c.card.yuyuPrice ? c.card.yuyuPrice / 152 : c.card.marketPrice || 0;
+      return acc + p * (c.quantity || 1);
+    }, 0);
+  }, [friendCards]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,6 +209,9 @@ export default function FriendsPage() {
     if (!unfriendTarget) return;
     const name = unfriendTarget.username;
     await removeFriendship(unfriendTarget.id);
+    if (inspectingFriend?.id === unfriendTarget.id) {
+      setInspectingFriend(null);
+    }
     setUnfriendTarget(null);
     showToast(`Unfriended ${name}.`);
     await loadFriendships();
@@ -219,7 +270,7 @@ export default function FriendsPage() {
           </Link>
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-white leading-none">Friends</h1>
-            <p className="text-[11px] text-gray-400 mt-0.5">Connect with other collectors</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">Connect with other collectors &amp; view binders</p>
           </div>
         </div>
         <button
@@ -300,21 +351,45 @@ export default function FriendsPage() {
             </div>
           ) : (
             friends.map((f) => (
-              <div key={f.id} className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#242836] border border-[#343a4c] hover:border-purple-500/30 transition">
+              <div 
+                key={f.id} 
+                className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#242836] border border-[#343a4c] hover:border-purple-500/40 transition group cursor-pointer"
+                onClick={() => handleOpenFriendBinder(f)}
+              >
                 <AvatarCircle name={f.username} />
                 <div className="flex-1 min-w-0">
-                  <p className="font-black text-white text-sm truncate">{f.username}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-black text-white text-sm truncate">{f.username}</p>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                      {f.rank}
+                    </span>
+                  </div>
                   <p className="text-xs text-gray-400 font-mono truncate">{f.tag}</p>
-                  <p className="text-[10px] text-gray-500 mt-0.5">{f.cardCount} cards in binder · {f.rank}</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1.5">
+                    <span className="text-purple-300 font-bold">{f.cardCount} cards in binder</span>
+                  </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setUnfriendTarget(f)}
-                  className="p-2 rounded-xl text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer flex-shrink-0"
-                  title="Unfriend"
-                >
-                  <UserMinus className="w-4 h-4" />
-                </button>
+                
+                {/* Actions */}
+                <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenFriendBinder(f)}
+                    className="px-3 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">View Binder</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setUnfriendTarget(f)}
+                    className="p-2 rounded-xl text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer"
+                    title="Unfriend"
+                  >
+                    <UserMinus className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             ))
           )}
@@ -387,6 +462,139 @@ export default function FriendsPage() {
             ))
           )}
         </section>
+      )}
+
+      {/* ── FRIEND BINDER MODAL ── */}
+      {inspectingFriend && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div 
+            className="w-full max-w-2xl bg-[#232634] border border-[#34384c] rounded-[28px] p-4 sm:p-6 shadow-2xl text-left relative max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-[#31364a] pb-3.5 flex-shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <AvatarCircle name={inspectingFriend.username} size="md" />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-base sm:text-lg font-black text-white truncate">
+                      {inspectingFriend.username}&apos;s Binder
+                    </h2>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                      {inspectingFriend.rank}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 font-mono">
+                    {inspectingFriend.tag} · <strong className="text-emerald-400 font-mono">{formatPrice(friendTotalValue, { source: 'yuyutei' }).full} Est. Value</strong>
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setInspectingFriend(null)}
+                className="w-8 h-8 rounded-full bg-[#2d3143] text-gray-300 hover:text-white flex items-center justify-center cursor-pointer flex-shrink-0"
+              >
+                <X className="w-4 h-4 stroke-[2.5]" />
+              </button>
+            </div>
+
+            {/* Filter / Search inside friend's cards */}
+            <div className="pt-3 pb-2 flex-shrink-0">
+              <div className="relative">
+                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={cardSearch}
+                  onChange={(e) => setCardSearch(e.target.value)}
+                  placeholder={`Search ${inspectingFriend.username}'s cards...`}
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-[#1b1e2a] border border-[#343a4c] text-white text-xs placeholder-gray-500 focus:outline-none focus:border-purple-500/50"
+                />
+              </div>
+            </div>
+
+            {/* Card Content Area */}
+            <div className="py-2 overflow-y-auto flex-1 space-y-2">
+              {isLoadingFriendCards ? (
+                <div className="py-16 flex flex-col items-center justify-center gap-3 text-gray-400">
+                  <Loader2 className="w-7 h-7 animate-spin text-purple-400" />
+                  <p className="text-xs font-bold">Opening {inspectingFriend.username}&apos;s collection…</p>
+                </div>
+              ) : friendCards.length === 0 ? (
+                <div className="py-16 text-center space-y-2">
+                  <Sparkles className="w-8 h-8 text-gray-600 mx-auto" />
+                  <p className="text-gray-300 font-bold text-sm">No cards in binder yet</p>
+                  <p className="text-gray-500 text-xs max-w-xs mx-auto">
+                    {inspectingFriend.username} hasn&apos;t added any cards to their cloud collection binder.
+                  </p>
+                </div>
+              ) : filteredFriendCards.length === 0 ? (
+                <div className="py-12 text-center text-gray-500 text-xs">
+                  No cards matched &ldquo;{cardSearch}&rdquo;
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5">
+                  {filteredFriendCards.map((c) => {
+                    const priceUSD = c.card.yuyuPrice ? c.card.yuyuPrice / 152 : c.card.marketPrice || 0;
+                    const imgUrl = getEditionCardImageUrl(c.cardId, 'jp', c.card.imageUrl);
+                    return (
+                      <div
+                        key={c.id}
+                        onClick={() => router.push(`/cards/${c.cardId}`)}
+                        className="group relative rounded-xl overflow-hidden aspect-[2.5/3.5] bg-[#1a1d27] border border-[#363b4f] hover:border-purple-400 transition-all shadow-md cursor-pointer flex flex-col"
+                      >
+                        <img
+                          src={imgUrl}
+                          alt={c.card.name}
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                        />
+
+                        {/* Top Quantity Pill */}
+                        <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[10px] font-black text-amber-300 font-mono shadow-sm">
+                          x{c.quantity}
+                        </div>
+
+                        {/* Condition / Foil Pill */}
+                        <div className="absolute top-1.5 left-1.5 flex gap-1">
+                          <span className="px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-md text-[9px] font-black text-gray-300">
+                            {c.condition}
+                          </span>
+                          {c.isFoil && (
+                            <span className="px-1 py-0.5 rounded bg-purple-500/80 text-[8px] font-black text-white">
+                              FOIL
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Bottom Price Pill */}
+                        <div className="absolute bottom-1.5 left-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[10px] font-black text-emerald-300 font-mono flex items-center justify-between">
+                          <span className="truncate text-[9px] text-gray-300">{c.cardId}</span>
+                          <span>{formatPrice(priceUSD, { source: 'yuyutei' }).full}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="pt-3 border-t border-[#31364a] flex items-center justify-between gap-2 flex-shrink-0">
+              <span className="text-xs text-gray-400">
+                {filteredFriendCards.length} {filteredFriendCards.length === 1 ? 'card' : 'cards'} shown
+              </span>
+              <button
+                type="button"
+                onClick={() => setInspectingFriend(null)}
+                className="px-4 py-2 rounded-xl bg-[#2e3346] hover:bg-[#383e54] text-white text-xs font-bold transition cursor-pointer"
+              >
+                Close Binder
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── ADD FRIEND MODAL ── */}
