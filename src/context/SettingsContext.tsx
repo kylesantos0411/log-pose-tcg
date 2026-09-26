@@ -38,6 +38,7 @@ import {
 } from '@/lib/supabase-sync';
 
 export const BETA_INVITE_CODES = [
+  // Original batch (15)
   'POSE-TT9W-BGZ2',
   'POSE-FM5C-53JT',
   'POSE-3ZJ3-KSGT',
@@ -53,6 +54,27 @@ export const BETA_INVITE_CODES = [
   'POSE-VZXH-FRPW',
   'POSE-XPZU-69EF',
   'POSE-4BQ2-QTQF',
+  // Batch 2 (20 new codes)
+  'POSE-K7MN-4WRX',
+  'POSE-B9PC-LZQJ',
+  'POSE-H2VT-8YDF',
+  'POSE-R6SK-EXNM',
+  'POSE-J5FG-CWBT',
+  'POSE-A3PL-7GHU',
+  'POSE-N8YD-RKQZ',
+  'POSE-D4WX-5TNV',
+  'POSE-M6BJ-PHSE',
+  'POSE-T2CK-93LY',
+  'POSE-W5NR-AQFD',
+  'POSE-X7VH-MKGE',
+  'POSE-Q9LZ-2BSW',
+  'POSE-E4TM-YRCP',
+  'POSE-G8KW-6JNF',
+  'POSE-U3PX-DHQB',
+  'POSE-S7EV-WNKT',
+  'POSE-C2MH-FLRZ',
+  'POSE-F6YB-TPGJ',
+  'POSE-L9QD-8VXC',
 ];
 
 export type CurrencyCode =
