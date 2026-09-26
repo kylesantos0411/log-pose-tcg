@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
   ChevronLeft,
   Users,
@@ -18,9 +17,10 @@ import {
   Bell,
   Clock,
   LogIn,
-  Eye,
-  Sparkles,
   ExternalLink,
+  Sparkles,
+  Layers,
+  Coins,
 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { AccountModal } from '@/components/AccountModal';
@@ -62,7 +62,6 @@ function AvatarCircle({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' 
 }
 
 export default function FriendsPage() {
-  const router = useRouter();
   const { user, formatPrice } = useSettings();
 
   const [activeTab, setActiveTab] = useState<'friends' | 'requests'>('friends');
@@ -87,11 +86,11 @@ export default function FriendsPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [unfriendTarget, setUnfriendTarget] = useState<FriendshipProfile | null>(null);
 
-  // Inspecting Friend Binder
+  // Inspecting Friend's Binder
   const [inspectingFriend, setInspectingFriend] = useState<FriendshipProfile | null>(null);
   const [friendCards, setFriendCards] = useState<LocalUserCard[]>([]);
-  const [isLoadingFriendCards, setIsLoadingFriendCards] = useState(false);
-  const [cardSearch, setCardSearch] = useState('');
+  const [isLoadingCards, setIsLoadingCards] = useState(false);
+  const [cardFilterQuery, setCardFilterQuery] = useState('');
 
   const friends = friendships.filter((f) => f.status === 'accepted');
   const pendingReceived = friendships.filter((f) => f.status === 'pending_received');
@@ -121,40 +120,6 @@ export default function FriendsPage() {
     setCopiedHandle(true);
     setTimeout(() => setCopiedHandle(false), 2000);
   };
-
-  const handleOpenFriendBinder = async (friend: FriendshipProfile) => {
-    setInspectingFriend(friend);
-    setCardSearch('');
-    setIsLoadingFriendCards(true);
-    try {
-      const cards = await fetchCloudCards(friend.userId);
-      setFriendCards(cards);
-    } catch (err) {
-      console.error('Failed to load friend cards:', err);
-      setFriendCards([]);
-    } finally {
-      setIsLoadingFriendCards(false);
-    }
-  };
-
-  const filteredFriendCards = useMemo(() => {
-    if (!cardSearch.trim()) return friendCards;
-    const q = cardSearch.toLowerCase().trim();
-    return friendCards.filter(
-      (c) =>
-        c.card.name.toLowerCase().includes(q) ||
-        c.cardId.toLowerCase().includes(q) ||
-        c.card.category?.toLowerCase().includes(q) ||
-        c.card.colors?.toLowerCase().includes(q)
-    );
-  }, [friendCards, cardSearch]);
-
-  const friendTotalValue = useMemo(() => {
-    return friendCards.reduce((acc, c) => {
-      const p = c.card.yuyuPrice ? c.card.yuyuPrice / 152 : c.card.marketPrice || 0;
-      return acc + p * (c.quantity || 1);
-    }, 0);
-  }, [friendCards]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -217,6 +182,50 @@ export default function FriendsPage() {
     await loadFriendships();
   };
 
+  // Inspect Friend Cards
+  const handleInspectFriend = async (friend: FriendshipProfile) => {
+    setInspectingFriend(friend);
+    setCardFilterQuery('');
+    setIsLoadingCards(true);
+    try {
+      const cards = await fetchCloudCards(friend.userId);
+      setFriendCards(cards);
+    } catch (err) {
+      console.error('Failed to fetch friend cards:', err);
+      setFriendCards([]);
+    } finally {
+      setIsLoadingCards(false);
+    }
+  };
+
+  // Filtered friend cards
+  const filteredFriendCards = useMemo(() => {
+    if (!cardFilterQuery.trim()) return friendCards;
+    const q = cardFilterQuery.toLowerCase().trim();
+    return friendCards.filter(
+      (c) =>
+        c.cardId.toLowerCase().includes(q) ||
+        (c.card?.name && c.card.name.toLowerCase().includes(q)) ||
+        (c.card?.rarity && c.card.rarity.toLowerCase().includes(q))
+    );
+  }, [friendCards, cardFilterQuery]);
+
+  // Total friend binder value calculation
+  const friendBinderTotal = useMemo(() => {
+    let totalUsd = 0;
+    let totalJpy = 0;
+    for (const c of friendCards) {
+      const qty = c.quantity || 1;
+      if (c.card?.yuyuPrice) {
+        totalJpy += c.card.yuyuPrice * qty;
+      }
+      if (c.card?.marketPrice) {
+        totalUsd += c.card.marketPrice * qty;
+      }
+    }
+    return { totalUsd, totalJpy };
+  }, [friendCards]);
+
   if (!isMounted) return null;
 
   // ── Not logged in ──────────────────────────────────────────────────
@@ -235,7 +244,7 @@ export default function FriendsPage() {
           </div>
           <div>
             <p className="text-white font-black text-lg">Sign in to use Friends</p>
-            <p className="text-gray-400 text-sm mt-1">Connect with other collectors, send friend requests, and see each other's collection.</p>
+            <p className="text-gray-400 text-sm mt-1">Connect with other collectors, view their card binders, and share your collection.</p>
           </div>
           <button
             type="button"
@@ -270,7 +279,7 @@ export default function FriendsPage() {
           </Link>
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-white leading-none">Friends</h1>
-            <p className="text-[11px] text-gray-400 mt-0.5">Connect with other collectors &amp; view binders</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">Tap a friend to inspect their collection binder</p>
           </div>
         </div>
         <button
@@ -291,7 +300,7 @@ export default function FriendsPage() {
             <p className="font-black text-white text-sm truncate">{user.name || user.username}</p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="text-amber-400 font-bold text-xs font-mono truncate">{myHandle}</span>
-              <button type="button" onClick={handleCopyHandle} className="text-gray-400 hover:text-purple-300 transition cursor-pointer flex-shrink-0">
+              <button type="button" onClick={handleCopyHandle} className="text-gray-400 hover:text-purple-300 transition cursor-pointer flex-shrink-0" title="Copy Handle">
                 {copiedHandle ? <Check className="w-3.5 h-3.5 text-emerald-400 stroke-[3]" /> : <Copy className="w-3.5 h-3.5" />}
               </button>
             </div>
@@ -351,45 +360,33 @@ export default function FriendsPage() {
             </div>
           ) : (
             friends.map((f) => (
-              <div 
-                key={f.id} 
-                className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#242836] border border-[#343a4c] hover:border-purple-500/40 transition group cursor-pointer"
-                onClick={() => handleOpenFriendBinder(f)}
+              <div
+                key={f.id}
+                onClick={() => handleInspectFriend(f)}
+                className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#242836] border border-[#343a4c] hover:border-purple-500/40 hover:bg-[#282d3d] active:scale-[0.99] transition cursor-pointer group"
               >
                 <AvatarCircle name={f.username} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="font-black text-white text-sm truncate">{f.username}</p>
+                    <p className="font-black text-white text-sm truncate group-hover:text-purple-300 transition">{f.username}</p>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-300 border border-purple-500/30">
-                      {f.rank}
+                      View Binder
                     </span>
                   </div>
                   <p className="text-xs text-gray-400 font-mono truncate">{f.tag}</p>
-                  <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1.5">
-                    <span className="text-purple-300 font-bold">{f.cardCount} cards in binder</span>
-                  </p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">{f.cardCount} cards in binder · {f.rank}</p>
                 </div>
-                
-                {/* Actions */}
-                <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    type="button"
-                    onClick={() => handleOpenFriendBinder(f)}
-                    className="px-3 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">View Binder</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setUnfriendTarget(f)}
-                    className="p-2 rounded-xl text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer"
-                    title="Unfriend"
-                  >
-                    <UserMinus className="w-4 h-4" />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setUnfriendTarget(f);
+                  }}
+                  className="p-2 rounded-xl text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition cursor-pointer flex-shrink-0"
+                  title="Unfriend"
+                >
+                  <UserMinus className="w-4 h-4" />
+                </button>
               </div>
             ))
           )}
@@ -464,134 +461,187 @@ export default function FriendsPage() {
         </section>
       )}
 
-      {/* ── FRIEND BINDER MODAL ── */}
+      {/* ── FRIEND BINDER INSPECTION MODAL ── */}
       {inspectingFriend && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-          <div 
-            className="w-full max-w-2xl bg-[#232634] border border-[#34384c] rounded-[28px] p-4 sm:p-6 shadow-2xl text-left relative max-h-[90vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-[#31364a] pb-3.5 flex-shrink-0">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="fixed inset-0" onClick={() => setInspectingFriend(null)} />
+          <div className="relative w-full max-w-2xl max-h-[90vh] bg-[#1a1d29] border border-[#343a4c] rounded-3xl shadow-2xl z-10 flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-[#2d3244] bg-[#222636] flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <AvatarCircle name={inspectingFriend.username} size="md" />
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-base sm:text-lg font-black text-white truncate">
-                      {inspectingFriend.username}&apos;s Binder
-                    </h2>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base sm:text-lg font-black text-white truncate">{inspectingFriend.username}'s Binder</h2>
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 flex-shrink-0">
                       {inspectingFriend.rank}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-400 font-mono">
-                    {inspectingFriend.tag} · <strong className="text-emerald-400 font-mono">{formatPrice(friendTotalValue, { source: 'yuyutei' }).full} Est. Value</strong>
-                  </p>
+                  <p className="text-xs text-amber-400 font-mono truncate">{inspectingFriend.tag}</p>
                 </div>
               </div>
-
               <button
                 type="button"
                 onClick={() => setInspectingFriend(null)}
-                className="w-8 h-8 rounded-full bg-[#2d3143] text-gray-300 hover:text-white flex items-center justify-center cursor-pointer flex-shrink-0"
+                className="w-9 h-9 rounded-full bg-[#1a1d29] hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center transition cursor-pointer flex-shrink-0"
               >
-                <X className="w-4 h-4 stroke-[2.5]" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Filter / Search inside friend's cards */}
-            <div className="pt-3 pb-2 flex-shrink-0">
-              <div className="relative">
-                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={cardSearch}
-                  onChange={(e) => setCardSearch(e.target.value)}
-                  placeholder={`Search ${inspectingFriend.username}'s cards...`}
-                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-[#1b1e2a] border border-[#343a4c] text-white text-xs placeholder-gray-500 focus:outline-none focus:border-purple-500/50"
-                />
+            {/* Quick Stats Bar */}
+            <div className="grid grid-cols-2 gap-2 p-3 sm:p-4 bg-[#1e2230] border-b border-[#2d3244]">
+              <div className="bg-[#151722] p-2.5 rounded-xl border border-[#2d3244] flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-300 flex items-center justify-center flex-shrink-0">
+                  <Layers className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase">Total Cards</p>
+                  <p className="text-sm sm:text-base font-black text-white">{friendCards.reduce((acc, c) => acc + (c.quantity || 1), 0)} ({friendCards.length} unique)</p>
+                </div>
+              </div>
+              <div className="bg-[#151722] p-2.5 rounded-xl border border-[#2d3244] flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center flex-shrink-0">
+                  <Coins className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase">Est. Binder Value</p>
+                  <p className="text-sm sm:text-base font-black text-emerald-400 font-mono">
+                    {formatPrice(friendBinderTotal.totalUsd, { source: 'yuyutei', rawJPY: friendBinderTotal.totalJpy }).full}
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Card Content Area */}
-            <div className="py-2 overflow-y-auto flex-1 space-y-2">
-              {isLoadingFriendCards ? (
+            {/* Search Input within friend's binder */}
+            {friendCards.length > 0 && (
+              <div className="p-3 border-b border-[#2d3244] bg-[#1a1d29]">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={cardFilterQuery}
+                    onChange={(e) => setCardFilterQuery(e.target.value)}
+                    placeholder="Search friend's cards by name or ID (e.g. OP05-119)..."
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-[#141620] border border-[#2e3346] text-white text-xs placeholder-gray-500 focus:outline-none focus:border-purple-500/50"
+                  />
+                  {cardFilterQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setCardFilterQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Scrollable Cards Grid Area */}
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 min-h-[250px]">
+              {isLoadingCards ? (
                 <div className="py-16 flex flex-col items-center justify-center gap-3 text-gray-400">
-                  <Loader2 className="w-7 h-7 animate-spin text-purple-400" />
-                  <p className="text-xs font-bold">Opening {inspectingFriend.username}&apos;s collection…</p>
+                  <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+                  <p className="text-xs font-bold">Opening {inspectingFriend.username}'s binder…</p>
                 </div>
               ) : friendCards.length === 0 ? (
-                <div className="py-16 text-center space-y-2">
-                  <Sparkles className="w-8 h-8 text-gray-600 mx-auto" />
-                  <p className="text-gray-300 font-bold text-sm">No cards in binder yet</p>
-                  <p className="text-gray-500 text-xs max-w-xs mx-auto">
-                    {inspectingFriend.username} hasn&apos;t added any cards to their cloud collection binder.
-                  </p>
+                <div className="py-14 text-center space-y-3">
+                  <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-300 flex items-center justify-center mx-auto">
+                    <Layers className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <p className="text-white font-black text-sm">No Cards Uploaded Yet</p>
+                    <p className="text-gray-400 text-xs mt-1 max-w-sm mx-auto">
+                      @{inspectingFriend.username} hasn't added any cards to their cloud collection binder yet. Once they add cards, they will appear here!
+                    </p>
+                  </div>
                 </div>
               ) : filteredFriendCards.length === 0 ? (
-                <div className="py-12 text-center text-gray-500 text-xs">
-                  No cards matched &ldquo;{cardSearch}&rdquo;
+                <div className="py-12 text-center text-gray-400 text-xs font-bold">
+                  No cards matching "{cardFilterQuery}".
                 </div>
               ) : (
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3">
                   {filteredFriendCards.map((c) => {
-                    const priceUSD = c.card.yuyuPrice ? c.card.yuyuPrice / 152 : c.card.marketPrice || 0;
-                    const imgUrl = getEditionCardImageUrl(c.cardId, 'jp', c.card.imageUrl);
-                    return (
-                      <div
-                        key={c.id}
-                        onClick={() => router.push(`/cards/${c.cardId}`)}
-                        className="group relative rounded-xl overflow-hidden aspect-[2.5/3.5] bg-[#1a1d27] border border-[#363b4f] hover:border-purple-400 transition-all shadow-md cursor-pointer flex flex-col"
-                      >
-                        <img
-                          src={imgUrl}
-                          alt={c.card.name}
-                          loading="lazy"
-                          referrerPolicy="no-referrer"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                        />
+                    const cardPrice = c.card?.yuyuPrice
+                      ? formatPrice(c.card.marketPrice || 0, { source: 'yuyutei', rawJPY: c.card.yuyuPrice }).full
+                      : c.card?.marketPrice
+                      ? formatPrice(c.card.marketPrice).full
+                      : null;
 
-                        {/* Top Quantity Pill */}
-                        <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[10px] font-black text-amber-300 font-mono shadow-sm">
-                          x{c.quantity}
+                    const imageUrl = getEditionCardImageUrl(c.cardId, 'jp', c.card?.imageUrl);
+
+                    return (
+                      <Link
+                        key={c.id}
+                        href={`/cards/${c.cardId}`}
+                        target="_blank"
+                        className="bg-[#242836] border border-[#343a4c] hover:border-purple-500/60 rounded-2xl overflow-hidden shadow-md flex flex-col group transition hover:-translate-y-0.5 cursor-pointer"
+                      >
+                        {/* Card Image Box */}
+                        <div className="relative aspect-[7/10] bg-[#1a1d29] overflow-hidden">
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={c.card?.name || c.cardId}
+                              className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
+                              {c.cardId}
+                            </div>
+                          )}
+
+                          {/* Quantity Badge */}
+                          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-sm border border-white/20 text-white font-black text-[11px] shadow">
+                            x{c.quantity || 1}
+                          </div>
+
+                          {/* Rarity & Condition Badges */}
+                          <div className="absolute bottom-2 left-2 flex items-center gap-1 flex-wrap">
+                            {c.card?.rarity && (
+                              <span className="px-1.5 py-0.5 rounded bg-amber-500/90 text-slate-950 font-black text-[9px] shadow">
+                                {c.card.rarity}
+                              </span>
+                            )}
+                            <span className="px-1.5 py-0.5 rounded bg-black/75 text-gray-200 font-bold text-[9px] border border-white/10">
+                              {c.condition || 'NM'}
+                            </span>
+                            {c.isFoil && (
+                              <span className="px-1.5 py-0.5 rounded bg-indigo-500/90 text-white font-black text-[9px] flex items-center gap-0.5 shadow">
+                                <Sparkles className="w-2.5 h-2.5" />
+                                FOIL
+                              </span>
+                            )}
+                          </div>
                         </div>
 
-                        {/* Condition / Foil Pill */}
-                        <div className="absolute top-1.5 left-1.5 flex gap-1">
-                          <span className="px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-md text-[9px] font-black text-gray-300">
-                            {c.condition}
-                          </span>
-                          {c.isFoil && (
-                            <span className="px-1 py-0.5 rounded bg-purple-500/80 text-[8px] font-black text-white">
-                              FOIL
-                            </span>
+                        {/* Card Details */}
+                        <div className="p-2 sm:p-2.5 flex-1 flex flex-col justify-between gap-1">
+                          <div>
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-[10px] font-mono text-purple-400 font-bold">{c.cardId}</span>
+                              <ExternalLink className="w-3 h-3 text-gray-500 group-hover:text-purple-300 transition" />
+                            </div>
+                            <p className="text-xs font-bold text-white truncate leading-tight mt-0.5 group-hover:text-purple-300 transition">
+                              {c.card?.name || c.cardId}
+                            </p>
+                          </div>
+
+                          {cardPrice && (
+                            <div className="pt-1 border-t border-[#343a4c] flex items-center justify-between text-[11px]">
+                              <span className="text-gray-400 text-[10px]">Market:</span>
+                              <span className="font-mono font-black text-emerald-400">{cardPrice}</span>
+                            </div>
                           )}
                         </div>
-
-                        {/* Bottom Price Pill */}
-                        <div className="absolute bottom-1.5 left-1.5 right-1.5 px-1.5 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[10px] font-black text-emerald-300 font-mono flex items-center justify-between">
-                          <span className="truncate text-[9px] text-gray-300">{c.cardId}</span>
-                          <span>{formatPrice(priceUSD, { source: 'yuyutei' }).full}</span>
-                        </div>
-                      </div>
+                      </Link>
                     );
                   })}
                 </div>
               )}
-            </div>
-
-            {/* Footer */}
-            <div className="pt-3 border-t border-[#31364a] flex items-center justify-between gap-2 flex-shrink-0">
-              <span className="text-xs text-gray-400">
-                {filteredFriendCards.length} {filteredFriendCards.length === 1 ? 'card' : 'cards'} shown
-              </span>
-              <button
-                type="button"
-                onClick={() => setInspectingFriend(null)}
-                className="px-4 py-2 rounded-xl bg-[#2e3346] hover:bg-[#383e54] text-white text-xs font-bold transition cursor-pointer"
-              >
-                Close Binder
-              </button>
             </div>
           </div>
         </div>
