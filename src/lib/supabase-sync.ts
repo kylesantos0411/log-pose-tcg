@@ -462,3 +462,213 @@ export async function syncUserCloudData(userId: string, userTag: string): Promis
     console.error('Failed to sync user cloud data:', err);
   }
 }
+
+// ─────────────────────────────────────────────
+// FRIEND SYSTEM
+// ─────────────────────────────────────────────
+
+export interface FriendshipProfile {
+  id: string;           // friendship row id
+  userId: string;       // the other user's Supabase profile id
+  username: string;
+  tag: string;
+  avatar: string;
+  rank: string;
+  cardCount: number;
+  status: 'pending_sent' | 'pending_received' | 'accepted';
+  createdAt: string;
+}
+
+export interface SearchedUser {
+  id: string;
+  username: string;
+  tag: string;
+  avatar: string;
+  rank: string;
+  cardCount: number;
+  friendshipStatus: 'none' | 'pending_sent' | 'pending_received' | 'accepted';
+  friendshipId?: string;
+}
+
+/** Search for a user by username or @tag */
+export async function searchUserByUsername(
+  query: string,
+  currentUserId: string
+): Promise<SearchedUser | null> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured()) return null;
+
+  try {
+    const normalized = query.replace(/^@/, '').trim().toLowerCase();
+    if (!normalized) return null;
+
+    const { data, error } = await client
+      .from('profiles')
+      .select('id, username, tag, avatar, rank')
+      .or(`username.ilike.${normalized},tag.ilike.@${normalized}`)
+      .neq('id', currentUserId)
+      .limit(1)
+      .single();
+
+    if (error || !data) return null;
+
+    // Their card count
+    const { count: cardCount } = await client
+      .from('user_cards')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', data.id);
+
+    // Existing friendship?
+    const { data: fs } = await client
+      .from('friendships')
+      .select('id, requester_id, addressee_id, status')
+      .or(`and(requester_id.eq.${currentUserId},addressee_id.eq.${data.id}),and(requester_id.eq.${data.id},addressee_id.eq.${currentUserId})`)
+      .limit(1)
+      .single();
+
+    let friendshipStatus: SearchedUser['friendshipStatus'] = 'none';
+    let friendshipId: string | undefined;
+    if (fs) {
+      friendshipId = fs.id;
+      if (fs.status === 'accepted') friendshipStatus = 'accepted';
+      else if (fs.requester_id === currentUserId) friendshipStatus = 'pending_sent';
+      else friendshipStatus = 'pending_received';
+    }
+
+    return {
+      id: data.id,
+      username: data.username,
+      tag: data.tag,
+      avatar: data.avatar || 'default',
+      rank: data.rank || 'Collector',
+      cardCount: cardCount ?? 0,
+      friendshipStatus,
+      friendshipId,
+    };
+  } catch (err) {
+    console.error('searchUserByUsername error:', err);
+    return null;
+  }
+}
+
+/** Send a friend request */
+export async function sendFriendRequest(
+  currentUserId: string,
+  targetUserId: string
+): Promise<{ success: boolean; error?: string }> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured()) return { success: false, error: 'Not connected' };
+  try {
+    const { error } = await client
+      .from('friendships')
+      .insert({ requester_id: currentUserId, addressee_id: targetUserId, status: 'pending' });
+    if (error) {
+      if (error.code === '23505') return { success: false, error: 'Friend request already sent.' };
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/** Accept a pending friend request */
+export async function acceptFriendRequest(
+  friendshipId: string
+): Promise<{ success: boolean; error?: string }> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured()) return { success: false, error: 'Not connected' };
+  try {
+    const { error } = await client
+      .from('friendships')
+      .update({ status: 'accepted' })
+      .eq('id', friendshipId);
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/** Decline / cancel request or unfriend */
+export async function removeFriendship(
+  friendshipId: string
+): Promise<{ success: boolean; error?: string }> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured()) return { success: false, error: 'Not connected' };
+  try {
+    const { error } = await client
+      .from('friendships')
+      .delete()
+      .eq('id', friendshipId);
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/** Fetch all friends and pending requests for a user */
+export async function fetchFriendships(
+  currentUserId: string
+): Promise<FriendshipProfile[]> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured() || !isValidUuid(currentUserId)) return [];
+
+  try {
+    const { data: rows, error } = await client
+      .from('friendships')
+      .select('id, requester_id, addressee_id, status, created_at')
+      .or(`requester_id.eq.${currentUserId},addressee_id.eq.${currentUserId}`)
+      .order('created_at', { ascending: false });
+
+    if (error || !rows || rows.length === 0) return [];
+
+    const otherUserIds = rows.map((r) =>
+      r.requester_id === currentUserId ? r.addressee_id : r.requester_id
+    );
+
+    const { data: profiles } = await client
+      .from('profiles')
+      .select('id, username, tag, avatar, rank')
+      .in('id', otherUserIds);
+
+    // Card counts
+    const { data: cardRows } = await client
+      .from('user_cards')
+      .select('user_id')
+      .in('user_id', otherUserIds);
+
+    const cardCountMap: Record<string, number> = {};
+    (cardRows || []).forEach((c) => {
+      cardCountMap[c.user_id] = (cardCountMap[c.user_id] || 0) + 1;
+    });
+
+    const profileMap: Record<string, any> = {};
+    (profiles || []).forEach((p) => { profileMap[p.id] = p; });
+
+    return rows.map((row) => {
+      const otherId = row.requester_id === currentUserId ? row.addressee_id : row.requester_id;
+      const p = profileMap[otherId] || {};
+      let status: FriendshipProfile['status'];
+      if (row.status === 'accepted') status = 'accepted';
+      else if (row.requester_id === currentUserId) status = 'pending_sent';
+      else status = 'pending_received';
+
+      return {
+        id: row.id,
+        userId: otherId,
+        username: p.username || 'Unknown',
+        tag: p.tag || `@${p.username || 'unknown'}`,
+        avatar: p.avatar || 'default',
+        rank: p.rank || 'Collector',
+        cardCount: cardCountMap[otherId] ?? 0,
+        status,
+        createdAt: row.created_at,
+      };
+    });
+  } catch (err) {
+    console.error('fetchFriendships error:', err);
+    return [];
+  }
+}
