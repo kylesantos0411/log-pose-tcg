@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Download, X, Sparkles, Smartphone, Check, ArrowUpRight } from 'lucide-react';
+import { Download, X, Sparkles, Smartphone, Check } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -12,6 +12,19 @@ interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
+const DISMISS_KEY = 'logpose_install_dismissed';
+// Once dismissed, don't show again for 7 days
+const SUPPRESS_MS = 7 * 24 * 60 * 60 * 1000;
+
+function isDismissedRecently(): boolean {
+  try {
+    const ts = localStorage.getItem(DISMISS_KEY);
+    return !!ts && Date.now() - parseInt(ts, 10) < SUPPRESS_MS;
+  } catch {
+    return false;
+  }
+}
+
 export function InstallAppPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPopup, setShowPopup] = useState(false);
@@ -20,60 +33,59 @@ export function InstallAppPrompt() {
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     // 1. Check if already installed / running in standalone mode
-    if (typeof window !== 'undefined') {
-      const isStandaloneMode = 
-        window.matchMedia('(display-mode: standalone)').matches ||
-        (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
-        document.referrer.includes('android-app://');
+    const isStandaloneMode =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
+      document.referrer.includes('android-app://');
 
-      setIsStandalone(isStandaloneMode);
+    setIsStandalone(isStandaloneMode);
 
-      // Check if iOS
-      const ua = window.navigator.userAgent.toLowerCase();
-      const isIosDevice = /iphone|ipad|ipod/.test(ua);
-      setIsIOS(isIosDevice);
+    // Check if iOS
+    const ua = window.navigator.userAgent.toLowerCase();
+    setIsIOS(/iphone|ipad|ipod/.test(ua));
 
-      // Check dismissed timestamp from localStorage (suppress auto-popup for 24 hours if dismissed)
-      const lastDismissed = localStorage.getItem('logpose_install_dismissed');
-      const isDismissedRecently = lastDismissed && Date.now() - parseInt(lastDismissed, 10) < 24 * 60 * 60 * 1000;
+    // 2. Capture Chrome's beforeinstallprompt event
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      const installEvent = e as BeforeInstallPromptEvent;
+      setDeferredPrompt(installEvent);
 
-      // 2. Capture Chrome's beforeinstallprompt event
-      const handleBeforeInstallPrompt = (e: Event) => {
-        e.preventDefault();
-        const installEvent = e as BeforeInstallPromptEvent;
-        setDeferredPrompt(installEvent);
+      // Store globally on window so Settings can access it
+      (window as unknown as { __logposeInstallPrompt?: BeforeInstallPromptEvent }).__logposeInstallPrompt = installEvent;
 
-        // Store globally on window so other triggers (like Settings) can access it
-        (window as unknown as { __logposeInstallPrompt?: BeforeInstallPromptEvent }).__logposeInstallPrompt = installEvent;
-
-        // Auto-show popup if not standalone and not dismissed recently
-        if (!isStandaloneMode && !isDismissedRecently) {
-          setShowPopup(true);
-        }
-      };
-
-      const handleAppInstalled = () => {
-        setIsInstalled(true);
-        setShowPopup(false);
-        setDeferredPrompt(null);
-        localStorage.removeItem('logpose_install_dismissed');
-      };
-
-      const handleManualOpen = () => {
+      // Only auto-show if not standalone AND user hasn't dismissed recently
+      // Re-check localStorage here (not stale closure value) so navigation
+      // re-fires of this event don't re-show the popup after dismissal
+      if (!isStandaloneMode && !isDismissedRecently()) {
         setShowPopup(true);
-      };
+      }
+    };
 
-      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.addEventListener('appinstalled', handleAppInstalled);
-      window.addEventListener('open_install_prompt', handleManualOpen);
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      setShowPopup(false);
+      setDeferredPrompt(null);
+      // Clear dismiss flag since app is now installed
+      localStorage.removeItem(DISMISS_KEY);
+    };
 
-      return () => {
-        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-        window.removeEventListener('appinstalled', handleAppInstalled);
-        window.removeEventListener('open_install_prompt', handleManualOpen);
-      };
-    }
+    // Manual trigger from Settings
+    const handleManualOpen = () => {
+      setShowPopup(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+    window.addEventListener('open_install_prompt', handleManualOpen);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+      window.removeEventListener('open_install_prompt', handleManualOpen);
+    };
   }, []);
 
   const handleInstallClick = async () => {
@@ -101,10 +113,14 @@ export function InstallAppPrompt() {
 
   const handleDismiss = () => {
     setShowPopup(false);
-    localStorage.setItem('logpose_install_dismissed', Date.now().toString());
+    try {
+      localStorage.setItem(DISMISS_KEY, Date.now().toString());
+    } catch {
+      // ignore storage errors
+    }
   };
 
-  // If already running standalone or installed, don't show the prompt
+  // Don't render if already standalone, installed, or popup hidden
   if (isStandalone || isInstalled || !showPopup) {
     return null;
   }
@@ -115,7 +131,7 @@ export function InstallAppPrompt() {
       <div className="fixed inset-0" onClick={handleDismiss} />
 
       {/* Modal Dialog Card */}
-      <div 
+      <div
         className="relative w-full max-w-sm sm:max-w-md bg-[#242836] border border-[#3b4156] rounded-3xl p-5 sm:p-6 shadow-2xl z-10 font-sans space-y-4 animate-in slide-in-from-bottom-4 duration-300"
         onClick={(e) => e.stopPropagation()}
       >
@@ -132,9 +148,9 @@ export function InstallAppPrompt() {
         {/* App Icon & Header Title */}
         <div className="flex items-center gap-3.5 pr-6">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#e76d78] to-[#f59e0b] p-0.5 shadow-lg flex-shrink-0">
-            <img 
-              src="/icons/icon-192.png" 
-              alt="Log Pose TCG Logo" 
+            <img
+              src="/icons/icon-192.png"
+              alt="Log Pose TCG Logo"
               className="w-full h-full rounded-[14px] object-cover bg-[#1e212b]"
             />
           </div>
