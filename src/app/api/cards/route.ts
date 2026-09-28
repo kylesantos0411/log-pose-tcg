@@ -152,6 +152,9 @@ export async function GET(req: NextRequest) {
             { name: { contains: searchTerm } },
             { types: { contains: searchTerm } },
             { promoSource: { contains: searchTerm } },
+            { displaySet: { contains: searchTerm } },
+            { vintageSeries: { contains: searchTerm } },
+            { vintagePart: { contains: searchTerm } },
           ],
         });
       }

@@ -52,6 +52,11 @@ export async function GET(req: NextRequest) {
           { code: 'SPECIAL' },
           { id: '569801' },
         ];
+      } else if (type === 'Vintage') {
+        where.OR = [
+          { seriesType: { contains: 'VINTAGE' } },
+          { code: { startsWith: 'HB-' } },
+        ];
       }
     }
 

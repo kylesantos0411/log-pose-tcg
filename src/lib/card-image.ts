@@ -77,8 +77,8 @@ export function getEditionCardImageUrl(cardId: string, lang: 'en' | 'jp' = 'jp',
     return getSafeCardImageUrl(JP_CARD_IMAGE_MAP[cardId], cardId);
   }
 
-  // If fallbackUrl is a direct high-resolution Bandai Asia-EN, Yuyu-tei or asset image, use it!
-  if (fallbackUrl && (fallbackUrl.includes('asia-en.onepiece-cardgame.com') || fallbackUrl.includes('yuyu-tei.jp') || fallbackUrl.includes('/cards/'))) {
+  // If fallbackUrl is a direct high-resolution Bandai Asia-EN, Yuyu-tei, onepiececollection or asset image, use it!
+  if (fallbackUrl && (fallbackUrl.includes('asia-en.onepiece-cardgame.com') || fallbackUrl.includes('yuyu-tei.jp') || fallbackUrl.includes('/cards/') || fallbackUrl.includes('onepiececollection.fr'))) {
     return getSafeCardImageUrl(fallbackUrl, cardId);
   }
 

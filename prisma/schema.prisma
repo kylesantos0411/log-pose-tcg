@@ -72,6 +72,14 @@ model Card {
   yuyuteiTitle             String?   @map("yuyutei_title")
   yuyuteiRarity            String?   @map("yuyutei_rarity")
 
+  // Vintage & eBay Pricing Fields
+  isVintage                Boolean   @default(false) @map("is_vintage")
+  vintageSeries            String?   @map("vintage_series") // e.g. "Carddass Hyper Battle"
+  vintagePart              String?   @map("vintage_part")   // e.g. "First Stage"
+  ebayPrice                Float?    @map("ebay_price")     // Estimated / Sold Median in USD
+  ebayUrl                  String?   @map("ebay_url")
+  ebayLastUpdated          DateTime? @map("ebay_last_updated")
+
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
@@ -91,6 +99,8 @@ model Card {
   @@index([artistName])
   @@index([yuyuteiProductId])
   @@index([yuyuteiVer, yuyuteiProductId])
+  @@index([isVintage])
+  @@index([vintageSeries])
 }
 
 model UserCard {

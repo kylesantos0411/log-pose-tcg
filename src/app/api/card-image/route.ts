@@ -23,6 +23,8 @@ const ALLOWED_HOSTS = new Set([
   'static.cardmarket.com',
   'tcgplayer.com',
   'tcgplayer-cdn.tcgplayer.com',
+  'onepiececollection.fr',
+  'www.onepiececollection.fr',
 ]);
 
 function isHostAllowed(hostname: string): boolean {
@@ -42,7 +44,8 @@ function isHostAllowed(hostname: string): boolean {
     ALLOWED_HOSTS.has(h) ||
     h.endsWith('.onepiece-cardgame.com') ||
     h.endsWith('.yuyu-tei.jp') ||
-    h.endsWith('.cardmarket.com')
+    h.endsWith('.cardmarket.com') ||
+    h.endsWith('.onepiececollection.fr')
   );
 }
 

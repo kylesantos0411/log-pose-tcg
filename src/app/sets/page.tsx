@@ -124,6 +124,16 @@ const PROMO_SETS: YuyuteiSetDefinition[] = [
   { id: 'promo-prb', displayCode: '[PRB01] to [PRB10]', title: '', targetSet: 'PROMO', query: 'PRB' },
 ];
 
+const VINTAGE_SETS: YuyuteiSetDefinition[] = [
+  {
+    id: 'vintage-hb-01',
+    code: 'HB-01',
+    title: 'Carddass Hyper Battle - First Stage (1999)',
+    targetSet: 'HB-01',
+    query: 'HB01',
+  },
+];
+
 const DON_SETS: YuyuteiSetDefinition[] = [
   { id: 'don', displayCode: 'Don!! Card', title: '', targetSet: 'All', categoryParam: 'DON!!', query: 'DON!!' },
 ];
@@ -139,6 +149,7 @@ const CATEGORIES: AccordionCategory[] = [
   { id: 'booster', name: 'booster', accentColor: '#3b82f6', items: BOOSTER_SETS },
   { id: 'starter', name: 'Starter Deck', accentColor: '#e76d78', items: STARTER_DECK_SETS },
   { id: 'extra', name: 'Extra', accentColor: '#f59e0b', items: EXTRA_SETS },
+  { id: 'vintage', name: 'Vintage (Carddass)', accentColor: '#d97706', items: VINTAGE_SETS },
   { id: 'promo', name: 'Promotional card', accentColor: '#10b981', items: PROMO_SETS },
   { id: 'don', name: 'Don!! Card', accentColor: '#a855f7', items: DON_SETS },
 ];
