@@ -1,83 +1,69 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Anchor, RefreshCw, Clock } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { AlertTriangle, Clock } from 'lucide-react';
 import { MaintenanceSetting } from '@/lib/supabase-sync';
 
 interface MaintenanceScreenProps {
   maintenance: MaintenanceSetting;
-  onRefresh: () => Promise<void>;
+  onRefresh?: () => Promise<void> | void;
 }
 
 export function MaintenanceScreen({ maintenance, onRefresh }: MaintenanceScreenProps) {
-  const [checking, setChecking] = useState(false);
-
-  const handleCheck = async () => {
-    setChecking(true);
-    try {
-      await onRefresh();
-    } finally {
-      setTimeout(() => setChecking(false), 600);
-    }
-  };
+  // Silently check every 30 seconds so users automatically reconnect when maintenance completes
+  useEffect(() => {
+    if (!onRefresh) return;
+    const interval = setInterval(() => {
+      onRefresh();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [onRefresh]);
 
   return (
-    <div className="min-h-screen bg-[#14161f] text-white flex flex-col items-center justify-center p-4 relative overflow-hidden select-none">
-      {/* Background glowing effects */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-
-      <div className="relative z-10 max-w-lg w-full bg-[#1e2230]/90 border border-[#343a4c] backdrop-blur-xl rounded-3xl p-6 sm:p-8 shadow-2xl text-center space-y-6 animate-in fade-in zoom-in-95 duration-300">
-        {/* Animated Icon Badge */}
-        <div className="relative mx-auto w-20 h-20">
-          <div className="absolute inset-0 rounded-2xl bg-amber-500/20 animate-ping opacity-35" />
-          <div className="relative w-full h-full rounded-2xl bg-gradient-to-br from-amber-500/25 to-rose-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-lg">
-            <Anchor className="w-10 h-10 animate-bounce" style={{ animationDuration: '2.5s' }} />
+    <div className="min-h-screen bg-[#0f1117] text-white flex flex-col items-center justify-center p-4 select-none">
+      <div className="max-w-md w-full bg-[#181b24] border border-[#2a2f3d] rounded-2xl p-8 sm:p-10 shadow-2xl text-center space-y-6">
+        {/* Brand Header */}
+        <div className="flex items-center justify-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg overflow-hidden bg-white/10 p-1 flex items-center justify-center">
+            <img src="/logo.png" alt="Log Pose TCG" className="w-full h-full object-contain" />
           </div>
+          <span className="font-bold text-sm tracking-wide text-gray-200 uppercase">Log Pose TCG</span>
         </div>
 
-        {/* Status Pill */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-black tracking-wider uppercase">
-          <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-          <span>Dry Dock Maintenance</span>
+        {/* Professional Alert Icon */}
+        <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
+          <AlertTriangle className="w-7 h-7" />
         </div>
 
-        {/* Headings */}
-        <div className="space-y-2">
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Log Pose TCG is Docked for Repairs
+        {/* Title and Message */}
+        <div className="space-y-3">
+          <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+            System Maintenance in Progress
           </h1>
-          <p className="text-sm text-gray-300 leading-relaxed">
+          <p className="text-sm text-gray-400 leading-relaxed">
             {maintenance.message ||
-              'We are currently undergoing scheduled server maintenance, upgrades, and system calibration. We will be back online shortly!'}
+              'We are currently performing scheduled maintenance and updates to improve system performance. Access will be restored shortly.'}
           </p>
         </div>
 
-        {/* Estimated Time Notice if set */}
+        {/* Estimated Time Badge (if provided) */}
         {maintenance.estimatedTime && (
-          <div className="p-3.5 rounded-2xl bg-[#14161f]/80 border border-[#2d3242] flex items-center justify-center gap-2 text-xs font-bold text-gray-300">
+          <div className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[#11131a] border border-[#242836] text-xs text-gray-300 font-medium">
             <Clock className="w-4 h-4 text-amber-400 flex-shrink-0" />
-            <span>Estimated Uptime / Return: <strong className="text-amber-300">{maintenance.estimatedTime}</strong></span>
+            <span>
+              Expected Return: <strong className="text-white font-semibold">{maintenance.estimatedTime}</strong>
+            </span>
           </div>
         )}
 
-        {/* Actions */}
-        <div className="pt-2">
-          <button
-            type="button"
-            onClick={handleCheck}
-            disabled={checking}
-            className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider transition shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${checking ? 'animate-spin' : ''}`} />
-            <span>{checking ? 'Checking Status...' : 'Check Server Status'}</span>
-          </button>
-        </div>
+        {/* Divider */}
+        <div className="h-px bg-[#262b38] w-full" />
 
-        {/* Footer Note */}
-        <p className="text-[11px] text-gray-500">
-          Your card collection, sales data, and account information remain safe and intact.
-        </p>
+        {/* Simple & Professional Status Note */}
+        <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+          <span className="w-2 h-2 rounded-full bg-amber-400/80 animate-pulse" />
+          <span>Services will automatically reconnect once maintenance is complete.</span>
+        </div>
       </div>
     </div>
   );
