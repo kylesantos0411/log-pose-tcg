@@ -24,6 +24,9 @@ export interface UserSession {
   crew: string;
   rank: string;
   rankBadge: string;
+  role?: 'admin' | 'user';
+  isBanned?: boolean;
+  banReason?: string;
   createdAt?: string;
 }
 

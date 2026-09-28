@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -13,14 +13,66 @@ import {
   Smartphone,
   Users,
   Star,
+  ShieldAlert,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { SettingsTriggerButton } from '@/components/SettingsTriggerButton';
 import { useSettings } from '@/context/SettingsContext';
+import { MaintenanceScreen } from '@/components/MaintenanceScreen';
+import { AccountBannedScreen } from '@/components/AccountBannedScreen';
+import { GlobalAnnouncementBanner } from '@/components/GlobalAnnouncementBanner';
+import { 
+  fetchSystemSettings, 
+  DEFAULT_SYSTEM_SETTINGS, 
+  type SystemSettingsState 
+} from '@/lib/supabase-sync';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user } = useSettings();
+  const { user, logout, openSettings } = useSettings();
   const isPreview = pathname === '/preview';
+
+  const [systemSettings, setSystemSettings] = useState<SystemSettingsState>(DEFAULT_SYSTEM_SETTINGS);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+
+  const isChiefAdmin = user?.email?.toLowerCase() === 'kylesantos0411@gmail.com' ||
+    user?.tag?.toLowerCase() === '@kaipuccino' ||
+    user?.tag?.toLowerCase() === 'kaipuccino' ||
+    user?.name?.toLowerCase() === 'kaipuccino';
+
+  const isAdmin = user?.role === 'admin' || isChiefAdmin;
+
+  const loadSettings = async () => {
+    try {
+      const s = await fetchSystemSettings();
+      setSystemSettings(s);
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSettings();
+    const handleUpdate = () => loadSettings();
+    window.addEventListener('logpose_settings_updated', handleUpdate);
+    return () => window.removeEventListener('logpose_settings_updated', handleUpdate);
+  }, []);
+
+  // 1. Account Suspended Screen
+  if (user?.isBanned) {
+    return <AccountBannedScreen banReason={user.banReason} onLogout={logout} />;
+  }
+
+  // 2. Maintenance Mode Screen (Non-admins only)
+  if (!loadingSettings && systemSettings.maintenance.enabled && !isAdmin && pathname !== '/admin') {
+    return (
+      <MaintenanceScreen
+        maintenance={systemSettings.maintenance}
+        onRefresh={loadSettings}
+        onAdminLogin={openSettings}
+      />
+    );
+  }
 
   // In /preview mode, render dedicated studio canvas without outer desktop sidebar
   if (isPreview) {
@@ -112,6 +164,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
 
+          {/* Admin Command Center Link (Admins Only) */}
+          {isAdmin && (
+            <Link href="/admin" className={navItemClass('/admin')}>
+              <ShieldAlert className={`w-4 h-4 ${isActive('/admin') ? 'text-red-400' : 'text-red-400/80'}`} />
+              <span>Admin Controls</span>
+              <span className="ml-auto text-[9px] font-black px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">
+                ADMIN
+              </span>
+            </Link>
+          )}
+
           {/* Settings Trigger Button in Sidebar */}
           <SettingsTriggerButton variant="sidebar" />
 
@@ -170,6 +233,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Main View Area */}
       <div className="flex-1 flex flex-col md:pl-64 min-w-0 overflow-x-hidden">
+        {/* Admin Maintenance Active Bypass Notice */}
+        {systemSettings.maintenance.enabled && isAdmin && (
+          <div className="bg-amber-500 text-slate-950 px-4 py-2 text-xs font-black flex items-center justify-between shadow-md z-30">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-slate-950 animate-ping" />
+              <span>⚠️ MAINTENANCE MODE IS ACTIVE — Non-admin visitors see the dry dock screen. (Admin Bypass Enabled)</span>
+            </div>
+            <Link href="/admin" className="underline font-black hover:text-black">
+              Manage Controls &rarr;
+            </Link>
+          </div>
+        )}
+
+        {/* Global Announcement Banner */}
+        <GlobalAnnouncementBanner announcement={systemSettings.announcement} />
+
         {/* Main Viewport Content */}
         <main className="flex-1 p-2.5 sm:p-6 md:p-8 max-w-7xl w-full mx-auto pb-8 min-w-0">
           {children}

@@ -10,6 +10,10 @@ export interface CloudProfile {
   crew: string;
   rank: string;
   rankBadge: string;
+  role?: 'admin' | 'user';
+  isBanned?: boolean;
+  banReason?: string | null;
+  bannedAt?: string | null;
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -35,6 +39,14 @@ export async function fetchCloudProfile(userId: string): Promise<CloudProfile | 
 
     if (error || !data) return null;
 
+    const userRole: 'admin' | 'user' = data.role === 'admin' ||
+      data.email?.toLowerCase() === 'kylesantos0411@gmail.com' ||
+      data.tag?.toLowerCase() === '@kaipuccino' ||
+      data.tag?.toLowerCase() === 'kaipuccino' ||
+      data.username?.toLowerCase() === 'kaipuccino'
+        ? 'admin'
+        : 'user';
+
     return {
       id: data.id,
       username: data.username,
@@ -44,6 +56,10 @@ export async function fetchCloudProfile(userId: string): Promise<CloudProfile | 
       crew: data.crew?.startsWith('CODE:') ? 'Collector' : (data.crew || 'Collector'),
       rank: data.rank || 'Collector',
       rankBadge: '',
+      role: userRole,
+      isBanned: Boolean(data.is_banned),
+      banReason: data.ban_reason || null,
+      bannedAt: data.banned_at || null,
     };
   } catch (err) {
     console.error('Failed to fetch cloud profile:', err);
@@ -1500,5 +1516,342 @@ export async function fetchFriendships(
   } catch (err) {
     console.error('fetchFriendships error:', err);
     return [];
+  }
+}
+
+// =============================================================================
+// SYSTEM SETTINGS & ADMIN CONTROLS
+// =============================================================================
+
+export interface MaintenanceSetting {
+  enabled: boolean;
+  message?: string;
+  estimatedTime?: string | null;
+}
+
+export interface AnnouncementSetting {
+  enabled: boolean;
+  message?: string;
+  type?: 'info' | 'warning' | 'alert';
+}
+
+export interface SystemSettingsState {
+  maintenance: MaintenanceSetting;
+  announcement: AnnouncementSetting;
+}
+
+export const DEFAULT_SYSTEM_SETTINGS: SystemSettingsState = {
+  maintenance: {
+    enabled: false,
+    message: 'Log Pose TCG is temporarily docking for scheduled maintenance and upgrades. We will be back online shortly!',
+    estimatedTime: null,
+  },
+  announcement: {
+    enabled: false,
+    message: '',
+    type: 'info',
+  },
+};
+
+/**
+ * Fetch global system settings (maintenance mode & announcement)
+ */
+export async function fetchSystemSettings(): Promise<SystemSettingsState> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured()) {
+    return DEFAULT_SYSTEM_SETTINGS;
+  }
+
+  try {
+    const { data, error } = await client
+      .from('system_settings')
+      .select('key, value');
+
+    if (error || !data || data.length === 0) {
+      return DEFAULT_SYSTEM_SETTINGS;
+    }
+
+    const res: SystemSettingsState = {
+      maintenance: { ...DEFAULT_SYSTEM_SETTINGS.maintenance },
+      announcement: { ...DEFAULT_SYSTEM_SETTINGS.announcement },
+    };
+
+    data.forEach((row) => {
+      if (row.key === 'maintenance' && row.value) {
+        res.maintenance = { ...DEFAULT_SYSTEM_SETTINGS.maintenance, ...row.value };
+      } else if (row.key === 'announcement' && row.value) {
+        res.announcement = { ...DEFAULT_SYSTEM_SETTINGS.announcement, ...row.value };
+      }
+    });
+
+    return res;
+  } catch (err) {
+    console.warn('fetchSystemSettings error:', err);
+    return DEFAULT_SYSTEM_SETTINGS;
+  }
+}
+
+/**
+ * Update system settings (Admin only)
+ */
+export async function updateSystemSetting(
+  key: 'maintenance' | 'announcement',
+  value: Record<string, any>,
+  adminTag?: string
+): Promise<{ success: boolean; error?: string }> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured()) {
+    return { success: false, error: 'Database connection unavailable' };
+  }
+
+  try {
+    const { error } = await client
+      .from('system_settings')
+      .upsert({
+        key,
+        value,
+        updated_at: new Date().toISOString(),
+        updated_by: adminTag || 'admin',
+      });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to update system setting' };
+  }
+}
+
+export interface AdminUserRecord {
+  id: string;
+  username: string;
+  tag: string;
+  email: string | null;
+  role: 'admin' | 'user';
+  isBanned: boolean;
+  banReason: string | null;
+  bannedAt: string | null;
+  rank: string;
+  crew: string;
+  cardCount: number;
+  salesCount: number;
+  createdAt: string;
+}
+
+/**
+ * Fetch all users for Admin User Management table
+ */
+export async function fetchAllUsersForAdmin(): Promise<AdminUserRecord[]> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured()) return [];
+
+  try {
+    const { data: profiles, error } = await client
+      .from('profiles')
+      .select('id, username, tag, email, role, is_banned, ban_reason, banned_at, rank, crew, created_at')
+      .order('created_at', { ascending: false });
+
+    if (error || !profiles) {
+      console.error('fetchAllUsersForAdmin error:', error);
+      return [];
+    }
+
+    // Fetch card counts
+    const { data: cards } = await client
+      .from('user_cards')
+      .select('user_id');
+
+    const cardMap: Record<string, number> = {};
+    (cards || []).forEach((c) => {
+      cardMap[c.user_id] = (cardMap[c.user_id] || 0) + 1;
+    });
+
+    // Fetch sales counts
+    const { data: sales } = await client
+      .from('card_sales')
+      .select('user_id');
+
+    const saleMap: Record<string, number> = {};
+    (sales || []).forEach((s) => {
+      saleMap[s.user_id] = (saleMap[s.user_id] || 0) + 1;
+    });
+
+    return profiles.map((p) => {
+      const isChiefAdmin = p.email?.toLowerCase() === 'kylesantos0411@gmail.com' ||
+        p.tag?.toLowerCase() === '@kaipuccino' ||
+        p.tag?.toLowerCase() === 'kaipuccino' ||
+        p.username?.toLowerCase() === 'kaipuccino';
+
+      return {
+        id: p.id,
+        username: p.username || 'Unknown',
+        tag: p.tag || `@${p.username || 'unknown'}`,
+        email: p.email || null,
+        role: (p.role === 'admin' || isChiefAdmin) ? 'admin' : 'user',
+        isBanned: Boolean(p.is_banned),
+        banReason: p.ban_reason || null,
+        bannedAt: p.banned_at || null,
+        rank: p.rank || 'Collector',
+        crew: p.crew || 'Collector',
+        cardCount: cardMap[p.id] || 0,
+        salesCount: saleMap[p.id] || 0,
+        createdAt: p.created_at,
+      };
+    });
+  } catch (err) {
+    console.error('fetchAllUsersForAdmin exception:', err);
+    return [];
+  }
+}
+
+/**
+ * Ban or unban a user (Admin only)
+ */
+export async function adminSetUserBan(
+  targetUserId: string,
+  shouldBan: boolean,
+  reason?: string
+): Promise<{ success: boolean; error?: string }> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured() || !isValidUuid(targetUserId)) {
+    return { success: false, error: 'Database client unavailable or invalid user ID' };
+  }
+
+  try {
+    // Try via RPC first
+    const { error: rpcError } = await client.rpc('admin_set_user_ban', {
+      target_user_id: targetUserId,
+      should_ban: shouldBan,
+      reason: reason || null,
+    });
+
+    if (!rpcError) {
+      return { success: true };
+    }
+
+    // Direct fallback
+    const { error: directError } = await client
+      .from('profiles')
+      .update({
+        is_banned: shouldBan,
+        ban_reason: shouldBan ? (reason || 'Violation of community policies') : null,
+        banned_at: shouldBan ? new Date().toISOString() : null,
+      })
+      .eq('id', targetUserId);
+
+    if (directError) {
+      return { success: false, error: directError.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to update ban status' };
+  }
+}
+
+/**
+ * Fetch reported or flagged sales for Admin Moderation Queue
+ */
+export async function fetchReportedSalesForAdmin(): Promise<CloudSaleRecord[]> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured()) return [];
+
+  try {
+    const { data, error } = await client
+      .from('card_sales')
+      .select('*')
+      .or('flags_count.gt.0,is_outlier.eq.true')
+      .order('flags_count', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (error || !data) {
+      console.warn('fetchReportedSalesForAdmin error:', error);
+      return [];
+    }
+
+    return data.map((row) => ({
+      id: row.id,
+      userId: row.user_id,
+      cardId: row.card_id,
+      cardName: row.card_name,
+      condition: row.condition || 'NM',
+      isFoil: Boolean(row.is_foil),
+      language: row.language || 'jp',
+      soldPrice: Number(row.sold_price),
+      soldCurrency: row.sold_currency || 'PHP',
+      soldDate: row.sold_date,
+      quantity: row.quantity || 1,
+      isPublic: Boolean(row.is_public),
+      buyerSource: row.buyer_source || undefined,
+      notes: row.notes || undefined,
+      isOutlier: Boolean(row.is_outlier),
+      isVerified: Boolean(row.is_verified),
+      flagsCount: row.flags_count || 0,
+      buyerUserTag: row.buyer_user_tag || undefined,
+      verifiedByBuyer: Boolean(row.verified_by_buyer),
+      createdAt: row.created_at,
+    }));
+  } catch (err) {
+    console.error('fetchReportedSalesForAdmin exception:', err);
+    return [];
+  }
+}
+
+/**
+ * Admin: Delete a fraudulent sale permanently
+ */
+export async function adminDeleteSale(targetSaleId: string): Promise<{ success: boolean; error?: string }> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured() || !isValidUuid(targetSaleId)) {
+    return { success: false, error: 'Invalid sale ID or client unavailable' };
+  }
+
+  try {
+    const { error: rpcError } = await client.rpc('admin_delete_sale', {
+      target_sale_id: targetSaleId,
+    });
+
+    if (!rpcError) return { success: true };
+
+    const { error: directError } = await client
+      .from('card_sales')
+      .delete()
+      .eq('id', targetSaleId);
+
+    if (directError) return { success: false, error: directError.message };
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to delete sale' };
+  }
+}
+
+/**
+ * Admin: Dismiss reports on a card sale
+ */
+export async function adminDismissFlags(targetSaleId: string): Promise<{ success: boolean; error?: string }> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured() || !isValidUuid(targetSaleId)) {
+    return { success: false, error: 'Invalid sale ID or client unavailable' };
+  }
+
+  try {
+    const { error: rpcError } = await client.rpc('admin_dismiss_flags', {
+      target_sale_id: targetSaleId,
+    });
+
+    if (!rpcError) return { success: true };
+
+    const { error: directError } = await client
+      .from('card_sales')
+      .update({ flags_count: 0 })
+      .eq('id', targetSaleId);
+
+    if (directError) return { success: false, error: directError.message };
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to dismiss flags' };
   }
 }

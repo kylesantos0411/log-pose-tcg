@@ -356,11 +356,34 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Sync active session and registered accounts
       const active = getActiveSession();
+      if (active) {
+        const isChiefAdmin = active.email?.toLowerCase() === 'kylesantos0411@gmail.com' ||
+          active.tag?.toLowerCase() === '@kaipuccino' ||
+          active.tag?.toLowerCase() === 'kaipuccino' ||
+          active.name?.toLowerCase() === 'kaipuccino';
+        if (isChiefAdmin && active.role !== 'admin') {
+          active.role = 'admin';
+        }
+      }
       setUserState(active);
       setAccountsState(getStoredAccounts());
       if (active?.id) {
+        fetchCloudProfile(active.id).then((cloud) => {
+          if (cloud) {
+            setUserState((prev) => {
+              if (!prev || prev.id !== active.id) return prev;
+              const updated: UserProfile = {
+                ...prev,
+                role: cloud.role,
+                isBanned: cloud.isBanned,
+                banReason: cloud.banReason || undefined,
+              };
+              setActiveSession(updated);
+              return updated;
+            });
+          }
+        }).catch(() => {});
         syncUserCloudData(active.id, active.tag).catch((e) =>
           console.warn('Initial cloud sync skipped:', e)
         );
@@ -475,6 +498,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       const avatar = 'default';
       const crew = cloud?.crew?.startsWith('CODE:') ? 'Collector' : (cloud?.crew || 'Collector');
 
+      const isChiefAdmin = sbUser.email?.toLowerCase() === 'kylesantos0411@gmail.com' ||
+        tag.toLowerCase() === '@kaipuccino' ||
+        tag.toLowerCase() === 'kaipuccino' ||
+        name.toLowerCase() === 'kaipuccino';
+
+      const role: 'admin' | 'user' = (cloud?.role === 'admin' || isChiefAdmin) ? 'admin' : 'user';
+
       const userProfile: UserProfile = {
         id: sbUser.id,
         name,
@@ -485,6 +515,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         crew,
         rank: cloud?.rank || 'Collector',
         rankBadge: '',
+        role,
+        isBanned: Boolean(cloud?.isBanned),
+        banReason: cloud?.banReason || undefined,
         createdAt: sbUser.created_at,
       };
 
