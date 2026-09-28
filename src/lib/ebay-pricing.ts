@@ -10,10 +10,18 @@ export function generateEbaySoldSearchUrl(
   const num = (cardNumber || '').trim();
   let name = (cardName || '').trim();
   name = name.replace(/^Monkey\.?D\.?/i, 'Luffy').replace(/^Roronoa\s*/i, '').trim();
-  const firstName = name.split(' ')[0] || '';
+  let firstName = name.split(' ')[0] || '';
+  if (firstName.toLowerCase() === 'one' || firstName.toLowerCase() === 'character' || firstName.toLowerCase() === 'monstre') {
+    firstName = '';
+  }
 
   // E.g.: "One Piece" Carddass "C01" Luffy -OP01 -OP02 -OP03 -OP05 -EB01
-  const query = `"One Piece" Carddass "${num}" ${firstName} -OP01 -OP02 -OP03 -OP05 -EB01`;
+  const queryParts = ['"One Piece"', 'Carddass', `"${num}"`];
+  if (firstName) {
+    queryParts.push(firstName);
+  }
+  queryParts.push('-OP01 -OP02 -OP03 -OP05 -EB01');
+  const query = queryParts.join(' ');
 
   const params = new URLSearchParams({
     _nkw: query,
