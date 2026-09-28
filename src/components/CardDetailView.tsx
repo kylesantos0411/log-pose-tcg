@@ -193,19 +193,27 @@ export function CardDetailView({
   useEffect(() => {
     let isMounted = true;
     if (!card.id) return;
-    setIsLoadingCommunitySales(true);
-    fetchCommunitySales(card.id)
-      .then((records) => {
-        if (isMounted) setCommunitySales(records);
-      })
-      .catch((err) => {
-        console.error('Failed to fetch community sales:', err);
-      })
-      .finally(() => {
-        if (isMounted) setIsLoadingCommunitySales(false);
-      });
+
+    const loadSales = () => {
+      setIsLoadingCommunitySales(true);
+      fetchCommunitySales(card.id)
+        .then((records) => {
+          if (isMounted) setCommunitySales(records);
+        })
+        .catch((err) => {
+          console.error('Failed to fetch community sales:', err);
+        })
+        .finally(() => {
+          if (isMounted) setIsLoadingCommunitySales(false);
+        });
+    };
+
+    loadSales();
+
+    window.addEventListener('logpose_collection_updated', loadSales);
     return () => {
       isMounted = false;
+      window.removeEventListener('logpose_collection_updated', loadSales);
     };
   }, [card.id]);
 

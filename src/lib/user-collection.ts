@@ -582,3 +582,62 @@ export function importBinderFromJSON(jsonString: string, userTag?: string | null
     return false;
   }
 }
+
+/**
+ * Retrieves all sold cards across local binders in localStorage.
+ * Optionally filters by canonical cardId (case-insensitive).
+ */
+export function getLocalSoldCards(cardId?: string): LocalUserCard[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const soldCards: LocalUserCard[] = [];
+    const seenIds = new Set<string>();
+
+    const checkAndAdd = (item: any) => {
+      if (
+        item &&
+        item.status === 'SOLD' &&
+        item.soldPrice != null &&
+        !isNaN(Number(item.soldPrice))
+      ) {
+        if (cardId) {
+          const targetClean = cardId.trim().toLowerCase();
+          const matchCardId = (item.cardId || '').trim().toLowerCase();
+          const matchInnerId = (item.card?.id || '').trim().toLowerCase();
+          if (matchCardId !== targetClean && matchInnerId !== targetClean) {
+            return;
+          }
+        }
+
+        const uniqueKey = item.id || `${item.cardId}_${item.soldDate}_${item.soldPrice}_${item.condition}`;
+        if (!seenIds.has(uniqueKey)) {
+          seenIds.add(uniqueKey);
+          soldCards.push(item);
+        }
+      }
+    };
+
+    // Scan all storage keys starting with logpose_binder_
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('logpose_binder_') || key === 'logpose_user_binder')) {
+        try {
+          const raw = localStorage.getItem(key);
+          if (!raw) continue;
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            for (const item of parsed) {
+              checkAndAdd(item);
+            }
+          }
+        } catch {}
+      }
+    }
+
+    return soldCards;
+  } catch (e) {
+    console.error('Failed to get local sold cards:', e);
+    return [];
+  }
+}
+

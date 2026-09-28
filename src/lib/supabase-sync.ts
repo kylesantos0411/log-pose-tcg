@@ -1,5 +1,5 @@
 import { getSupabaseBrowserClient, isSupabaseConfigured } from './supabase/client';
-import type { LocalUserCard } from './user-collection';
+import { getLocalSoldCards, type LocalUserCard } from './user-collection';
 
 export interface CloudProfile {
   id: string;
@@ -424,8 +424,23 @@ export async function recordCloudSale(
   }
 ): Promise<{ success: boolean; saleId?: string; error?: string }> {
   const client = getSupabaseBrowserClient();
-  if (!client || !isSupabaseConfigured() || !isValidUuid(userId)) {
+  if (!client || !isSupabaseConfigured()) {
     return { success: false, error: 'Database client not connected' };
+  }
+
+  let targetUserId = userId;
+  if (!isValidUuid(targetUserId)) {
+    try {
+      const { data: authData } = await client.auth.getSession();
+      if (authData?.session?.user?.id && isValidUuid(authData.session.user.id)) {
+        targetUserId = authData.session.user.id;
+      }
+    } catch {}
+  }
+
+  if (!isValidUuid(targetUserId)) {
+    // Pure local / guest session: sale is safely preserved in local storage
+    return { success: true };
   }
 
   try {
@@ -433,7 +448,7 @@ export async function recordCloudSale(
     const { data: insertedSale, error: saleErr } = await client
       .from('card_sales')
       .insert({
-        user_id: userId,
+        user_id: targetUserId,
         user_card_id: sale.userCardId,
         card_id: sale.cardId,
         card_name: sale.cardName || sale.cardId,
@@ -524,8 +539,22 @@ export async function undoCloudSale(
   language?: string
 ): Promise<{ success: boolean; error?: string }> {
   const client = getSupabaseBrowserClient();
-  if (!client || !isSupabaseConfigured() || !isValidUuid(userId)) {
+  if (!client || !isSupabaseConfigured()) {
     return { success: false, error: 'Database client not connected' };
+  }
+
+  let targetUserId = userId;
+  if (!isValidUuid(targetUserId)) {
+    try {
+      const { data: authData } = await client.auth.getSession();
+      if (authData?.session?.user?.id && isValidUuid(authData.session.user.id)) {
+        targetUserId = authData.session.user.id;
+      }
+    } catch {}
+  }
+
+  if (!isValidUuid(targetUserId)) {
+    return { success: true };
   }
 
   try {
@@ -533,14 +562,14 @@ export async function undoCloudSale(
     await client
       .from('card_sales')
       .delete()
-      .eq('user_id', userId)
+      .eq('user_id', targetUserId)
       .or(`user_card_id.eq.${userCardId},card_id.eq.${cardId}`);
 
     // 2. Restore user_cards status or quantity
     const { data: existing } = await client
       .from('user_cards')
       .select('id, quantity, status')
-      .eq('user_id', userId)
+      .eq('user_id', targetUserId)
       .eq('card_id', cardId)
       .eq('condition', condition || 'NM')
       .eq('is_foil', Boolean(isFoil))
@@ -562,7 +591,7 @@ export async function undoCloudSale(
         .eq('id', existing.id);
     } else {
       await client.from('user_cards').insert({
-        user_id: userId,
+        user_id: targetUserId,
         card_id: cardId,
         quantity: 1,
         condition: condition || 'NM',
@@ -596,8 +625,22 @@ export async function editCloudSale(
   }
 ): Promise<{ success: boolean; error?: string }> {
   const client = getSupabaseBrowserClient();
-  if (!client || !isSupabaseConfigured() || !isValidUuid(userId)) {
+  if (!client || !isSupabaseConfigured()) {
     return { success: false, error: 'Database client not connected' };
+  }
+
+  let targetUserId = userId;
+  if (!isValidUuid(targetUserId)) {
+    try {
+      const { data: authData } = await client.auth.getSession();
+      if (authData?.session?.user?.id && isValidUuid(authData.session.user.id)) {
+        targetUserId = authData.session.user.id;
+      }
+    } catch {}
+  }
+
+  if (!isValidUuid(targetUserId)) {
+    return { success: true };
   }
 
   try {
@@ -612,7 +655,7 @@ export async function editCloudSale(
         notes: data.notes || null,
         updated_at: new Date().toISOString(),
       })
-      .eq('user_id', userId)
+      .eq('user_id', targetUserId)
       .or(`user_card_id.eq.${userCardId},card_id.eq.${cardId}`);
 
     // Update user_cards
@@ -626,7 +669,7 @@ export async function editCloudSale(
         buyer_notes: data.notes || null,
         updated_at: new Date().toISOString(),
       })
-      .eq('user_id', userId)
+      .eq('user_id', targetUserId)
       .eq('card_id', cardId);
 
     return { success: true };
@@ -647,47 +690,108 @@ export async function fetchCommunitySales(
     limit?: number;
   }
 ): Promise<CloudSaleRecord[]> {
-  const client = getSupabaseBrowserClient();
-  if (!client || !isSupabaseConfigured()) return [];
+  const localSalesRecords: CloudSaleRecord[] = [];
 
-  try {
-    let query = client
-      .from('card_sales')
-      .select('*')
-      .eq('card_id', cardId)
-      .eq('is_public', true)
-      .order('sold_date', { ascending: false })
-      .limit(options?.limit || 30);
-
-    if (options?.condition && options.condition !== 'All') {
-      query = query.eq('condition', options.condition);
+  // 1. Gather all verified local sold cards first (instant offline & local support)
+  if (typeof window !== 'undefined') {
+    try {
+      const localSold = getLocalSoldCards(cardId);
+      for (const s of localSold) {
+        localSalesRecords.push({
+          id: s.saleId || s.id,
+          userId: 'local',
+          userCardId: s.id,
+          cardId: s.cardId || cardId,
+          cardName: s.card?.name || s.cardId,
+          condition: s.condition || 'NM',
+          isFoil: Boolean(s.isFoil),
+          language: s.language || 'jp',
+          soldPrice: Number(s.soldPrice),
+          soldCurrency: s.soldCurrency || 'PHP',
+          soldDate: s.soldDate || s.createdAt?.slice(0, 10) || new Date().toISOString().slice(0, 10),
+          quantity: s.soldQuantity || s.quantity || 1,
+          isPublic: s.isPublicSale !== false,
+          buyerSource: s.buyerSource || undefined,
+          notes: s.buyerNotes || s.notes || undefined,
+          createdAt: s.createdAt,
+        });
+      }
+    } catch (err) {
+      console.warn('Could not read local sold cards for community reference:', err);
     }
-
-    const { data, error } = await query;
-    if (error || !data) return [];
-
-    return data.map((r: any) => ({
-      id: r.id,
-      userId: r.user_id,
-      userCardId: r.user_card_id,
-      cardId: r.card_id,
-      cardName: r.card_name,
-      condition: r.condition,
-      isFoil: Boolean(r.is_foil),
-      language: r.language,
-      soldPrice: Number(r.sold_price),
-      soldCurrency: r.sold_currency || 'PHP',
-      soldDate: r.sold_date,
-      quantity: r.quantity || 1,
-      isPublic: Boolean(r.is_public),
-      buyerSource: r.buyer_source,
-      notes: r.notes,
-      createdAt: r.created_at,
-    }));
-  } catch (err) {
-    console.error('fetchCommunitySales error:', err);
-    return [];
   }
+
+  // 2. Query Supabase cloud card_sales table
+  let cloudSalesRecords: CloudSaleRecord[] = [];
+  const client = getSupabaseBrowserClient();
+  if (client && isSupabaseConfigured()) {
+    try {
+      let query = client
+        .from('card_sales')
+        .select('*')
+        .ilike('card_id', cardId.trim())
+        .eq('is_public', true)
+        .order('sold_date', { ascending: false })
+        .limit(options?.limit || 30);
+
+      if (options?.condition && options.condition !== 'All') {
+        query = query.eq('condition', options.condition);
+      }
+
+      const { data, error } = await query;
+      if (!error && data) {
+        cloudSalesRecords = data.map((r: any) => ({
+          id: r.id,
+          userId: r.user_id,
+          userCardId: r.user_card_id,
+          cardId: r.card_id,
+          cardName: r.card_name,
+          condition: r.condition,
+          isFoil: Boolean(r.is_foil),
+          language: r.language,
+          soldPrice: Number(r.sold_price),
+          soldCurrency: r.sold_currency || 'PHP',
+          soldDate: r.sold_date,
+          quantity: r.quantity || 1,
+          isPublic: Boolean(r.is_public),
+          buyerSource: r.buyer_source,
+          notes: r.notes,
+          createdAt: r.created_at,
+        }));
+      }
+    } catch (err) {
+      console.warn('fetchCommunitySales cloud query failed:', err);
+    }
+  }
+
+  // 3. Merge Local + Cloud sales with deduplication
+  const combined: CloudSaleRecord[] = [...localSalesRecords];
+  for (const cs of cloudSalesRecords) {
+    const isDuplicate = combined.some(
+      (ls) =>
+        ls.id === cs.id ||
+        (ls.userCardId && cs.userCardId && ls.userCardId === cs.userCardId) ||
+        (ls.cardId.toLowerCase() === cs.cardId.toLowerCase() &&
+          ls.condition === cs.condition &&
+          ls.soldPrice === cs.soldPrice &&
+          ls.soldDate === cs.soldDate)
+    );
+    if (!isDuplicate) {
+      combined.push(cs);
+    }
+  }
+
+  // 4. Condition filter
+  let filtered = combined;
+  if (options?.condition && options.condition !== 'All') {
+    filtered = filtered.filter((s) => s.condition === options.condition);
+  }
+
+  // 5. Sort by soldDate descending
+  filtered.sort((a, b) => new Date(b.soldDate).getTime() - new Date(a.soldDate).getTime());
+
+  // 6. Return limited records
+  return filtered.slice(0, options?.limit || 30);
 }
 
 /**
