@@ -21,6 +21,8 @@ import {
   Sparkles,
   Layers,
   Coins,
+  Tag,
+  CheckCircle,
 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { AccountModal } from '@/components/AccountModal';
@@ -91,6 +93,7 @@ export default function FriendsPage() {
   const [friendCards, setFriendCards] = useState<LocalUserCard[]>([]);
   const [isLoadingCards, setIsLoadingCards] = useState(false);
   const [cardFilterQuery, setCardFilterQuery] = useState('');
+  const [friendModalTab, setFriendModalTab] = useState<'collection' | 'sold'>('collection');
 
   const friends = friendships.filter((f) => f.status === 'accepted');
   const pendingReceived = friendships.filter((f) => f.status === 'pending_received');
@@ -186,6 +189,7 @@ export default function FriendsPage() {
   const handleInspectFriend = async (friend: FriendshipProfile) => {
     setInspectingFriend(friend);
     setCardFilterQuery('');
+    setFriendModalTab('collection');
     setIsLoadingCards(true);
     try {
       const cards = await fetchCloudCards(friend.userId);
@@ -198,23 +202,33 @@ export default function FriendsPage() {
     }
   };
 
-  // Filtered friend cards
+  const friendOwnedCards = useMemo(() => {
+    return friendCards.filter((c) => c.status !== 'SOLD');
+  }, [friendCards]);
+
+  const friendSoldCards = useMemo(() => {
+    // Only public sales shared by this friend
+    return friendCards.filter((c) => c.status === 'SOLD' && c.isPublicSale !== false);
+  }, [friendCards]);
+
+  // Filtered friend cards depending on active sub-tab
   const filteredFriendCards = useMemo(() => {
-    if (!cardFilterQuery.trim()) return friendCards;
+    const list = friendModalTab === 'collection' ? friendOwnedCards : friendSoldCards;
+    if (!cardFilterQuery.trim()) return list;
     const q = cardFilterQuery.toLowerCase().trim();
-    return friendCards.filter(
+    return list.filter(
       (c) =>
         c.cardId.toLowerCase().includes(q) ||
         (c.card?.name && c.card.name.toLowerCase().includes(q)) ||
         (c.card?.rarity && c.card.rarity.toLowerCase().includes(q))
     );
-  }, [friendCards, cardFilterQuery]);
+  }, [friendModalTab, friendOwnedCards, friendSoldCards, cardFilterQuery]);
 
-  // Total friend binder value calculation
+  // Total friend binder value calculation (owned cards only)
   const friendBinderTotal = useMemo(() => {
     let totalUsd = 0;
     let totalJpy = 0;
-    for (const c of friendCards) {
+    for (const c of friendOwnedCards) {
       const qty = c.quantity || 1;
       if (c.card?.yuyuPrice) {
         totalJpy += c.card.yuyuPrice * qty;
@@ -224,7 +238,22 @@ export default function FriendsPage() {
       }
     }
     return { totalUsd, totalJpy };
-  }, [friendCards]);
+  }, [friendOwnedCards]);
+
+  // Total friend sold stats (public sold cards)
+  const friendSoldStats = useMemo(() => {
+    let totalItems = 0;
+    const currencyTotals: Record<string, number> = {};
+    for (const c of friendSoldCards) {
+      const qty = c.quantity || 1;
+      totalItems += qty;
+      if (c.soldPrice != null) {
+        const curr = c.soldCurrency || 'PHP';
+        currencyTotals[curr] = (currencyTotals[curr] || 0) + (c.soldPrice * qty);
+      }
+    }
+    return { totalItems, currencyTotals };
+  }, [friendSoldCards]);
 
   if (!isMounted) return null;
 
@@ -489,32 +518,93 @@ export default function FriendsPage() {
               </button>
             </div>
 
-            {/* Quick Stats Bar */}
-            <div className="grid grid-cols-2 gap-2 p-3 sm:p-4 bg-[#1e2230] border-b border-[#2d3244]">
-              <div className="bg-[#151722] p-2.5 rounded-xl border border-[#2d3244] flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-300 flex items-center justify-center flex-shrink-0">
-                  <Layers className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-400 font-bold uppercase">Total Cards</p>
-                  <p className="text-sm sm:text-base font-black text-white">{friendCards.reduce((acc, c) => acc + (c.quantity || 1), 0)} ({friendCards.length} unique)</p>
-                </div>
-              </div>
-              <div className="bg-[#151722] p-2.5 rounded-xl border border-[#2d3244] flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center flex-shrink-0">
-                  <Coins className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-400 font-bold uppercase">Est. Binder Value</p>
-                  <p className="text-sm sm:text-base font-black text-emerald-400 font-mono">
-                    {formatPrice(friendBinderTotal.totalUsd, { source: 'yuyutei', rawJPY: friendBinderTotal.totalJpy }).full}
-                  </p>
-                </div>
-              </div>
+            {/* Sub-tabs: Collection vs Sold Cards */}
+            <div className="flex border-b border-[#2d3244] bg-[#1a1d29] px-3 sm:px-4">
+              <button
+                type="button"
+                onClick={() => setFriendModalTab('collection')}
+                className={`py-2.5 px-4 font-black text-xs uppercase tracking-wider flex items-center gap-2 border-b-2 transition cursor-pointer ${
+                  friendModalTab === 'collection'
+                    ? 'border-purple-500 text-purple-400 bg-purple-500/10'
+                    : 'border-transparent text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Collection ({friendOwnedCards.reduce((acc, c) => acc + (c.quantity || 1), 0)})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFriendModalTab('sold')}
+                className={`py-2.5 px-4 font-black text-xs uppercase tracking-wider flex items-center gap-2 border-b-2 transition cursor-pointer ${
+                  friendModalTab === 'sold'
+                    ? 'border-rose-500 text-rose-400 bg-rose-500/10'
+                    : 'border-transparent text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                <CheckCircle className="w-3.5 h-3.5" />
+                <span>Sold Cards ({friendSoldStats.totalItems})</span>
+              </button>
             </div>
 
-            {/* Search Input within friend's binder */}
-            {friendCards.length > 0 && (
+            {/* Quick Stats Bar */}
+            {friendModalTab === 'collection' ? (
+              <div className="grid grid-cols-2 gap-2 p-3 sm:p-4 bg-[#1e2230] border-b border-[#2d3244]">
+                <div className="bg-[#151722] p-2.5 rounded-xl border border-[#2d3244] flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-300 flex items-center justify-center flex-shrink-0">
+                    <Layers className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase">Active Cards</p>
+                    <p className="text-sm sm:text-base font-black text-white">
+                      {friendOwnedCards.reduce((acc, c) => acc + (c.quantity || 1), 0)} ({friendOwnedCards.length} unique)
+                    </p>
+                  </div>
+                </div>
+                <div className="bg-[#151722] p-2.5 rounded-xl border border-[#2d3244] flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center flex-shrink-0">
+                    <Coins className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase">Est. Binder Value</p>
+                    <p className="text-sm sm:text-base font-black text-emerald-400 font-mono">
+                      {formatPrice(friendBinderTotal.totalUsd, { source: 'yuyutei', rawJPY: friendBinderTotal.totalJpy }).full}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 p-3 sm:p-4 bg-[#1e2230] border-b border-[#2d3244]">
+                <div className="bg-[#151722] p-2.5 rounded-xl border border-[#2d3244] flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-300 flex items-center justify-center flex-shrink-0">
+                    <Tag className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase">Cards Sold</p>
+                    <p className="text-sm sm:text-base font-black text-white">
+                      {friendSoldStats.totalItems} sold ({friendSoldCards.length} records)
+                    </p>
+                  </div>
+                </div>
+                <div className="bg-[#151722] p-2.5 rounded-xl border border-[#2d3244] flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center flex-shrink-0">
+                    <Coins className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase">Public Realized Sales</p>
+                    <p className="text-sm sm:text-base font-black text-emerald-400 font-mono truncate">
+                      {Object.keys(friendSoldStats.currencyTotals).length > 0
+                        ? Object.entries(friendSoldStats.currencyTotals)
+                            .map(([curr, val]) => `${curr === 'USD' ? '$' : curr === 'JPY' ? '¥' : '₱'}${val.toLocaleString()}`)
+                            .join(' · ')
+                        : '—'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Search Input within friend's current tab */}
+            {(friendModalTab === 'collection' ? friendOwnedCards.length : friendSoldCards.length) > 0 && (
               <div className="p-3 border-b border-[#2d3244] bg-[#1a1d29]">
                 <div className="relative">
                   <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -522,7 +612,7 @@ export default function FriendsPage() {
                     type="text"
                     value={cardFilterQuery}
                     onChange={(e) => setCardFilterQuery(e.target.value)}
-                    placeholder="Search friend's cards by name or ID (e.g. OP05-119)..."
+                    placeholder={`Search ${friendModalTab === 'collection' ? "friend's cards" : "sold cards"} by name or ID...`}
                     className="w-full pl-9 pr-3 py-2 rounded-xl bg-[#141620] border border-[#2e3346] text-white text-xs placeholder-gray-500 focus:outline-none focus:border-purple-500/50"
                   />
                   {cardFilterQuery && (
@@ -545,15 +635,23 @@ export default function FriendsPage() {
                   <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
                   <p className="text-xs font-bold">Opening {inspectingFriend.username}'s binder…</p>
                 </div>
-              ) : friendCards.length === 0 ? (
+              ) : (friendModalTab === 'collection' ? friendOwnedCards.length : friendSoldCards.length) === 0 ? (
                 <div className="py-14 text-center space-y-3">
-                  <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-300 flex items-center justify-center mx-auto">
-                    <Layers className="w-7 h-7" />
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto ${
+                    friendModalTab === 'collection'
+                      ? 'bg-purple-500/10 border border-purple-500/20 text-purple-300'
+                      : 'bg-rose-500/10 border border-rose-500/20 text-rose-300'
+                  }`}>
+                    {friendModalTab === 'collection' ? <Layers className="w-7 h-7" /> : <Tag className="w-7 h-7" />}
                   </div>
                   <div>
-                    <p className="text-white font-black text-sm">No Cards Uploaded Yet</p>
+                    <p className="text-white font-black text-sm">
+                      {friendModalTab === 'collection' ? 'No Cards in Collection' : 'No Public Sold Cards'}
+                    </p>
                     <p className="text-gray-400 text-xs mt-1 max-w-sm mx-auto">
-                      @{inspectingFriend.username} hasn't added any cards to their cloud collection binder yet. Once they add cards, they will appear here!
+                      {friendModalTab === 'collection'
+                        ? `@${inspectingFriend.username} hasn't added any cards to their cloud collection binder yet.`
+                        : `@${inspectingFriend.username} has not shared any sold cards publicly.`}
                     </p>
                   </div>
                 </div>
@@ -594,6 +692,13 @@ export default function FriendsPage() {
                             </div>
                           )}
 
+                          {/* Status Badge: SOLD or Quantity */}
+                          {friendModalTab === 'sold' && (
+                            <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-rose-600/90 backdrop-blur-sm text-white font-black text-[9px] uppercase tracking-wider shadow">
+                              SOLD
+                            </div>
+                          )}
+
                           {/* Quantity Badge */}
                           <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-sm border border-white/20 text-white font-black text-[11px] shadow">
                             x{c.quantity || 1}
@@ -630,11 +735,32 @@ export default function FriendsPage() {
                             </p>
                           </div>
 
-                          {cardPrice && (
-                            <div className="pt-1 border-t border-[#343a4c] flex items-center justify-between text-[11px]">
-                              <span className="text-gray-400 text-[10px]">Market:</span>
-                              <span className="font-mono font-black text-emerald-400">{cardPrice}</span>
+                          {friendModalTab === 'sold' ? (
+                            <div className="pt-1 border-t border-[#343a4c] flex flex-col gap-0.5 text-[11px]">
+                              <div className="flex items-center justify-between">
+                                <span className="text-gray-400 text-[10px]">Sold For:</span>
+                                <span className="font-mono font-black text-emerald-400">
+                                  {c.soldPrice != null
+                                    ? `${c.soldCurrency === 'USD' ? '$' : c.soldCurrency === 'JPY' ? '¥' : '₱'}${c.soldPrice.toLocaleString()}`
+                                    : 'Marked Sold'}
+                                </span>
+                              </div>
+                              {c.soldDate && (
+                                <div className="flex items-center justify-between text-[10px] text-gray-400">
+                                  <span>Date:</span>
+                                  <span className="font-medium text-gray-300">
+                                    {new Date(c.soldDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                  </span>
+                                </div>
+                              )}
                             </div>
+                          ) : (
+                            cardPrice && (
+                              <div className="pt-1 border-t border-[#343a4c] flex items-center justify-between text-[11px]">
+                                <span className="text-gray-400 text-[10px]">Market:</span>
+                                <span className="font-mono font-black text-emerald-400">{cardPrice}</span>
+                              </div>
+                            )
                           )}
                         </div>
                       </Link>

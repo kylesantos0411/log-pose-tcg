@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useId } from 'react';
+import { useState, useEffect, useId, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, 
@@ -27,12 +27,14 @@ import {
   Share2,
   Coins,
   Settings as SettingsIcon,
-  ArrowUpRight
+  ArrowUpRight,
+  Users
 } from 'lucide-react';
 import { getSafeCardImageUrl, getEditionCardImageUrl, JAPANESE_NAME_MAP } from '@/lib/card-image';
 import { getCardArtist, ArtistProfile } from '@/lib/artist-data';
 import { useSettings, CURRENCIES } from '@/context/SettingsContext';
 import { isCardFavorite, toggleCardFavorite } from '@/lib/favorites';
+import { fetchCommunitySales, type CloudSaleRecord } from '@/lib/supabase-sync';
 
 export interface CardDetailData {
   id: string;
@@ -176,12 +178,75 @@ export function CardDetailView({
   };
 
   // Active view states
-  const [activeTab, setActiveTab] = useState<'market' | 'grading'>('market');
+  const [activeTab, setActiveTab] = useState<'market' | 'grading' | 'community'>('market');
   const [timeframe, setTimeframe] = useState<'7D' | '1M' | '3M'>('1M');
   const [isFavorite, setIsFavorite] = useState(() => isCardFavorite(card.id));
   const [showComparison, setShowComparison] = useState(false);
   const [imgErrorEn, setImgErrorEn] = useState(false);
   const [imgErrorJp, setImgErrorJp] = useState(false);
+
+  // Community Sales Data State (Strictly by exact card.id canonical variant)
+  const [communitySales, setCommunitySales] = useState<CloudSaleRecord[]>([]);
+  const [isLoadingCommunitySales, setIsLoadingCommunitySales] = useState(false);
+  const [communityConditionFilter, setCommunityConditionFilter] = useState<string>('All');
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!card.id) return;
+    setIsLoadingCommunitySales(true);
+    fetchCommunitySales(card.id)
+      .then((records) => {
+        if (isMounted) setCommunitySales(records);
+      })
+      .catch((err) => {
+        console.error('Failed to fetch community sales:', err);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingCommunitySales(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [card.id]);
+
+  const filteredCommunitySales = useMemo(() => {
+    if (communityConditionFilter === 'All') return communitySales;
+    return communitySales.filter((s) => s.condition === communityConditionFilter);
+  }, [communitySales, communityConditionFilter]);
+
+  const communityStats = useMemo(() => {
+    if (communitySales.length === 0) return null;
+    let minPrice = Infinity;
+    let maxPrice = -Infinity;
+    let sumPrice = 0;
+    let count = 0;
+    const currency = communitySales[0]?.soldCurrency || 'PHP';
+
+    for (const s of communitySales) {
+      const p = s.soldPrice;
+      if (p != null && !isNaN(p)) {
+        if (p < minPrice) minPrice = p;
+        if (p > maxPrice) maxPrice = p;
+        sumPrice += p;
+        count++;
+      }
+    }
+
+    if (count === 0) return null;
+    const avgPrice = Math.round(sumPrice / count);
+    return {
+      count,
+      minPrice,
+      maxPrice,
+      avgPrice,
+      currency,
+    };
+  }, [communitySales]);
+
+  const formatSalePrice = (price: number, curr?: string) => {
+    const symbol = curr === 'USD' ? '$' : curr === 'JPY' ? '¥' : '₱';
+    return `${symbol}${price.toLocaleString()}`;
+  };
 
   useEffect(() => {
     setIsFavorite(isCardFavorite(card.id));
@@ -762,10 +827,10 @@ export function CardDetailView({
           <div className="bg-[#242735] rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-[#363a4c] shadow-lg">
           {/* Tab Navigation */}
           <div className="flex items-center justify-between border-b border-[#363a4c] pb-3">
-            <div className="flex items-center gap-6 sm:gap-8">
+            <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar">
               <button
                 onClick={() => setActiveTab('market')}
-                className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-wider pb-1 relative transition cursor-pointer ${
+                className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-wider pb-1 relative transition cursor-pointer flex-shrink-0 ${
                   activeTab === 'market' ? 'text-white' : 'text-gray-400 hover:text-white'
                 }`}
               >
@@ -778,7 +843,7 @@ export function CardDetailView({
 
               <button
                 onClick={() => setActiveTab('grading')}
-                className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-wider pb-1 relative transition cursor-pointer ${
+                className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-wider pb-1 relative transition cursor-pointer flex-shrink-0 ${
                   activeTab === 'grading' ? 'text-white' : 'text-gray-400 hover:text-white'
                 }`}
               >
@@ -786,6 +851,24 @@ export function CardDetailView({
                 <span>GRADING</span>
                 {activeTab === 'grading' && (
                   <span className="absolute -bottom-3 inset-x-0 h-0.5 bg-white rounded-full"></span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setActiveTab('community')}
+                className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-wider pb-1 relative transition cursor-pointer flex-shrink-0 ${
+                  activeTab === 'community' ? 'text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Users className="w-4 h-4 text-emerald-400" />
+                <span>COMMUNITY</span>
+                {communitySales.length > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-mono font-bold border border-emerald-500/30">
+                    {communitySales.length}
+                  </span>
+                )}
+                {activeTab === 'community' && (
+                  <span className="absolute -bottom-3 inset-x-0 h-0.5 bg-emerald-400 rounded-full"></span>
                 )}
               </button>
             </div>
@@ -1036,6 +1119,70 @@ export function CardDetailView({
                   </div>
                 );
               })()}
+
+              {/* Recent Community Sales Quick Summary Section */}
+              <div className="pt-3.5 mt-2 border-t border-[#34384c]">
+                <div className="flex items-center justify-between pb-2">
+                  <div className="flex items-center gap-1.5 text-xs font-black text-white uppercase tracking-wider">
+                    <Users className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Recent Community Sales</span>
+                    <span className="text-[10px] text-gray-400 font-mono font-normal">({card.id})</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('community')}
+                    className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>{communitySales.length > 0 ? `View All (${communitySales.length})` : 'Sales Reference'}</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
+
+                {isLoadingCommunitySales ? (
+                  <div className="p-3 rounded-xl bg-[#1e212c] border border-[#32384a] text-center text-xs text-gray-400">
+                    Loading verified community sales…
+                  </div>
+                ) : communitySales.length === 0 ? (
+                  <div className="p-3 rounded-xl bg-[#1e212c] border border-[#32384a] text-center text-xs text-gray-400">
+                    No community transactions recorded yet for this exact variant.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto rounded-xl border border-[#32384a] bg-[#1e212c]">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-[#32384a] bg-[#181a24] text-[9px] uppercase font-black text-gray-400">
+                          <th className="py-2 px-3">Date</th>
+                          <th className="py-2 px-2.5">Condition</th>
+                          <th className="py-2 px-2.5">Variant</th>
+                          <th className="py-2 px-3 text-right">Sold Price</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#2a2f40]">
+                        {communitySales.slice(0, 3).map((s) => (
+                          <tr key={s.id} className="text-[11px] hover:bg-white/[0.02]">
+                            <td className="py-2 px-3 text-gray-300 font-mono">
+                              {s.soldDate
+                                ? new Date(s.soldDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                                : 'Recent'}
+                            </td>
+                            <td className="py-2 px-2.5 font-bold text-gray-200">
+                              <span className="px-1.5 py-0.2 rounded bg-black/60 border border-white/10 text-[9px]">
+                                {s.condition || 'NM'}
+                              </span>
+                            </td>
+                            <td className="py-2 px-2.5 text-purple-300 truncate max-w-[120px]">
+                              {cardIdInfo.variantLabel || 'Base Version'}
+                            </td>
+                            <td className="py-2 px-3 font-mono font-black text-emerald-400 text-right">
+                              {formatSalePrice(s.soldPrice, s.soldCurrency)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -1245,6 +1392,161 @@ export function CardDetailView({
                   );
                 })()}
               </div>
+            </div>
+          )}
+
+          {/* TAB 3: COMMUNITY SALES REFERENCE */}
+          {activeTab === 'community' && (
+            <div className="pt-4 space-y-4">
+              {/* Header Banner */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#1e212c] p-3.5 sm:p-4 rounded-xl border border-[#32384a]">
+                <div>
+                  <div className="text-xs sm:text-sm font-black text-white flex items-center gap-2">
+                    <Users className="w-4 h-4 text-emerald-400" />
+                    <span>Recent Community Sales</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 font-mono font-bold border border-purple-500/30">
+                      {card.id}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Verified sales data recorded and shared by collectors for this exact variant ({cardIdInfo.variantLabel || 'Base Version'}).
+                  </p>
+                </div>
+
+                {/* Condition Filter */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mr-1">Condition:</span>
+                  {['All', 'NM', 'LP', 'MP', 'HP', 'DMG'].map((cond) => (
+                    <button
+                      key={cond}
+                      type="button"
+                      onClick={() => setCommunityConditionFilter(cond)}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase transition cursor-pointer ${
+                        communityConditionFilter === cond
+                          ? 'bg-emerald-500 text-slate-950 shadow'
+                          : 'bg-[#151722] text-gray-400 hover:text-white border border-[#2d3244]'
+                      }`}
+                    >
+                      {cond}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Statistics Overview Cards if data exists */}
+              {communityStats && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="bg-[#1e212c] p-3 rounded-xl border border-[#32384a]">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Recorded Sales</span>
+                    <span className="text-base sm:text-lg font-black text-white mt-0.5 block">
+                      {communityStats.count} {communityStats.count === 1 ? 'Sale' : 'Sales'}
+                    </span>
+                  </div>
+                  <div className="bg-[#1e212c] p-3 rounded-xl border border-[#32384a]">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Average Price</span>
+                    <span className="text-base sm:text-lg font-black text-emerald-400 font-mono mt-0.5 block">
+                      {formatSalePrice(communityStats.avgPrice, communityStats.currency)}
+                    </span>
+                  </div>
+                  <div className="bg-[#1e212c] p-3 rounded-xl border border-[#32384a]">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Price Range</span>
+                    <span className="text-xs sm:text-sm font-black text-amber-400 font-mono mt-1 block truncate">
+                      {formatSalePrice(communityStats.minPrice, communityStats.currency)} – {formatSalePrice(communityStats.maxPrice, communityStats.currency)}
+                    </span>
+                  </div>
+                  <div className="bg-[#1e212c] p-3 rounded-xl border border-[#32384a]">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Variant Accuracy</span>
+                    <span className="text-xs font-black text-sky-400 mt-1 block truncate">
+                      Exact ID Match
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Sales Table / List */}
+              {isLoadingCommunitySales ? (
+                <div className="py-12 flex flex-col items-center justify-center gap-2 text-gray-400">
+                  <div className="w-6 h-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                  <p className="text-xs font-bold">Loading community sales history…</p>
+                </div>
+              ) : filteredCommunitySales.length === 0 ? (
+                <div className="p-8 rounded-2xl bg-[#1e212c] border border-[#32384a] text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                    <Coins className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="text-white font-black text-sm">
+                      {communityConditionFilter !== 'All'
+                        ? `No ${communityConditionFilter} sales recorded yet`
+                        : 'No Community Sales Recorded Yet'}
+                    </p>
+                    <p className="text-gray-400 text-xs mt-1 max-w-md mx-auto leading-relaxed">
+                      {communityConditionFilter !== 'All'
+                        ? `No verified sales found matching ${communityConditionFilter} condition for this variant.`
+                        : `Be the first to record a transaction! When collectors mark this card variant as sold and enable community sharing, actual sale prices appear here.`}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="overflow-hidden rounded-xl border border-[#32384a] bg-[#1e212c]">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-[#32384a] bg-[#181a24] text-[10px] uppercase font-black text-gray-400 tracking-wider">
+                          <th className="py-3 px-3.5">Date</th>
+                          <th className="py-3 px-3">Condition</th>
+                          <th className="py-3 px-3">Variant</th>
+                          <th className="py-3 px-3 text-right">Sold Price</th>
+                          <th className="py-3 px-3.5 text-right">Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#2a2f40]">
+                        {filteredCommunitySales.map((sale: CloudSaleRecord) => {
+                          const dateStr = sale.soldDate
+                            ? new Date(sale.soldDate).toLocaleDateString(undefined, {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })
+                            : 'Recent';
+
+                          return (
+                            <tr key={sale.id} className="hover:bg-white/[0.03] transition">
+                              <td className="py-3 px-3.5 font-mono text-gray-300 whitespace-nowrap">
+                                {dateStr}
+                              </td>
+                              <td className="py-3 px-3">
+                                <span className="px-2 py-0.5 rounded bg-black/50 border border-white/10 text-gray-200 font-black text-[10px]">
+                                  {sale.condition || 'NM'}
+                                </span>
+                                {sale.isFoil && (
+                                  <span className="ml-1 px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold text-[9px] border border-indigo-500/30">
+                                    FOIL
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-3 px-3 font-medium text-purple-300 whitespace-nowrap">
+                                {cardIdInfo.variantLabel || 'Base Version'}
+                              </td>
+                              <td className="py-3 px-3 font-mono font-black text-emerald-400 text-right text-sm whitespace-nowrap">
+                                {formatSalePrice(sale.soldPrice, sale.soldCurrency)}
+                                {sale.quantity > 1 && (
+                                  <span className="text-[10px] text-gray-400 ml-1 font-sans">
+                                    (x{sale.quantity})
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-3 px-3.5 text-right text-gray-400 text-[11px] truncate max-w-[140px]">
+                                {sale.buyerSource || sale.notes || 'Verified Collector Sale'}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

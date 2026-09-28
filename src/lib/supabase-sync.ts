@@ -101,6 +101,12 @@ export async function fetchCloudCards(userId: string): Promise<LocalUserCard[]> 
         purchasePrice: r.purchase_price !== null && r.purchase_price !== undefined ? Number(r.purchase_price) : null,
         notes: r.notes || null,
         createdAt: r.created_at || new Date().toISOString(),
+        status: (r.status === 'SOLD' ? 'SOLD' : 'OWNED') as 'OWNED' | 'SOLD',
+        soldPrice: r.sold_price !== null && r.sold_price !== undefined ? Number(r.sold_price) : null,
+        soldCurrency: r.sold_currency || 'PHP',
+        soldDate: r.sold_date || null,
+        isPublicSale: r.is_public_sale !== false,
+        buyerNotes: r.buyer_notes || null,
         card: c ? {
           id: c.id,
           name: c.name,
@@ -154,6 +160,12 @@ export async function syncCardToCloud(userId: string, card: LocalUserCard): Prom
           language: card.language || 'jp',
           purchase_price: card.purchasePrice ?? null,
           notes: card.notes ?? null,
+          status: card.status || 'OWNED',
+          sold_price: card.soldPrice ?? null,
+          sold_currency: card.soldCurrency ?? null,
+          sold_date: card.soldDate ?? null,
+          is_public_sale: card.isPublicSale !== false,
+          buyer_notes: card.buyerNotes ?? null,
           is_wishlist: false,
           updated_at: new Date().toISOString(),
         },
@@ -220,6 +232,12 @@ export async function migrateLocalBinderToCloud(userId: string, localCards: Loca
       language: c.language || 'jp',
       purchase_price: c.purchasePrice ?? null,
       notes: c.notes ?? null,
+      status: c.status || 'OWNED',
+      sold_price: c.soldPrice ?? null,
+      sold_currency: c.soldCurrency ?? null,
+      sold_date: c.soldDate ?? null,
+      is_public_sale: c.isPublicSale !== false,
+      buyer_notes: c.buyerNotes ?? null,
       is_wishlist: false,
       updated_at: new Date().toISOString(),
     }));
@@ -240,6 +258,271 @@ export async function migrateLocalBinderToCloud(userId: string, localCards: Loca
   } catch (err) {
     console.error('Failed to migrate local cards to cloud:', err);
     return 0;
+  }
+}
+
+// ─────────────────────────────────────────────
+// CARD SALES & COMMUNITY REFERENCE
+// ─────────────────────────────────────────────
+
+export interface CloudSaleRecord {
+  id: string;
+  userId: string;
+  userCardId?: string;
+  cardId: string;
+  cardName?: string;
+  condition: string;
+  isFoil: boolean;
+  language: string;
+  soldPrice: number;
+  soldCurrency: string;
+  soldDate: string;
+  quantity: number;
+  isPublic: boolean;
+  buyerSource?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+/**
+ * Record a card sale in Supabase:
+ * 1. Inserts into public.card_sales
+ * 2. Updates the collection record in public.user_cards to status = 'SOLD'
+ */
+export async function recordCloudSale(
+  userId: string,
+  sale: {
+    userCardId: string;
+    cardId: string;
+    cardName?: string;
+    condition: string;
+    isFoil: boolean;
+    language: string;
+    soldPrice: number;
+    soldCurrency: string;
+    soldDate: string;
+    quantity: number;
+    isPublic: boolean;
+    buyerSource?: string;
+    notes?: string;
+  }
+): Promise<{ success: boolean; saleId?: string; error?: string }> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured() || !isValidUuid(userId)) {
+    return { success: false, error: 'Database client not connected' };
+  }
+
+  try {
+    // 1. Insert into card_sales
+    const { data: insertedSale, error: saleErr } = await client
+      .from('card_sales')
+      .insert({
+        user_id: userId,
+        user_card_id: sale.userCardId,
+        card_id: sale.cardId,
+        card_name: sale.cardName || sale.cardId,
+        condition: sale.condition || 'NM',
+        is_foil: Boolean(sale.isFoil),
+        language: sale.language || 'jp',
+        sold_price: sale.soldPrice,
+        sold_currency: sale.soldCurrency || 'PHP',
+        sold_date: sale.soldDate,
+        quantity: sale.quantity || 1,
+        is_public: sale.isPublic !== false,
+        buyer_source: sale.buyerSource || null,
+        notes: sale.notes || null,
+      })
+      .select('id')
+      .single();
+
+    if (saleErr) {
+      console.warn('Could not insert into card_sales table (check if migration is applied):', saleErr);
+    }
+
+    // 2. Update user_cards item to status = 'SOLD'
+    await client
+      .from('user_cards')
+      .update({
+        status: 'SOLD',
+        sold_price: sale.soldPrice,
+        sold_currency: sale.soldCurrency || 'PHP',
+        sold_date: sale.soldDate,
+        is_public_sale: sale.isPublic !== false,
+        buyer_notes: sale.notes || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
+      .eq('card_id', sale.cardId)
+      .eq('condition', sale.condition)
+      .eq('is_foil', Boolean(sale.isFoil))
+      .eq('language', sale.language);
+
+    return { success: true, saleId: insertedSale?.id };
+  } catch (err: any) {
+    console.error('recordCloudSale error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Reverses a card sale:
+ * 1. Resets collection item in user_cards to status = 'OWNED'
+ * 2. Deletes or revokes the sale record in card_sales
+ */
+export async function undoCloudSale(
+  userId: string,
+  userCardId: string,
+  cardId: string,
+  condition?: string,
+  isFoil?: boolean,
+  language?: string
+): Promise<{ success: boolean; error?: string }> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured() || !isValidUuid(userId)) {
+    return { success: false, error: 'Database client not connected' };
+  }
+
+  try {
+    // 1. Delete matching row from card_sales
+    await client
+      .from('card_sales')
+      .delete()
+      .eq('user_id', userId)
+      .or(`user_card_id.eq.${userCardId},card_id.eq.${cardId}`);
+
+    // 2. Reset user_cards status to 'OWNED'
+    let query = client
+      .from('user_cards')
+      .update({
+        status: 'OWNED',
+        sold_price: null,
+        sold_currency: null,
+        sold_date: null,
+        buyer_notes: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
+      .eq('card_id', cardId);
+
+    if (condition) query = query.eq('condition', condition);
+    if (isFoil !== undefined) query = query.eq('is_foil', isFoil);
+    if (language) query = query.eq('language', language);
+
+    await query;
+    return { success: true };
+  } catch (err: any) {
+    console.error('undoCloudSale error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Update an existing sale in Supabase
+ */
+export async function editCloudSale(
+  userId: string,
+  userCardId: string,
+  cardId: string,
+  data: {
+    soldPrice: number;
+    soldCurrency: string;
+    soldDate: string;
+    isPublic?: boolean;
+    notes?: string;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured() || !isValidUuid(userId)) {
+    return { success: false, error: 'Database client not connected' };
+  }
+
+  try {
+    // Update card_sales
+    await client
+      .from('card_sales')
+      .update({
+        sold_price: data.soldPrice,
+        sold_currency: data.soldCurrency,
+        sold_date: data.soldDate,
+        is_public: data.isPublic !== false,
+        notes: data.notes || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
+      .or(`user_card_id.eq.${userCardId},card_id.eq.${cardId}`);
+
+    // Update user_cards
+    await client
+      .from('user_cards')
+      .update({
+        sold_price: data.soldPrice,
+        sold_currency: data.soldCurrency,
+        sold_date: data.soldDate,
+        is_public_sale: data.isPublic !== false,
+        buyer_notes: data.notes || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', userId)
+      .eq('card_id', cardId);
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('editCloudSale error:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Fetch verified community sales for a specific card variant.
+ * Note: Queries by exact canonical card_id so variants are NEVER mixed.
+ */
+export async function fetchCommunitySales(
+  cardId: string,
+  options?: {
+    condition?: string;
+    limit?: number;
+  }
+): Promise<CloudSaleRecord[]> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured()) return [];
+
+  try {
+    let query = client
+      .from('card_sales')
+      .select('*')
+      .eq('card_id', cardId)
+      .eq('is_public', true)
+      .order('sold_date', { ascending: false })
+      .limit(options?.limit || 30);
+
+    if (options?.condition && options.condition !== 'All') {
+      query = query.eq('condition', options.condition);
+    }
+
+    const { data, error } = await query;
+    if (error || !data) return [];
+
+    return data.map((r: any) => ({
+      id: r.id,
+      userId: r.user_id,
+      userCardId: r.user_card_id,
+      cardId: r.card_id,
+      cardName: r.card_name,
+      condition: r.condition,
+      isFoil: Boolean(r.is_foil),
+      language: r.language,
+      soldPrice: Number(r.sold_price),
+      soldCurrency: r.sold_currency || 'PHP',
+      soldDate: r.sold_date,
+      quantity: r.quantity || 1,
+      isPublic: Boolean(r.is_public),
+      buyerSource: r.buyer_source,
+      notes: r.notes,
+      createdAt: r.created_at,
+    }));
+  } catch (err) {
+    console.error('fetchCommunitySales error:', err);
+    return [];
   }
 }
 

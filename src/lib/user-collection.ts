@@ -1,6 +1,6 @@
 'use client';
 
-import { syncCardToCloud, removeCardFromCloud } from './supabase-sync';
+import { syncCardToCloud, removeCardFromCloud, recordCloudSale, undoCloudSale, editCloudSale } from './supabase-sync';
 import { getActiveSession } from './user-accounts';
 
 export interface LocalUserCard {
@@ -13,6 +13,15 @@ export interface LocalUserCard {
   purchasePrice: number | null;
   notes?: string | null;
   createdAt: string;
+  status?: 'OWNED' | 'SOLD'; // Defaults to 'OWNED'
+  soldPrice?: number | null;
+  soldCurrency?: string | null;
+  soldDate?: string | null;
+  soldQuantity?: number | null;
+  isPublicSale?: boolean;
+  buyerSource?: string | null;
+  buyerNotes?: string | null;
+  saleId?: string | null;
   card: {
     id: string;
     name: string;
@@ -29,6 +38,16 @@ export interface LocalUserCard {
       name: string;
     };
   };
+}
+
+export interface CardSaleInput {
+  soldPrice: number;
+  soldCurrency: string;
+  soldDate: string;
+  quantity?: number;
+  isPublic: boolean;
+  buyerSource?: string;
+  notes?: string;
 }
 
 /**
@@ -233,7 +252,207 @@ export function transferGuestCardsToAccount(userTag: string): number {
   }
 }
 
+export function getOwnedCards(cards: LocalUserCard[]): LocalUserCard[] {
+  return cards.filter((c) => c.status !== 'SOLD');
+}
+
+export function getSoldCards(cards: LocalUserCard[]): LocalUserCard[] {
+  return cards.filter((c) => c.status === 'SOLD');
+}
+
+/**
+ * Mark a collection item as sold.
+ * Preserves the collection item and historical relationship.
+ * Supports partial quantity sales (e.g. selling 1 out of 3 copies).
+ */
+export function markCardAsSold(
+  recordId: string,
+  saleData: CardSaleInput,
+  userTag?: string | null
+): LocalUserCard[] {
+  const current = getLocalBinder(userTag);
+  const targetIdx = current.findIndex((c) => c.id === recordId);
+  if (targetIdx < 0) return current;
+
+  const target = current[targetIdx];
+  const sellQty = Math.max(1, Math.min(saleData.quantity || 1, target.quantity));
+  let updated: LocalUserCard[];
+  let affectedSoldCard: LocalUserCard;
+
+  if (sellQty < target.quantity) {
+    // Partial sale: reduce owned quantity on existing record, create a dedicated SOLD record
+    target.quantity -= sellQty;
+
+    const soldRecord: LocalUserCard = {
+      id: 'uc_sold_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      cardId: target.cardId,
+      quantity: sellQty,
+      condition: target.condition,
+      isFoil: target.isFoil,
+      language: target.language,
+      purchasePrice: target.purchasePrice,
+      notes: target.notes,
+      createdAt: target.createdAt,
+      status: 'SOLD',
+      soldPrice: saleData.soldPrice,
+      soldCurrency: saleData.soldCurrency || 'PHP',
+      soldDate: saleData.soldDate || new Date().toISOString().slice(0, 10),
+      soldQuantity: sellQty,
+      isPublicSale: saleData.isPublic !== false,
+      buyerSource: saleData.buyerSource || null,
+      buyerNotes: saleData.notes || null,
+      card: target.card,
+    };
+
+    updated = [soldRecord, ...current];
+    affectedSoldCard = soldRecord;
+  } else {
+    // Full sale: convert existing record directly to SOLD
+    target.status = 'SOLD';
+    target.soldPrice = saleData.soldPrice;
+    target.soldCurrency = saleData.soldCurrency || 'PHP';
+    target.soldDate = saleData.soldDate || new Date().toISOString().slice(0, 10);
+    target.soldQuantity = sellQty;
+    target.isPublicSale = saleData.isPublic !== false;
+    target.buyerSource = saleData.buyerSource || null;
+    target.buyerNotes = saleData.notes || null;
+
+    updated = [...current];
+    affectedSoldCard = target;
+  }
+
+  saveLocalBinder(updated, userTag);
+
+  // Background Cloud Sync if user is logged in
+  try {
+    const session = getActiveSession();
+    if (session?.id) {
+      recordCloudSale(session.id, {
+        userCardId: affectedSoldCard.id,
+        cardId: affectedSoldCard.cardId,
+        cardName: affectedSoldCard.card?.name,
+        condition: affectedSoldCard.condition,
+        isFoil: affectedSoldCard.isFoil,
+        language: affectedSoldCard.language,
+        soldPrice: saleData.soldPrice,
+        soldCurrency: saleData.soldCurrency || 'PHP',
+        soldDate: saleData.soldDate || new Date().toISOString().slice(0, 10),
+        quantity: sellQty,
+        isPublic: saleData.isPublic !== false,
+        buyerSource: saleData.buyerSource,
+        notes: saleData.notes,
+      }).catch((e) => console.warn('Cloud sale recording failed:', e));
+    }
+  } catch (err) {
+    console.warn('Could not trigger cloud sale sync:', err);
+  }
+
+  return updated;
+}
+
+/**
+ * Reverses a previously recorded sale and restores the card to active OWNED collection
+ */
+export function undoCardSale(recordId: string, userTag?: string | null): LocalUserCard[] {
+  const current = getLocalBinder(userTag);
+  const targetIdx = current.findIndex((c) => c.id === recordId);
+  if (targetIdx < 0) return current;
+
+  const target = current[targetIdx];
+  const oldCardId = target.cardId;
+  const oldCondition = target.condition;
+  const oldFoil = target.isFoil;
+  const oldLanguage = target.language;
+
+  // Check if there is already an existing OWNED card with identical attributes to merge with
+  const existingOwnedIdx = current.findIndex(
+    (c) =>
+      c.id !== recordId &&
+      c.status !== 'SOLD' &&
+      c.cardId === oldCardId &&
+      c.condition === oldCondition &&
+      c.isFoil === oldFoil &&
+      c.language === oldLanguage
+  );
+
+  let updated: LocalUserCard[];
+
+  if (existingOwnedIdx >= 0) {
+    current[existingOwnedIdx].quantity += target.quantity || 1;
+    updated = current.filter((c) => c.id !== recordId);
+  } else {
+    target.status = 'OWNED';
+    target.soldPrice = null;
+    target.soldCurrency = null;
+    target.soldDate = null;
+    target.soldQuantity = null;
+    target.isPublicSale = true;
+    target.buyerSource = null;
+    target.buyerNotes = null;
+    updated = [...current];
+  }
+
+  saveLocalBinder(updated, userTag);
+
+  // Background Cloud Sync undo
+  try {
+    const session = getActiveSession();
+    if (session?.id) {
+      undoCloudSale(session.id, recordId, oldCardId, oldCondition, oldFoil, oldLanguage).catch((e) =>
+        console.warn('Cloud undo sale failed:', e)
+      );
+    }
+  } catch (err) {
+    console.warn('Could not trigger cloud undo sale sync:', err);
+  }
+
+  return updated;
+}
+
+/**
+ * Edit an existing sale's price, date, or notes
+ */
+export function editCardSale(
+  recordId: string,
+  updatedData: Partial<CardSaleInput>,
+  userTag?: string | null
+): LocalUserCard[] {
+  const current = getLocalBinder(userTag);
+  const target = current.find((c) => c.id === recordId);
+  if (!target || target.status !== 'SOLD') return current;
+
+  if (updatedData.soldPrice !== undefined) target.soldPrice = updatedData.soldPrice;
+  if (updatedData.soldCurrency !== undefined) target.soldCurrency = updatedData.soldCurrency;
+  if (updatedData.soldDate !== undefined) target.soldDate = updatedData.soldDate;
+  if (updatedData.isPublic !== undefined) target.isPublicSale = updatedData.isPublic;
+  if (updatedData.buyerSource !== undefined) target.buyerSource = updatedData.buyerSource;
+  if (updatedData.notes !== undefined) target.buyerNotes = updatedData.notes;
+
+  saveLocalBinder(current, userTag);
+
+  // Background Cloud Sync update
+  try {
+    const session = getActiveSession();
+    if (session?.id && target.soldPrice) {
+      editCloudSale(session.id, recordId, target.cardId, {
+        soldPrice: target.soldPrice,
+        soldCurrency: target.soldCurrency || 'PHP',
+        soldDate: target.soldDate || new Date().toISOString().slice(0, 10),
+        isPublic: target.isPublicSale,
+        notes: target.buyerNotes || undefined,
+      }).catch((e) => console.warn('Cloud edit sale failed:', e));
+    }
+  } catch (err) {
+    console.warn('Could not trigger cloud edit sale sync:', err);
+  }
+
+  return current;
+}
+
 export function getLocalBinderStats(cards: LocalUserCard[]) {
+  // Only calculate active collection stats for cards currently OWNED
+  const ownedCards = cards.filter((c) => c.status !== 'SOLD');
+
   let totalCardsCount = 0;
   let totalEstimatedValue = 0;
   let totalInvested = 0;
@@ -242,7 +461,7 @@ export function getLocalBinderStats(cards: LocalUserCard[]) {
   let jpCount = 0;
   let enCount = 0;
 
-  for (const uc of cards) {
+  for (const uc of ownedCards) {
     const qty = uc.quantity || 1;
     totalCardsCount += qty;
     const isJp = uc.language === 'jp';
@@ -270,7 +489,7 @@ export function getLocalBinderStats(cards: LocalUserCard[]) {
 
   return {
     totalCardsCount,
-    uniqueCardsCount: cards.length,
+    uniqueCardsCount: ownedCards.length,
     totalEstimatedValue: Math.round(totalEstimatedValue * 100) / 100,
     totalInvested: Math.round(totalInvested * 100) / 100,
     netProfit: Math.round(netProfit * 100) / 100,
@@ -279,6 +498,55 @@ export function getLocalBinderStats(cards: LocalUserCard[]) {
     foilsCount,
     jpCount,
     enCount,
+  };
+}
+
+export function getSoldStats(cards: LocalUserCard[]) {
+  const soldCards = cards.filter((c) => c.status === 'SOLD');
+
+  let totalSoldCardsCount = 0;
+  let totalRevenuePHP = 0;
+  let totalRevenueUSD = 0;
+  let totalRevenueJPY = 0;
+  let totalInvestedUsd = 0;
+  let totalRevenueNormalizedUsd = 0;
+  const conditionsCount: Record<string, number> = { NM: 0, LP: 0, MP: 0, HP: 0, Graded: 0 };
+
+  for (const uc of soldCards) {
+    const qty = uc.soldQuantity || uc.quantity || 1;
+    totalSoldCardsCount += qty;
+    const price = uc.soldPrice || 0;
+    const currency = (uc.soldCurrency || 'PHP').toUpperCase();
+
+    if (currency === 'PHP') {
+      totalRevenuePHP += price;
+      totalRevenueNormalizedUsd += price / 57.5;
+    } else if (currency === 'JPY') {
+      totalRevenueJPY += price;
+      totalRevenueNormalizedUsd += price / 152.0;
+    } else {
+      totalRevenueUSD += price;
+      totalRevenueNormalizedUsd += price;
+    }
+
+    // Purchase cost
+    if (uc.purchasePrice) {
+      totalInvestedUsd += uc.purchasePrice * qty;
+    }
+
+    const cond = uc.condition || 'NM';
+    conditionsCount[cond] = (conditionsCount[cond] || 0) + qty;
+  }
+
+  return {
+    totalSalesCount: soldCards.length,
+    totalSoldCardsCount,
+    totalRevenuePHP,
+    totalRevenueUSD,
+    totalRevenueJPY,
+    totalRevenueNormalizedUsd: Math.round(totalRevenueNormalizedUsd * 100) / 100,
+    totalInvestedUsd: Math.round(totalInvestedUsd * 100) / 100,
+    conditionsCount,
   };
 }
 
