@@ -142,7 +142,7 @@ export function addCardToLocalBinder(
   const lang = cardData.language || 'jp';
 
   const existingIdx = current.findIndex(
-    (c) => c.cardId === cardData.cardId && c.condition === cond && c.isFoil === foil && c.language === lang
+    (c) => (c.status || 'OWNED') !== 'SOLD' && c.cardId === cardData.cardId && c.condition === cond && c.isFoil === foil && c.language === lang
   );
 
   let updated: LocalUserCard[];
@@ -233,7 +233,12 @@ export function transferGuestCardsToAccount(userTag: string): number {
     const merged = [...userCards];
     for (const gc of guestCards) {
       const existing = merged.find(
-        (c) => c.cardId === gc.cardId && c.condition === gc.condition && c.isFoil === gc.isFoil && c.language === gc.language
+        (c) =>
+          (c.status || 'OWNED') === (gc.status || 'OWNED') &&
+          c.cardId === gc.cardId &&
+          c.condition === gc.condition &&
+          c.isFoil === gc.isFoil &&
+          c.language === gc.language
       );
       if (existing) {
         existing.quantity += gc.quantity;

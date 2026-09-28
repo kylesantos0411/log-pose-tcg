@@ -59,16 +59,36 @@ export async function fetchCloudCards(userId: string): Promise<LocalUserCard[]> 
   if (!client || !isSupabaseConfigured() || !isValidUuid(userId)) return [];
 
   try {
-    const { data, error } = await client
+    // 1. Fetch user_cards (collection)
+    const { data: userCardsData, error } = await client
       .from('user_cards')
       .select('*')
       .eq('user_id', userId)
       .eq('is_wishlist', false);
 
-    if (error || !data || data.length === 0) return [];
+    // 2. Fetch sold records from card_sales
+    let salesRows: any[] = [];
+    try {
+      const { data: sData } = await client
+        .from('card_sales')
+        .select('*')
+        .eq('user_id', userId)
+        .order('sold_date', { ascending: false });
+      if (sData) salesRows = sData;
+    } catch {
+      // Table may not exist yet
+    }
+
+    const cardsRows = userCardsData || [];
+    if (cardsRows.length === 0 && salesRows.length === 0) return [];
 
     // Extract unique card_ids to fetch metadata
-    const uniqueIds = Array.from(new Set(data.map((r: any) => r.card_id).filter(Boolean)));
+    const uniqueIds = Array.from(
+      new Set([
+        ...cardsRows.map((r: any) => r.card_id),
+        ...salesRows.map((s: any) => s.card_id),
+      ].filter(Boolean))
+    );
     const cardMap = new Map<string, any>();
 
     // Fetch card details in batches of 50
@@ -89,24 +109,27 @@ export async function fetchCloudCards(userId: string): Promise<LocalUserCard[]> 
       }
     }
 
-    const localCards: LocalUserCard[] = data.map((r: any) => {
-      const c = cardMap.get(r.card_id);
+    const soldCards: LocalUserCard[] = salesRows.map((s: any) => {
+      const c = cardMap.get(s.card_id);
       return {
-        id: r.id || `uc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        cardId: r.card_id,
-        quantity: r.quantity || 1,
-        condition: r.condition || 'NM',
-        isFoil: Boolean(r.is_foil),
-        language: r.language || 'jp',
-        purchasePrice: r.purchase_price !== null && r.purchase_price !== undefined ? Number(r.purchase_price) : null,
-        notes: r.notes || null,
-        createdAt: r.created_at || new Date().toISOString(),
-        status: (r.status === 'SOLD' ? 'SOLD' : 'OWNED') as 'OWNED' | 'SOLD',
-        soldPrice: r.sold_price !== null && r.sold_price !== undefined ? Number(r.sold_price) : null,
-        soldCurrency: r.sold_currency || 'PHP',
-        soldDate: r.sold_date || null,
-        isPublicSale: r.is_public_sale !== false,
-        buyerNotes: r.buyer_notes || null,
+        id: s.user_card_id || `uc_sold_${s.id}`,
+        cardId: s.card_id,
+        quantity: s.quantity || 1,
+        condition: s.condition || 'NM',
+        isFoil: Boolean(s.is_foil),
+        language: s.language || 'jp',
+        purchasePrice: null,
+        notes: s.notes || null,
+        createdAt: s.created_at || new Date().toISOString(),
+        status: 'SOLD',
+        soldPrice: s.sold_price != null ? Number(s.sold_price) : null,
+        soldCurrency: s.sold_currency || 'PHP',
+        soldDate: s.sold_date || null,
+        soldQuantity: s.quantity || 1,
+        isPublicSale: s.is_public !== false,
+        buyerSource: s.buyer_source || null,
+        buyerNotes: s.notes || null,
+        saleId: s.id,
         card: c ? {
           id: c.id,
           name: c.name,
@@ -120,20 +143,113 @@ export async function fetchCloudCards(userId: string): Promise<LocalUserCard[]> 
           yuyuPrice: c.yuyuPrice,
           pack: c.pack ? { code: c.pack.code, name: c.pack.name } : undefined,
         } : {
-          id: r.card_id,
-          name: r.card_id,
+          id: s.card_id,
+          name: s.card_name || s.card_id,
           category: 'Character',
           colors: 'Red',
           cost: null,
           power: null,
           rarity: 'Common',
-          imageUrl: `https://onepiece-cardgame.com/images/cardlist/card/${r.card_id.split('_')[0]}.png`,
+          imageUrl: `https://onepiece-cardgame.com/images/cardlist/card/${s.card_id.split('_')[0]}.png`,
           marketPrice: null,
         },
       };
     });
 
-    return localCards;
+    const ownedCards: LocalUserCard[] = [];
+    for (const r of cardsRows) {
+      const c = cardMap.get(r.card_id);
+      const isSold = r.status === 'SOLD';
+      if (isSold) {
+        const alreadyInSales = soldCards.some(
+          (sc) =>
+            sc.cardId === r.card_id &&
+            sc.condition === r.condition &&
+            sc.isFoil === Boolean(r.is_foil) &&
+            sc.language === r.language
+        );
+        if (!alreadyInSales) {
+          soldCards.push({
+            id: r.id || `uc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            cardId: r.card_id,
+            quantity: r.quantity || 1,
+            condition: r.condition || 'NM',
+            isFoil: Boolean(r.is_foil),
+            language: r.language || 'jp',
+            purchasePrice: r.purchase_price !== null && r.purchase_price !== undefined ? Number(r.purchase_price) : null,
+            notes: r.notes || null,
+            createdAt: r.created_at || new Date().toISOString(),
+            status: 'SOLD',
+            soldPrice: r.sold_price !== null && r.sold_price !== undefined ? Number(r.sold_price) : null,
+            soldCurrency: r.sold_currency || 'PHP',
+            soldDate: r.sold_date || null,
+            isPublicSale: r.is_public_sale !== false,
+            buyerNotes: r.buyer_notes || null,
+            card: c ? {
+              id: c.id,
+              name: c.name,
+              category: c.category,
+              colors: c.colors,
+              cost: c.cost,
+              power: c.power,
+              rarity: c.rarity,
+              imageUrl: c.imageUrl,
+              marketPrice: c.marketPrice,
+              yuyuPrice: c.yuyuPrice,
+              pack: c.pack ? { code: c.pack.code, name: c.pack.name } : undefined,
+            } : {
+              id: r.card_id,
+              name: r.card_id,
+              category: 'Character',
+              colors: 'Red',
+              cost: null,
+              power: null,
+              rarity: 'Common',
+              imageUrl: `https://onepiece-cardgame.com/images/cardlist/card/${r.card_id.split('_')[0]}.png`,
+              marketPrice: null,
+            },
+          });
+        }
+      } else {
+        ownedCards.push({
+          id: r.id || `uc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          cardId: r.card_id,
+          quantity: r.quantity || 1,
+          condition: r.condition || 'NM',
+          isFoil: Boolean(r.is_foil),
+          language: r.language || 'jp',
+          purchasePrice: r.purchase_price !== null && r.purchase_price !== undefined ? Number(r.purchase_price) : null,
+          notes: r.notes || null,
+          createdAt: r.created_at || new Date().toISOString(),
+          status: 'OWNED',
+          card: c ? {
+            id: c.id,
+            name: c.name,
+            category: c.category,
+            colors: c.colors,
+            cost: c.cost,
+            power: c.power,
+            rarity: c.rarity,
+            imageUrl: c.imageUrl,
+            marketPrice: c.marketPrice,
+            yuyuPrice: c.yuyuPrice,
+            pack: c.pack ? { code: c.pack.code, name: c.pack.name } : undefined,
+          } : {
+            id: r.card_id,
+            name: r.card_id,
+            category: 'Character',
+            colors: 'Red',
+            cost: null,
+            power: null,
+            rarity: 'Common',
+            imageUrl: `https://onepiece-cardgame.com/images/cardlist/card/${r.card_id.split('_')[0]}.png`,
+            marketPrice: null,
+          },
+        });
+      }
+    }
+
+    return [...ownedCards, ...soldCards];
   } catch (err) {
     console.error('Failed to fetch cloud cards:', err);
     return [];
@@ -339,23 +455,53 @@ export async function recordCloudSale(
       console.warn('Could not insert into card_sales table (check if migration is applied):', saleErr);
     }
 
-    // 2. Update user_cards item to status = 'SOLD'
-    await client
+    // 2. Adjust active collection inventory in user_cards
+    const { data: existingCard } = await client
       .from('user_cards')
-      .update({
-        status: 'SOLD',
-        sold_price: sale.soldPrice,
-        sold_currency: sale.soldCurrency || 'PHP',
-        sold_date: sale.soldDate,
-        is_public_sale: sale.isPublic !== false,
-        buyer_notes: sale.notes || null,
-        updated_at: new Date().toISOString(),
-      })
+      .select('id, quantity, status')
       .eq('user_id', userId)
       .eq('card_id', sale.cardId)
-      .eq('condition', sale.condition)
+      .eq('condition', sale.condition || 'NM')
       .eq('is_foil', Boolean(sale.isFoil))
-      .eq('language', sale.language);
+      .eq('language', sale.language || 'jp')
+      .maybeSingle();
+
+    if (existingCard) {
+      const remainingQty = (existingCard.quantity || 1) - (sale.quantity || 1);
+      if (remainingQty > 0) {
+        // Partial sale: decrement owned inventory quantity
+        await client
+          .from('user_cards')
+          .update({
+            quantity: remainingQty,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingCard.id);
+      } else {
+        // Full sale: try setting status = 'SOLD' if column exists
+        const { error: updateErr } = await client
+          .from('user_cards')
+          .update({
+            status: 'SOLD',
+            sold_price: sale.soldPrice,
+            sold_currency: sale.soldCurrency || 'PHP',
+            sold_date: sale.soldDate,
+            is_public_sale: sale.isPublic !== false,
+            buyer_notes: sale.notes || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existingCard.id);
+
+        if (updateErr) {
+          // If status column doesn't exist yet in user_cards, remove from active owned cards table
+          // so it doesn't reappear as owned
+          await client
+            .from('user_cards')
+            .delete()
+            .eq('id', existingCard.id);
+        }
+      }
+    }
 
     return { success: true, saleId: insertedSale?.id };
   } catch (err: any) {
@@ -390,25 +536,43 @@ export async function undoCloudSale(
       .eq('user_id', userId)
       .or(`user_card_id.eq.${userCardId},card_id.eq.${cardId}`);
 
-    // 2. Reset user_cards status to 'OWNED'
-    let query = client
+    // 2. Restore user_cards status or quantity
+    const { data: existing } = await client
       .from('user_cards')
-      .update({
-        status: 'OWNED',
-        sold_price: null,
-        sold_currency: null,
-        sold_date: null,
-        buyer_notes: null,
-        updated_at: new Date().toISOString(),
-      })
+      .select('id, quantity, status')
       .eq('user_id', userId)
-      .eq('card_id', cardId);
+      .eq('card_id', cardId)
+      .eq('condition', condition || 'NM')
+      .eq('is_foil', Boolean(isFoil))
+      .eq('language', language || 'jp')
+      .maybeSingle();
 
-    if (condition) query = query.eq('condition', condition);
-    if (isFoil !== undefined) query = query.eq('is_foil', isFoil);
-    if (language) query = query.eq('language', language);
+    if (existing) {
+      await client
+        .from('user_cards')
+        .update({
+          status: 'OWNED',
+          quantity: (existing.quantity || 0) + 1,
+          sold_price: null,
+          sold_currency: null,
+          sold_date: null,
+          buyer_notes: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id);
+    } else {
+      await client.from('user_cards').insert({
+        user_id: userId,
+        card_id: cardId,
+        quantity: 1,
+        condition: condition || 'NM',
+        is_foil: Boolean(isFoil),
+        language: language || 'jp',
+        status: 'OWNED',
+        is_wishlist: false,
+      });
+    }
 
-    await query;
     return { success: true };
   } catch (err: any) {
     console.error('undoCloudSale error:', err);
@@ -706,31 +870,96 @@ export async function syncUserCloudData(userId: string, userTag: string): Promis
       return;
     }
 
-    // If local has cards, merge them with cloud cards without loss
-    const merged = [...cloudCards];
+    // Merge: Start with localCards to preserve user's local sales, statuses, and notes
+    const merged: LocalUserCard[] = [...localCards];
     const newCardsToUpload: LocalUserCard[] = [];
 
-    for (const local of localCards) {
-      const existing = merged.find(
-        (c) =>
-          c.cardId === local.cardId &&
-          c.condition === local.condition &&
-          c.isFoil === local.isFoil &&
-          c.language === local.language
+    for (const cloud of cloudCards) {
+      // Match by exact card identity AND status (OWNED vs SOLD)
+      const existingIdx = merged.findIndex(
+        (m) =>
+          m.cardId === cloud.cardId &&
+          m.condition === cloud.condition &&
+          m.isFoil === cloud.isFoil &&
+          m.language === cloud.language &&
+          (m.status || 'OWNED') === (cloud.status || 'OWNED')
       );
 
-      if (existing) {
-        if (local.quantity > existing.quantity) {
-          existing.quantity = local.quantity;
-          newCardsToUpload.push(existing);
+      if (existingIdx >= 0) {
+        const existing = merged[existingIdx];
+        if (cloud.quantity > existing.quantity) {
+          existing.quantity = cloud.quantity;
         }
-        if (local.purchasePrice && !existing.purchasePrice) {
-          existing.purchasePrice = local.purchasePrice;
-          newCardsToUpload.push(existing);
+        if (cloud.purchasePrice && !existing.purchasePrice) {
+          existing.purchasePrice = cloud.purchasePrice;
+        }
+        if (cloud.notes && !existing.notes) {
+          existing.notes = cloud.notes;
+        }
+        if (cloud.status === 'SOLD' && existing.status === 'SOLD') {
+          if (!existing.soldPrice && cloud.soldPrice) existing.soldPrice = cloud.soldPrice;
+          if (!existing.soldDate && cloud.soldDate) existing.soldDate = cloud.soldDate;
+          if (!existing.saleId && cloud.saleId) existing.saleId = cloud.saleId;
         }
       } else {
-        merged.unshift(local);
-        newCardsToUpload.push(local);
+        // Cloud has a card not found in merged with identical status
+        // If cloud card is OWNED, but this card is already SOLD locally, do NOT re-add the owned card!
+        const isSoldLocally = merged.some(
+          (m) =>
+            m.cardId === cloud.cardId &&
+            m.condition === cloud.condition &&
+            m.isFoil === cloud.isFoil &&
+            m.language === cloud.language &&
+            m.status === 'SOLD'
+        );
+
+        if (cloud.status === 'SOLD' || !isSoldLocally) {
+          merged.push(cloud);
+        }
+      }
+    }
+
+    // Ensure any local sold cards are recorded to cloud if not yet synced
+    for (const local of localCards) {
+      if (local.status === 'SOLD') {
+        const inCloud = cloudCards.some(
+          (c) =>
+            c.cardId === local.cardId &&
+            c.condition === local.condition &&
+            c.isFoil === local.isFoil &&
+            c.language === local.language &&
+            c.status === 'SOLD'
+        );
+        if (!inCloud) {
+          recordCloudSale(userId, {
+            userCardId: local.id,
+            cardId: local.cardId,
+            cardName: local.card?.name,
+            condition: local.condition,
+            isFoil: local.isFoil,
+            language: local.language,
+            soldPrice: local.soldPrice || 0,
+            soldCurrency: local.soldCurrency || 'PHP',
+            soldDate: local.soldDate || new Date().toISOString().slice(0, 10),
+            quantity: local.soldQuantity || local.quantity || 1,
+            isPublic: local.isPublicSale !== false,
+            buyerSource: local.buyerSource || undefined,
+            notes: local.buyerNotes || local.notes || undefined,
+          }).catch(() => {});
+        }
+      } else {
+        // Queue upload for new local owned cards not in cloud
+        const inCloud = cloudCards.some(
+          (c) =>
+            c.cardId === local.cardId &&
+            c.condition === local.condition &&
+            c.isFoil === local.isFoil &&
+            c.language === local.language &&
+            (c.status || 'OWNED') === 'OWNED'
+        );
+        if (!inCloud) {
+          newCardsToUpload.push(local);
+        }
       }
     }
 

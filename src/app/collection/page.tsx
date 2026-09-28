@@ -55,7 +55,28 @@ export default function CollectionPage() {
   
   const [items, setItems] = useState<UserCardRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'collection' | 'sold'>('collection');
+  const [activeTab, setActiveTabState] = useState<'collection' | 'sold'>('collection');
+
+  const setActiveTab = (tab: 'collection' | 'sold') => {
+    setActiveTabState(tab);
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('logpose_collection_active_tab', tab);
+      } catch (e) {}
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = sessionStorage.getItem('logpose_collection_active_tab');
+        if (saved === 'collection' || saved === 'sold') {
+          setActiveTabState(saved);
+        }
+      } catch (e) {}
+    }
+  }, []);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [activeCard, setActiveCard] = useState<any | null>(null);
@@ -199,6 +220,7 @@ export default function CollectionPage() {
     );
 
     loadCollection();
+    setActiveTab('sold');
     const cardTitle = sellingItem.card?.name || sellingItem.cardId;
     setSellingItem(null);
     showToast(`Marked ${cardTitle} as sold for ${soldCurrency === 'PHP' ? '₱' : soldCurrency === 'JPY' ? '¥' : '$'}${priceNum.toLocaleString()}!`);
