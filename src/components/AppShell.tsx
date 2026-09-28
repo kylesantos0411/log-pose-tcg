@@ -253,6 +253,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main className="flex-1 p-2.5 sm:p-6 md:p-8 max-w-7xl w-full mx-auto pb-8 min-w-0">
           {children}
         </main>
+
+        {/* Mobile Floating Admin Shortcut (Mobile phones only, when logged in as Admin) */}
+        {isAdmin && pathname !== '/admin' && (
+          <div className="fixed bottom-5 right-5 z-40 md:hidden animate-in fade-in zoom-in duration-200">
+            <Link
+              href="/admin"
+              className="flex items-center gap-2 py-2 px-3.5 rounded-full bg-gradient-to-r from-red-600 to-rose-600 text-white font-black text-xs shadow-2xl border border-red-400/50 hover:brightness-110 active:scale-95 transition"
+            >
+              <ShieldAlert className="w-4 h-4 animate-pulse" />
+              <span>Admin</span>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

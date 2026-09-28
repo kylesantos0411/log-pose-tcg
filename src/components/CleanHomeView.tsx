@@ -17,6 +17,7 @@ import {
   Crown,
   Flame,
   User as UserIcon,
+  ShieldAlert,
 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 
@@ -41,6 +42,13 @@ export function CleanHomeView({
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showLatestSyncModal, setShowLatestSyncModal] = useState(false);
   const [homeSearch, setHomeSearch] = useState('');
+
+  const isChiefAdmin = user?.email?.toLowerCase() === 'kylesantos0411@gmail.com' ||
+    user?.tag?.toLowerCase() === '@kaipuccino' ||
+    user?.tag?.toLowerCase() === 'kaipuccino' ||
+    user?.name?.toLowerCase() === 'kaipuccino';
+
+  const isAdmin = user?.role === 'admin' || isChiefAdmin;
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -120,6 +128,17 @@ export function CleanHomeView({
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#1e202a]" />
             )}
           </button>
+
+          {/* Admin Command Center Quick Button (Mobile & Desktop) */}
+          {isAdmin && (
+            <Link
+              href="/admin"
+              title="Admin Command Center"
+              className="text-red-400 hover:text-white p-1.5 rounded-full bg-red-500/15 border border-red-500/35 hover:bg-red-500 transition duration-200 active:scale-90 cursor-pointer flex items-center justify-center ml-0.5"
+            >
+              <ShieldAlert className="w-5 h-5 animate-pulse" />
+            </Link>
+          )}
         </div>
       </div>
 
@@ -205,6 +224,34 @@ export function CleanHomeView({
           ))}
         </div>
       </div>
+
+      {/* Admin Mobile & Desktop Control Banner */}
+      {isAdmin && (
+        <Link
+          href="/admin"
+          className="block p-3.5 rounded-2xl bg-gradient-to-r from-red-950/70 via-[#202330] to-red-950/50 border border-red-500/40 hover:border-red-400 text-white shadow-lg transition active:scale-[0.99] cursor-pointer"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400 flex items-center justify-center flex-shrink-0">
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-white">Admin Control Center</span>
+                  <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-red-500 text-white uppercase tracking-wider">
+                    CHIEF
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-400 truncate">
+                  Maintenance switch, user bans &amp; market moderation
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-red-400 flex-shrink-0" />
+          </div>
+        </Link>
+      )}
 
       {/* =========================================================================
           3. 6-TILE FEATURE GRID (Responsive: 2 cols on mobile, 3 on tablet, 6 on desktop)

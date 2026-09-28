@@ -20,8 +20,10 @@ import {
   User,
   Database,
   ShieldCheck,
+  ShieldAlert,
   Globe
 } from 'lucide-react';
+import Link from 'next/link';
 import { useSettings, CURRENCIES, CurrencyCode } from '@/context/SettingsContext';
 import { SupportModal } from '@/components/SupportModal';
 import { AccountModal } from '@/components/AccountModal';
@@ -48,6 +50,13 @@ export function SettingsModal() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  const isChiefAdmin = user?.email?.toLowerCase() === 'kylesantos0411@gmail.com' ||
+    user?.tag?.toLowerCase() === '@kaipuccino' ||
+    user?.tag?.toLowerCase() === 'kaipuccino' ||
+    user?.name?.toLowerCase() === 'kaipuccino';
+
+  const isAdmin = user?.role === 'admin' || isChiefAdmin;
 
   if (!isSettingsOpen) return null;
 
@@ -127,6 +136,22 @@ export function SettingsModal() {
                     Cloud Active
                   </span>
                 </div>
+
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    onClick={closeSettings}
+                    className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-red-600/25 to-rose-600/20 hover:from-red-600/35 hover:to-rose-600/30 border border-red-500/40 text-red-300 font-bold text-xs flex items-center justify-between transition cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ShieldAlert className="w-4 h-4 text-red-400" />
+                      <span>Admin Control Center</span>
+                    </div>
+                    <span className="text-[10px] bg-red-500 text-white font-black px-1.5 py-0.5 rounded uppercase">
+                      OPEN &rarr;
+                    </span>
+                  </Link>
+                )}
 
                 <div className="flex items-center gap-2 pt-2 border-t border-[#232738]">
                   <button
