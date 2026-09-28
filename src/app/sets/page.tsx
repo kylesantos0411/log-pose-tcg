@@ -125,13 +125,25 @@ const PROMO_SETS: YuyuteiSetDefinition[] = [
 ];
 
 const VINTAGE_SETS: YuyuteiSetDefinition[] = [
-  {
-    id: 'vintage-hb-01',
-    code: 'HB-01',
-    title: 'Carddass Hyper Battle - First Stage (1999)',
-    targetSet: 'HB-01',
-    query: 'HB01',
-  },
+  { id: 'vintage-hb-01', code: 'HB-01', title: 'Part 1: First Stage (1999)', targetSet: 'HB-01', categoryParam: 'Vintage' },
+  { id: 'vintage-hb-02', code: 'HB-02', title: 'Part 2: 2nd Stage (2000)', targetSet: 'HB-02', categoryParam: 'Vintage' },
+  { id: 'vintage-hb-gb1', code: 'HB-GB1', title: 'Grand Box (2000)', targetSet: 'HB-GB1', categoryParam: 'Vintage' },
+  { id: 'vintage-hb-03', code: 'HB-03', title: 'Part 3: 3rd Stage (2000)', targetSet: 'HB-03', categoryParam: 'Vintage' },
+  { id: 'vintage-hb-04', code: 'HB-04', title: 'Part 4: 4th Stage (2000)', targetSet: 'HB-04', categoryParam: 'Vintage' },
+  { id: 'vintage-hb-gb2', code: 'HB-GB2', title: 'Grand Box 2 (2000)', targetSet: 'HB-GB2', categoryParam: 'Vintage' },
+  { id: 'vintage-hb-05', code: 'HB-05', title: 'Part 5: 5th Stage (2001)', targetSet: 'HB-05', categoryParam: 'Vintage' },
+  { id: 'vintage-hb-06', code: 'HB-06', title: 'Part 6: 6th Stage (2001)', targetSet: 'HB-06', categoryParam: 'Vintage' },
+  { id: 'vintage-hb-gb3', code: 'HB-GB3', title: 'Grand Box 3 (2001)', targetSet: 'HB-GB3', categoryParam: 'Vintage' },
+  { id: 'vintage-hb-07', code: 'HB-07', title: 'Part 7: 7th Stage (2001)', targetSet: 'HB-07', categoryParam: 'Vintage' },
+  { id: 'vintage-hb-gb4', code: 'HB-GB4', title: 'Grand Box 4 (2001)', targetSet: 'HB-GB4', categoryParam: 'Vintage' },
+  { id: 'vintage-hb-gl1', code: 'HB-GL1', title: 'Grand Line Compilation 1 (2002)', targetSet: 'HB-GL1', categoryParam: 'Vintage' },
+  { id: 'vintage-hb-gl2', code: 'HB-GL2', title: 'Grand Line Compilation 2 (2002)', targetSet: 'HB-GL2', categoryParam: 'Vintage' },
+  { id: 'vintage-hb-gb5', code: 'HB-GB5', title: 'Grand Box 5 (2002)', targetSet: 'HB-GB5', categoryParam: 'Vintage' },
+  { id: 'vintage-hb-gl3', code: 'HB-GL3', title: 'Grand Line Compilation 3 (2002)', targetSet: 'HB-GL3', categoryParam: 'Vintage' },
+  { id: 'vintage-hb-gbdx', code: 'HB-GBDX', title: 'Grand Box DX (2002)', targetSet: 'HB-GBDX', categoryParam: 'Vintage' },
+  { id: 'vintage-hb-tp1', code: 'HB-TP1', title: 'Treasure Pack Vol. 1 (2003)', targetSet: 'HB-TP1', categoryParam: 'Vintage' },
+  { id: 'vintage-hb-tp2', code: 'HB-TP2', title: 'Treasure Pack Vol. 2 (2004)', targetSet: 'HB-TP2', categoryParam: 'Vintage' },
+  { id: 'vintage-hb-pr', code: 'HB-PR', title: 'Promo Collection (2000-2005)', targetSet: 'HB-PR', categoryParam: 'Vintage' },
 ];
 
 const DON_SETS: YuyuteiSetDefinition[] = [

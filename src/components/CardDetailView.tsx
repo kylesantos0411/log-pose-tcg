@@ -109,6 +109,28 @@ interface ChartDataPoint {
   psa: number;
 }
 
+const VINTAGE_SET_ARCHIVE_IDS: Record<string, string> = {
+  'HB-01': '79',
+  'HB-02': '81',
+  'HB-GB1': '99',
+  'HB-03': '100',
+  'HB-04': '101',
+  'HB-GB2': '104',
+  'HB-05': '105',
+  'HB-06': '106',
+  'HB-GB3': '107',
+  'HB-07': '108',
+  'HB-GB4': '109',
+  'HB-GL1': '110',
+  'HB-GL2': '111',
+  'HB-GB5': '112',
+  'HB-GL3': '113',
+  'HB-GBDX': '114',
+  'HB-TP1': '115',
+  'HB-TP2': '117',
+  'HB-PR': '122',
+};
+
 export function CardDetailView({ 
   card: initialCard, 
   variants: initialVariants, 
@@ -1010,14 +1032,22 @@ export function CardDetailView({
                           <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
                             <span>Vintage Market Price (eBay Sold FMV)</span>
                           </div>
-                          <div className="text-xl sm:text-2xl font-black text-white mt-0.5 flex items-center gap-2">
-                            <span>{formatPrice((card.ebayPrice ?? card.marketPrice ?? 10.0)).full}</span>
-                            <span className="text-xs text-gray-400 font-normal">
-                              (Est. ${(card.ebayPrice ?? card.marketPrice ?? 10.0).toFixed(2)} USD)
-                            </span>
-                          </div>
+                          {card.ebayPrice && card.ebayPrice > 0 ? (
+                            <div className="text-xl sm:text-2xl font-black text-white mt-0.5 flex items-center gap-2">
+                              <span>{formatPrice(card.ebayPrice).full}</span>
+                              <span className="text-xs text-gray-400 font-normal">
+                                (Est. ${card.ebayPrice.toFixed(2)} USD)
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="text-base sm:text-lg font-bold text-gray-200 mt-0.5 flex items-center gap-2">
+                              <span>Check Live Sold on eBay</span>
+                            </div>
+                          )}
                           <p className="text-[11px] text-gray-400 mt-0.5">
-                            Targeted Fair Market Value based strictly on eBay sold transactions.
+                            {card.ebayPrice && card.ebayPrice > 0
+                              ? 'Verified Fair Market Value tracked from completed eBay sales.'
+                              : 'No fixed baseline on record. Tap "View Sold on eBay" to view recent realized transactions.'}
                           </p>
                         </div>
                       </div>
@@ -1040,7 +1070,7 @@ export function CardDetailView({
                           {card.vintageSeries || 'Carddass Hyper Battle'}
                         </span>
                         <span className="text-gray-400 text-[11px]">
-                          {card.vintagePart || 'First Stage (1999)'}
+                          {card.vintagePart || card.displaySet || 'Vintage Set'}
                         </span>
                       </div>
                       <div className="flex items-center gap-3">
@@ -1056,7 +1086,9 @@ export function CardDetailView({
                           </a>
                         )}
                         <a
-                          href={'http://www.onepiececollection.fr/cartes.php?idc=19&ids=79'}
+                          href={`http://www.onepiececollection.fr/cartes.php?idc=19&ids=${
+                            VINTAGE_SET_ARCHIVE_IDS[(card.printedSetCode || card.pack?.code || '').toUpperCase()] || '79'
+                          }`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-[11px] text-amber-400 hover:text-amber-300 underline font-semibold flex items-center gap-1"

@@ -166,7 +166,9 @@ export async function GET(req: NextRequest) {
 
     if (category && category !== 'All') {
       const catLower = category.trim().toLowerCase();
-      if (catLower === 'character') {
+      if (catLower === 'vintage') {
+        where.isVintage = true;
+      } else if (catLower === 'character') {
         where.category = 'Character';
       } else if (catLower === 'event') {
         where.category = 'Event';
@@ -274,6 +276,9 @@ export async function GET(req: NextRequest) {
         { yuyuteiSet: { equals: clean } },
         { yuyuteiSet: { equals: withDash } },
         { yuyuteiSet: { equals: noDash } },
+        { printedSetCode: { equals: clean } },
+        { printedSetCode: { equals: withDash } },
+        { printedSetCode: { equals: noDash } },
       ];
 
       if (/^promo|p$/i.test(clean)) {

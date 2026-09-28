@@ -64,6 +64,9 @@ interface CardItem {
   artist_source_url?: string | null;
   artistVerificationStatus?: string | null;
   artist_verification_status?: string | null;
+  isVintage?: boolean;
+  ebayPrice?: number | null;
+  ebayUrl?: string | null;
   pack?: {
     code: string;
     name: string;
@@ -118,7 +121,7 @@ export default function CardsPage() {
 function CardsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { currency, formatYuyuPrice, openSettings, formatCard, user } = useSettings();
+  const { currency, formatYuyuPrice, formatUsdPrice, openSettings, formatCard, user } = useSettings();
   
   const sortParam = searchParams.get('sort') || '';
   const initialQuery = searchParams.get('q') || '';
@@ -708,7 +711,15 @@ function CardsContent() {
 
                     {/* Subtle Floating Price Badge on Bottom-Left */}
                     <div className="absolute bottom-1.5 left-1.5 sm:bottom-2 sm:left-2 px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-md text-[9px] sm:text-[10px] font-bold text-amber-300 border border-white/10 shadow-sm pointer-events-none">
-                      {formatYuyuPrice(card.yuyuPrice || Math.round((card.marketPrice || 1) * 140)).full}
+                      {card.isVintage ? (
+                        card.ebayPrice && card.ebayPrice > 0 ? (
+                          formatUsdPrice(card.ebayPrice).full
+                        ) : (
+                          <span className="text-gray-300">eBay</span>
+                        )
+                      ) : (
+                        formatYuyuPrice(card.yuyuPrice || Math.round((card.marketPrice || 1) * 140)).full
+                      )}
                     </div>
 
                     {/* Circular Emblem on Bottom-Right (Matching media_1790063450672.jpg) */}

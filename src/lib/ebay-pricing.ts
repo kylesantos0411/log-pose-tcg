@@ -5,20 +5,21 @@
 export function generateEbaySoldSearchUrl(
   cardNumber?: string | null,
   cardName?: string | null,
-  series = 'Hyper Battle'
+  _series?: string
 ): string {
   const num = (cardNumber || '').trim();
-  const name = (cardName || '').trim();
+  let name = (cardName || '').trim();
+  name = name.replace(/^Monkey\.?D\.?/i, 'Luffy').replace(/^Roronoa\s*/i, '').trim();
+  const firstName = name.split(' ')[0] || '';
 
-  // Strict search query preventing modern OPTCG false matches
-  // E.g.: "One Piece" Carddass "Hyper Battle" "C01" Luffy -OP01 -OP02 -OP03 -OP05 -EB01
-  const query = `"One Piece" Carddass "${series}" "${num}" ${name} -OP01 -OP02 -OP03 -OP05 -EB01`;
+  // E.g.: "One Piece" Carddass "C01" Luffy -OP01 -OP02 -OP03 -OP05 -EB01
+  const query = `"One Piece" Carddass "${num}" ${firstName} -OP01 -OP02 -OP03 -OP05 -EB01`;
 
   const params = new URLSearchParams({
     _nkw: query,
     LH_Complete: '1',
     LH_Sold: '1',
-    _sop: '12', // Best match / recent
+    _sop: '12', // Most recent first
   });
 
   return `https://www.ebay.com/sch/i.html?${params.toString()}`;
