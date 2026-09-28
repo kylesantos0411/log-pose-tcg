@@ -24,6 +24,34 @@ function isValidUuid(id?: string | null): boolean {
 }
 
 /**
+ * Robust check for chief administrator (Kyle Santos / @kaipuccino)
+ */
+export function checkIsChiefAdmin(
+  user?: { email?: string | null; tag?: string | null; username?: string | null; name?: string | null } | null
+): boolean {
+  if (!user) return false;
+  const email = (user.email || '').toLowerCase().trim();
+  const tag = (user.tag || '').toLowerCase().trim();
+  const username = (user.username || '').toLowerCase().trim();
+  const name = (user.name || '').toLowerCase().trim();
+
+  return (
+    email === 'kylesantos0411@gmail.com' ||
+    tag === '@kaipuccino' ||
+    tag === 'kaipuccino' ||
+    username === 'kaipuccino' ||
+    name === 'kaipuccino'
+  );
+}
+
+export function checkIsAdmin(
+  user?: { email?: string | null; tag?: string | null; username?: string | null; name?: string | null; role?: string | null } | null
+): boolean {
+  if (!user) return false;
+  return checkIsChiefAdmin(user) || user.role === 'admin';
+}
+
+/**
  * Fetch profile from Supabase profiles table
  */
 export async function fetchCloudProfile(userId: string): Promise<CloudProfile | null> {
@@ -39,10 +67,9 @@ export async function fetchCloudProfile(userId: string): Promise<CloudProfile | 
 
     if (error || !data) return null;
 
-    const userRole: 'admin' | 'user' = data.role === 'admin' ||
-      data.email?.toLowerCase() === 'kylesantos0411@gmail.com'
-        ? 'admin'
-        : 'user';
+    const userRole: 'admin' | 'user' = data.role === 'admin' || checkIsChiefAdmin(data)
+      ? 'admin'
+      : 'user';
 
     return {
       id: data.id,
@@ -1676,7 +1703,7 @@ export async function fetchAllUsersForAdmin(): Promise<AdminUserRecord[]> {
     });
 
     return profiles.map((p) => {
-      const isChiefAdmin = p.email?.toLowerCase() === 'kylesantos0411@gmail.com';
+      const isChiefAdmin = checkIsChiefAdmin(p);
 
       return {
         id: p.id,

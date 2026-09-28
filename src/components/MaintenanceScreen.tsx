@@ -1,16 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Anchor, RefreshCw, ShieldAlert, Wrench, Clock, Lock } from 'lucide-react';
+import { Anchor, RefreshCw, Clock } from 'lucide-react';
 import { MaintenanceSetting } from '@/lib/supabase-sync';
 
 interface MaintenanceScreenProps {
   maintenance: MaintenanceSetting;
   onRefresh: () => Promise<void>;
-  onAdminLogin?: () => void;
 }
 
-export function MaintenanceScreen({ maintenance, onRefresh, onAdminLogin }: MaintenanceScreenProps) {
+export function MaintenanceScreen({ maintenance, onRefresh }: MaintenanceScreenProps) {
   const [checking, setChecking] = useState(false);
 
   const handleCheck = async () => {
@@ -63,27 +62,16 @@ export function MaintenanceScreen({ maintenance, onRefresh, onAdminLogin }: Main
         )}
 
         {/* Actions */}
-        <div className="pt-2 flex flex-col sm:flex-row gap-3">
+        <div className="pt-2">
           <button
             type="button"
             onClick={handleCheck}
             disabled={checking}
-            className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider transition shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider transition shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${checking ? 'animate-spin' : ''}`} />
             <span>{checking ? 'Checking Status...' : 'Check Server Status'}</span>
           </button>
-
-          {onAdminLogin && (
-            <button
-              type="button"
-              onClick={onAdminLogin}
-              className="py-3 px-4 rounded-xl bg-[#282d3d] hover:bg-[#343a4e] border border-[#3b4256] text-gray-300 hover:text-white font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <Lock className="w-3.5 h-3.5 text-gray-400" />
-              <span>Admin Access</span>
-            </button>
-          )}
         </div>
 
         {/* Footer Note */}

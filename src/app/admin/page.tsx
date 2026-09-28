@@ -40,6 +40,8 @@ import {
   type AdminUserRecord,
   type CloudSaleRecord,
   DEFAULT_SYSTEM_SETTINGS,
+  checkIsAdmin,
+  checkIsChiefAdmin,
 } from '@/lib/supabase-sync';
 
 export default function AdminPage() {
@@ -230,8 +232,8 @@ export default function AdminPage() {
   }
 
   // Check if current user is admin (Strictly locked to your verified account)
-  const isChiefAdmin = user?.email?.toLowerCase() === 'kylesantos0411@gmail.com';
-  const isAdmin = isChiefAdmin || (Boolean(user?.email) && user?.role === 'admin');
+  const isChiefAdmin = checkIsChiefAdmin(user);
+  const isAdmin = checkIsAdmin(user);
 
   if (!isAdmin) {
     return (

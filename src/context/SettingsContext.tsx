@@ -34,7 +34,9 @@ import {
 import { 
   fetchCloudProfile, 
   migrateLocalBinderToCloud,
-  syncUserCloudData
+  syncUserCloudData,
+  checkIsChiefAdmin,
+  checkIsAdmin
 } from '@/lib/supabase-sync';
 
 export const BETA_INVITE_CODES = [
@@ -358,8 +360,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
       const active = getActiveSession();
       if (active) {
-        const isChiefAdmin = active.email?.toLowerCase() === 'kylesantos0411@gmail.com';
-        if (isChiefAdmin && active.role !== 'admin') {
+        if (checkIsChiefAdmin(active)) {
           active.role = 'admin';
         }
       }
@@ -370,9 +371,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           if (cloud) {
             setUserState((prev) => {
               if (!prev || prev.id !== active.id) return prev;
+              const role: 'admin' | 'user' = (cloud.role === 'admin' || checkIsChiefAdmin(prev) || checkIsChiefAdmin(cloud)) ? 'admin' : 'user';
               const updated: UserProfile = {
                 ...prev,
-                role: cloud.role,
+                role,
                 isBanned: cloud.isBanned,
                 banReason: cloud.banReason || undefined,
               };
@@ -495,7 +497,12 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       const avatar = 'default';
       const crew = cloud?.crew?.startsWith('CODE:') ? 'Collector' : (cloud?.crew || 'Collector');
 
-      const isChiefAdmin = sbUser.email?.toLowerCase() === 'kylesantos0411@gmail.com';
+      const isChiefAdmin = checkIsChiefAdmin({
+        email: sbUser.email,
+        tag,
+        username: name,
+        name,
+      });
       const role: 'admin' | 'user' = (cloud?.role === 'admin' || isChiefAdmin) ? 'admin' : 'user';
 
       const userProfile: UserProfile = {
@@ -807,6 +814,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (result.user) {
+        if (checkIsChiefAdmin(result.user)) {
+          result.user.role = 'admin';
+        }
         setUserState(result.user);
         setActiveSession(result.user);
         saveStoredAccountFromSession(result.user);
@@ -839,16 +849,24 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           }
 
           const rawName = profile?.username || cleanId.replace(/^@/, '');
+          const cleanEmail = profile?.email || authUser.email || (cleanId.includes('@') ? cleanId : null);
+          const cleanTag = profile?.tag || `@${rawName}`;
+          const isChief = checkIsChiefAdmin({ email: cleanEmail, tag: cleanTag, username: rawName, name: rawName });
+          const role: 'admin' | 'user' = (profile?.role === 'admin' || isChief) ? 'admin' : 'user';
+
           const userProfile: UserProfile = {
             id: profile?.id || authUser.id,
             name: rawName,
             username: rawName,
-            tag: profile?.tag || `@${rawName}`,
-            email: profile?.email || authUser.email || (cleanId.includes('@') ? cleanId : null),
+            tag: cleanTag,
+            email: cleanEmail,
             avatar: 'default',
             crew: profile?.crew?.startsWith('CODE:') ? 'Collector' : (profile?.crew || 'Collector'),
             rank: profile?.rank || 'Collector',
             rankBadge: '',
+            role,
+            isBanned: Boolean(profile?.is_banned),
+            banReason: profile?.ban_reason || undefined,
             createdAt: profile?.created_at || new Date().toISOString(),
           };
 
@@ -877,16 +895,24 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           }
 
           const rawName = profile?.username || cleanId.split('@')[0];
+          const cleanEmail = profile?.email || authUser.email || cleanId;
+          const cleanTag = profile?.tag || `@${rawName}`;
+          const isChief = checkIsChiefAdmin({ email: cleanEmail, tag: cleanTag, username: rawName, name: rawName });
+          const role: 'admin' | 'user' = (profile?.role === 'admin' || isChief) ? 'admin' : 'user';
+
           const userProfile: UserProfile = {
             id: profile?.id || authUser.id,
             name: rawName,
             username: rawName,
-            tag: profile?.tag || `@${rawName}`,
-            email: profile?.email || authUser.email || cleanId,
+            tag: cleanTag,
+            email: cleanEmail,
             avatar: 'default',
             crew: profile?.crew?.startsWith('CODE:') ? 'Collector' : (profile?.crew || 'Collector'),
             rank: profile?.rank || 'Collector',
             rankBadge: '',
+            role,
+            isBanned: Boolean(profile?.is_banned),
+            banReason: profile?.ban_reason || undefined,
             createdAt: profile?.created_at || new Date().toISOString(),
           };
 
@@ -934,6 +960,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (result.user) {
+        if (checkIsChiefAdmin(result.user)) {
+          result.user.role = 'admin';
+        }
         setUserState(result.user);
         setActiveSession(result.user);
         saveStoredAccountFromSession(result.user);

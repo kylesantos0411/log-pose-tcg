@@ -28,6 +28,7 @@ import { useSettings, CURRENCIES, CurrencyCode } from '@/context/SettingsContext
 import { SupportModal } from '@/components/SupportModal';
 import { AccountModal } from '@/components/AccountModal';
 import { exportBinderToJSON, importBinderFromJSON, getLocalBinder } from '@/lib/user-collection';
+import { checkIsAdmin, checkIsChiefAdmin } from '@/lib/supabase-sync';
 
 export function SettingsModal() {
   const { 
@@ -51,8 +52,8 @@ export function SettingsModal() {
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const isChiefAdmin = user?.email?.toLowerCase() === 'kylesantos0411@gmail.com';
-  const isAdmin = isChiefAdmin || (Boolean(user?.email) && user?.role === 'admin');
+  const isChiefAdmin = checkIsChiefAdmin(user);
+  const isAdmin = checkIsAdmin(user);
 
   if (!isSettingsOpen) return null;
 

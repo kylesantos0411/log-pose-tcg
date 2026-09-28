@@ -24,6 +24,7 @@ import { useSettings } from '@/context/SettingsContext';
 import { SupportModal } from '@/components/SupportModal';
 import { AccountModal } from '@/components/AccountModal';
 import { LatestCardsSyncModal } from '@/components/LatestCardsSyncModal';
+import { checkIsAdmin, checkIsChiefAdmin } from '@/lib/supabase-sync';
 
 interface CleanHomeViewProps {
   totalCards: number;
@@ -43,8 +44,8 @@ export function CleanHomeView({
   const [showLatestSyncModal, setShowLatestSyncModal] = useState(false);
   const [homeSearch, setHomeSearch] = useState('');
 
-  const isChiefAdmin = user?.email?.toLowerCase() === 'kylesantos0411@gmail.com';
-  const isAdmin = isChiefAdmin || (Boolean(user?.email) && user?.role === 'admin');
+  const isChiefAdmin = checkIsChiefAdmin(user);
+  const isAdmin = checkIsAdmin(user);
 
   const handleRefresh = () => {
     setIsRefreshing(true);

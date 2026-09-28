@@ -24,7 +24,8 @@ import { GlobalAnnouncementBanner } from '@/components/GlobalAnnouncementBanner'
 import { 
   fetchSystemSettings, 
   DEFAULT_SYSTEM_SETTINGS, 
-  type SystemSettingsState 
+  type SystemSettingsState,
+  checkIsAdmin
 } from '@/lib/supabase-sync';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -35,8 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [systemSettings, setSystemSettings] = useState<SystemSettingsState>(DEFAULT_SYSTEM_SETTINGS);
   const [loadingSettings, setLoadingSettings] = useState(true);
 
-  const isChiefAdmin = user?.email?.toLowerCase() === 'kylesantos0411@gmail.com';
-  const isAdmin = isChiefAdmin || (Boolean(user?.email) && user?.role === 'admin');
+  const isAdmin = checkIsAdmin(user);
 
   const loadSettings = async () => {
     try {
@@ -65,7 +65,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <MaintenanceScreen
         maintenance={systemSettings.maintenance}
         onRefresh={loadSettings}
-        onAdminLogin={openSettings}
       />
     );
   }
