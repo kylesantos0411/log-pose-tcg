@@ -15,7 +15,7 @@ import {
   Maximize2,
   Minimize2
 } from 'lucide-react';
-import { getSafeCardImageUrl } from '@/lib/card-image';
+import { getSafeCardImageUrl, handleCardImageError } from '@/lib/card-image';
 
 interface SampleCard {
   id: string;
@@ -491,18 +491,13 @@ export default function SetsPage() {
                             idx === 1 ? 'z-10 -translate-y-1' : 'z-0 opacity-85 group-hover:opacity-100'
                           }`}
                         >
-                          {c.imageUrl ? (
-                            <img
-                              src={getSafeCardImageUrl(c.imageUrl)}
-                              alt={c.name}
-                              referrerPolicy="no-referrer"
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-[8px] text-gray-400">
-                              {c.id}
-                            </div>
-                          )}
+                          <img
+                            src={getSafeCardImageUrl(c.imageUrl, c.id)}
+                            alt={c.name}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover"
+                            onError={(e) => handleCardImageError(e, c.id)}
+                          />
                         </div>
                       ))}
                     </div>

@@ -19,7 +19,7 @@ import {
   Flame,
   Calendar,
 } from 'lucide-react';
-import { getSafeCardImageUrl } from '@/lib/card-image';
+import { getSafeCardImageUrl, handleCardImageError } from '@/lib/card-image';
 import { ARTIST_PROFILES } from '@/lib/artist-data';
 import { CardDetailView } from '@/components/CardDetailView';
 import { useSettings } from '@/context/SettingsContext';
@@ -693,16 +693,12 @@ function CardsContent() {
                   >
                     {/* Pure Edge-to-Edge Card Artwork */}
                     <img
-                      src={getSafeCardImageUrl(card.imageUrl)}
+                      src={getSafeCardImageUrl(card.imageUrl, card.id || card.cardNumber)}
                       alt={card.name}
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       loading="lazy"
-                      onError={(e) => {
-                        if (card.imageUrl) {
-                          (e.target as HTMLImageElement).src = `/api/card-image?url=${encodeURIComponent(card.imageUrl)}`;
-                        }
-                      }}
+                      onError={(e) => handleCardImageError(e, card.id || card.cardNumber)}
                     />
 
                     {/* Top-Left Release Set Badge */}
@@ -806,10 +802,11 @@ function CardsContent() {
                 <div className="p-3 rounded-2xl bg-[#1e212c] border border-[#343a4c] flex items-center gap-3">
                   <div className="w-12 h-16 rounded-lg overflow-hidden bg-[#242836] border border-[#343a4c] flex-shrink-0 flex items-center justify-center">
                     <img
-                      src={getSafeCardImageUrl(addModalCard.imageUrl)}
+                      src={getSafeCardImageUrl(addModalCard.imageUrl, addModalCard.id || addModalCard.cardNumber)}
                       alt={addModalCard.name}
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-contain"
+                      onError={(e) => handleCardImageError(e, addModalCard.id || addModalCard.cardNumber)}
                     />
                   </div>
                   <div className="min-w-0 flex-1">

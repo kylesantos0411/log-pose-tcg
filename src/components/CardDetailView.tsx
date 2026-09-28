@@ -33,7 +33,7 @@ import {
   AlertTriangle,
   ShieldAlert
 } from 'lucide-react';
-import { getSafeCardImageUrl, getEditionCardImageUrl, JAPANESE_NAME_MAP } from '@/lib/card-image';
+import { getSafeCardImageUrl, getEditionCardImageUrl, JAPANESE_NAME_MAP, handleCardImageError } from '@/lib/card-image';
 import { getCardArtist, ArtistProfile } from '@/lib/artist-data';
 import { useSettings, CURRENCIES } from '@/context/SettingsContext';
 import { isCardFavorite, toggleCardFavorite } from '@/lib/favorites';
@@ -741,10 +741,10 @@ export function CardDetailView({
               <div className="relative aspect-[7/10] w-full rounded-2xl overflow-hidden bg-[#14161f] border border-[#2d3142] shadow-md flex items-center justify-center group lg:max-w-[320px] lg:mx-auto">
             {!imgErrorJp ? (
               <img
-                src={getSafeCardImageUrl(card.imageUrl) || jpImageUrl}
+                src={getSafeCardImageUrl(card.imageUrl, card.id || card.cardNumber) || jpImageUrl}
                 alt={`${card.name} (Japanese)`}
                 referrerPolicy="no-referrer"
-                onError={() => setImgErrorJp(true)}
+                onError={(e) => handleCardImageError(e, card.id || card.cardNumber)}
                 className="w-full h-full object-contain"
               />
             ) : (
@@ -2179,6 +2179,7 @@ export function CardDetailView({
                               alt={v.id}
                               className="w-full h-full object-contain"
                               loading="lazy"
+                              onError={(e) => handleCardImageError(e, v.id)}
                             />
                           </div>
                           <div className="min-w-0 flex-1">
@@ -2284,9 +2285,7 @@ export function CardDetailView({
                           referrerPolicy="no-referrer"
                           className="w-full h-full object-contain group-hover:scale-105 transition duration-300"
                           loading="lazy"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = `https://onepiece-cardgame.com/images/cardlist/card/${feat.id.split('_')[0]}.png`;
-                          }}
+                          onError={(e) => handleCardImageError(e, feat.id)}
                         />
                         <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/85 text-[9px] font-bold text-white backdrop-blur flex items-center gap-1 border border-white/10">
                           <span>{feat.id}</span>
@@ -2466,6 +2465,7 @@ export function CardDetailView({
                           alt={v.id}
                           className="w-full h-full object-contain"
                           loading="lazy"
+                          onError={(e) => handleCardImageError(e, v.id)}
                         />
                       </div>
                       <div className="min-w-0 flex-1 space-y-1">

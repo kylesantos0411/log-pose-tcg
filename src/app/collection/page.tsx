@@ -33,7 +33,7 @@ import {
   AlertTriangle,
   ShieldAlert,
 } from 'lucide-react';
-import { getSafeCardImageUrl } from '@/lib/card-image';
+import { getSafeCardImageUrl, handleCardImageError } from '@/lib/card-image';
 import { useSettings } from '@/context/SettingsContext';
 import { CardDetailView } from '@/components/CardDetailView';
 import { AccountModal } from '@/components/AccountModal';
@@ -790,11 +790,12 @@ export default function CollectionPage() {
                 {/* Card Artwork Thumbnail */}
                 <div className="w-12 h-16 sm:w-14 sm:h-20 bg-[#1a1c25] rounded-xl overflow-hidden flex-shrink-0 border border-white/10 relative shadow-inner">
                   <img
-                    src={getSafeCardImageUrl(card.imageUrl)}
+                    src={getSafeCardImageUrl(card.imageUrl, card.id)}
                     alt={card.name}
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                     loading="lazy"
+                    onError={(e) => handleCardImageError(e, card.id)}
                   />
                   {item.quantity > 1 && (
                     <span className="absolute bottom-1 right-1 px-1.5 py-0.2 rounded-md bg-black/85 backdrop-blur-sm text-[9px] font-black text-white border border-white/20">
@@ -953,11 +954,12 @@ export default function CollectionPage() {
               >
                 {/* Pure Card Artwork */}
                 <img
-                  src={getSafeCardImageUrl(card.imageUrl)}
+                  src={getSafeCardImageUrl(card.imageUrl, card.id)}
                   alt={card.name}
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   loading="lazy"
+                  onError={(e) => handleCardImageError(e, card.id)}
                 />
 
                 {/* Top Badge: SOLD / Quantity */}
@@ -1015,9 +1017,10 @@ export default function CollectionPage() {
             <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#1b1e2a] border border-[#343a4c]">
               <div className="w-12 h-16 rounded-xl overflow-hidden bg-black/40 flex-shrink-0 border border-white/10">
                 <img
-                  src={getSafeCardImageUrl(sellingItem.card.imageUrl)}
+                  src={getSafeCardImageUrl(sellingItem.card.imageUrl, sellingItem.card.id)}
                   alt={sellingItem.card.name}
                   className="w-full h-full object-cover"
+                  onError={(e) => handleCardImageError(e, sellingItem.card.id)}
                 />
               </div>
               <div className="min-w-0 flex-1">

@@ -15,7 +15,7 @@ import {
   User
 } from 'lucide-react';
 import { RECOMMENDED_DECKS, RecommendedDeck } from '@/lib/recommended-decks';
-import { getEditionCardImageUrl } from '@/lib/card-image';
+import { getEditionCardImageUrl, handleCardImageError } from '@/lib/card-image';
 
 type MetaFilter = 'ALL' | 'TIER_1' | 'FLAGSHIP' | 'CHAMPIONSHIP' | 'STANDARD_BATTLE' | 'TREASURE_CUP' | 'OP16' | 'OP15' | 'OP14' | 'EB04' | 'OP09' | 'OP08' | 'OP17';
 type ColorFilter = 'ALL' | 'Red' | 'Blue' | 'Green' | 'Purple' | 'Black' | 'Yellow';
@@ -327,14 +327,7 @@ export default function RecommendedDecksPage() {
                         alt={deck.name}
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          const baseId = (deck.leaderId || '').split('_')[0];
-                          const fallback = `/api/card-image?url=${encodeURIComponent(`https://onepiece-cardgame.com/images/cardlist/card/${baseId}.png`)}`;
-                          if (target.src !== fallback) {
-                            target.src = fallback;
-                          }
-                        }}
+                        onError={(e) => handleCardImageError(e, deck.leaderId)}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
                       {/* Floating Meta Tag on thumbnail */}

@@ -13,7 +13,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { getSafeCardImageUrl } from '@/lib/card-image';
+import { getSafeCardImageUrl, handleCardImageError } from '@/lib/card-image';
 import { useSettings } from '@/context/SettingsContext';
 import { CardDetailView } from '@/components/CardDetailView';
 import { getFavoriteCardIds, toggleCardFavorite } from '@/lib/favorites';
@@ -303,16 +303,12 @@ export default function FavoritesPage() {
                 >
                   {/* Card Artwork */}
                   <img
-                    src={getSafeCardImageUrl(card.imageUrl)}
+                    src={getSafeCardImageUrl(card.imageUrl, card.id)}
                     alt={card.name}
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     loading="lazy"
-                    onError={(e) => {
-                      if (card.imageUrl) {
-                        (e.target as HTMLImageElement).src = `/api/card-image?url=${encodeURIComponent(card.imageUrl)}`;
-                      }
-                    }}
+                    onError={(e) => handleCardImageError(e, card.id)}
                   />
 
                   {/* Top-Left Release Set Badge */}
