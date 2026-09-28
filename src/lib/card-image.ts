@@ -60,20 +60,26 @@ const JP_CARD_IMAGE_MAP: Record<string, string> = {
   'OP05-119_p6': 'https://onepiece-cardgame.com/images/cardlist/card/OP05-119_p5.png',   // WANTED POSTER SP (¥59,800)
   'OP05-119_p7': 'https://onepiece-cardgame.com/images/cardlist/card/OP05-119_p6.png',   // Silver Parallel SP (¥498,000)
   'OP05-119_p8': 'https://onepiece-cardgame.com/images/cardlist/card/OP05-119_p7.png',   // Gold Parallel SP (¥1,280,000)
+
+  // EB04-061 Monkey.D.Luffy (OP-17 / EB-04 The World's Strongest Warriors)
+  'EB04-061':    'https://asia-en.onepiece-cardgame.com/images/cardlist/card/EB04-061.png',       // Base SEC Laughing Gear 5
+  'EB04-061_p1': 'https://asia-en.onepiece-cardgame.com/images/cardlist/card/EB04-061_p1.png',    // Parallel Alt Art (Lightning/Stars)
+  'EB04-061_p2': 'https://asia-en.onepiece-cardgame.com/images/cardlist/card/EB04-061_p3.png',    // Manga Rare Super Parallel (Straw Hat Crew Medallion - ¥1,480,000)
+  'EB04-061_p3': 'https://asia-en.onepiece-cardgame.com/images/cardlist/card/EB04-061_p3.png',    // Manga Rare Super Parallel (Bandai Series 556117)
 };
 
 /**
  * Returns the official Bandai card image URL for Japanese edition.
  */
 export function getEditionCardImageUrl(cardId: string, lang: 'en' | 'jp' = 'jp', fallbackUrl?: string | null): string {
+  // Check explicit Japanese map first to prevent index shifts between EN and JP Bandai
+  if (JP_CARD_IMAGE_MAP[cardId]) {
+    return getSafeCardImageUrl(JP_CARD_IMAGE_MAP[cardId], cardId);
+  }
+
   // If fallbackUrl is a direct high-resolution Bandai Asia-EN, Yuyu-tei or asset image, use it!
   if (fallbackUrl && (fallbackUrl.includes('asia-en.onepiece-cardgame.com') || fallbackUrl.includes('yuyu-tei.jp') || fallbackUrl.includes('/cards/'))) {
     return getSafeCardImageUrl(fallbackUrl, cardId);
-  }
-
-  // Check explicit Japanese map first to prevent index shifts between EN and JP Bandai
-  if (lang === 'jp' && JP_CARD_IMAGE_MAP[cardId]) {
-    return getSafeCardImageUrl(JP_CARD_IMAGE_MAP[cardId], cardId);
   }
 
   // Prefer official Bandai card image

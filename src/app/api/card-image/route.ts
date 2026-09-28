@@ -183,13 +183,43 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  const SPECIAL_CARD_OVERRIDES: Record<string, string> = {
+    'EB04-061_P2': 'https://asia-en.onepiece-cardgame.com/images/cardlist/card/EB04-061_p3.png',
+    'EB04-061_P3': 'https://asia-en.onepiece-cardgame.com/images/cardlist/card/EB04-061_p3.png',
+  };
+
+  const upperCleanId = cleanId.toUpperCase();
+  const isSpecialOverridden = Boolean(SPECIAL_CARD_OVERRIDES[upperCleanId]);
+
+  // Check if a direct local card asset exists (e.g. public/cards/EB04-061_p3.png)
+  const directAssetFile = upperCleanId === 'EB04-061_P2' || upperCleanId === 'EB04-061_P3'
+    ? path.join(CACHE_DIR, 'EB04-061_p3.png')
+    : path.join(CACHE_DIR, `${cleanId}.png`);
+
+  if (fs.existsSync(directAssetFile)) {
+    try {
+      const buffer = fs.readFileSync(directAssetFile);
+      if (buffer.length > 200) {
+        return new NextResponse(new Uint8Array(buffer), {
+          status: 200,
+          headers: {
+            'Content-Type': 'image/png',
+            'Cache-Control': 'public, max-age=2592000, immutable',
+          },
+        });
+      }
+    } catch {}
+  }
+
   // Local disk cache check (keyed by url or id)
-  const cacheKey = url || `card_${cleanId}`;
+  const cacheKey = isSpecialOverridden
+    ? SPECIAL_CARD_OVERRIDES[upperCleanId]
+    : (url || `card_${cleanId}`);
   const hash = crypto.createHash('md5').update(cacheKey).digest('hex');
   const cacheFile = path.join(CACHE_DIR, `${hash}.bin`);
   const metaFile = path.join(CACHE_DIR, `${hash}.meta`);
 
-  if (fs.existsSync(cacheFile) && fs.existsSync(metaFile)) {
+  if (!isSpecialOverridden && fs.existsSync(cacheFile) && fs.existsSync(metaFile)) {
     try {
       const buffer = fs.readFileSync(cacheFile);
       const meta = JSON.parse(fs.readFileSync(metaFile, 'utf8'));
@@ -206,23 +236,25 @@ export async function GET(req: NextRequest) {
   }
 
   // Construct candidates in priority order:
-  // 1. Primary url (e.g. Yuyu-tei store scan)
-  // 2. Official Bandai Japan card scan
+  // 1. Explicit override if registered
+  // 2. Primary url (e.g. Yuyu-tei store scan)
   // 3. Official Bandai Asia-EN card scan
-  // 4. Base card Japanese Bandai scan
-  // 5. Base card Asia-EN Bandai scan
-  // 6. Global Bandai scan
+  // 4. Official Bandai Japan card scan
+  // 5. Base card Japanese / Asia-EN Bandai scan
   const candidates: string[] = [];
-  if (url) {
+  if (isSpecialOverridden) {
+    candidates.push(SPECIAL_CARD_OVERRIDES[upperCleanId]);
+  }
+  if (url && !isSpecialOverridden) {
     candidates.push(url);
   }
   if (cleanId) {
-    candidates.push(`https://onepiece-cardgame.com/images/cardlist/card/${cleanId}.png`);
     candidates.push(`https://asia-en.onepiece-cardgame.com/images/cardlist/card/${cleanId}.png`);
+    candidates.push(`https://onepiece-cardgame.com/images/cardlist/card/${cleanId}.png`);
   }
   if (baseId && baseId !== cleanId) {
-    candidates.push(`https://onepiece-cardgame.com/images/cardlist/card/${baseId}.png`);
     candidates.push(`https://asia-en.onepiece-cardgame.com/images/cardlist/card/${baseId}.png`);
+    candidates.push(`https://onepiece-cardgame.com/images/cardlist/card/${baseId}.png`);
     candidates.push(`https://en.onepiece-cardgame.com/images/cardlist/card/${baseId}.png`);
   }
 
