@@ -16,11 +16,20 @@ export async function GET(req: NextRequest) {
     const rawLimit = parseInt(searchParams.get('limit') || '36', 10);
     const limit = isNaN(rawLimit) || rawLimit < 1 ? 36 : Math.min(rawLimit, 100);
 
-    // JP-only mode: always show only cards with a Yuyu-tei price
-    const where: any = {
-      hasJpPrint: true,
-      yuyuPrice: { not: null, gt: 0 },
-    };
+    const isVintageQuery =
+      (category && category.toLowerCase() === 'vintage') ||
+      (set && /^HB/i.test(set.trim())) ||
+      searchParams.get('isVintage') === 'true';
+
+    // JP-only mode: show cards with Yuyu-tei price for modern, or vintage cards
+    const where: any = isVintageQuery
+      ? { isVintage: true }
+      : {
+          OR: [
+            { hasJpPrint: true, yuyuPrice: { not: null, gt: 0 } },
+            { isVintage: true },
+          ],
+        };
 
     const idsParam = searchParams.get('ids');
     if (idsParam) {
@@ -29,6 +38,8 @@ export async function GET(req: NextRequest) {
         where.id = { in: targetIds };
         delete where.hasJpPrint;
         delete where.yuyuPrice;
+        delete where.OR;
+        delete where.isVintage;
       }
     }
 
