@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import { AccountModal } from '@/components/AccountModal';
-import { getEditionCardImageUrl } from '@/lib/card-image';
+import { getEditionCardImageUrl, handleCardImageError } from '@/lib/card-image';
 import type { LocalUserCard } from '@/lib/user-collection';
 import {
   fetchFriendships,
@@ -685,6 +685,8 @@ export default function FriendsPage() {
                               alt={c.card?.name || c.cardId}
                               className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                               loading="lazy"
+                              referrerPolicy="no-referrer"
+                              onError={(e) => handleCardImageError(e, c.cardId)}
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">
