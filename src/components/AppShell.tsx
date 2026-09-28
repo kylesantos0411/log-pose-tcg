@@ -35,12 +35,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [systemSettings, setSystemSettings] = useState<SystemSettingsState>(DEFAULT_SYSTEM_SETTINGS);
   const [loadingSettings, setLoadingSettings] = useState(true);
 
-  const isChiefAdmin = user?.email?.toLowerCase() === 'kylesantos0411@gmail.com' ||
-    user?.tag?.toLowerCase() === '@kaipuccino' ||
-    user?.tag?.toLowerCase() === 'kaipuccino' ||
-    user?.name?.toLowerCase() === 'kaipuccino';
-
-  const isAdmin = user?.role === 'admin' || isChiefAdmin;
+  const isChiefAdmin = user?.email?.toLowerCase() === 'kylesantos0411@gmail.com';
+  const isAdmin = isChiefAdmin || (Boolean(user?.email) && user?.role === 'admin');
 
   const loadSettings = async () => {
     try {

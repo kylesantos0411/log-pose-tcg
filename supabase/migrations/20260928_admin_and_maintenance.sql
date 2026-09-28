@@ -11,13 +11,10 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS ban_reason TEXT,
   ADD COLUMN IF NOT EXISTS banned_at TIMESTAMPTZ;
 
--- 2. Automatically assign 'admin' role to kaipuccino / kylesantos0411@gmail.com
+-- 2. Automatically assign 'admin' role exclusively to kylesantos0411@gmail.com
 UPDATE public.profiles
 SET role = 'admin'
-WHERE lower(email) = 'kylesantos0411@gmail.com'
-   OR lower(tag) = '@kaipuccino'
-   OR lower(tag) = 'kaipuccino'
-   OR lower(username) = 'kaipuccino';
+WHERE lower(email) = 'kylesantos0411@gmail.com';
 
 -- 3. Create system_settings table for maintenance killswitch & global announcements
 CREATE TABLE IF NOT EXISTS public.system_settings (

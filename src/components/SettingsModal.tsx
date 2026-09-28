@@ -51,12 +51,8 @@ export function SettingsModal() {
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const isChiefAdmin = user?.email?.toLowerCase() === 'kylesantos0411@gmail.com' ||
-    user?.tag?.toLowerCase() === '@kaipuccino' ||
-    user?.tag?.toLowerCase() === 'kaipuccino' ||
-    user?.name?.toLowerCase() === 'kaipuccino';
-
-  const isAdmin = user?.role === 'admin' || isChiefAdmin;
+  const isChiefAdmin = user?.email?.toLowerCase() === 'kylesantos0411@gmail.com';
+  const isAdmin = isChiefAdmin || (Boolean(user?.email) && user?.role === 'admin');
 
   if (!isSettingsOpen) return null;
 

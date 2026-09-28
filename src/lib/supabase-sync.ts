@@ -40,10 +40,7 @@ export async function fetchCloudProfile(userId: string): Promise<CloudProfile | 
     if (error || !data) return null;
 
     const userRole: 'admin' | 'user' = data.role === 'admin' ||
-      data.email?.toLowerCase() === 'kylesantos0411@gmail.com' ||
-      data.tag?.toLowerCase() === '@kaipuccino' ||
-      data.tag?.toLowerCase() === 'kaipuccino' ||
-      data.username?.toLowerCase() === 'kaipuccino'
+      data.email?.toLowerCase() === 'kylesantos0411@gmail.com'
         ? 'admin'
         : 'user';
 
@@ -1679,10 +1676,7 @@ export async function fetchAllUsersForAdmin(): Promise<AdminUserRecord[]> {
     });
 
     return profiles.map((p) => {
-      const isChiefAdmin = p.email?.toLowerCase() === 'kylesantos0411@gmail.com' ||
-        p.tag?.toLowerCase() === '@kaipuccino' ||
-        p.tag?.toLowerCase() === 'kaipuccino' ||
-        p.username?.toLowerCase() === 'kaipuccino';
+      const isChiefAdmin = p.email?.toLowerCase() === 'kylesantos0411@gmail.com';
 
       return {
         id: p.id,

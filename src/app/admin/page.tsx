@@ -229,13 +229,9 @@ export default function AdminPage() {
     }
   }
 
-  // Check if current user is admin
-  const isChiefAdmin = user?.email?.toLowerCase() === 'kylesantos0411@gmail.com' ||
-    user?.tag?.toLowerCase() === '@kaipuccino' ||
-    user?.tag?.toLowerCase() === 'kaipuccino' ||
-    user?.name?.toLowerCase() === 'kaipuccino';
-
-  const isAdmin = user?.role === 'admin' || isChiefAdmin;
+  // Check if current user is admin (Strictly locked to your verified account)
+  const isChiefAdmin = user?.email?.toLowerCase() === 'kylesantos0411@gmail.com';
+  const isAdmin = isChiefAdmin || (Boolean(user?.email) && user?.role === 'admin');
 
   if (!isAdmin) {
     return (

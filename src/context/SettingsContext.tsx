@@ -358,10 +358,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
       const active = getActiveSession();
       if (active) {
-        const isChiefAdmin = active.email?.toLowerCase() === 'kylesantos0411@gmail.com' ||
-          active.tag?.toLowerCase() === '@kaipuccino' ||
-          active.tag?.toLowerCase() === 'kaipuccino' ||
-          active.name?.toLowerCase() === 'kaipuccino';
+        const isChiefAdmin = active.email?.toLowerCase() === 'kylesantos0411@gmail.com';
         if (isChiefAdmin && active.role !== 'admin') {
           active.role = 'admin';
         }
@@ -498,11 +495,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       const avatar = 'default';
       const crew = cloud?.crew?.startsWith('CODE:') ? 'Collector' : (cloud?.crew || 'Collector');
 
-      const isChiefAdmin = sbUser.email?.toLowerCase() === 'kylesantos0411@gmail.com' ||
-        tag.toLowerCase() === '@kaipuccino' ||
-        tag.toLowerCase() === 'kaipuccino' ||
-        name.toLowerCase() === 'kaipuccino';
-
+      const isChiefAdmin = sbUser.email?.toLowerCase() === 'kylesantos0411@gmail.com';
       const role: 'admin' | 'user' = (cloud?.role === 'admin' || isChiefAdmin) ? 'admin' : 'user';
 
       const userProfile: UserProfile = {

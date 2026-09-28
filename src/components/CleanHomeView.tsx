@@ -43,12 +43,8 @@ export function CleanHomeView({
   const [showLatestSyncModal, setShowLatestSyncModal] = useState(false);
   const [homeSearch, setHomeSearch] = useState('');
 
-  const isChiefAdmin = user?.email?.toLowerCase() === 'kylesantos0411@gmail.com' ||
-    user?.tag?.toLowerCase() === '@kaipuccino' ||
-    user?.tag?.toLowerCase() === 'kaipuccino' ||
-    user?.name?.toLowerCase() === 'kaipuccino';
-
-  const isAdmin = user?.role === 'admin' || isChiefAdmin;
+  const isChiefAdmin = user?.email?.toLowerCase() === 'kylesantos0411@gmail.com';
+  const isAdmin = isChiefAdmin || (Boolean(user?.email) && user?.role === 'admin');
 
   const handleRefresh = () => {
     setIsRefreshing(true);
