@@ -396,6 +396,10 @@ export interface CloudSaleRecord {
   quantity: number;
   isPublic: boolean;
   buyerSource?: string;
+  buyerUserTag?: string;
+  verifiedByBuyer?: boolean;
+  isOutlier?: boolean;
+  flagsCount?: number;
   notes?: string;
   createdAt: string;
 }
@@ -420,6 +424,8 @@ export async function recordCloudSale(
     quantity: number;
     isPublic: boolean;
     buyerSource?: string;
+    buyerUserTag?: string;
+    isOutlier?: boolean;
     notes?: string;
   }
 ): Promise<{ success: boolean; saleId?: string; error?: string }> {
@@ -444,6 +450,18 @@ export async function recordCloudSale(
   }
 
   try {
+    // Velocity Rate Limiting: Max 5 sales per card variant per user in 24 hours
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: recentCount } = await client
+      .from('card_sales')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', targetUserId)
+      .eq('card_id', sale.cardId)
+      .gte('created_at', oneDayAgo);
+
+    const isRateLimited = (recentCount || 0) >= 5;
+    const finalIsPublic = isRateLimited ? false : (sale.isPublic !== false);
+
     // 1. Insert into card_sales
     const { data: insertedSale, error: saleErr } = await client
       .from('card_sales')
@@ -459,8 +477,12 @@ export async function recordCloudSale(
         sold_currency: sale.soldCurrency || 'PHP',
         sold_date: sale.soldDate,
         quantity: sale.quantity || 1,
-        is_public: sale.isPublic !== false,
+        is_public: finalIsPublic,
         buyer_source: sale.buyerSource || null,
+        buyer_user_tag: sale.buyerUserTag || null,
+        is_outlier: Boolean(sale.isOutlier),
+        verified_by_buyer: false,
+        flags_count: 0,
         notes: sale.notes || null,
       })
       .select('id')
@@ -712,6 +734,10 @@ export async function fetchCommunitySales(
           quantity: s.soldQuantity || s.quantity || 1,
           isPublic: s.isPublicSale !== false,
           buyerSource: s.buyerSource || undefined,
+          buyerUserTag: s.buyerUserTag || undefined,
+          verifiedByBuyer: s.verifiedByBuyer,
+          isOutlier: s.isOutlier,
+          flagsCount: s.flagsCount || 0,
           notes: s.buyerNotes || s.notes || undefined,
           createdAt: s.createdAt,
         });
@@ -755,6 +781,10 @@ export async function fetchCommunitySales(
           quantity: r.quantity || 1,
           isPublic: Boolean(r.is_public),
           buyerSource: r.buyer_source,
+          buyerUserTag: r.buyer_user_tag || undefined,
+          verifiedByBuyer: Boolean(r.verified_by_buyer),
+          isOutlier: Boolean(r.is_outlier),
+          flagsCount: r.flags_count || 0,
           notes: r.notes,
           createdAt: r.created_at,
         }));
@@ -792,6 +822,190 @@ export async function fetchCommunitySales(
 
   // 6. Return limited records
   return filtered.slice(0, options?.limit || 30);
+}
+
+/**
+ * Report a suspicious or manipulative sale record
+ */
+export async function reportSuspiciousSale(saleId: string): Promise<{ success: boolean }> {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('logpose_reported_sales') || '[]';
+      const arr = JSON.parse(stored);
+      if (!arr.includes(saleId)) {
+        arr.push(saleId);
+        localStorage.setItem('logpose_reported_sales', JSON.stringify(arr));
+      }
+    } catch {}
+  }
+
+  const client = getSupabaseBrowserClient();
+  if (client && isSupabaseConfigured() && isValidUuid(saleId)) {
+    try {
+      await client.rpc('report_suspicious_sale', { target_sale_id: saleId });
+    } catch (err) {
+      console.warn('Could not increment cloud flag count:', err);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('logpose_collection_updated'));
+  }
+
+  return { success: true };
+}
+
+/**
+ * Confirm a mutual friend trade
+ */
+export async function confirmMutualTrade(saleId: string, buyerTag: string): Promise<{ success: boolean }> {
+  // Update local binders if found
+  if (typeof window !== 'undefined') {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('logpose_binder_') || key === 'logpose_user_binder')) {
+          const raw = localStorage.getItem(key);
+          if (!raw) continue;
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            let modified = false;
+            for (const item of parsed) {
+              if (item.id === saleId || item.saleId === saleId) {
+                item.verifiedByBuyer = true;
+                modified = true;
+              }
+            }
+            if (modified) {
+              localStorage.setItem(key, JSON.stringify(parsed));
+            }
+          }
+        }
+      }
+    } catch {}
+  }
+
+  // Update cloud card_sales if configured
+  const client = getSupabaseBrowserClient();
+  if (client && isSupabaseConfigured() && isValidUuid(saleId)) {
+    try {
+      await client.rpc('confirm_mutual_trade', {
+        target_sale_id: saleId,
+        buyer_tag: buyerTag,
+      });
+    } catch {
+      // Fallback direct update
+      await client
+        .from('card_sales')
+        .update({ verified_by_buyer: true, is_verified: true })
+        .eq('id', saleId);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('logpose_collection_updated'));
+  }
+
+  return { success: true };
+}
+
+/**
+ * Fetch trades pending mutual confirmation for a specific user tag
+ */
+export async function fetchPendingTradeConfirmations(buyerTag: string): Promise<CloudSaleRecord[]> {
+  const cleanTag = buyerTag.trim().toLowerCase();
+  const pending: CloudSaleRecord[] = [];
+
+  // 1. Check local storage
+  if (typeof window !== 'undefined') {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('logpose_binder_') || key === 'logpose_user_binder')) {
+          const raw = localStorage.getItem(key);
+          if (!raw) continue;
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            for (const item of parsed) {
+              if (
+                item.status === 'SOLD' &&
+                item.buyerUserTag &&
+                item.buyerUserTag.trim().toLowerCase() === cleanTag &&
+                !item.verifiedByBuyer
+              ) {
+                pending.push({
+                  id: item.saleId || item.id,
+                  userId: 'local',
+                  userCardId: item.id,
+                  cardId: item.cardId,
+                  cardName: item.card?.name || item.cardId,
+                  condition: item.condition || 'NM',
+                  isFoil: Boolean(item.isFoil),
+                  language: item.language || 'jp',
+                  soldPrice: Number(item.soldPrice),
+                  soldCurrency: item.soldCurrency || 'PHP',
+                  soldDate: item.soldDate || item.createdAt?.slice(0, 10),
+                  quantity: item.soldQuantity || item.quantity || 1,
+                  isPublic: item.isPublicSale !== false,
+                  buyerSource: item.buyerSource || 'Sold to Friend',
+                  buyerUserTag: item.buyerUserTag,
+                  verifiedByBuyer: false,
+                  isOutlier: item.isOutlier,
+                  flagsCount: item.flagsCount || 0,
+                  notes: item.buyerNotes || item.notes || undefined,
+                  createdAt: item.createdAt,
+                });
+              }
+            }
+          }
+        }
+      }
+    } catch {}
+  }
+
+  // 2. Check Supabase cloud
+  const client = getSupabaseBrowserClient();
+  if (client && isSupabaseConfigured()) {
+    try {
+      const { data, error } = await client
+        .from('card_sales')
+        .select('*')
+        .ilike('buyer_user_tag', cleanTag)
+        .eq('verified_by_buyer', false)
+        .order('sold_date', { ascending: false });
+
+      if (!error && data) {
+        for (const r of data) {
+          if (!pending.some((p) => p.id === r.id)) {
+            pending.push({
+              id: r.id,
+              userId: r.user_id,
+              userCardId: r.user_card_id,
+              cardId: r.card_id,
+              cardName: r.card_name,
+              condition: r.condition,
+              isFoil: Boolean(r.is_foil),
+              language: r.language,
+              soldPrice: Number(r.sold_price),
+              soldCurrency: r.sold_currency || 'PHP',
+              soldDate: r.sold_date,
+              quantity: r.quantity || 1,
+              isPublic: Boolean(r.is_public),
+              buyerSource: r.buyer_source,
+              buyerUserTag: r.buyer_user_tag || undefined,
+              verifiedByBuyer: false,
+              isOutlier: Boolean(r.is_outlier),
+              flagsCount: r.flags_count || 0,
+              notes: r.notes,
+              createdAt: r.created_at,
+            });
+          }
+        }
+      }
+    } catch {}
+  }
+
+  return pending;
 }
 
 /**

@@ -29,11 +29,21 @@ import {
   ShoppingBag,
   AlertCircle,
   HelpCircle,
+  ShieldCheck,
+  AlertTriangle,
+  ShieldAlert,
 } from 'lucide-react';
 import { getSafeCardImageUrl } from '@/lib/card-image';
 import { useSettings } from '@/context/SettingsContext';
 import { CardDetailView } from '@/components/CardDetailView';
 import { AccountModal } from '@/components/AccountModal';
+import {
+  fetchFriendships,
+  fetchPendingTradeConfirmations,
+  confirmMutualTrade,
+  type FriendshipProfile,
+  type CloudSaleRecord
+} from '@/lib/supabase-sync';
 import { 
   getLocalBinder, 
   removeCardFromLocalBinder, 
@@ -96,6 +106,12 @@ export default function CollectionPage() {
   const [isPublicSale, setIsPublicSale] = useState<boolean>(true);
   const [sellError, setSellError] = useState<string | null>(null);
 
+  // Anti-Manipulation & Mutual Trade state
+  const [friendsList, setFriendsList] = useState<FriendshipProfile[]>([]);
+  const [pendingTrades, setPendingTrades] = useState<CloudSaleRecord[]>([]);
+  const [isFriendSale, setIsFriendSale] = useState(false);
+  const [selectedFriendTag, setSelectedFriendTag] = useState<string>('');
+
   // Undo Sale Confirmation state
   const [undoingItem, setUndoingItem] = useState<UserCardRecord | null>(null);
 
@@ -112,6 +128,9 @@ export default function CollectionPage() {
 
     const handleUpdate = () => {
       loadCollection();
+      if (user?.tag) {
+        fetchPendingTradeConfirmations(user.tag).then(setPendingTrades).catch(() => {});
+      }
     };
 
     window.addEventListener('logpose_collection_updated', handleUpdate);
@@ -121,6 +140,24 @@ export default function CollectionPage() {
       window.removeEventListener('logpose_auth_changed', handleUpdate);
     };
   }, [user?.tag]);
+
+  // Load friends and pending trade confirmations for anti-manipulation
+  useEffect(() => {
+    if (user?.id) {
+      fetchFriendships(user.id)
+        .then((fs) => {
+          setFriendsList(fs.filter((f) => f.status === 'accepted'));
+        })
+        .catch(() => {});
+    }
+    if (user?.tag) {
+      fetchPendingTradeConfirmations(user.tag)
+        .then((trades) => {
+          setPendingTrades(trades);
+        })
+        .catch(() => {});
+    }
+  }, [user?.id, user?.tag]);
 
   // Set default sold currency based on user currency setting
   useEffect(() => {
@@ -155,6 +192,27 @@ export default function CollectionPage() {
   const portfolioStats = useMemo(() => (ownedItems.length > 0 ? getLocalBinderStats(ownedItems) : null), [ownedItems]);
   const soldStats = useMemo(() => (soldItems.length > 0 ? getSoldStats(soldItems) : null), [soldItems]);
 
+  // Calculate benchmark in active soldCurrency for outlier warning
+  const suggestedBenchmark = useMemo(() => {
+    if (!sellingItem?.card) return null;
+    const c = sellingItem.card;
+    if (c.yuyuPrice) {
+      return soldCurrency === 'JPY'
+        ? c.yuyuPrice
+        : Math.round((c.yuyuPrice / 152) * (soldCurrency === 'PHP' ? 57.5 : 1));
+    }
+    if (c.marketPrice) {
+      return Math.round(c.marketPrice * (soldCurrency === 'PHP' ? 57.5 : soldCurrency === 'JPY' ? 152 : 1));
+    }
+    return null;
+  }, [sellingItem, soldCurrency]);
+
+  const isOutlierPrice = useMemo(() => {
+    const num = parseFloat(soldPrice);
+    if (!num || isNaN(num) || !suggestedBenchmark || suggestedBenchmark <= 0) return false;
+    return num > suggestedBenchmark * 3.0 || num < suggestedBenchmark * 0.2;
+  }, [soldPrice, suggestedBenchmark]);
+
   async function handleDelete(id: string, cardName: string) {
     if (!confirm(`Remove ${cardName} from your collection?`)) return;
     removeCardFromLocalBinder(id, user?.tag || null);
@@ -178,6 +236,8 @@ export default function CollectionPage() {
     setSoldQuantity(1);
     setSoldDate(new Date().toISOString().slice(0, 10));
     setBuyerSource('');
+    setIsFriendSale(false);
+    setSelectedFriendTag('');
     setSoldNotes(item.notes || '');
     setIsPublicSale(true);
     setSellError(null);
@@ -193,6 +253,10 @@ export default function CollectionPage() {
     }
     if (!soldDate) {
       setSellError('Please select a valid sold date.');
+      return;
+    }
+    if (isFriendSale && !selectedFriendTag) {
+      setSellError('Please select or specify the friend tag you sold this card to.');
       return;
     }
     setSellError(null);
@@ -213,7 +277,9 @@ export default function CollectionPage() {
         soldDate,
         quantity: soldQuantity,
         isPublic: isPublicSale,
-        buyerSource: buyerSource.trim() || undefined,
+        buyerSource: isFriendSale ? 'Sold to Friend' : (buyerSource.trim() || undefined),
+        buyerUserTag: isFriendSale && selectedFriendTag ? selectedFriendTag : undefined,
+        isOutlier: isOutlierPrice,
         notes: soldNotes.trim() || undefined,
       },
       user?.tag || null
@@ -224,6 +290,18 @@ export default function CollectionPage() {
     const cardTitle = sellingItem.card?.name || sellingItem.cardId;
     setSellingItem(null);
     showToast(`Marked ${cardTitle} as sold for ${soldCurrency === 'PHP' ? '₱' : soldCurrency === 'JPY' ? '¥' : '$'}${priceNum.toLocaleString()}!`);
+  }
+
+  // Confirm a trade from a friend with 1 click
+  async function handleConfirmPendingTrade(sale: CloudSaleRecord) {
+    if (!user?.tag) return;
+    const currSymbol = sale.soldCurrency === 'PHP' ? '₱' : sale.soldCurrency === 'JPY' ? '¥' : '$';
+    if (!confirm(`Confirm trade of ${sale.cardName || sale.cardId} for ${currSymbol}${sale.soldPrice.toLocaleString()}? This will verify the trade and award a Verified Mutual Trade badge.`)) return;
+
+    await confirmMutualTrade(sale.id, user.tag);
+    setPendingTrades((prev) => prev.filter((p) => p.id !== sale.id));
+    showToast(`Verified trade for ${sale.cardName || sale.cardId}! Verified badge awarded.`);
+    loadCollection();
   }
 
   // Confirm Undo Sale
@@ -457,6 +535,54 @@ export default function CollectionPage() {
               <UserPlus className="w-3.5 h-3.5" />
               <span>Create Account</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Pending Mutual Trade Confirmations Banner */}
+      {pendingTrades.length > 0 && (
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-[#202938] to-[#1c2230] border border-emerald-500/40 shadow-md space-y-2.5 animate-in fade-in">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs font-black text-white">
+                Pending Trade Verifications ({pendingTrades.length})
+              </span>
+            </div>
+            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              Verified Trades
+            </span>
+          </div>
+          <p className="text-[11px] text-gray-400 leading-snug">
+            Friends logged a sale to you. Confirm the purchase below to award a <strong>Verified Mutual Trade</strong> badge!
+          </p>
+          <div className="space-y-2 pt-0.5">
+            {pendingTrades.map((t) => (
+              <div
+                key={t.id}
+                className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#161922] border border-[#2d3246] text-xs"
+              >
+                <div className="min-w-0">
+                  <span className="font-bold text-white truncate block">{t.cardName || t.cardId}</span>
+                  <span className="text-[11px] text-gray-400 font-mono">
+                    Price:{' '}
+                    <strong className="text-emerald-400 font-bold">
+                      {t.soldCurrency === 'PHP' ? '₱' : t.soldCurrency === 'JPY' ? '¥' : '$'}
+                      {t.soldPrice.toLocaleString()}
+                    </strong>{' '}
+                    &bull; {t.soldDate}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleConfirmPendingTrade(t)}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition cursor-pointer flex items-center gap-1 shadow flex-shrink-0"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Confirm Purchase</span>
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -946,6 +1072,15 @@ export default function CollectionPage() {
                       className="flex-1 px-3 py-2.5 rounded-xl bg-[#1b1e2a] border border-[#343a4c] text-white font-black text-sm placeholder-gray-500 focus:outline-none focus:border-emerald-500"
                     />
                   </div>
+                  {isOutlierPrice && (
+                    <div className="mt-2 p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/35 text-[11px] text-amber-300 flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold block">Market Benchmark Alert</span>
+                        This price deviates significantly from the current market benchmark (~{soldCurrency === 'PHP' ? '₱' : soldCurrency === 'JPY' ? '¥' : '$'}{suggestedBenchmark?.toLocaleString()}). It will be marked with an <strong className="text-amber-200">Outlier tag</strong> to protect community statistics.
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Sold Date */}
@@ -979,18 +1114,89 @@ export default function CollectionPage() {
                   </div>
                 )}
 
-                {/* Buyer / Source */}
+                {/* Buyer / Marketplace & Friend Selection */}
                 <div>
                   <label className="text-xs font-bold text-gray-300 block mb-1">
-                    Buyer / Marketplace (Optional)
+                    Buyer / Marketplace Channel
                   </label>
-                  <input
-                    type="text"
-                    value={buyerSource}
-                    onChange={(e) => setBuyerSource(e.target.value)}
-                    placeholder="e.g. Local Card Shop, Facebook Group, Meetup"
-                    className="w-full px-3 py-2.5 rounded-xl bg-[#1b1e2a] border border-[#343a4c] text-white text-xs placeholder-gray-500 focus:outline-none focus:border-emerald-500"
-                  />
+                  <div className="grid grid-cols-2 gap-1.5 mb-2">
+                    {[
+                      { id: 'friend', label: '👥 Friend on App', isFriend: true },
+                      { id: 'fb', label: '💬 FB / Local Shop', isFriend: false, val: 'Facebook / LGS' },
+                      { id: 'online', label: '📦 Shopee / Online', isFriend: false, val: 'Shopee / Online' },
+                      { id: 'tourney', label: '🏆 Tournament / Event', isFriend: false, val: 'Tournament / Event' },
+                    ].map((ch) => {
+                      const isActive = ch.isFriend ? isFriendSale : (!isFriendSale && buyerSource === ch.val);
+                      return (
+                        <button
+                          key={ch.id}
+                          type="button"
+                          onClick={() => {
+                            if (ch.isFriend) {
+                              setIsFriendSale(true);
+                              setBuyerSource('Sold to Friend');
+                            } else {
+                              setIsFriendSale(false);
+                              setSelectedFriendTag('');
+                              setBuyerSource(ch.val || '');
+                            }
+                          }}
+                          className={`py-2 px-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                            isActive
+                              ? 'bg-blue-600/20 border-blue-500 text-blue-400'
+                              : 'bg-[#1b1e2a] border-[#343a4c] text-gray-400 hover:text-white hover:border-gray-500'
+                          }`}
+                        >
+                          {ch.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {isFriendSale ? (
+                    <div className="p-3 rounded-2xl bg-[#1d2232] border border-blue-500/30 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-blue-300 flex items-center gap-1.5">
+                          <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
+                          <span>Select Friend to Confirm Trade</span>
+                        </span>
+                        <span className="text-[10px] text-gray-400">Enables Verified Badge</span>
+                      </div>
+                      {friendsList.length > 0 ? (
+                        <select
+                          value={selectedFriendTag}
+                          onChange={(e) => setSelectedFriendTag(e.target.value)}
+                          className="w-full px-3 py-2.5 rounded-xl bg-[#14161f] border border-[#343a4c] text-white text-xs font-bold focus:outline-none focus:border-blue-500"
+                        >
+                          <option value="">-- Choose from your Friends --</option>
+                          {friendsList.map((f) => (
+                            <option key={f.tag} value={f.tag}>
+                              {f.username} (@{f.tag})
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          value={selectedFriendTag}
+                          onChange={(e) => setSelectedFriendTag(e.target.value)}
+                          placeholder="Enter your friend's user tag (e.g. luffy_01)"
+                          className="w-full px-3 py-2.5 rounded-xl bg-[#14161f] border border-[#343a4c] text-white text-xs placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                        />
+                      )}
+                      <p className="text-[11px] text-blue-300/80 leading-snug">
+                        Your friend will see a 1-click confirmation request in their collection. Once confirmed, this trade gets the 🛡️ <strong>Verified Mutual Trade</strong> badge!
+                      </p>
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      value={buyerSource}
+                      onChange={(e) => setBuyerSource(e.target.value)}
+                      placeholder="e.g. Local Card Shop, Facebook Group, Meetup (Optional)"
+                      className="w-full px-3 py-2.5 rounded-xl bg-[#1b1e2a] border border-[#343a4c] text-white text-xs placeholder-gray-500 focus:outline-none focus:border-emerald-500"
+                    />
+                  )}
                 </div>
 
                 {/* Community Market Data Sharing Toggle */}
@@ -1049,13 +1255,34 @@ export default function CollectionPage() {
                   </div>
                   <div className="flex justify-between border-b border-white/5 pb-1.5">
                     <span className="text-gray-400">Sold Price</span>
-                    <span className="font-mono font-black text-emerald-400 text-sm">
-                      {soldCurrency === 'PHP' ? '₱' : soldCurrency === 'JPY' ? '¥' : '$'}{parseFloat(soldPrice).toLocaleString()}
-                    </span>
+                    <div className="text-right">
+                      <span className="font-mono font-black text-emerald-400 text-sm">
+                        {soldCurrency === 'PHP' ? '₱' : soldCurrency === 'JPY' ? '¥' : '$'}{parseFloat(soldPrice).toLocaleString()}
+                      </span>
+                      {isOutlierPrice && (
+                        <span className="block text-[10px] text-amber-400 font-bold mt-0.5">
+                          ⚠️ Flagged as Market Outlier
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex justify-between border-b border-white/5 pb-1.5">
                     <span className="text-gray-400">Sold Date</span>
                     <span className="font-bold text-white">{soldDate}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-white/5 pb-1.5">
+                    <span className="text-gray-400">Buyer / Channel</span>
+                    <div className="text-right">
+                      <span className="font-bold text-white block">
+                        {isFriendSale ? `Sold to Friend (@${selectedFriendTag})` : (buyerSource || 'Unspecified')}
+                      </span>
+                      {isFriendSale && (
+                        <span className="text-[10px] text-blue-400 font-bold flex items-center justify-end gap-1">
+                          <ShieldCheck className="w-3 h-3" />
+                          <span>Mutual Verification Pending</span>
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400">Community Reference</span>

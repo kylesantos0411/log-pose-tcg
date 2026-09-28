@@ -28,13 +28,16 @@ import {
   Coins,
   Settings as SettingsIcon,
   ArrowUpRight,
-  Users
+  Users,
+  Flag,
+  AlertTriangle,
+  ShieldAlert
 } from 'lucide-react';
 import { getSafeCardImageUrl, getEditionCardImageUrl, JAPANESE_NAME_MAP } from '@/lib/card-image';
 import { getCardArtist, ArtistProfile } from '@/lib/artist-data';
 import { useSettings, CURRENCIES } from '@/context/SettingsContext';
 import { isCardFavorite, toggleCardFavorite } from '@/lib/favorites';
-import { fetchCommunitySales, type CloudSaleRecord } from '@/lib/supabase-sync';
+import { fetchCommunitySales, reportSuspiciousSale, type CloudSaleRecord } from '@/lib/supabase-sync';
 
 export interface CardDetailData {
   id: string;
@@ -217,6 +220,23 @@ export function CardDetailView({
     };
   }, [card.id]);
 
+  // Reported sales state for community moderation
+  const [reportedSaleIds, setReportedSaleIds] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = localStorage.getItem('logpose_reported_sales');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const handleReportSale = async (saleId: string) => {
+    if (!confirm('Report this sale as suspicious, inaccurate, or manipulative to the community?')) return;
+    setReportedSaleIds((prev) => [...prev, saleId]);
+    await reportSuspiciousSale(saleId);
+  };
+
   const filteredCommunitySales = useMemo(() => {
     if (communityConditionFilter === 'All') return communitySales;
     return communitySales.filter((s) => s.condition === communityConditionFilter);
@@ -224,32 +244,95 @@ export function CardDetailView({
 
   const communityStats = useMemo(() => {
     if (communitySales.length === 0) return null;
-    let minPrice = Infinity;
-    let maxPrice = -Infinity;
-    let sumPrice = 0;
-    let count = 0;
     const currency = communitySales[0]?.soldCurrency || 'PHP';
 
-    for (const s of communitySales) {
+    // 1. Calculate active market benchmark in this currency if available
+    let benchmarkInCurrency: number | null = null;
+    if (card.yuyuPrice) {
+      benchmarkInCurrency =
+        currency === 'JPY'
+          ? card.yuyuPrice
+          : Math.round((card.yuyuPrice / 152) * (currency === 'PHP' ? 57.5 : 1));
+    } else if (card.marketPrice) {
+      benchmarkInCurrency =
+        Math.round(card.marketPrice * (currency === 'PHP' ? 57.5 : currency === 'JPY' ? 152 : 1));
+    }
+
+    // 2. Exclude flagged sales (>= 3 flags or reported by current user)
+    const activeRecords = communitySales.filter(
+      (s) => !reportedSaleIds.includes(s.id) && (s.flagsCount || 0) < 3
+    );
+    if (activeRecords.length === 0) return null;
+
+    const prices = activeRecords.map((s) => s.soldPrice).filter((p) => p != null && !isNaN(p));
+    if (prices.length === 0) return null;
+
+    // 3. Compute Median Price (Mathematical resistance to manipulation)
+    const sortedPrices = [...prices].sort((a, b) => a - b);
+    const mid = Math.floor(sortedPrices.length / 2);
+    const medianPrice =
+      sortedPrices.length % 2 !== 0
+        ? sortedPrices[mid]
+        : Math.round((sortedPrices[mid - 1] + sortedPrices[mid]) / 2);
+
+    // 4. Compute Interquartile Range (IQR) bounds if >= 4 sales
+    let lowerBound = 0;
+    let upperBound = Infinity;
+    if (sortedPrices.length >= 4) {
+      const q1 = sortedPrices[Math.floor(sortedPrices.length * 0.25)];
+      const q3 = sortedPrices[Math.floor(sortedPrices.length * 0.75)];
+      const iqr = q3 - q1;
+      lowerBound = Math.max(0, q1 - 1.5 * iqr);
+      upperBound = q3 + 1.5 * iqr;
+    }
+
+    // 5. Separate valid sales from statistical outliers
+    let validSum = 0;
+    let validCount = 0;
+    let minPrice = Infinity;
+    let maxPrice = -Infinity;
+    let outlierCount = 0;
+
+    for (const s of activeRecords) {
       const p = s.soldPrice;
-      if (p != null && !isNaN(p)) {
+      const isBenchmarkOutlier =
+        benchmarkInCurrency &&
+        benchmarkInCurrency > 0 &&
+        (p > benchmarkInCurrency * 3.5 || p < benchmarkInCurrency * 0.15);
+
+      const isIqrOutlier = p < lowerBound || p > upperBound;
+      const isOutlier = Boolean(s.isOutlier || isBenchmarkOutlier || (sortedPrices.length >= 4 && isIqrOutlier));
+
+      if (isOutlier) {
+        outlierCount++;
+      } else {
         if (p < minPrice) minPrice = p;
         if (p > maxPrice) maxPrice = p;
-        sumPrice += p;
-        count++;
+        validSum += p;
+        validCount++;
       }
     }
 
-    if (count === 0) return null;
-    const avgPrice = Math.round(sumPrice / count);
+    if (validCount === 0) {
+      validSum = sortedPrices.reduce((a, b) => a + b, 0);
+      validCount = sortedPrices.length;
+      minPrice = sortedPrices[0];
+      maxPrice = sortedPrices[sortedPrices.length - 1];
+    }
+
+    const avgPrice = Math.round(validSum / validCount);
+
     return {
-      count,
-      minPrice,
-      maxPrice,
+      count: activeRecords.length,
+      validCount,
+      outlierCount,
+      medianPrice,
       avgPrice,
+      minPrice: minPrice === Infinity ? sortedPrices[0] : minPrice,
+      maxPrice: maxPrice === -Infinity ? sortedPrices[sortedPrices.length - 1] : maxPrice,
       currency,
     };
-  }, [communitySales]);
+  }, [communitySales, reportedSaleIds, card.yuyuPrice, card.marketPrice]);
 
   const formatSalePrice = (price: number, curr?: string) => {
     const symbol = curr === 'USD' ? '$' : curr === 'JPY' ? '¥' : '₱';
@@ -1441,32 +1524,49 @@ export function CardDetailView({
                 </div>
               </div>
 
-              {/* Statistics Overview Cards if data exists */}
+              {/* Statistics Overview Cards with Market Protection */}
               {communityStats && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  <div className="bg-[#1e212c] p-3 rounded-xl border border-[#32384a]">
-                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Recorded Sales</span>
-                    <span className="text-base sm:text-lg font-black text-white mt-0.5 block">
-                      {communityStats.count} {communityStats.count === 1 ? 'Sale' : 'Sales'}
+                  <div className="bg-[#1e212c] p-3 rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-transparent">
+                    <span className="text-[10px] text-emerald-400 font-black uppercase flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Median Price</span>
                     </span>
+                    <span className="text-base sm:text-lg font-black text-white font-mono mt-0.5 block">
+                      {formatSalePrice(communityStats.medianPrice, communityStats.currency)}
+                    </span>
+                    <span className="text-[9px] text-gray-400 block mt-0.5">Protected Benchmark</span>
                   </div>
+
                   <div className="bg-[#1e212c] p-3 rounded-xl border border-[#32384a]">
-                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Average Price</span>
-                    <span className="text-base sm:text-lg font-black text-emerald-400 font-mono mt-0.5 block">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Trimmed Average</span>
+                    <span className="text-base sm:text-lg font-black text-emerald-300 font-mono mt-0.5 block">
                       {formatSalePrice(communityStats.avgPrice, communityStats.currency)}
                     </span>
+                    <span className="text-[9px] text-gray-400 block mt-0.5">{communityStats.validCount} verified sales</span>
                   </div>
+
                   <div className="bg-[#1e212c] p-3 rounded-xl border border-[#32384a]">
                     <span className="text-[10px] text-gray-400 font-bold uppercase block">Price Range</span>
                     <span className="text-xs sm:text-sm font-black text-amber-400 font-mono mt-1 block truncate">
                       {formatSalePrice(communityStats.minPrice, communityStats.currency)} – {formatSalePrice(communityStats.maxPrice, communityStats.currency)}
                     </span>
+                    <span className="text-[9px] text-gray-400 block mt-0.5">Normal Spread</span>
                   </div>
+
                   <div className="bg-[#1e212c] p-3 rounded-xl border border-[#32384a]">
-                    <span className="text-[10px] text-gray-400 font-bold uppercase block">Variant Accuracy</span>
-                    <span className="text-xs font-black text-sky-400 mt-1 block truncate">
-                      Exact ID Match
+                    <span className="text-[10px] text-gray-400 font-bold uppercase block flex items-center gap-1">
+                      <ShieldAlert className="w-3 h-3 text-sky-400" />
+                      <span>Market Integrity</span>
                     </span>
+                    <span className="text-xs sm:text-sm font-black mt-1 block truncate">
+                      {communityStats.outlierCount > 0 ? (
+                        <span className="text-amber-400 font-bold">{communityStats.outlierCount} Outlier(s) Excluded</span>
+                      ) : (
+                        <span className="text-emerald-400 font-bold">100% Reliable</span>
+                      )}
+                    </span>
+                    <span className="text-[9px] text-gray-400 block mt-0.5">IQR Filter Active</span>
                   </div>
                 </div>
               )}
@@ -1505,11 +1605,14 @@ export function CardDetailView({
                           <th className="py-3 px-3">Condition</th>
                           <th className="py-3 px-3">Variant</th>
                           <th className="py-3 px-3 text-right">Sold Price</th>
+                          <th className="py-3 px-3">Verification &amp; Source</th>
                           <th className="py-3 px-3.5 text-right">Notes</th>
+                          <th className="py-3 px-2 text-center">Report</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#2a2f40]">
                         {filteredCommunitySales.map((sale: CloudSaleRecord) => {
+                          const isReported = reportedSaleIds.includes(sale.id) || (sale.flagsCount || 0) >= 3;
                           const dateStr = sale.soldDate
                             ? new Date(sale.soldDate).toLocaleDateString(undefined, {
                                 month: 'short',
@@ -1519,7 +1622,14 @@ export function CardDetailView({
                             : 'Recent';
 
                           return (
-                            <tr key={sale.id} className="hover:bg-white/[0.03] transition">
+                            <tr 
+                              key={sale.id} 
+                              className={`transition ${
+                                isReported 
+                                  ? 'bg-rose-500/5 opacity-60' 
+                                  : 'hover:bg-white/[0.03]'
+                              }`}
+                            >
                               <td className="py-3 px-3.5 font-mono text-gray-300 whitespace-nowrap">
                                 {dateStr}
                               </td>
@@ -1544,8 +1654,63 @@ export function CardDetailView({
                                   </span>
                                 )}
                               </td>
+                              <td className="py-3 px-3 whitespace-nowrap">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {sale.verifiedByBuyer && (
+                                    <span 
+                                      className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-extrabold text-[9px] border border-emerald-500/35 flex items-center gap-1 shadow-sm"
+                                      title="Mutual Trade: Verified and confirmed by buyer friend"
+                                    >
+                                      <ShieldCheck className="w-2.5 h-2.5 text-emerald-400" />
+                                      <span>Verified Trade</span>
+                                    </span>
+                                  )}
+                                  {sale.isOutlier && (
+                                    <span 
+                                      className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-[9px] border border-amber-500/35 flex items-center gap-1"
+                                      title="Price Outlier: Excluded from community averages to prevent manipulation"
+                                    >
+                                      <AlertTriangle className="w-2.5 h-2.5 text-amber-400" />
+                                      <span>Outlier</span>
+                                    </span>
+                                  )}
+                                  {isReported && (
+                                    <span 
+                                      className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-bold text-[9px] border border-rose-500/35 flex items-center gap-1"
+                                      title="This transaction was flagged as suspicious by the community"
+                                    >
+                                      <Flag className="w-2.5 h-2.5 text-rose-400" />
+                                      <span>Flagged</span>
+                                    </span>
+                                  )}
+                                  {sale.buyerSource && (
+                                    <span className="text-[10px] text-gray-400 font-medium">
+                                      {sale.buyerSource}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
                               <td className="py-3 px-3.5 text-right text-gray-400 text-[11px] truncate max-w-[140px]">
-                                {sale.buyerSource || sale.notes || 'Verified Collector Sale'}
+                                {sale.notes || 'Verified Collector Sale'}
+                              </td>
+                              <td className="py-3 px-2 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => handleReportSale(sale.id)}
+                                  disabled={reportedSaleIds.includes(sale.id)}
+                                  title={
+                                    reportedSaleIds.includes(sale.id)
+                                      ? 'You reported this sale'
+                                      : 'Report suspicious or fake sale'
+                                  }
+                                  className={`p-1.5 rounded-lg text-xs transition cursor-pointer ${
+                                    reportedSaleIds.includes(sale.id)
+                                      ? 'text-rose-400 bg-rose-500/10 cursor-not-allowed'
+                                      : 'text-gray-500 hover:text-rose-400 hover:bg-rose-500/10'
+                                  }`}
+                                >
+                                  <Flag className="w-3 h-3" />
+                                </button>
                               </td>
                             </tr>
                           );

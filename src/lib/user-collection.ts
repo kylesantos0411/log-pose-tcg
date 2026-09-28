@@ -20,6 +20,10 @@ export interface LocalUserCard {
   soldQuantity?: number | null;
   isPublicSale?: boolean;
   buyerSource?: string | null;
+  buyerUserTag?: string | null;
+  verifiedByBuyer?: boolean;
+  isOutlier?: boolean;
+  flagsCount?: number;
   buyerNotes?: string | null;
   saleId?: string | null;
   card: {
@@ -47,6 +51,8 @@ export interface CardSaleInput {
   quantity?: number;
   isPublic: boolean;
   buyerSource?: string;
+  buyerUserTag?: string;
+  isOutlier?: boolean;
   notes?: string;
 }
 
@@ -305,6 +311,10 @@ export function markCardAsSold(
       soldQuantity: sellQty,
       isPublicSale: saleData.isPublic !== false,
       buyerSource: saleData.buyerSource || null,
+      buyerUserTag: saleData.buyerUserTag || null,
+      verifiedByBuyer: false,
+      isOutlier: Boolean(saleData.isOutlier),
+      flagsCount: 0,
       buyerNotes: saleData.notes || null,
       card: target.card,
     };
@@ -320,6 +330,10 @@ export function markCardAsSold(
     target.soldQuantity = sellQty;
     target.isPublicSale = saleData.isPublic !== false;
     target.buyerSource = saleData.buyerSource || null;
+    target.buyerUserTag = saleData.buyerUserTag || null;
+    target.verifiedByBuyer = false;
+    target.isOutlier = Boolean(saleData.isOutlier);
+    target.flagsCount = 0;
     target.buyerNotes = saleData.notes || null;
 
     updated = [...current];
@@ -345,6 +359,8 @@ export function markCardAsSold(
         quantity: sellQty,
         isPublic: saleData.isPublic !== false,
         buyerSource: saleData.buyerSource,
+        buyerUserTag: saleData.buyerUserTag,
+        isOutlier: Boolean(saleData.isOutlier),
         notes: saleData.notes,
       }).catch((e) => console.warn('Cloud sale recording failed:', e));
     }
