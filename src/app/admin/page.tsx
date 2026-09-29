@@ -30,7 +30,9 @@ import {
   FolderHeart,
   Boxes,
   Star,
-  Sparkles
+  Sparkles,
+  PenTool,
+  RotateCw
 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import {
@@ -94,6 +96,29 @@ export default function AdminPage() {
   // Sales Moderation state
   const [reportedSales, setReportedSales] = useState<CloudSaleRecord[]>([]);
   const [loadingSales, setLoadingSales] = useState(false);
+
+  // Artist Sync state
+  const [syncingArtists, setSyncingArtists] = useState(false);
+  const [syncResult, setSyncResult] = useState<string | null>(null);
+
+  async function handleSyncArtists() {
+    setSyncingArtists(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch('/api/admin/sync-artists', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Synced ${data.updatedCount} cards across ${data.distinctArtistsCount} illustrators!`);
+        setSyncResult(`Successfully updated ${data.updatedCount} cards across ${data.distinctArtistsCount} verified illustrators!`);
+      } else {
+        alert(`Sync failed: ${data.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error running sync: ${err.message}`);
+    } finally {
+      setSyncingArtists(false);
+    }
+  }
 
   function showToast(msg: string) {
     setToastMessage(msg);
@@ -636,6 +661,36 @@ export default function AdminPage() {
               className="w-full py-2.5 rounded-xl bg-[#222738] hover:bg-[#2b3147] border border-[#343b52] active:scale-95 text-white font-bold text-xs uppercase tracking-wider shadow-sm transition cursor-pointer disabled:opacity-50"
             >
               {savingSettings ? 'Saving...' : 'Save & Broadcast Banner'}
+            </button>
+          </div>
+
+          {/* Limitless TCG Illustrator Catalog Sync Card */}
+          <div className="md:col-span-2 p-5 rounded-2xl bg-[#141620] border border-[#222533] flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#1c202d] border border-[#2c3345] text-slate-300 flex items-center justify-center flex-shrink-0">
+                <PenTool className="w-5 h-5 text-[#3b82f6]" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>Limitless TCG Illustrator Catalog Sync</span>
+                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold">198 Artists Indexed</span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Scrape and update verified card illustrators across 58 expansion sets, starter decks, and promos from Limitless TCG.
+                </p>
+                {syncResult && (
+                  <p className="text-xs text-emerald-400 font-medium mt-1">✓ {syncResult}</p>
+                )}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleSyncArtists}
+              disabled={syncingArtists}
+              className="py-2.5 px-4 rounded-xl bg-[#222738] hover:bg-[#2b3147] border border-[#343b52] text-white font-semibold text-xs flex items-center gap-2 whitespace-nowrap transition cursor-pointer disabled:opacity-50"
+            >
+              <RotateCw className={`w-4 h-4 ${syncingArtists ? 'animate-spin text-[#3b82f6]' : ''}`} />
+              <span>{syncingArtists ? 'Scraping & Syncing...' : 'Sync Artists Now'}</span>
             </button>
           </div>
 

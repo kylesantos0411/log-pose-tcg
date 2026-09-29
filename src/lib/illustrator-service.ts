@@ -234,3 +234,92 @@ export async function fetchIllustratorFromBinderPirates(
     return result;
   }
 }
+
+/**
+ * Retrieves the illustrator for a specific card printing from Limitless TCG
+ */
+export async function fetchIllustratorFromLimitless(
+  cardNumber: string,
+  variantSuffix?: string | null
+): Promise<IllustratorResult> {
+  const cleanCardNumber = cardNumber.trim().toUpperCase();
+  const cacheKey = `limitless:${cleanCardNumber}:${variantSuffix || 'base'}`;
+  if (memoryCache.has(cacheKey)) {
+    return memoryCache.get(cacheKey)!;
+  }
+
+  // Check English first, then Japanese
+  const urlsToTry = [
+    `https://onepiece.limitlesstcg.com/cards/en/${cleanCardNumber}`,
+    `https://onepiece.limitlesstcg.com/cards/jp/${cleanCardNumber}`,
+  ];
+
+  for (const url of urlsToTry) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        },
+        next: { revalidate: 86400 },
+      });
+      if (!res.ok) continue;
+      const html = await res.text();
+
+      let targetHtml = html;
+      let targetUrl = url;
+
+      if (variantSuffix) {
+        const cleanSuffix = variantSuffix.replace(/^_/, '').toLowerCase();
+        const vMatch = html.match(new RegExp(`href="([^"]*${cleanCardNumber}[^"]*_?${cleanSuffix}[^"]*)"`, 'i'));
+        if (vMatch) {
+          targetUrl = `https://onepiece.limitlesstcg.com${vMatch[1]}`;
+          try {
+            const vRes = await fetch(targetUrl, {
+              headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+            });
+            if (vRes.ok) targetHtml = await vRes.text();
+          } catch {}
+        }
+      }
+
+      const match = targetHtml.match(/Illustrated by[\s\S]*?<a[^>]*>\s*([^<]+)\s*<\/a>/i);
+      if (match && match[1]) {
+        const rawArtist = match[1].trim();
+        const normalized = normalizeArtistName(rawArtist);
+        const result: IllustratorResult = {
+          artistName: normalized,
+          artistSource: 'Limitless TCG',
+          artistSourceUrl: targetUrl,
+          artistVerificationStatus: 'verified',
+        };
+        memoryCache.set(cacheKey, result);
+        return result;
+      }
+    } catch {
+      // try next
+    }
+  }
+
+  const fallback: IllustratorResult = {
+    artistName: null,
+    artistSource: 'Limitless TCG',
+    artistSourceUrl: urlsToTry[0],
+    artistVerificationStatus: 'missing',
+  };
+  memoryCache.set(cacheKey, fallback);
+  return fallback;
+}
+
+/**
+ * Unified card illustrator retrieval: checks Limitless TCG first, then Binder Pirates
+ */
+export async function fetchCardIllustrator(
+  cardNumber: string,
+  variantSuffix?: string | null
+): Promise<IllustratorResult> {
+  const limitlessRes = await fetchIllustratorFromLimitless(cardNumber, variantSuffix);
+  if (limitlessRes.artistVerificationStatus === 'verified' && limitlessRes.artistName) {
+    return limitlessRes;
+  }
+  return fetchIllustratorFromBinderPirates(cardNumber, variantSuffix);
+}

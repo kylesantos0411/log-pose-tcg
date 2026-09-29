@@ -140,6 +140,7 @@ function CardsContent() {
   const [selectedSet, setSelectedSet] = useState(initialSet);
   const [selectedArtist, setSelectedArtist] = useState(initialArtist);
   const [availableSets, setAvailableSets] = useState<Array<{ id: string; code: string; name: string; cardsCount: number }>>([]);
+  const [availableArtists, setAvailableArtists] = useState<Array<{ name: string; count: number }>>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -165,6 +166,13 @@ function CardsContent() {
         if (data.sets) setAvailableSets(data.sets);
       })
       .catch((e) => console.error('Failed to load sets list', e));
+
+    fetch('/api/cards/artists')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.artists) setAvailableArtists(data.artists);
+      })
+      .catch((e) => console.error('Failed to load artists list', e));
   }, []);
 
   useEffect(() => {
@@ -540,12 +548,20 @@ function CardsContent() {
               onChange={(e) => { setSelectedArtist(e.target.value); setPage(1); }}
               className="bg-[#0e1017] border border-[#202434] focus:border-[#3b82f6]/60 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none transition cursor-pointer"
             >
-              <option value="All">All Illustrators</option>
-              {Object.keys(ARTIST_PROFILES).map((artistName) => (
-                <option key={artistName} value={artistName}>
-                  {artistName}
-                </option>
-              ))}
+              <option value="All">All Illustrators {availableArtists.length > 0 ? `(${availableArtists.length})` : ''}</option>
+              {availableArtists.length > 0 ? (
+                availableArtists.map((a) => (
+                  <option key={a.name} value={a.name}>
+                    {a.name} ({a.count})
+                  </option>
+                ))
+              ) : (
+                Object.keys(ARTIST_PROFILES).map((artistName) => (
+                  <option key={artistName} value={artistName}>
+                    {artistName}
+                  </option>
+                ))
+              )}
             </select>
           </div>
 

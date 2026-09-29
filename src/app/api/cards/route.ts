@@ -54,6 +54,13 @@ export async function GET(req: NextRequest) {
     let targetArtist = artist && artist !== 'All' ? artist : '';
     let isArtistQuery = false;
 
+    // Detect if query explicitly targets an artist, e.g. "artist:nakamaru", "!artist:nakamaru", "@nakamaru"
+    const explicitArtistMatch = q?.match(/^(?:!?artist:|@)\s*(.+)$/i);
+    if (explicitArtistMatch) {
+      targetArtist = explicitArtistMatch[1].replace(/^["']|["']$/g, '').trim();
+      isArtistQuery = true;
+    }
+
     if (!targetArtist && q) {
       const lowerQ = q.toLowerCase().trim();
       const ARTIST_ALIASES: Record<string, string> = {
@@ -78,6 +85,8 @@ export async function GET(req: NextRequest) {
         'bisai': 'BISAI',
         'sakuragi': 'Suzume Sakuragi',
         'suzume sakuragi': 'Suzume Sakuragi',
+        'nakamaru': 'Nakamaru',
+        'tapioca': 'TAPIOCA',
       };
 
       if (ARTIST_ALIASES[lowerQ]) {
@@ -91,6 +100,16 @@ export async function GET(req: NextRequest) {
         if (matched) {
           targetArtist = matched;
           isArtistQuery = true;
+        } else {
+          // Check if query exactly or closely matches an artist in the database
+          const dbArtist = await prisma.card.findFirst({
+            where: { artistName: { contains: q.trim() } },
+            select: { artistName: true },
+          });
+          if (dbArtist?.artistName && dbArtist.artistName.toLowerCase() === lowerQ) {
+            targetArtist = dbArtist.artistName;
+            isArtistQuery = true;
+          }
         }
       }
     }
@@ -171,6 +190,7 @@ export async function GET(req: NextRequest) {
             { displaySet: { contains: searchTerm } },
             { vintageSeries: { contains: searchTerm } },
             { vintagePart: { contains: searchTerm } },
+            { artistName: { contains: searchTerm } },
           ],
         });
       }
