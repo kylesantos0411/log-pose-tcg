@@ -31,7 +31,9 @@ import {
   Users,
   Flag,
   AlertTriangle,
-  ShieldAlert
+  ShieldAlert,
+  ShoppingBag,
+  CheckCircle2
 } from 'lucide-react';
 import { getSafeCardImageUrl, getEditionCardImageUrl, JAPANESE_NAME_MAP, handleCardImageError } from '@/lib/card-image';
 import { getCardArtist, ArtistProfile } from '@/lib/artist-data';
@@ -415,8 +417,31 @@ export function CardDetailView({
   const convertedYuyuYen = card.yuyuPrice ? (card.yuyuPrice / 152) : basePrice;
   const convertedYuyuYenChange = convertedYuyuYen * 0.0274;
 
+  // Vintage Card Detection and Sales Data
+  const isVintage = Boolean(card.isVintage || card.vintageSeries || card.id.startsWith('HB'));
+  const vintageSales = useMemo(() => {
+    if (!isVintage) return [];
+    return getVintageRecentSales(card.id, card.cardNumber, card.name, card.ebayPrice);
+  }, [isVintage, card.id, card.cardNumber, card.name, card.ebayPrice]);
+
+  const vintageThreeSaleAvg = useMemo(() => {
+    if (!isVintage || vintageSales.length === 0) return card.ebayPrice || 0;
+    return calculateThreeSaleAverage(vintageSales);
+  }, [isVintage, vintageSales, card.ebayPrice]);
+
+  const vintageEffectivePrice = vintageThreeSaleAvg > 0 ? vintageThreeSaleAvg : (card.ebayPrice || 0);
+
+  const vintageStats = useMemo(() => {
+    if (!isVintage || !vintageSales || vintageSales.length === 0) return null;
+    const prices = vintageSales.map((s) => s.priceUsd);
+    const max = Math.max(...prices);
+    const min = Math.min(...prices);
+    const latest = vintageSales[0]?.priceUsd || vintageEffectivePrice;
+    return { max, min, latest };
+  }, [isVintage, vintageSales, vintageEffectivePrice]);
+
   const cardmarketPrice = card.marketPrice || 25.0;
-  const ebayPrice = Math.round(cardmarketPrice * 1.15 * 100) / 100;
+  const ebayPrice = isVintage ? vintageEffectivePrice : Math.round(cardmarketPrice * 1.15 * 100) / 100;
 
   // SNKRDUNK live pricing
   const snkrdunkRawYen: number | null = snkrdunkPricing?.rawA ?? null;
@@ -444,12 +469,20 @@ export function CardDetailView({
 
   // Chart scaling dynamically adapted to enabled sources
   let activeMaxPrice = 10;
-  if (enabledPriceSources.psa) activeMaxPrice = Math.max(activeMaxPrice, psaPrice);
-  if (enabledPriceSources.ebay) activeMaxPrice = Math.max(activeMaxPrice, ebayPrice);
-  if (enabledPriceSources.cardmarket) activeMaxPrice = Math.max(activeMaxPrice, cardmarketPrice);
-  if (enabledPriceSources.yuyutei) activeMaxPrice = Math.max(activeMaxPrice, Math.round(yuyuteiYen / 152));
-  if (enabledPriceSources.snkrdunk && snkrdunkRawUsd) activeMaxPrice = Math.max(activeMaxPrice, snkrdunkRawUsd);
-  const maxChartVal = Math.ceil((activeMaxPrice * 1.35) / 50) * 50 || 200;
+  if (isVintage) {
+    const p = vintageEffectivePrice || 50;
+    const maxSale = vintageSales.length > 0 ? Math.max(...vintageSales.map((s) => s.priceUsd), p) : p;
+    activeMaxPrice = maxSale;
+  } else {
+    if (enabledPriceSources.psa) activeMaxPrice = Math.max(activeMaxPrice, psaPrice);
+    if (enabledPriceSources.ebay) activeMaxPrice = Math.max(activeMaxPrice, ebayPrice);
+    if (enabledPriceSources.cardmarket) activeMaxPrice = Math.max(activeMaxPrice, cardmarketPrice);
+    if (enabledPriceSources.yuyutei) activeMaxPrice = Math.max(activeMaxPrice, Math.round(yuyuteiYen / 152));
+    if (enabledPriceSources.snkrdunk && snkrdunkRawUsd) activeMaxPrice = Math.max(activeMaxPrice, snkrdunkRawUsd);
+  }
+  const maxChartVal = isVintage
+    ? Math.max(20, Math.ceil((activeMaxPrice * 1.35) / 10) * 10)
+    : (Math.ceil((activeMaxPrice * 1.35) / 50) * 50 || 200);
   const step = Math.round(maxChartVal / 4);
 
   // Compact price formatter for chart axis and compact labels
@@ -587,19 +620,6 @@ export function CardDetailView({
   const jpImageUrl = getEditionCardImageUrl(card.id, 'jp', card.imageUrl);
 
   // External reference URLs for market pricing sources
-  const isVintage = Boolean(card.isVintage || card.vintageSeries || card.id.startsWith('HB'));
-  const vintageSales = useMemo(() => {
-    if (!isVintage) return [];
-    return getVintageRecentSales(card.id, card.cardNumber, card.name, card.ebayPrice);
-  }, [isVintage, card.id, card.cardNumber, card.name, card.ebayPrice]);
-
-  const vintageThreeSaleAvg = useMemo(() => {
-    if (!isVintage || vintageSales.length === 0) return card.ebayPrice || 0;
-    return calculateThreeSaleAverage(vintageSales);
-  }, [isVintage, vintageSales, card.ebayPrice]);
-
-  const vintageEffectivePrice = vintageThreeSaleAvg > 0 ? vintageThreeSaleAvg : (card.ebayPrice || 0);
-
   const cleanCardId = card.id.split('_')[0];
   const yuyuteiUrl = `https://yuyu-tei.jp/sell/opc/s/search?search_word=${encodeURIComponent(cleanCardId)}`;
   const cardmarketUrl = `https://www.cardmarket.com/en/OnePiece/Products/Search?searchString=${encodeURIComponent((card.cardNumber || cleanCardId) + ' ' + card.name)}`;
@@ -610,6 +630,43 @@ export function CardDetailView({
 
   // Multi-point time series data dynamically driven by selected timeframe
   const getChartData = (): ChartDataPoint[] => {
+    if (isVintage) {
+      const p = vintageEffectivePrice || 50;
+      const s1 = vintageSales[0]?.priceUsd || p;
+      const s2 = vintageSales[1]?.priceUsd || p;
+      const s3 = vintageSales[2]?.priceUsd || p;
+
+      if (timeframe === '7D') {
+        return [
+          { date: '09/15', ebay: s3, yuyuYen: 0, cardmarket: 0, snkrdunk: 0, psa: 0 },
+          { date: '09/17', ebay: s2, yuyuYen: 0, cardmarket: 0, snkrdunk: 0, psa: 0 },
+          { date: '09/20', ebay: Math.round(((s2 + s3) / 2) * 100) / 100, yuyuYen: 0, cardmarket: 0, snkrdunk: 0, psa: 0 },
+          { date: '09/24', ebay: s1, yuyuYen: 0, cardmarket: 0, snkrdunk: 0, psa: 0 },
+          { date: 'Avg', ebay: p, yuyuYen: 0, cardmarket: 0, snkrdunk: 0, psa: 0 },
+        ];
+      }
+
+      if (timeframe === '1M') {
+        return [
+          { date: '09/01', ebay: Math.round(p * 0.94 * 100) / 100, yuyuYen: 0, cardmarket: 0, snkrdunk: 0, psa: 0 },
+          { date: '09/15', ebay: s3, yuyuYen: 0, cardmarket: 0, snkrdunk: 0, psa: 0 },
+          { date: '09/17', ebay: s2, yuyuYen: 0, cardmarket: 0, snkrdunk: 0, psa: 0 },
+          { date: '09/24', ebay: s1, yuyuYen: 0, cardmarket: 0, snkrdunk: 0, psa: 0 },
+          { date: '09/29', ebay: p, yuyuYen: 0, cardmarket: 0, snkrdunk: 0, psa: 0 },
+        ];
+      }
+
+      // 3M
+      return [
+        { date: '07/15', ebay: Math.round(p * 0.88 * 100) / 100, yuyuYen: 0, cardmarket: 0, snkrdunk: 0, psa: 0 },
+        { date: '08/01', ebay: Math.round(p * 0.94 * 100) / 100, yuyuYen: 0, cardmarket: 0, snkrdunk: 0, psa: 0 },
+        { date: '08/20', ebay: Math.round(p * 0.96 * 100) / 100, yuyuYen: 0, cardmarket: 0, snkrdunk: 0, psa: 0 },
+        { date: '09/15', ebay: s3, yuyuYen: 0, cardmarket: 0, snkrdunk: 0, psa: 0 },
+        { date: '09/24', ebay: s1, yuyuYen: 0, cardmarket: 0, snkrdunk: 0, psa: 0 },
+        { date: '09/29', ebay: p, yuyuYen: 0, cardmarket: 0, snkrdunk: 0, psa: 0 },
+      ];
+    }
+
     const snkVal = snkrdunkRawUsd !== null ? snkrdunkRawUsd : (snkrdunkRawYen ? snkrdunkRawYen / 152 : yuyuteiYen / 152);
     if (timeframe === '7D') {
       const dates = ['09/15', '09/16', '09/17', '09/18', '09/19', '09/20', '09/21'];
@@ -1034,80 +1091,133 @@ export function CardDetailView({
             <div>
               {isVintage ? (
                 <div className="pt-3.5 pb-1 space-y-3">
-                  <div className="bg-[#1a1d27] border border-amber-500/30 rounded-2xl p-4 shadow-lg">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/20 via-blue-500/10 to-red-500/20 border border-amber-500/40 flex items-center justify-center flex-shrink-0 shadow-md">
-                          <span className="text-sm font-black tracking-tight text-amber-400">ebay</span>
+                  <div className="bg-gradient-to-b from-[#1c1f2e] via-[#161824] to-[#12141c] border border-amber-500/30 rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden">
+                    {/* Subtle warm ambient glow */}
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+
+                    <div className="relative z-10 space-y-3.5">
+                      {/* Top Badges */}
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 font-extrabold text-[10px] tracking-wide border border-amber-500/30 flex items-center gap-1">
+                            <span>✦</span>
+                            <span>{card.vintageSeries || 'Bandai Carddass Hyper Battle'}</span>
+                          </span>
+                          <span className="text-gray-400 text-[11px] font-medium">
+                            {card.vintagePart || card.displaySet || 'Vintage Collection'}
+                          </span>
                         </div>
-                        <div>
-                          <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                            <span>Vintage Market Price (3 Latest eBay Solds Avg)</span>
+                        <span className="text-[10px] font-mono text-gray-400 bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
+                          {card.id}
+                        </span>
+                      </div>
+
+                      {/* Main Price & Title */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+                        <div className="flex items-start gap-3">
+                          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/20 via-blue-500/10 to-red-500/20 border border-amber-500/40 flex items-center justify-center flex-shrink-0 shadow-md">
+                            <span className="text-sm font-black tracking-tight text-amber-400">ebay</span>
                           </div>
-                          {vintageEffectivePrice && vintageEffectivePrice > 0 ? (
-                            <div className="text-xl sm:text-2xl font-black text-white mt-0.5 flex items-center gap-2">
-                              <span>{formatPrice(vintageEffectivePrice).full}</span>
-                              <span className="text-xs text-gray-400 font-normal">
-                                (Est. ${vintageEffectivePrice.toFixed(2)} USD)
+                          <div>
+                            <div className="text-[11px] font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                              <span>Vintage Market Price</span>
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
+                                3-Sale Moving Avg
                               </span>
                             </div>
-                          ) : (
-                            <div className="text-base sm:text-lg font-bold text-gray-200 mt-0.5 flex items-center gap-2">
-                              <span>Check Live Sold on eBay</span>
-                            </div>
-                          )}
-                          <p className="text-[11px] text-gray-400 mt-0.5">
-                            {vintageEffectivePrice && vintageEffectivePrice > 0
-                              ? 'Calculated as the 3-sale moving average from recent completed eBay transactions.'
-                              : 'No fixed baseline on record. Tap "View Sold on eBay" to view recent realized transactions.'}
-                          </p>
+                            {vintageEffectivePrice && vintageEffectivePrice > 0 ? (
+                              <div className="text-2xl sm:text-3xl font-black text-white mt-0.5 flex flex-wrap items-baseline gap-2">
+                                <span>{formatPrice(vintageEffectivePrice).full}</span>
+                                <span className="text-xs text-gray-400 font-medium">
+                                  (Est. ${vintageEffectivePrice.toFixed(2)} USD)
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="text-lg font-bold text-gray-200 mt-0.5">
+                                Check Live Sold on eBay
+                              </div>
+                            )}
+                            <p className="text-[11px] text-gray-400 mt-0.5 max-w-md">
+                              Fair Market Value calculated strictly as the 3-sale moving average from recent completed eBay transactions.
+                            </p>
+                          </div>
                         </div>
-                      </div>
 
-                      <a
-                        href={ebayUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-md transition active:scale-95 shrink-0"
-                      >
-                        <span>View Sold on eBay</span>
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
-                    </div>
-
-                    {/* Vintage metadata and museum archive link */}
-                    <div className="mt-3 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
-                      <div className="flex items-center gap-2 text-gray-300">
-                        <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 font-bold text-[10px] border border-amber-500/20">
-                          {card.vintageSeries || 'Carddass Hyper Battle'}
-                        </span>
-                        <span className="text-gray-400 text-[11px]">
-                          {card.vintagePart || card.displaySet || 'Vintage Set'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        {card.artistSourceUrl && (
-                          <a
-                            href={card.artistSourceUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[11px] text-blue-400 hover:text-blue-300 underline font-semibold flex items-center gap-1"
-                          >
-                            <span>3000px HD Scan</span>
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
-                        )}
+                        {/* Direct eBay Button */}
                         <a
-                          href={`http://www.onepiececollection.fr/cartes.php?idc=19&ids=${
-                            VINTAGE_SET_ARCHIVE_IDS[(card.printedSetCode || card.pack?.code || '').toUpperCase()] || '79'
-                          }`}
+                          href={ebayUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[11px] text-amber-400 hover:text-amber-300 underline font-semibold flex items-center gap-1"
+                          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-blue-600/20 transition active:scale-95 shrink-0"
                         >
-                          <span>OnePieceCollection.fr Archive</span>
-                          <ExternalLink className="w-3 h-3" />
+                          <span>View Sold on eBay</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
                         </a>
+                      </div>
+
+                      {/* 3-Stat Metric Row (Latest, High, Low) */}
+                      {vintageStats && (
+                        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/5">
+                          <div className="bg-[#12141c]/80 p-2 sm:p-2.5 rounded-xl border border-white/5">
+                            <span className="text-[9px] text-gray-400 uppercase font-black block">Latest Sale</span>
+                            <span className="text-xs sm:text-sm font-extrabold text-white font-mono mt-0.5 block truncate">
+                              {formatPrice(vintageStats.latest).full}
+                            </span>
+                            <span className="text-[9px] text-gray-400 block truncate">
+                              (${vintageStats.latest.toFixed(2)} USD)
+                            </span>
+                          </div>
+                          <div className="bg-[#12141c]/80 p-2 sm:p-2.5 rounded-xl border border-white/5">
+                            <span className="text-[9px] text-emerald-400 uppercase font-black block">Recent High</span>
+                            <span className="text-xs sm:text-sm font-extrabold text-emerald-300 font-mono mt-0.5 block truncate">
+                              {formatPrice(vintageStats.max).full}
+                            </span>
+                            <span className="text-[9px] text-gray-400 block truncate">
+                              (${vintageStats.max.toFixed(2)} USD)
+                            </span>
+                          </div>
+                          <div className="bg-[#12141c]/80 p-2 sm:p-2.5 rounded-xl border border-white/5">
+                            <span className="text-[9px] text-amber-400 uppercase font-black block">Recent Low</span>
+                            <span className="text-xs sm:text-sm font-extrabold text-amber-300 font-mono mt-0.5 block truncate">
+                              {formatPrice(vintageStats.min).full}
+                            </span>
+                            <span className="text-[9px] text-gray-400 block truncate">
+                              (${vintageStats.min.toFixed(2)} USD)
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Archive & Scan links */}
+                      <div className="pt-2 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div className="text-[11px] text-gray-400 flex items-center gap-1.5">
+                          <span>Provenance:</span>
+                          <span className="text-gray-300 font-semibold">1999–2002 Japan Bandai Release</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {card.artistSourceUrl && (
+                            <a
+                              href={card.artistSourceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] text-blue-400 hover:text-blue-300 underline font-semibold flex items-center gap-1"
+                            >
+                              <span>3000px HD Scan</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                          <a
+                            href={`http://www.onepiececollection.fr/cartes.php?idc=19&ids=${
+                              VINTAGE_SET_ARCHIVE_IDS[(card.printedSetCode || card.pack?.code || '').toUpperCase()] || '79'
+                            }`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] text-amber-400 hover:text-amber-300 underline font-semibold flex items-center gap-1"
+                          >
+                            <span>OnePieceCollection.fr Archive</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1338,11 +1448,16 @@ export function CardDetailView({
               {/* Recent Sales Breakdown Section: Vintage eBay 3-Sale Table or Community Sales */}
               {isVintage ? (
                 <div className="pt-3.5 mt-2 border-t border-[#34384c]">
-                  <div className="flex items-center justify-between pb-2">
-                    <div className="flex items-center gap-1.5 text-xs font-black text-amber-400 uppercase tracking-wider">
-                      <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Recent eBay Sales (3 Latest Last Solds)</span>
-                      <span className="text-[10px] text-gray-400 font-mono font-normal">({card.id})</span>
+                  {/* Clean uncrowded header */}
+                  <div className="flex items-center justify-between pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 text-xs font-black text-amber-400 uppercase tracking-wider">
+                        <ShoppingBag className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Recent eBay Sales</span>
+                      </div>
+                      <span className="text-[9px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
+                        3 Latest Solds
+                      </span>
                     </div>
                     <a
                       href={ebayUrl}
@@ -1355,58 +1470,98 @@ export function CardDetailView({
                     </a>
                   </div>
 
-                  <div className="overflow-x-auto rounded-xl border border-amber-500/20 bg-[#1a1d27]">
-                    <table className="w-full text-left text-xs">
-                      <thead>
-                        <tr className="border-b border-[#32384a] bg-[#141620] text-[9px] uppercase font-black text-gray-400">
-                          <th className="py-2.5 px-3">Sale Date</th>
-                          <th className="py-2.5 px-3">Listing Title</th>
-                          <th className="py-2.5 px-2.5">Condition</th>
-                          <th className="py-2.5 px-3 text-right">Sold Price</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#2a2f40]">
-                        {vintageSales.map((s) => (
-                          <tr key={s.id} className="text-[11px] hover:bg-white/[0.02]">
-                            <td className="py-2.5 px-3 text-gray-300 font-mono whitespace-nowrap">
-                              {s.date}
-                            </td>
-                            <td className="py-2.5 px-3 text-gray-200 max-w-[280px] sm:max-w-md truncate" title={s.title}>
-                              <span className="font-medium text-white">{s.title}</span>
-                            </td>
-                            <td className="py-2.5 px-2.5">
-                              <span className="px-1.5 py-0.5 rounded bg-black/60 border border-white/10 text-[9px] text-gray-300">
+                  {/* Responsive List: Mobile Transaction Cards + Desktop Table */}
+                  <div className="space-y-2">
+                    {/* Mobile Card Stack (Visible on mobile, hidden on sm+) */}
+                    <div className="block sm:hidden space-y-2">
+                      {vintageSales.map((s, idx) => (
+                        <div
+                          key={s.id}
+                          className="p-3 rounded-xl bg-[#171922] border border-white/5 hover:border-amber-500/30 transition shadow-sm space-y-1.5"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-bold flex items-center justify-center">
+                                #{idx + 1}
+                              </span>
+                              <span className="text-[11px] font-mono text-gray-300 font-semibold">{s.date}</span>
+                              <span className="px-1.5 py-0.2 rounded bg-black/60 border border-white/10 text-[9px] text-gray-400 font-medium">
                                 {s.condition || 'Pre-Owned'}
                               </span>
-                            </td>
-                            <td className="py-2.5 px-3 text-right whitespace-nowrap font-mono font-black text-amber-400">
-                              <span>{formatPrice(s.priceUsd).full}</span>
-                              <span className="text-[10px] text-gray-400 font-normal ml-1.5">
-                                (${s.priceUsd.toFixed(2)})
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                      <tfoot>
-                        <tr className="border-t border-amber-500/30 bg-[#141620] text-xs">
-                          <td colSpan={3} className="py-2.5 px-3">
-                            <div className="flex items-center gap-2">
-                              <span className="text-amber-400 font-black">3 Latest Solds Average:</span>
-                              <span className="text-[11px] text-gray-400">
-                                Mean of the 3 recent realized transactions
-                              </span>
                             </div>
-                          </td>
-                          <td className="py-2.5 px-3 text-right font-mono font-black text-emerald-400 whitespace-nowrap">
-                            <span>{formatPrice(vintageEffectivePrice).full}</span>
-                            <span className="text-[10px] text-gray-400 font-normal ml-1.5">
-                              (${vintageEffectivePrice.toFixed(2)} USD)
-                            </span>
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
+                            <div className="text-right">
+                              <div className="text-xs font-black text-amber-400 font-mono">
+                                {formatPrice(s.priceUsd).full}
+                              </div>
+                              <div className="text-[9px] text-gray-400 font-normal">
+                                (${s.priceUsd.toFixed(2)} USD)
+                              </div>
+                            </div>
+                          </div>
+                          <p className="text-[11px] text-gray-300 leading-snug line-clamp-2 font-medium">
+                            {s.title}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Desktop Table View (Hidden on mobile, visible on sm+) */}
+                    <div className="hidden sm:block overflow-hidden rounded-xl border border-amber-500/20 bg-[#171922]">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-[#32384a] bg-[#141620] text-[9px] uppercase font-black text-gray-400">
+                            <th className="py-2.5 px-3">Sale Date</th>
+                            <th className="py-2.5 px-3">Listing Title</th>
+                            <th className="py-2.5 px-2.5">Condition</th>
+                            <th className="py-2.5 px-3 text-right">Sold Price</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#2a2f40]">
+                          {vintageSales.map((s) => (
+                            <tr key={s.id} className="text-[11px] hover:bg-white/[0.02] transition">
+                              <td className="py-2.5 px-3 text-gray-300 font-mono whitespace-nowrap">
+                                {s.date}
+                              </td>
+                              <td className="py-2.5 px-3 text-gray-200 truncate max-w-xs md:max-w-md" title={s.title}>
+                                <span className="font-medium text-white">{s.title}</span>
+                              </td>
+                              <td className="py-2.5 px-2.5 whitespace-nowrap">
+                                <span className="px-1.5 py-0.5 rounded bg-black/60 border border-white/10 text-[9px] text-gray-300">
+                                  {s.condition || 'Pre-Owned'}
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-3 text-right whitespace-nowrap font-mono font-black text-amber-400">
+                                <span>{formatPrice(s.priceUsd).full}</span>
+                                <span className="text-[10px] text-gray-400 font-normal ml-1.5">
+                                  (${s.priceUsd.toFixed(2)})
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Unified Summary Highlight Card */}
+                    <div className="p-3 rounded-xl bg-gradient-to-r from-[#141620] to-[#1a1d28] border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-md">
+                      <div>
+                        <div className="text-[11px] font-black text-amber-400 flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
+                          <span>3-Sale Moving Average</span>
+                        </div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">
+                          Calculated arithmetic mean of the 3 recent realized transactions
+                        </div>
+                      </div>
+                      <div className="text-left sm:text-right font-mono">
+                        <div className="text-sm sm:text-base font-black text-emerald-400">
+                          {formatPrice(vintageEffectivePrice).full}
+                        </div>
+                        <div className="text-[10px] text-gray-400 font-normal">
+                          (${vintageEffectivePrice.toFixed(2)} USD)
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -1990,18 +2145,18 @@ export function CardDetailView({
                       })}
 
                       {/* Shaded Area Gradients under PSA, eBay & SNKRDUNK */}
-                      {enabledPriceSources.psa && (
+                      {!isVintage && enabledPriceSources.psa && (
                         <path d={getSvgAreaPath((d) => d.psa)} fill="url(#psaArea)" />
                       )}
                       {enabledPriceSources.ebay && (
                         <path d={getSvgAreaPath((d) => d.ebay)} fill="url(#ebayArea)" />
                       )}
-                      {enabledPriceSources.snkrdunk && (
+                      {!isVintage && enabledPriceSources.snkrdunk && (
                         <path d={getSvgAreaPath((d) => d.snkrdunk || 0)} fill="url(#snkrdunkArea)" />
                       )}
 
                       {/* Blue line: Yuyu-tei */}
-                      {enabledPriceSources.yuyutei && (
+                      {!isVintage && enabledPriceSources.yuyutei && (
                         <path
                           d={getSvgPath((d) => Math.round(d.yuyuYen / 152))}
                           fill="none"
@@ -2012,7 +2167,7 @@ export function CardDetailView({
                       )}
 
                       {/* Sky line: Cardmarket */}
-                      {enabledPriceSources.cardmarket && (
+                      {!isVintage && enabledPriceSources.cardmarket && (
                         <path
                           d={getSvgPath((d) => d.cardmarket)}
                           fill="none"
@@ -2028,13 +2183,13 @@ export function CardDetailView({
                           d={getSvgPath((d) => d.ebay)}
                           fill="none"
                           stroke="#84cc16"
-                          strokeWidth="1.2"
+                          strokeWidth={isVintage ? "2.2" : "1.2"}
                           strokeLinecap="round"
                         />
                       )}
 
                       {/* Emerald line: SNKRDUNK */}
-                      {enabledPriceSources.snkrdunk && (
+                      {!isVintage && enabledPriceSources.snkrdunk && (
                         <path
                           d={getSvgPath((d) => d.snkrdunk || 0)}
                           fill="none"
@@ -2045,7 +2200,7 @@ export function CardDetailView({
                       )}
 
                       {/* Red line: PSA */}
-                      {enabledPriceSources.psa && (
+                      {!isVintage && enabledPriceSources.psa && (
                         <path
                           d={getSvgPath((d) => d.psa)}
                           fill="none"
@@ -2067,7 +2222,7 @@ export function CardDetailView({
                             strokeWidth="1"
                             strokeDasharray="3 3"
                           />
-                          {enabledPriceSources.psa && (
+                          {!isVintage && enabledPriceSources.psa && (
                             <circle
                               cx={(hoverIndex / (currentSeries.length - 1)) * 320}
                               cy={Math.max(8, Math.min(115, Math.round(115 - (currentSeries[hoverIndex].psa / maxChartVal) * 105)))}
@@ -2081,13 +2236,13 @@ export function CardDetailView({
                             <circle
                               cx={(hoverIndex / (currentSeries.length - 1)) * 320}
                               cy={Math.max(8, Math.min(115, Math.round(115 - (currentSeries[hoverIndex].ebay / maxChartVal) * 105)))}
-                              r="3.5"
+                              r={isVintage ? "4.5" : "3.5"}
                               fill="#84cc16"
                               stroke="#ffffff"
-                              strokeWidth="1.2"
+                              strokeWidth="1.5"
                             />
                           )}
-                          {enabledPriceSources.snkrdunk && currentSeries[hoverIndex].snkrdunk !== undefined && (
+                          {!isVintage && enabledPriceSources.snkrdunk && currentSeries[hoverIndex].snkrdunk !== undefined && (
                             <circle
                               cx={(hoverIndex / (currentSeries.length - 1)) * 320}
                               cy={Math.max(8, Math.min(115, Math.round(115 - ((currentSeries[hoverIndex].snkrdunk || 0) / maxChartVal) * 105)))}
@@ -2097,7 +2252,7 @@ export function CardDetailView({
                               strokeWidth="1.2"
                             />
                           )}
-                          {enabledPriceSources.cardmarket && (
+                          {!isVintage && enabledPriceSources.cardmarket && (
                             <circle
                               cx={(hoverIndex / (currentSeries.length - 1)) * 320}
                               cy={Math.max(8, Math.min(115, Math.round(115 - (currentSeries[hoverIndex].cardmarket / maxChartVal) * 105)))}
@@ -2107,7 +2262,7 @@ export function CardDetailView({
                               strokeWidth="1.2"
                             />
                           )}
-                          {enabledPriceSources.yuyutei && (
+                          {!isVintage && enabledPriceSources.yuyutei && (
                             <circle
                               cx={(hoverIndex / (currentSeries.length - 1)) * 320}
                               cy={Math.max(8, Math.min(115, Math.round(115 - (Math.round(currentSeries[hoverIndex].yuyuYen / 152) / maxChartVal) * 105)))}
@@ -2133,25 +2288,36 @@ export function CardDetailView({
                         <div className="font-extrabold text-gray-300 border-b border-white/10 pb-1 mb-1">
                           Date: {currentSeries[hoverIndex].date}
                         </div>
-                        <div className="space-y-0.5 font-bold">
-                          {enabledPriceSources.psa && (
-                            <div className="text-red-400">PSA: {formatPrice(currentSeries[hoverIndex].psa).full}</div>
-                          )}
-                          {enabledPriceSources.ebay && (
-                            <div className="text-lime-400">eBay: {formatPrice(currentSeries[hoverIndex].ebay).full}</div>
-                          )}
-                          {enabledPriceSources.snkrdunk && (
-                            <div className="text-emerald-400">
-                              SNKRDUNK: {snkrdunkRawYen !== null ? formatPrice(snkrdunkRawYen, { source: 'snkrdunk', rawJPY: snkrdunkRawYen }).full : 'Unavailable'}
+                        {isVintage ? (
+                          <div className="space-y-0.5">
+                            <div className="text-lime-400 font-black text-xs">
+                              eBay Sold: {formatPrice(currentSeries[hoverIndex].ebay).full}
                             </div>
-                          )}
-                          {enabledPriceSources.cardmarket && (
-                            <div className="text-sky-400">CM: {formatPrice(currentSeries[hoverIndex].cardmarket, { source: 'cardmarket' }).full}</div>
-                          )}
-                          {enabledPriceSources.yuyutei && (
-                            <div className="text-blue-400">Yuyu: {formatPrice(Math.round(currentSeries[hoverIndex].yuyuYen / 152)).full}</div>
-                          )}
-                        </div>
+                            <div className="text-gray-400 text-[9px]">
+                              (${currentSeries[hoverIndex].ebay.toFixed(2)} USD)
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-0.5 font-bold">
+                            {enabledPriceSources.psa && (
+                              <div className="text-red-400">PSA: {formatPrice(currentSeries[hoverIndex].psa).full}</div>
+                            )}
+                            {enabledPriceSources.ebay && (
+                              <div className="text-lime-400">eBay: {formatPrice(currentSeries[hoverIndex].ebay).full}</div>
+                            )}
+                            {enabledPriceSources.snkrdunk && (
+                              <div className="text-emerald-400">
+                                SNKRDUNK: {snkrdunkRawYen !== null ? formatPrice(snkrdunkRawYen, { source: 'snkrdunk', rawJPY: snkrdunkRawYen }).full : 'Unavailable'}
+                              </div>
+                            )}
+                            {enabledPriceSources.cardmarket && (
+                              <div className="text-sky-400">CM: {formatPrice(currentSeries[hoverIndex].cardmarket, { source: 'cardmarket' }).full}</div>
+                            )}
+                            {enabledPriceSources.yuyutei && (
+                              <div className="text-blue-400">Yuyu: {formatPrice(Math.round(currentSeries[hoverIndex].yuyuYen / 152)).full}</div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -2204,117 +2370,137 @@ export function CardDetailView({
             </div>
 
             {/* Legend Footer & Interactive On/Off Toggles */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 border-t border-[#343a4c] bg-[#171922] text-[11px] sm:text-xs font-bold text-gray-300 select-none">
-              {/* Yuyu-tei */}
-              <button
-                type="button"
-                onClick={() => {
-                  togglePriceSource('yuyutei');
-                  showToast(enabledPriceSources.yuyutei ? 'Hidden Yuyu-tei pricing' : 'Showing Yuyu-tei pricing');
-                }}
-                title={enabledPriceSources.yuyutei ? 'Tap to hide Yuyu-tei' : 'Tap to show Yuyu-tei'}
-                className={`py-2.5 px-2 flex items-center justify-center gap-1.5 sm:gap-2 border-r border-b sm:border-b-0 border-[#343a4c] transition cursor-pointer ${
-                  enabledPriceSources.yuyutei
-                    ? 'hover:bg-white/5 text-gray-200 hover:text-white'
-                    : 'opacity-40 text-gray-500 hover:opacity-70 bg-black/20'
-                }`}
-              >
-                <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 transition ${
-                  enabledPriceSources.yuyutei ? 'bg-[#2563eb] shadow' : 'bg-transparent border border-gray-600'
-                }`} />
-                <span className={`truncate ${enabledPriceSources.yuyutei ? '' : 'line-through text-gray-500'}`}>
-                  Yuyu-tei
-                </span>
-              </button>
+            {isVintage ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-[#171922] border-t border-[#343a4c] select-none">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#84cc16] shadow-sm"></span>
+                    <span className="text-white font-extrabold text-xs">eBay Completed Sales Trend</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-gray-400 text-xs font-semibold">
+                    <span className="w-2.5 h-0.5 bg-amber-400 rounded inline-block"></span>
+                    <span>3-Sale Moving Avg: <strong className="text-emerald-400 font-bold">{formatPrice(vintageEffectivePrice).full}</strong></span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-amber-300 font-bold bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+                    Vintage Marketplace • eBay Exclusive
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-5 border-t border-[#343a4c] bg-[#171922] text-[11px] sm:text-xs font-bold text-gray-300 select-none">
+                {/* Yuyu-tei */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    togglePriceSource('yuyutei');
+                    showToast(enabledPriceSources.yuyutei ? 'Hidden Yuyu-tei pricing' : 'Showing Yuyu-tei pricing');
+                  }}
+                  title={enabledPriceSources.yuyutei ? 'Tap to hide Yuyu-tei' : 'Tap to show Yuyu-tei'}
+                  className={`py-2.5 px-2 flex items-center justify-center gap-1.5 sm:gap-2 border-r border-b sm:border-b-0 border-[#343a4c] transition cursor-pointer ${
+                    enabledPriceSources.yuyutei
+                      ? 'hover:bg-white/5 text-gray-200 hover:text-white'
+                      : 'opacity-40 text-gray-500 hover:opacity-70 bg-black/20'
+                  }`}
+                >
+                  <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 transition ${
+                    enabledPriceSources.yuyutei ? 'bg-[#2563eb] shadow' : 'bg-transparent border border-gray-600'
+                  }`} />
+                  <span className={`truncate ${enabledPriceSources.yuyutei ? '' : 'line-through text-gray-500'}`}>
+                    Yuyu-tei
+                  </span>
+                </button>
 
-              {/* Cardmarket */}
-              <button
-                type="button"
-                onClick={() => {
-                  togglePriceSource('cardmarket');
-                  showToast(enabledPriceSources.cardmarket ? 'Hidden Cardmarket pricing' : 'Showing Cardmarket pricing');
-                }}
-                title={enabledPriceSources.cardmarket ? 'Tap to hide Cardmarket' : 'Tap to show Cardmarket'}
-                className={`py-2.5 px-2 flex items-center justify-center gap-1.5 sm:gap-2 border-r border-b sm:border-b-0 border-[#343a4c] transition cursor-pointer ${
-                  enabledPriceSources.cardmarket
-                    ? 'hover:bg-white/5 text-gray-200 hover:text-white'
-                    : 'opacity-40 text-gray-500 hover:opacity-70 bg-black/20'
-                }`}
-              >
-                <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 transition ${
-                  enabledPriceSources.cardmarket ? 'bg-[#0284c7] shadow' : 'bg-transparent border border-gray-600'
-                }`} />
-                <span className={`truncate ${enabledPriceSources.cardmarket ? '' : 'line-through text-gray-500'}`}>
-                  Cardmarket
-                </span>
-              </button>
+                {/* Cardmarket */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    togglePriceSource('cardmarket');
+                    showToast(enabledPriceSources.cardmarket ? 'Hidden Cardmarket pricing' : 'Showing Cardmarket pricing');
+                  }}
+                  title={enabledPriceSources.cardmarket ? 'Tap to hide Cardmarket' : 'Tap to show Cardmarket'}
+                  className={`py-2.5 px-2 flex items-center justify-center gap-1.5 sm:gap-2 border-r border-b sm:border-b-0 border-[#343a4c] transition cursor-pointer ${
+                    enabledPriceSources.cardmarket
+                      ? 'hover:bg-white/5 text-gray-200 hover:text-white'
+                      : 'opacity-40 text-gray-500 hover:opacity-70 bg-black/20'
+                  }`}
+                >
+                  <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 transition ${
+                    enabledPriceSources.cardmarket ? 'bg-[#0284c7] shadow' : 'bg-transparent border border-gray-600'
+                  }`} />
+                  <span className={`truncate ${enabledPriceSources.cardmarket ? '' : 'line-through text-gray-500'}`}>
+                    Cardmarket
+                  </span>
+                </button>
 
-              {/* eBay */}
-              <button
-                type="button"
-                onClick={() => {
-                  togglePriceSource('ebay');
-                  showToast(enabledPriceSources.ebay ? 'Hidden eBay pricing' : 'Showing eBay pricing');
-                }}
-                title={enabledPriceSources.ebay ? 'Tap to hide eBay' : 'Tap to show eBay'}
-                className={`py-2.5 px-2 flex items-center justify-center gap-1.5 sm:gap-2 border-r border-b sm:border-b-0 border-[#343a4c] transition cursor-pointer ${
-                  enabledPriceSources.ebay
-                    ? 'hover:bg-white/5 text-gray-200 hover:text-white'
-                    : 'opacity-40 text-gray-500 hover:opacity-70 bg-black/20'
-                }`}
-              >
-                <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 transition ${
-                  enabledPriceSources.ebay ? 'bg-[#84cc16] shadow' : 'bg-transparent border border-gray-600'
-                }`} />
-                <span className={`truncate ${enabledPriceSources.ebay ? '' : 'line-through text-gray-500'}`}>
-                  eBay
-                </span>
-              </button>
+                {/* eBay */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    togglePriceSource('ebay');
+                    showToast(enabledPriceSources.ebay ? 'Hidden eBay pricing' : 'Showing eBay pricing');
+                  }}
+                  title={enabledPriceSources.ebay ? 'Tap to hide eBay' : 'Tap to show eBay'}
+                  className={`py-2.5 px-2 flex items-center justify-center gap-1.5 sm:gap-2 border-r border-b sm:border-b-0 border-[#343a4c] transition cursor-pointer ${
+                    enabledPriceSources.ebay
+                      ? 'hover:bg-white/5 text-gray-200 hover:text-white'
+                      : 'opacity-40 text-gray-500 hover:opacity-70 bg-black/20'
+                  }`}
+                >
+                  <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 transition ${
+                    enabledPriceSources.ebay ? 'bg-[#84cc16] shadow' : 'bg-transparent border border-gray-600'
+                  }`} />
+                  <span className={`truncate ${enabledPriceSources.ebay ? '' : 'line-through text-gray-500'}`}>
+                    eBay
+                  </span>
+                </button>
 
-              {/* SNKRDUNK */}
-              <button
-                type="button"
-                onClick={() => {
-                  togglePriceSource('snkrdunk');
-                  showToast(enabledPriceSources.snkrdunk ? 'Hidden SNKRDUNK pricing' : 'Showing SNKRDUNK pricing');
-                }}
-                title={enabledPriceSources.snkrdunk ? 'Tap to hide SNKRDUNK' : 'Tap to show SNKRDUNK'}
-                className={`py-2.5 px-2 flex items-center justify-center gap-1.5 sm:gap-2 border-r border-[#343a4c] transition cursor-pointer ${
-                  enabledPriceSources.snkrdunk
-                    ? 'hover:bg-white/5 text-gray-200 hover:text-white'
-                    : 'opacity-40 text-gray-500 hover:opacity-70 bg-black/20'
-                }`}
-              >
-                <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 transition ${
-                  enabledPriceSources.snkrdunk ? 'bg-[#10b981] shadow' : 'bg-transparent border border-gray-600'
-                }`} />
-                <span className={`truncate ${enabledPriceSources.snkrdunk ? '' : 'line-through text-gray-500'}`}>
-                  SNKRDUNK
-                </span>
-              </button>
+                {/* SNKRDUNK */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    togglePriceSource('snkrdunk');
+                    showToast(enabledPriceSources.snkrdunk ? 'Hidden SNKRDUNK pricing' : 'Showing SNKRDUNK pricing');
+                  }}
+                  title={enabledPriceSources.snkrdunk ? 'Tap to hide SNKRDUNK' : 'Tap to show SNKRDUNK'}
+                  className={`py-2.5 px-2 flex items-center justify-center gap-1.5 sm:gap-2 border-r border-[#343a4c] transition cursor-pointer ${
+                    enabledPriceSources.snkrdunk
+                      ? 'hover:bg-white/5 text-gray-200 hover:text-white'
+                      : 'opacity-40 text-gray-500 hover:opacity-70 bg-black/20'
+                  }`}
+                >
+                  <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 transition ${
+                    enabledPriceSources.snkrdunk ? 'bg-[#10b981] shadow' : 'bg-transparent border border-gray-600'
+                  }`} />
+                  <span className={`truncate ${enabledPriceSources.snkrdunk ? '' : 'line-through text-gray-500'}`}>
+                    SNKRDUNK
+                  </span>
+                </button>
 
-              {/* PSA */}
-              <button
-                type="button"
-                onClick={() => {
-                  togglePriceSource('psa');
-                  showToast(enabledPriceSources.psa ? 'Hidden PSA pricing' : 'Showing PSA pricing');
-                }}
-                title={enabledPriceSources.psa ? 'Tap to hide PSA' : 'Tap to show PSA'}
-                className={`py-2.5 px-2 flex items-center justify-center gap-1.5 sm:gap-2 transition cursor-pointer ${
-                  enabledPriceSources.psa
-                    ? 'hover:bg-white/5 text-gray-200 hover:text-white'
-                    : 'opacity-40 text-gray-500 hover:opacity-70 bg-black/20'
-                }`}
-              >
-                <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 transition ${
-                  enabledPriceSources.psa ? 'bg-[#ef4444] shadow' : 'bg-transparent border border-gray-600'
-                }`} />
-                <span className={`truncate ${enabledPriceSources.psa ? '' : 'line-through text-gray-500'}`}>
-                  PSA
-                </span>
-              </button>
-            </div>
+                {/* PSA */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    togglePriceSource('psa');
+                    showToast(enabledPriceSources.psa ? 'Hidden PSA pricing' : 'Showing PSA pricing');
+                  }}
+                  title={enabledPriceSources.psa ? 'Tap to hide PSA' : 'Tap to show PSA'}
+                  className={`py-2.5 px-2 flex items-center justify-center gap-1.5 sm:gap-2 transition cursor-pointer ${
+                    enabledPriceSources.psa
+                      ? 'hover:bg-white/5 text-gray-200 hover:text-white'
+                      : 'opacity-40 text-gray-500 hover:opacity-70 bg-black/20'
+                  }`}
+                >
+                  <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 transition ${
+                    enabledPriceSources.psa ? 'bg-[#ef4444] shadow' : 'bg-transparent border border-gray-600'
+                  }`} />
+                  <span className={`truncate ${enabledPriceSources.psa ? '' : 'line-through text-gray-500'}`}>
+                    PSA
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 
