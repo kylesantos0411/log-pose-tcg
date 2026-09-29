@@ -1135,56 +1135,50 @@ export function CardDetailView({
                         <span>Vintage Pricing is locked for regular visitors. Admin bypass enabled.</span>
                       </div>
                     )}
-                    <div className="bg-gradient-to-b from-[#1c1f2e] via-[#161824] to-[#12141c] border border-amber-500/30 rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden">
-                    {/* Subtle warm ambient glow */}
-                    <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
-
-                    <div className="relative z-10 space-y-3.5">
+                    <div className="bg-[#181a24] border border-[#2a2e3d] rounded-2xl p-4 sm:p-5 shadow-sm space-y-4">
                       {/* Top Badges */}
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 font-extrabold text-[10px] tracking-wide border border-amber-500/30 flex items-center gap-1">
-                            <span>✦</span>
-                            <span>{card.vintageSeries || 'Bandai Carddass Hyper Battle'}</span>
+                          <span className="px-2.5 py-1 rounded-lg bg-[#222634] text-gray-200 font-semibold text-xs border border-[#2e3448]">
+                            {card.vintageSeries || 'Bandai Carddass Hyper Battle'}
                           </span>
-                          <span className="text-gray-400 text-[11px] font-medium">
+                          <span className="text-gray-400 text-xs font-normal">
                             {card.vintagePart || card.displaySet || 'Vintage Collection'}
                           </span>
                         </div>
-                        <span className="text-[10px] font-mono text-gray-400 bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
+                        <span className="text-[11px] font-mono text-gray-400 bg-[#13151f] px-2 py-0.5 rounded-md border border-[#262a38]">
                           {card.id}
                         </span>
                       </div>
 
                       {/* Main Price & Title */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
-                        <div className="flex items-start gap-3">
-                          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/20 via-blue-500/10 to-red-500/20 border border-amber-500/40 flex items-center justify-center flex-shrink-0 shadow-md">
-                            <span className="text-sm font-black tracking-tight text-amber-400">ebay</span>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                              Fair Market Valuation
+                            </span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#222634] text-gray-300 border border-[#2e3448] font-medium">
+                              3-Sale Moving Avg
+                            </span>
                           </div>
-                          <div>
-                            <div className="text-[11px] font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                              <span>Vintage Market Price</span>
-                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
-                                3-Sale Moving Avg
+                          {vintageEffectivePrice && vintageEffectivePrice > 0 ? (
+                            <div className="flex flex-wrap items-baseline gap-2.5">
+                              <span className="text-3xl sm:text-4xl font-black text-white font-mono tracking-tight">
+                                {formatPrice(vintageEffectivePrice).full}
+                              </span>
+                              <span className="text-xs sm:text-sm text-gray-400 font-mono">
+                                (${vintageEffectivePrice.toFixed(2)} USD)
                               </span>
                             </div>
-                            {vintageEffectivePrice && vintageEffectivePrice > 0 ? (
-                              <div className="text-2xl sm:text-3xl font-black text-white mt-0.5 flex flex-wrap items-baseline gap-2">
-                                <span>{formatPrice(vintageEffectivePrice).full}</span>
-                                <span className="text-xs text-gray-400 font-medium">
-                                  (Est. ${vintageEffectivePrice.toFixed(2)} USD)
-                                </span>
-                              </div>
-                            ) : (
-                              <div className="text-lg font-bold text-gray-200 mt-0.5">
-                                Check Live Sold on eBay
-                              </div>
-                            )}
-                            <p className="text-[11px] text-gray-400 mt-0.5 max-w-md">
-                              Fair Market Value calculated strictly as the 3-sale moving average from recent completed eBay transactions.
-                            </p>
-                          </div>
+                          ) : (
+                            <div className="text-base font-semibold text-gray-300">
+                              Check Live Sold on eBay
+                            </div>
+                          )}
+                          <p className="text-xs text-gray-400 max-w-md leading-relaxed">
+                            Benchmark calculated strictly as the 3-sale moving average from recent completed eBay transactions.
+                          </p>
                         </div>
 
                         {/* Direct eBay Button */}
@@ -1192,51 +1186,51 @@ export function CardDetailView({
                           href={ebayUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-blue-600/20 transition active:scale-95 shrink-0"
+                          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#222736] hover:bg-[#2b3144] text-gray-200 hover:text-white font-semibold text-xs border border-[#343b50] hover:border-[#424a64] transition active:scale-95 shrink-0 shadow-sm"
                         >
-                          <span>View Sold on eBay</span>
-                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>View on eBay</span>
+                          <ExternalLink className="w-3.5 h-3.5 text-gray-400" />
                         </a>
                       </div>
 
                       {/* 3-Stat Metric Row (Latest, High, Low) */}
                       {vintageStats && (
-                        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/5">
-                          <div className="bg-[#12141c]/80 p-2 sm:p-2.5 rounded-xl border border-white/5">
-                            <span className="text-[9px] text-gray-400 uppercase font-black block">Latest Sale</span>
-                            <span className="text-xs sm:text-sm font-extrabold text-white font-mono mt-0.5 block truncate">
+                        <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#232736]">
+                          <div className="bg-[#13151f] p-2.5 rounded-xl border border-[#242838]">
+                            <span className="text-[10px] text-gray-400 uppercase font-semibold block tracking-wider">Latest Sale</span>
+                            <span className="text-xs sm:text-sm font-bold text-white font-mono mt-1 block truncate">
                               {formatPrice(vintageStats.latest).full}
                             </span>
-                            <span className="text-[9px] text-gray-400 block truncate">
-                              (${vintageStats.latest.toFixed(2)} USD)
+                            <span className="text-[10px] text-gray-400 block truncate font-mono">
+                              (${vintageStats.latest.toFixed(2)})
                             </span>
                           </div>
-                          <div className="bg-[#12141c]/80 p-2 sm:p-2.5 rounded-xl border border-white/5">
-                            <span className="text-[9px] text-emerald-400 uppercase font-black block">Recent High</span>
-                            <span className="text-xs sm:text-sm font-extrabold text-emerald-300 font-mono mt-0.5 block truncate">
+                          <div className="bg-[#13151f] p-2.5 rounded-xl border border-[#242838]">
+                            <span className="text-[10px] text-gray-400 uppercase font-semibold block tracking-wider">Recent High</span>
+                            <span className="text-xs sm:text-sm font-bold text-white font-mono mt-1 block truncate">
                               {formatPrice(vintageStats.max).full}
                             </span>
-                            <span className="text-[9px] text-gray-400 block truncate">
-                              (${vintageStats.max.toFixed(2)} USD)
+                            <span className="text-[10px] text-gray-400 block truncate font-mono">
+                              (${vintageStats.max.toFixed(2)})
                             </span>
                           </div>
-                          <div className="bg-[#12141c]/80 p-2 sm:p-2.5 rounded-xl border border-white/5">
-                            <span className="text-[9px] text-amber-400 uppercase font-black block">Recent Low</span>
-                            <span className="text-xs sm:text-sm font-extrabold text-amber-300 font-mono mt-0.5 block truncate">
+                          <div className="bg-[#13151f] p-2.5 rounded-xl border border-[#242838]">
+                            <span className="text-[10px] text-gray-400 uppercase font-semibold block tracking-wider">Recent Low</span>
+                            <span className="text-xs sm:text-sm font-bold text-white font-mono mt-1 block truncate">
                               {formatPrice(vintageStats.min).full}
                             </span>
-                            <span className="text-[9px] text-gray-400 block truncate">
-                              (${vintageStats.min.toFixed(2)} USD)
+                            <span className="text-[10px] text-gray-400 block truncate font-mono">
+                              (${vintageStats.min.toFixed(2)})
                             </span>
                           </div>
                         </div>
                       )}
 
                       {/* Archive & Scan links */}
-                      <div className="pt-2 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
-                        <div className="text-[11px] text-gray-400 flex items-center gap-1.5">
+                      <div className="pt-2 border-t border-[#232736] flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div className="text-xs text-gray-400 flex items-center gap-1.5">
                           <span>Provenance:</span>
-                          <span className="text-gray-300 font-semibold">1999–2002 Japan Bandai Release</span>
+                          <span className="text-gray-300 font-medium">1999–2002 Japan Bandai Release</span>
                         </div>
                         <div className="flex items-center gap-3">
                           {card.artistSourceUrl && (
@@ -1244,10 +1238,10 @@ export function CardDetailView({
                               href={card.artistSourceUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[11px] text-blue-400 hover:text-blue-300 underline font-semibold flex items-center gap-1"
+                              className="text-xs text-gray-400 hover:text-white underline font-medium flex items-center gap-1"
                             >
                               <span>3000px HD Scan</span>
-                              <ExternalLink className="w-3 h-3" />
+                              <ExternalLink className="w-3 h-3 text-gray-500" />
                             </a>
                           )}
                           <a
@@ -1256,18 +1250,17 @@ export function CardDetailView({
                             }`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-[11px] text-amber-400 hover:text-amber-300 underline font-semibold flex items-center gap-1"
+                            className="text-xs text-gray-400 hover:text-white underline font-medium flex items-center gap-1"
                           >
                             <span>OnePieceCollection.fr Archive</span>
-                            <ExternalLink className="w-3 h-3" />
+                            <ExternalLink className="w-3 h-3 text-gray-500" />
                           </a>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )
-            ) : (
+                )
+              ) : (
                 (() => {
                   const activeCount = [
                     enabledPriceSources.yuyutei,
@@ -1492,15 +1485,15 @@ export function CardDetailView({
 
               {/* Recent Sales Breakdown Section: Vintage eBay 3-Sale Table or Community Sales */}
               {isVintage ? (
-                <div className="pt-3.5 mt-2 border-t border-[#34384c]">
+                <div className="pt-3.5 mt-2 border-t border-[#2a2e3d]">
                   {/* Clean uncrowded header */}
                   <div className="flex items-center justify-between pb-2.5">
                     <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-1.5 text-xs font-black text-amber-400 uppercase tracking-wider">
-                        <ShoppingBag className="w-3.5 h-3.5 text-amber-400" />
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-white uppercase tracking-wider">
+                        <ShoppingBag className="w-3.5 h-3.5 text-gray-400" />
                         <span>Recent eBay Sales</span>
                       </div>
-                      <span className="text-[9px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
+                      <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#222634] text-gray-400 border border-[#2e3448] font-medium">
                         3 Latest Solds
                       </span>
                     </div>
@@ -1508,10 +1501,10 @@ export function CardDetailView({
                       href={ebayUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[10px] font-bold text-amber-400 hover:text-amber-300 transition flex items-center gap-1 cursor-pointer"
+                      className="text-xs text-gray-400 hover:text-white transition flex items-center gap-1 cursor-pointer font-medium"
                     >
                       <span>View All on eBay</span>
-                      <ChevronRight className="w-3 h-3" />
+                      <ChevronRight className="w-3 h-3 text-gray-500" />
                     </a>
                   </div>
 
@@ -1522,28 +1515,28 @@ export function CardDetailView({
                       {vintageSales.map((s, idx) => (
                         <div
                           key={s.id}
-                          className="p-3 rounded-xl bg-[#171922] border border-white/5 hover:border-amber-500/30 transition shadow-sm space-y-1.5"
+                          className="p-3 rounded-xl bg-[#181a24] border border-[#262a38] hover:border-[#383e54] transition shadow-sm space-y-2"
                         >
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5">
-                              <span className="w-4 h-4 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-bold flex items-center justify-center">
-                                #{idx + 1}
+                            <div className="flex items-center gap-2">
+                              <span className="w-5 h-5 rounded-md bg-[#222634] text-gray-400 font-mono text-[10px] font-bold flex items-center justify-center border border-[#2e3448]">
+                                {idx + 1}
                               </span>
-                              <span className="text-[11px] font-mono text-gray-300 font-semibold">{s.date}</span>
-                              <span className="px-1.5 py-0.2 rounded bg-black/60 border border-white/10 text-[9px] text-gray-400 font-medium">
+                              <span className="text-xs font-mono text-gray-300">{s.date}</span>
+                              <span className="px-1.5 py-0.5 rounded bg-[#13151f] border border-[#262a38] text-[10px] text-gray-400">
                                 {s.condition || 'Pre-Owned'}
                               </span>
                             </div>
                             <div className="text-right">
-                              <div className="text-xs font-black text-amber-400 font-mono">
+                              <div className="text-xs font-bold text-white font-mono">
                                 {formatPrice(s.priceUsd).full}
                               </div>
-                              <div className="text-[9px] text-gray-400 font-normal">
+                              <div className="text-[10px] text-gray-400 font-mono">
                                 (${s.priceUsd.toFixed(2)} USD)
                               </div>
                             </div>
                           </div>
-                          <p className="text-[11px] text-gray-300 leading-snug line-clamp-2 font-medium">
+                          <p className="text-xs text-gray-300 leading-relaxed font-normal">
                             {s.title}
                           </p>
                         </div>
@@ -1551,31 +1544,31 @@ export function CardDetailView({
                     </div>
 
                     {/* Desktop Table View (Hidden on mobile, visible on sm+) */}
-                    <div className="hidden sm:block overflow-hidden rounded-xl border border-amber-500/20 bg-[#171922]">
+                    <div className="hidden sm:block overflow-hidden rounded-xl border border-[#262a38] bg-[#181a24]">
                       <table className="w-full text-left text-xs">
                         <thead>
-                          <tr className="border-b border-[#32384a] bg-[#141620] text-[9px] uppercase font-black text-gray-400">
+                          <tr className="border-b border-[#262a38] bg-[#13151f] text-[10px] uppercase font-bold text-gray-400 tracking-wider">
                             <th className="py-2.5 px-3">Sale Date</th>
                             <th className="py-2.5 px-3">Listing Title</th>
                             <th className="py-2.5 px-2.5">Condition</th>
                             <th className="py-2.5 px-3 text-right">Sold Price</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#2a2f40]">
+                        <tbody className="divide-y divide-[#232736]">
                           {vintageSales.map((s) => (
-                            <tr key={s.id} className="text-[11px] hover:bg-white/[0.02] transition">
-                              <td className="py-2.5 px-3 text-gray-300 font-mono whitespace-nowrap">
+                            <tr key={s.id} className="text-xs hover:bg-white/[0.02] transition">
+                              <td className="py-2.5 px-3 text-gray-400 font-mono whitespace-nowrap">
                                 {s.date}
                               </td>
-                              <td className="py-2.5 px-3 text-gray-200 truncate max-w-xs md:max-w-md" title={s.title}>
-                                <span className="font-medium text-white">{s.title}</span>
+                              <td className="py-2.5 px-3 text-gray-300 truncate max-w-xs md:max-w-md" title={s.title}>
+                                {s.title}
                               </td>
                               <td className="py-2.5 px-2.5 whitespace-nowrap">
-                                <span className="px-1.5 py-0.5 rounded bg-black/60 border border-white/10 text-[9px] text-gray-300">
+                                <span className="px-1.5 py-0.5 rounded bg-[#13151f] border border-[#262a38] text-[10px] text-gray-400">
                                   {s.condition || 'Pre-Owned'}
                                 </span>
                               </td>
-                              <td className="py-2.5 px-3 text-right whitespace-nowrap font-mono font-black text-amber-400">
+                              <td className="py-2.5 px-3 text-right whitespace-nowrap font-mono font-bold text-white">
                                 <span>{formatPrice(s.priceUsd).full}</span>
                                 <span className="text-[10px] text-gray-400 font-normal ml-1.5">
                                   (${s.priceUsd.toFixed(2)})
@@ -1588,21 +1581,21 @@ export function CardDetailView({
                     </div>
 
                     {/* Unified Summary Highlight Card */}
-                    <div className="p-3 rounded-xl bg-gradient-to-r from-[#141620] to-[#1a1d28] border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-md">
+                    <div className="p-3 rounded-xl bg-[#141620] border border-[#262a38] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div>
-                        <div className="text-[11px] font-black text-amber-400 flex items-center gap-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
+                        <div className="text-xs font-bold text-gray-200 flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-gray-400" />
                           <span>3-Sale Moving Average</span>
                         </div>
-                        <div className="text-[10px] text-gray-400 mt-0.5">
-                          Calculated arithmetic mean of the 3 recent realized transactions
+                        <div className="text-[11px] text-gray-400 mt-0.5">
+                          Calculated mean of the 3 recent realized transactions
                         </div>
                       </div>
                       <div className="text-left sm:text-right font-mono">
-                        <div className="text-sm sm:text-base font-black text-emerald-400">
+                        <div className="text-sm sm:text-base font-bold text-white">
                           {formatPrice(vintageEffectivePrice).full}
                         </div>
-                        <div className="text-[10px] text-gray-400 font-normal">
+                        <div className="text-[10px] text-gray-400">
                           (${vintageEffectivePrice.toFixed(2)} USD)
                         </div>
                       </div>
@@ -2126,7 +2119,7 @@ export function CardDetailView({
 
         {/* BOX 2: Standalone Dynamic SVG Interactive Multi-Line Price Chart */}
         {activeTab === 'market' && (
-          <div className="rounded-2xl sm:rounded-3xl bg-[#1e202c] border border-[#343a4c] overflow-hidden shadow-lg">
+          <div className={`rounded-2xl sm:rounded-3xl ${isVintage ? 'bg-[#181a24] border border-[#2a2e3d]' : 'bg-[#1e202c] border border-[#343a4c]'} overflow-hidden shadow-lg`}>
             <div className="flex items-stretch">
               {/* Left: Y-axis Labels + SVG Chart Area */}
               <div className="flex-1 p-2.5 sm:p-3.5 pb-2.5 flex flex-col justify-between">
@@ -2165,8 +2158,8 @@ export function CardDetailView({
                           <stop offset="100%" stopColor="#ef4444" stopOpacity="0.0" />
                         </linearGradient>
                         <linearGradient id="ebayArea" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#84cc16" stopOpacity="0.14" />
-                          <stop offset="100%" stopColor="#84cc16" stopOpacity="0.0" />
+                          <stop offset="0%" stopColor={isVintage ? "#ffffff" : "#84cc16"} stopOpacity={isVintage ? "0.08" : "0.14"} />
+                          <stop offset="100%" stopColor={isVintage ? "#ffffff" : "#84cc16"} stopOpacity="0.0" />
                         </linearGradient>
                         <linearGradient id="snkrdunkArea" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#10b981" stopOpacity="0.14" />
@@ -2222,13 +2215,13 @@ export function CardDetailView({
                         />
                       )}
 
-                      {/* Lime line: eBay */}
+                      {/* eBay line (White for Vintage, Lime for Modern) */}
                       {enabledPriceSources.ebay && (
                         <path
                           d={getSvgPath((d) => d.ebay)}
                           fill="none"
-                          stroke="#84cc16"
-                          strokeWidth={isVintage ? "2.2" : "1.2"}
+                          stroke={isVintage ? "#ffffff" : "#84cc16"}
+                          strokeWidth={isVintage ? "1.8" : "1.2"}
                           strokeLinecap="round"
                         />
                       )}
@@ -2263,7 +2256,7 @@ export function CardDetailView({
                             y1="6"
                             x2={(hoverIndex / (currentSeries.length - 1)) * 320}
                             y2="118"
-                            stroke="#e76d78"
+                            stroke={isVintage ? "#94a3b8" : "#e76d78"}
                             strokeWidth="1"
                             strokeDasharray="3 3"
                           />
@@ -2281,10 +2274,10 @@ export function CardDetailView({
                             <circle
                               cx={(hoverIndex / (currentSeries.length - 1)) * 320}
                               cy={Math.max(8, Math.min(115, Math.round(115 - (currentSeries[hoverIndex].ebay / maxChartVal) * 105)))}
-                              r={isVintage ? "4.5" : "3.5"}
-                              fill="#84cc16"
-                              stroke="#ffffff"
-                              strokeWidth="1.5"
+                              r={isVintage ? "4" : "3.5"}
+                              fill={isVintage ? "#ffffff" : "#84cc16"}
+                              stroke={isVintage ? "#181a24" : "#ffffff"}
+                              strokeWidth={isVintage ? "2" : "1.5"}
                             />
                           )}
                           {!isVintage && enabledPriceSources.snkrdunk && currentSeries[hoverIndex].snkrdunk !== undefined && (
@@ -2324,7 +2317,7 @@ export function CardDetailView({
                     {/* Hover Tooltip */}
                     {hoverIndex !== null && (
                       <div 
-                        className="absolute top-2 z-20 bg-[#171922]/95 border border-[#3d4358] backdrop-blur p-2 rounded-xl text-[10px] shadow-2xl pointer-events-none"
+                        className={`absolute top-2 z-20 ${isVintage ? 'bg-[#181a24]/95 border border-[#2a2e3d]' : 'bg-[#171922]/95 border border-[#3d4358]'} backdrop-blur p-2 rounded-xl text-[10px] shadow-2xl pointer-events-none`}
                         style={{
                           left: hoverIndex > currentSeries.length / 2 ? '10px' : 'auto',
                           right: hoverIndex > currentSeries.length / 2 ? 'auto' : '10px',
@@ -2335,10 +2328,10 @@ export function CardDetailView({
                         </div>
                         {isVintage ? (
                           <div className="space-y-0.5">
-                            <div className="text-lime-400 font-black text-xs">
+                            <div className="text-white font-bold text-xs">
                               eBay Sold: {formatPrice(currentSeries[hoverIndex].ebay).full}
                             </div>
-                            <div className="text-gray-400 text-[9px]">
+                            <div className="text-gray-400 text-[10px]">
                               (${currentSeries[hoverIndex].ebay.toFixed(2)} USD)
                             </div>
                           </div>
@@ -2377,13 +2370,13 @@ export function CardDetailView({
               </div>
 
               {/* Right Sidebar: 7D / 1M / 3M */}
-              <div className="w-12 sm:w-14 border-l border-[#343a4c] flex flex-col justify-stretch bg-[#171922] select-none">
+              <div className={`w-12 sm:w-14 border-l ${isVintage ? 'border-[#2a2e3d] bg-[#14161f]' : 'border-[#343a4c] bg-[#171922]'} flex flex-col justify-stretch select-none`}>
                 <button
                   type="button"
                   onClick={() => setTimeframe('7D')}
-                  className={`flex-1 flex items-center justify-center text-xs font-black transition border-b border-[#343a4c] cursor-pointer ${
+                  className={`flex-1 flex items-center justify-center text-xs font-bold transition border-b ${isVintage ? 'border-[#2a2e3d]' : 'border-[#343a4c]'} cursor-pointer ${
                     timeframe === '7D'
-                      ? 'bg-[#2b3042] text-white shadow-inner'
+                      ? (isVintage ? 'bg-[#222634] text-white' : 'bg-[#2b3042] text-white shadow-inner')
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -2392,9 +2385,9 @@ export function CardDetailView({
                 <button
                   type="button"
                   onClick={() => setTimeframe('1M')}
-                  className={`flex-1 flex items-center justify-center text-xs font-black transition border-b border-[#343a4c] cursor-pointer ${
+                  className={`flex-1 flex items-center justify-center text-xs font-bold transition border-b ${isVintage ? 'border-[#2a2e3d]' : 'border-[#343a4c]'} cursor-pointer ${
                     timeframe === '1M'
-                      ? 'bg-[#2b3042] text-white shadow-inner'
+                      ? (isVintage ? 'bg-[#222634] text-white' : 'bg-[#2b3042] text-white shadow-inner')
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -2403,9 +2396,9 @@ export function CardDetailView({
                 <button
                   type="button"
                   onClick={() => setTimeframe('3M')}
-                  className={`flex-1 flex items-center justify-center text-xs font-black transition cursor-pointer ${
+                  className={`flex-1 flex items-center justify-center text-xs font-bold transition cursor-pointer ${
                     timeframe === '3M'
-                      ? 'bg-[#2b3042] text-white shadow-inner'
+                      ? (isVintage ? 'bg-[#222634] text-white' : 'bg-[#2b3042] text-white shadow-inner')
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
@@ -2416,20 +2409,20 @@ export function CardDetailView({
 
             {/* Legend Footer & Interactive On/Off Toggles */}
             {isVintage ? (
-              <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-[#171922] border-t border-[#343a4c] select-none">
+              <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-[#13151f] border-t border-[#242838] select-none text-xs">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#84cc16] shadow-sm"></span>
-                    <span className="text-white font-extrabold text-xs">eBay Completed Sales Trend</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-white shadow-sm"></span>
+                    <span className="text-gray-200 font-semibold text-xs">eBay Completed Sales</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-gray-400 text-xs font-semibold">
-                    <span className="w-2.5 h-0.5 bg-amber-400 rounded inline-block"></span>
-                    <span>3-Sale Moving Avg: <strong className="text-emerald-400 font-bold">{formatPrice(vintageEffectivePrice).full}</strong></span>
+                  <div className="flex items-center gap-1.5 text-gray-400 text-xs">
+                    <span className="w-2.5 h-0.5 bg-gray-500 rounded inline-block"></span>
+                    <span>3-Sale Moving Avg: <strong className="text-white font-bold">{formatPrice(vintageEffectivePrice).full}</strong></span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-amber-300 font-bold bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
-                    Vintage Marketplace • eBay Exclusive
+                  <span className="text-[10px] text-gray-400 font-medium bg-[#1d202d] px-2.5 py-1 rounded-md border border-[#2b3042]">
+                    Vintage Archive • eBay Solds
                   </span>
                 </div>
               </div>
