@@ -14,7 +14,7 @@ export function GlobalAnnouncementBanner({ announcement }: GlobalAnnouncementBan
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem('logpose_dismissed_announcement');
-      if (saved && saved === announcement.message) {
+      if (saved && saved === announcement?.message) {
         setDismissed(true);
       } else {
         setDismissed(false);
@@ -22,9 +22,10 @@ export function GlobalAnnouncementBanner({ announcement }: GlobalAnnouncementBan
     } catch {
       // Ignore
     }
-  }, [announcement.message]);
+  }, [announcement?.message]);
 
-  if (!announcement.enabled || !announcement.message || dismissed) {
+  const message = announcement?.message?.trim();
+  if (!announcement || !Boolean(announcement.enabled) || !message || dismissed) {
     return null;
   }
 

@@ -30,6 +30,7 @@ import {
   checkIsAdmin,
   touchUserActivity
 } from '@/lib/supabase-sync';
+import { getSupabaseBrowserClient } from '@/lib/supabase/client';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -52,10 +53,75 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     loadSettings();
-    const handleUpdate = () => loadSettings();
+
+    // 1. Local custom event triggered within the tab
+    const handleUpdate = () => {
+      loadSettings();
+    };
     window.addEventListener('logpose_settings_updated', handleUpdate);
-    return () => window.removeEventListener('logpose_settings_updated', handleUpdate);
+
+    // 2. Cross-tab storage synchronization
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'logpose_system_settings_cache') {
+        loadSettings();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    // 3. Tab visibility / window focus (e.g. user returns to phone browser or tab)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        loadSettings();
+      }
+    };
+    window.addEventListener('focus', handleUpdate);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    // 4. Polling heartbeat every 25 seconds for passive active users
+    const pollInterval = setInterval(() => {
+      loadSettings();
+    }, 25000);
+
+    // 5. Supabase Realtime channel for instant broadcast push
+    const client = getSupabaseBrowserClient();
+    let channel: any = null;
+    if (client) {
+      try {
+        channel = client
+          .channel('system_settings_realtime')
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'system_settings' },
+            () => {
+              loadSettings();
+            }
+          )
+          .subscribe();
+      } catch {
+        // Fall back gracefully to polling
+      }
+    }
+
+    return () => {
+      window.removeEventListener('logpose_settings_updated', handleUpdate);
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('focus', handleUpdate);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      clearInterval(pollInterval);
+      if (client && channel) {
+        try {
+          client.removeChannel(channel);
+        } catch {
+          // ignore
+        }
+      }
+    };
   }, []);
+
+  // Sync settings whenever user navigates routes
+  useEffect(() => {
+    loadSettings();
+  }, [pathname]);
 
   // Periodic/Route-based activity heart-beat (throttled to at most once per 5 minutes per user)
   useEffect(() => {

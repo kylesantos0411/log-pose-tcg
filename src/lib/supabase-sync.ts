@@ -1716,12 +1716,24 @@ export async function fetchSystemSettings(): Promise<SystemSettingsState> {
     };
 
     data.forEach((row) => {
-      if (row.key === 'maintenance' && row.value) {
-        res.maintenance = { ...DEFAULT_SYSTEM_SETTINGS.maintenance, ...row.value };
-      } else if (row.key === 'announcement' && row.value) {
-        res.announcement = { ...DEFAULT_SYSTEM_SETTINGS.announcement, ...row.value };
-      } else if (row.key === 'features' && row.value) {
-        res.features = { ...row.value };
+      let val = row.value;
+      if (typeof val === 'string') {
+        try {
+          val = JSON.parse(val);
+        } catch {
+          // ignore
+        }
+      }
+      if (row.key === 'maintenance' && val) {
+        res.maintenance = { ...DEFAULT_SYSTEM_SETTINGS.maintenance, ...val };
+      } else if (row.key === 'announcement' && val) {
+        res.announcement = {
+          ...DEFAULT_SYSTEM_SETTINGS.announcement,
+          ...val,
+          enabled: Boolean(val?.enabled),
+        };
+      } else if (row.key === 'features' && val) {
+        res.features = { ...val };
       }
     });
 
