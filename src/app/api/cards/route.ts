@@ -115,20 +115,33 @@ export async function GET(req: NextRequest) {
     }
 
     if (targetArtist) {
-      const artistOrs: any[] = [
-        { artistName: { equals: targetArtist } },
-        { artistName: { contains: targetArtist } },
-      ];
-      if (isGuestArtist(targetArtist)) {
-        const allCards = await prisma.card.findMany({
-          select: { id: true, name: true },
+      const targetLower = targetArtist.toLowerCase().trim();
+      const allArtists = await prisma.card.findMany({
+        where: { artistName: { not: null } },
+        select: { artistName: true },
+        distinct: ['artistName'],
+      });
+
+      const matchedArtists = allArtists
+        .filter((a) => {
+          if (!a.artistName) return false;
+          const lower = a.artistName.toLowerCase();
+          if (lower === targetLower) return true;
+          const words = lower.split(/[\s.\-]+/);
+          return words.some((w) => w === targetLower);
+        })
+        .map((a) => a.artistName as string);
+
+      if (matchedArtists.length > 0) {
+        andConditions.push({ artistName: { in: matchedArtists } });
+      } else {
+        andConditions.push({
+          OR: [
+            { artistName: { equals: targetArtist } },
+            { artistName: { contains: targetArtist } },
+          ],
         });
-        const artistCardIds = getCardIdsByArtist(targetArtist, allCards);
-        if (artistCardIds.length > 0) {
-          artistOrs.push({ id: { in: artistCardIds } });
-        }
       }
-      andConditions.push({ OR: artistOrs });
     }
 
     if (q && !isArtistQuery) {
@@ -181,18 +194,40 @@ export async function GET(req: NextRequest) {
         });
       } else {
         const searchTerm = cleanQ || q;
-        andConditions.push({
-          OR: [
-            { id: { contains: searchTerm } },
-            { name: { contains: searchTerm } },
-            { types: { contains: searchTerm } },
-            { promoSource: { contains: searchTerm } },
-            { displaySet: { contains: searchTerm } },
-            { vintageSeries: { contains: searchTerm } },
-            { vintagePart: { contains: searchTerm } },
-            { artistName: { contains: searchTerm } },
-          ],
+        const sLower = searchTerm.toLowerCase();
+
+        // Exact word match for artist names to prevent substring bleed (e.g. nakamaru vs nakama)
+        const allArtists = await prisma.card.findMany({
+          where: { artistName: { not: null } },
+          select: { artistName: true },
+          distinct: ['artistName'],
         });
+
+        const matchedArtistsForTerm = allArtists
+          .filter((a) => {
+            if (!a.artistName) return false;
+            const lower = a.artistName.toLowerCase();
+            if (lower === sLower) return true;
+            const words = lower.split(/[\s.\-]+/);
+            return words.some((w) => w === sLower);
+          })
+          .map((a) => a.artistName as string);
+
+        const orFilters: any[] = [
+          { id: { contains: searchTerm } },
+          { name: { contains: searchTerm } },
+          { types: { contains: searchTerm } },
+          { promoSource: { contains: searchTerm } },
+          { displaySet: { contains: searchTerm } },
+          { vintageSeries: { contains: searchTerm } },
+          { vintagePart: { contains: searchTerm } },
+        ];
+
+        if (matchedArtistsForTerm.length > 0) {
+          orFilters.push({ artistName: { in: matchedArtistsForTerm } });
+        }
+
+        andConditions.push({ OR: orFilters });
       }
     }
 

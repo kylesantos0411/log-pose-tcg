@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -133,6 +133,8 @@ function CardsContent() {
   const [cards, setCards] = useState<CardItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(initialQuery);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialQuery);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const [sortBy, setSortBy] = useState(sortParam || 'latest');
   const [selectedColor, setSelectedColor] = useState('All');
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
@@ -158,6 +160,14 @@ function CardsContent() {
   const [addPrice, setAddPrice] = useState('');
   const [savingCollection, setSavingCollection] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // Debounce user typing in search bar (250ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   useEffect(() => {
     fetch('/api/sets')
@@ -196,6 +206,7 @@ function CardsContent() {
     const queryParam = searchParams.get('q');
     if (queryParam !== null && queryParam !== undefined) {
       setSearch(queryParam);
+      setDebouncedSearch(queryParam);
       setPage(1);
     }
     const currentSort = searchParams.get('sort');
@@ -205,14 +216,24 @@ function CardsContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    fetchCards();
-  }, [search, selectedColor, selectedCategory, selectedRarity, selectedSet, selectedArtist, page, sortBy]);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
-  async function fetchCards() {
+    fetchCards(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
+  }, [debouncedSearch, selectedColor, selectedCategory, selectedRarity, selectedSet, selectedArtist, page, sortBy]);
+
+  async function fetchCards(signal?: AbortSignal) {
     setLoading(true);
     try {
       const params = new URLSearchParams({
-        q: search,
+        q: debouncedSearch,
         color: selectedColor,
         category: selectedCategory,
         rarity: selectedRarity,
@@ -227,17 +248,22 @@ function CardsContent() {
         params.set('artist', selectedArtist);
       }
 
-      const res = await fetch(`/api/cards?${params.toString()}`);
+      const res = await fetch(`/api/cards?${params.toString()}`, { signal });
       const data = await res.json();
       if (data.cards) {
         setCards(data.cards);
-        setTotalPages(data.pagination.totalPages || 1);
-        setTotalCount(data.pagination.total || 0);
+        setTotalPages(data.pagination?.totalPages || 1);
+        setTotalCount(data.pagination?.total || 0);
       }
-    } catch (e) {
+    } catch (e: any) {
+      if (e?.name === 'AbortError') {
+        return;
+      }
       console.error(e);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   }
 
@@ -423,7 +449,7 @@ function CardsContent() {
             {search && (
               <button
                 type="button"
-                onClick={() => { setSearch(''); setPage(1); }}
+                onClick={() => { setSearch(''); setDebouncedSearch(''); setPage(1); }}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 rounded-full hover:bg-white/10 cursor-pointer"
                 title="Clear Search"
               >
