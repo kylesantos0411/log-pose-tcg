@@ -51,6 +51,8 @@ import {
   DEFAULT_SYSTEM_SETTINGS,
   checkIsAdmin,
   checkIsChiefAdmin,
+  formatActivityRelativeTime,
+  isUserRecentlyActive,
 } from '@/lib/supabase-sync';
 
 export default function AdminPage() {
@@ -78,7 +80,8 @@ export default function AdminPage() {
   // Users Management state
   const [usersList, setUsersList] = useState<AdminUserRecord[]>([]);
   const [userSearch, setUserSearch] = useState('');
-  const [userFilter, setUserFilter] = useState<'all' | 'banned' | 'admins'>('all');
+  const [userFilter, setUserFilter] = useState<'all' | 'online' | 'banned' | 'admins'>('all');
+  const [userSort, setUserSort] = useState<'recent_active' | 'last_login' | 'newest' | 'cards' | 'sales'>('recent_active');
   const [loadingUsers, setLoadingUsers] = useState(false);
 
   // Ban Modal state
@@ -323,18 +326,44 @@ export default function AdminPage() {
     );
   }
 
-  // Filter users list
-  const filteredUsers = usersList.filter((u) => {
-    const matchQuery =
-      u.username.toLowerCase().includes(userSearch.toLowerCase()) ||
-      u.tag.toLowerCase().includes(userSearch.toLowerCase()) ||
-      (u.email && u.email.toLowerCase().includes(userSearch.toLowerCase()));
+  // Filter and sort users list
+  const filteredUsers = usersList
+    .filter((u) => {
+      const matchQuery =
+        u.username.toLowerCase().includes(userSearch.toLowerCase()) ||
+        u.tag.toLowerCase().includes(userSearch.toLowerCase()) ||
+        (u.email && u.email.toLowerCase().includes(userSearch.toLowerCase()));
 
-    if (!matchQuery) return false;
-    if (userFilter === 'banned') return u.isBanned;
-    if (userFilter === 'admins') return u.role === 'admin';
-    return true;
-  });
+      if (!matchQuery) return false;
+      if (userFilter === 'online') return isUserRecentlyActive(u.lastActive);
+      if (userFilter === 'banned') return u.isBanned;
+      if (userFilter === 'admins') return u.role === 'admin';
+      return true;
+    })
+    .sort((a, b) => {
+      if (userSort === 'recent_active') {
+        const timeA = a.lastActive ? new Date(a.lastActive).getTime() : 0;
+        const timeB = b.lastActive ? new Date(b.lastActive).getTime() : 0;
+        return timeB - timeA;
+      }
+      if (userSort === 'last_login') {
+        const timeA = a.lastLogin ? new Date(a.lastLogin).getTime() : 0;
+        const timeB = b.lastLogin ? new Date(b.lastLogin).getTime() : 0;
+        return timeB - timeA;
+      }
+      if (userSort === 'newest') {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeB - timeA;
+      }
+      if (userSort === 'cards') {
+        return (b.cardCount || 0) - (a.cardCount || 0);
+      }
+      if (userSort === 'sales') {
+        return (b.salesCount || 0) - (a.salesCount || 0);
+      }
+      return 0;
+    });
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12">
@@ -861,7 +890,7 @@ export default function AdminPage() {
           </div>
 
           {/* Search & Filter bar */}
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
               <input
@@ -873,25 +902,47 @@ export default function AdminPage() {
               />
             </div>
 
-            <div className="flex gap-1.5">
-              {[
-                { id: 'all', label: `All (${usersList.length})` },
-                { id: 'banned', label: `Banned (${usersList.filter((u) => u.isBanned).length})` },
-                { id: 'admins', label: `Admins (${usersList.filter((u) => u.role === 'admin').length})` },
-              ].map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setUserFilter(f.id as any)}
-                  className={`py-2 px-3 rounded-xl text-xs font-bold transition ${
-                    userFilter === f.id
-                      ? 'bg-red-500 text-white'
-                      : 'bg-[#14161f] border border-[#2d3242] text-gray-400 hover:text-white'
-                  }`}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                {[
+                  { id: 'all', label: `All (${usersList.length})` },
+                  { id: 'online', label: `Online (${usersList.filter((u) => isUserRecentlyActive(u.lastActive)).length})`, isOnline: true },
+                  { id: 'banned', label: `Banned (${usersList.filter((u) => u.isBanned).length})` },
+                  { id: 'admins', label: `Admins (${usersList.filter((u) => u.role === 'admin').length})` },
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setUserFilter(f.id as any)}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                      userFilter === f.id
+                        ? f.isOnline ? 'bg-emerald-600 text-white' : 'bg-red-500 text-white'
+                        : 'bg-[#14161f] border border-[#2d3242] text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {f.isOnline && (
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    )}
+                    <span>{f.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Sort Selector */}
+              <div className="flex items-center gap-1.5 bg-[#14161f] border border-[#2d3242] px-3 py-1.5 rounded-xl">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-gray-400" />
+                <select
+                  value={userSort}
+                  onChange={(e) => setUserSort(e.target.value as any)}
+                  className="bg-transparent text-white text-xs font-semibold focus:outline-none cursor-pointer"
                 >
-                  {f.label}
-                </button>
-              ))}
+                  <option value="recent_active" className="bg-[#1e2230]">Sort: Recently Active</option>
+                  <option value="last_login" className="bg-[#1e2230]">Sort: Last Login</option>
+                  <option value="newest" className="bg-[#1e2230]">Sort: Newest First</option>
+                  <option value="cards" className="bg-[#1e2230]">Sort: Collection Size</option>
+                  <option value="sales" className="bg-[#1e2230]">Sort: Market Sales</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -908,70 +959,104 @@ export default function AdminPage() {
                     <th className="py-3 px-3">Collector</th>
                     <th className="py-3 px-3">Role</th>
                     <th className="py-3 px-3">Status</th>
+                    <th className="py-3 px-3">Last Active / App Use</th>
                     <th className="py-3 px-3 text-center">Collection</th>
                     <th className="py-3 px-3 text-center">Sales</th>
                     <th className="py-3 px-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#242938]">
-                  {filteredUsers.map((u) => (
-                    <tr key={u.id} className="hover:bg-white/[0.02] transition">
-                      <td className="py-3.5 px-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center font-black text-xs text-white flex-shrink-0">
-                            {u.username.slice(0, 2).toUpperCase()}
-                          </div>
-                          <div className="min-w-0">
-                            <span className="font-bold text-white block truncate">
-                              {u.username}
-                            </span>
-                            <span className="text-[11px] text-gray-400 font-mono">
-                              @{u.tag.replace(/^@/, '')} {u.email ? `• ${u.email}` : ''}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-3">
-                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-                          u.role === 'admin'
-                            ? 'bg-red-500/20 text-red-300 border border-red-500/30'
-                            : 'bg-gray-500/15 text-gray-300 border border-gray-500/20'
-                        }`}>
-                          {u.role}
-                        </span>
-                      </td>
-
-                      <td className="py-3.5 px-3">
-                        {u.isBanned ? (
-                          <div className="space-y-0.5">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                              <ShieldAlert className="w-3 h-3 text-rose-400" />
-                              <span>Banned</span>
-                            </span>
-                            {u.banReason && (
-                              <span className="block text-[10px] text-gray-400 truncate max-w-xs italic">
-                                "{u.banReason}"
+                  {filteredUsers.map((u) => {
+                    const online = isUserRecentlyActive(u.lastActive);
+                    return (
+                      <tr key={u.id} className="hover:bg-white/[0.02] transition">
+                        <td className="py-3.5 px-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center font-black text-xs text-white flex-shrink-0">
+                              {u.username.slice(0, 2).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <span className="font-bold text-white block truncate">
+                                {u.username}
                               </span>
-                            )}
+                              <span className="text-[11px] text-gray-400 font-mono">
+                                @{u.tag.replace(/^@/, '')} {u.email ? `• ${u.email}` : ''}
+                              </span>
+                            </div>
                           </div>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                            <span>Active</span>
+                        </td>
+
+                        <td className="py-3.5 px-3">
+                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                            u.role === 'admin'
+                              ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+                              : 'bg-gray-500/15 text-gray-300 border border-gray-500/20'
+                          }`}>
+                            {u.role}
                           </span>
-                        )}
-                      </td>
+                        </td>
 
-                      <td className="py-3.5 px-3 text-center font-mono font-bold text-gray-300">
-                        {u.cardCount} cards
-                      </td>
+                        <td className="py-3.5 px-3">
+                          {u.isBanned ? (
+                            <div className="space-y-0.5">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                                <ShieldAlert className="w-3 h-3 text-rose-400" />
+                                <span>Banned</span>
+                              </span>
+                              {u.banReason && (
+                                <span className="block text-[10px] text-gray-400 truncate max-w-xs italic">
+                                  "{u.banReason}"
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                              <span>Active</span>
+                            </span>
+                          )}
+                        </td>
 
-                      <td className="py-3.5 px-3 text-center font-mono font-bold text-gray-300">
-                        {u.salesCount} sold
-                      </td>
+                        {/* Last Active / App Usage & Login */}
+                        <td className="py-3.5 px-3">
+                          <div className="space-y-1">
+                            <div 
+                              className="flex items-center gap-1.5"
+                              title={u.lastActive ? `Last Active: ${new Date(u.lastActive).toLocaleString()}` : 'No activity logged yet'}
+                            >
+                              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                online ? 'bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400/50' : 'bg-gray-500'
+                              }`} />
+                              <span className="font-bold text-white text-xs whitespace-nowrap">
+                                {formatActivityRelativeTime(u.lastActive)}
+                              </span>
+                              {online && (
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold uppercase tracking-wider">
+                                  Online
+                                </span>
+                              )}
+                            </div>
+                            <div 
+                              className="text-[10px] text-gray-400 flex items-center gap-1"
+                              title={u.lastLogin ? `Last Login: ${new Date(u.lastLogin).toLocaleString()}` : 'Registered date used as baseline'}
+                            >
+                              <Clock className="w-2.5 h-2.5 text-gray-500 flex-shrink-0" />
+                              <span className="truncate">
+                                Login: {u.lastLogin ? formatActivityRelativeTime(u.lastLogin) : 'On signup'}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
 
-                      <td className="py-3.5 px-3 text-right">
+                        <td className="py-3.5 px-3 text-center font-mono font-bold text-gray-300">
+                          {u.cardCount} cards
+                        </td>
+
+                        <td className="py-3.5 px-3 text-center font-mono font-bold text-gray-300">
+                          {u.salesCount} sold
+                        </td>
+
+                        <td className="py-3.5 px-3 text-right">
                         {u.role === 'admin' ? (
                           <span className="text-[11px] text-gray-500 font-bold">Admin Protected</span>
                         ) : u.isBanned ? (
@@ -998,8 +1083,9 @@ export default function AdminPage() {
                         )}
                       </td>
                     </tr>
-                  ))}
-                </tbody>
+                  );
+                })}
+              </tbody>
               </table>
             </div>
           )}
@@ -1096,11 +1182,30 @@ export default function AdminPage() {
       {/* TAB 4: SYSTEM TELEMETRY                                        */}
       {/* ────────────────────────────────────────────────────────────── */}
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="p-5 rounded-3xl bg-[#1e2230] border border-[#343a4c] space-y-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Total Registered Users</span>
             <div className="text-3xl font-black text-white font-mono">{usersList.length}</div>
             <p className="text-[11px] text-gray-500">Cloud profile accounts in database</p>
+          </div>
+
+          <div className="p-5 rounded-3xl bg-[#1e2230] border border-[#343a4c] space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Active Now (Online)</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            </div>
+            <div className="text-3xl font-black text-emerald-400 font-mono">
+              {usersList.filter((u) => isUserRecentlyActive(u.lastActive, 5)).length}
+            </div>
+            <p className="text-[11px] text-gray-500">Active app clients in last 5 minutes</p>
+          </div>
+
+          <div className="p-5 rounded-3xl bg-[#1e2230] border border-[#343a4c] space-y-2">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Active Today (24h)</span>
+            <div className="text-3xl font-black text-blue-400 font-mono">
+              {usersList.filter((u) => isUserRecentlyActive(u.lastActive, 24 * 60)).length}
+            </div>
+            <p className="text-[11px] text-gray-500">Users active in the last 24 hours</p>
           </div>
 
           <div className="p-5 rounded-3xl bg-[#1e2230] border border-[#343a4c] space-y-2">

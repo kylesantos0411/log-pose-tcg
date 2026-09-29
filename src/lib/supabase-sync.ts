@@ -1811,6 +1811,94 @@ export interface AdminUserRecord {
   cardCount: number;
   salesCount: number;
   createdAt: string;
+  updatedAt?: string | null;
+  lastLogin?: string | null;
+  lastActive?: string | null;
+}
+
+/**
+ * Format timestamp into friendly relative time (e.g., 'Just now', '5m ago', '2h ago', '3d ago')
+ */
+export function formatActivityRelativeTime(dateStr?: string | null): string {
+  if (!dateStr) return 'Never';
+  const time = new Date(dateStr).getTime();
+  if (isNaN(time)) return 'Never';
+  const now = Date.now();
+  const diffSec = Math.floor((now - time) / 1000);
+
+  if (diffSec < 0 || diffSec < 60) return 'Just now';
+  if (diffSec < 3600) {
+    const mins = Math.floor(diffSec / 60);
+    return `${mins}m ago`;
+  }
+  if (diffSec < 86400) {
+    const hours = Math.floor(diffSec / 3600);
+    return `${hours}h ago`;
+  }
+  if (diffSec < 86400 * 7) {
+    const days = Math.floor(diffSec / 86400);
+    return `${days}d ago`;
+  }
+  if (diffSec < 86400 * 30) {
+    const weeks = Math.floor(diffSec / (86400 * 7));
+    return `${weeks}w ago`;
+  }
+  return new Date(dateStr).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+}
+
+/**
+ * Checks if a user was active within the given threshold (default 5 minutes)
+ */
+export function isUserRecentlyActive(dateStr?: string | null, minutesThreshold: number = 5): boolean {
+  if (!dateStr) return false;
+  const time = new Date(dateStr).getTime();
+  if (isNaN(time)) return false;
+  return (Date.now() - time) < minutesThreshold * 60 * 1000;
+}
+
+/**
+ * Touch user activity and/or login timestamp in Supabase
+ */
+export async function touchUserActivity(userId: string, isLogin: boolean = false): Promise<void> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured() || !isValidUuid(userId)) return;
+
+  try {
+    // 1. Try secure RPC first
+    const { error: rpcError } = await client.rpc('touch_user_activity', {
+      p_is_login: isLogin,
+    });
+    if (!rpcError) return;
+
+    // 2. Direct table update fallback
+    const nowIso = new Date().toISOString();
+    const updatePayload: Record<string, any> = {
+      last_active_at: nowIso,
+      updated_at: nowIso,
+    };
+    if (isLogin) {
+      updatePayload.last_login = nowIso;
+    }
+
+    const { error: updateError } = await client
+      .from('profiles')
+      .update(updatePayload)
+      .eq('id', userId);
+
+    if (updateError) {
+      // 3. Fallback to updating updated_at if new columns are not yet migrated
+      await client
+        .from('profiles')
+        .update({ updated_at: nowIso })
+        .eq('id', userId);
+    }
+  } catch (err) {
+    // Silent catch: telemetry should never break app flow
+  }
 }
 
 /**
@@ -1821,14 +1909,35 @@ export async function fetchAllUsersForAdmin(): Promise<AdminUserRecord[]> {
   if (!client || !isSupabaseConfigured()) return [];
 
   try {
-    const { data: profiles, error } = await client
-      .from('profiles')
-      .select('id, username, tag, email, role, is_banned, ban_reason, banned_at, rank, crew, created_at')
-      .order('created_at', { ascending: false });
+    let profiles: any[] | null = null;
 
-    if (error || !profiles) {
-      console.error('fetchAllUsersForAdmin error:', error);
-      return [];
+    // 1. Try secure RPC that joins auth.users for exact last_sign_in_at
+    try {
+      const { data: rpcData, error: rpcError } = await client.rpc('admin_get_users_activity');
+      if (!rpcError && rpcData && Array.isArray(rpcData)) {
+        profiles = rpcData;
+      }
+    } catch {
+      // RPC may not be installed yet
+    }
+
+    // 2. Direct profiles select with last_login and last_active_at
+    if (!profiles) {
+      const { data: fullProfiles, error: fullError } = await client
+        .from('profiles')
+        .select('id, username, tag, email, role, is_banned, ban_reason, banned_at, rank, crew, created_at, updated_at, last_login, last_active_at')
+        .order('created_at', { ascending: false });
+
+      if (!fullError && fullProfiles) {
+        profiles = fullProfiles;
+      } else {
+        // Fallback without new columns if migration hasn't been executed
+        const { data: baseProfiles } = await client
+          .from('profiles')
+          .select('id, username, tag, email, role, is_banned, ban_reason, banned_at, rank, crew, created_at, updated_at')
+          .order('created_at', { ascending: false });
+        profiles = baseProfiles || [];
+      }
     }
 
     // Fetch card counts
@@ -1853,6 +1962,8 @@ export async function fetchAllUsersForAdmin(): Promise<AdminUserRecord[]> {
 
     return profiles.map((p) => {
       const isChiefAdmin = checkIsChiefAdmin(p);
+      const lastActive = p.last_active_at || p.auth_last_sign_in_at || p.last_login || p.updated_at || p.created_at;
+      const lastLogin = p.last_login || p.auth_last_sign_in_at || p.updated_at || p.created_at;
 
       return {
         id: p.id,
@@ -1868,6 +1979,9 @@ export async function fetchAllUsersForAdmin(): Promise<AdminUserRecord[]> {
         cardCount: cardMap[p.id] || 0,
         salesCount: saleMap[p.id] || 0,
         createdAt: p.created_at,
+        updatedAt: p.updated_at || null,
+        lastLogin: lastLogin || null,
+        lastActive: lastActive || null,
       };
     });
   } catch (err) {

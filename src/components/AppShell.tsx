@@ -27,7 +27,8 @@ import {
   DEFAULT_SYSTEM_SETTINGS, 
   type SystemSettingsState,
   type AppFeatureKey,
-  checkIsAdmin
+  checkIsAdmin,
+  touchUserActivity
 } from '@/lib/supabase-sync';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -55,6 +56,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     window.addEventListener('logpose_settings_updated', handleUpdate);
     return () => window.removeEventListener('logpose_settings_updated', handleUpdate);
   }, []);
+
+  // Periodic/Route-based activity heart-beat (throttled to at most once per 5 minutes per user)
+  useEffect(() => {
+    if (user?.id) {
+      try {
+        const key = `logpose_last_touch_${user.id}`;
+        const lastTouch = sessionStorage.getItem(key);
+        const now = Date.now();
+        if (!lastTouch || now - parseInt(lastTouch, 10) > 5 * 60 * 1000) {
+          sessionStorage.setItem(key, now.toString());
+          touchUserActivity(user.id, false);
+        }
+      } catch {
+        // Ignore sessionStorage restrictions
+      }
+    }
+  }, [user?.id, pathname]);
 
   // 1. Account Suspended Screen
   if (user?.isBanned) {

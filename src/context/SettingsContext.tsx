@@ -36,7 +36,8 @@ import {
   migrateLocalBinderToCloud,
   syncUserCloudData,
   checkIsChiefAdmin,
-  checkIsAdmin
+  checkIsAdmin,
+  touchUserActivity
 } from '@/lib/supabase-sync';
 
 export const BETA_INVITE_CODES = [
@@ -386,6 +387,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         syncUserCloudData(active.id, active.tag).catch((e) =>
           console.warn('Initial cloud sync skipped:', e)
         );
+        touchUserActivity(active.id, false).catch(() => {});
       }
     } catch {
       // localStorage may be unavailable in some environments
@@ -526,6 +528,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
       // Auto-sync collection and favorites with Supabase cloud (bidirectional restore)
       await syncUserCloudData(sbUser.id, tag);
+      touchUserActivity(sbUser.id, true).catch(() => {});
     } catch (err) {
       console.error('Failed to sync Supabase session:', err);
     }
@@ -876,6 +879,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           transferGuestCardsToAccount(userProfile.tag);
           setAccountsState(getStoredAccounts());
           await syncUserCloudData(userProfile.id, userProfile.tag);
+          touchUserActivity(userProfile.id, true).catch(() => {});
 
           return { success: true, user: userProfile };
         } catch (sbErr: any) {
@@ -922,6 +926,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           transferGuestCardsToAccount(userProfile.tag);
           setAccountsState(getStoredAccounts());
           await syncUserCloudData(userProfile.id, userProfile.tag);
+          touchUserActivity(userProfile.id, true).catch(() => {});
 
           return { success: true, user: userProfile };
         } catch (sbErr: any) {
