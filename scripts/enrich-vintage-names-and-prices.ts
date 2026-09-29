@@ -57,8 +57,8 @@ const VERIFIED_EBAY_SALES: Record<string, number> = {
   'HB01-S06': 17.58,
   'HB01-S08': 44.05,
 
-  // 5th Stage (2001) - Iconic Chase Wanted Poster
-  'HB05-C221': 80.10, // Luffy 30 Million Belly Wanted Poster (Sold $80.10 & $138.21)
+  // 5th Stage (2001) - Iconic Chase Wanted Poster (3 latest eBay sales avg: $80.10, $138.21, $99.99)
+  'HB05-C221': 106.10,
 
   // 2nd Stage Key Holos
   'HB02-C35': 75.00, // Luffy Holo

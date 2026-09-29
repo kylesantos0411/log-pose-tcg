@@ -38,7 +38,7 @@ import { getCardArtist, ArtistProfile } from '@/lib/artist-data';
 import { useSettings, CURRENCIES } from '@/context/SettingsContext';
 import { isCardFavorite, toggleCardFavorite } from '@/lib/favorites';
 import { fetchCommunitySales, reportSuspiciousSale, type CloudSaleRecord } from '@/lib/supabase-sync';
-import { generateEbaySoldSearchUrl } from '@/lib/ebay-pricing';
+import { generateEbaySoldSearchUrl, getVintageRecentSales, calculateThreeSaleAverage } from '@/lib/ebay-pricing';
 
 export interface CardDetailData {
   id: string;
@@ -588,6 +588,18 @@ export function CardDetailView({
 
   // External reference URLs for market pricing sources
   const isVintage = Boolean(card.isVintage || card.vintageSeries || card.id.startsWith('HB'));
+  const vintageSales = useMemo(() => {
+    if (!isVintage) return [];
+    return getVintageRecentSales(card.id, card.cardNumber, card.name, card.ebayPrice);
+  }, [isVintage, card.id, card.cardNumber, card.name, card.ebayPrice]);
+
+  const vintageThreeSaleAvg = useMemo(() => {
+    if (!isVintage || vintageSales.length === 0) return card.ebayPrice || 0;
+    return calculateThreeSaleAverage(vintageSales);
+  }, [isVintage, vintageSales, card.ebayPrice]);
+
+  const vintageEffectivePrice = vintageThreeSaleAvg > 0 ? vintageThreeSaleAvg : (card.ebayPrice || 0);
+
   const cleanCardId = card.id.split('_')[0];
   const yuyuteiUrl = `https://yuyu-tei.jp/sell/opc/s/search?search_word=${encodeURIComponent(cleanCardId)}`;
   const cardmarketUrl = `https://www.cardmarket.com/en/OnePiece/Products/Search?searchString=${encodeURIComponent((card.cardNumber || cleanCardId) + ' ' + card.name)}`;
@@ -1030,13 +1042,13 @@ export function CardDetailView({
                         </div>
                         <div>
                           <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
-                            <span>Vintage Market Price (eBay Sold FMV)</span>
+                            <span>Vintage Market Price (3 Latest eBay Solds Avg)</span>
                           </div>
-                          {card.ebayPrice && card.ebayPrice > 0 ? (
+                          {vintageEffectivePrice && vintageEffectivePrice > 0 ? (
                             <div className="text-xl sm:text-2xl font-black text-white mt-0.5 flex items-center gap-2">
-                              <span>{formatPrice(card.ebayPrice).full}</span>
+                              <span>{formatPrice(vintageEffectivePrice).full}</span>
                               <span className="text-xs text-gray-400 font-normal">
-                                (Est. ${card.ebayPrice.toFixed(2)} USD)
+                                (Est. ${vintageEffectivePrice.toFixed(2)} USD)
                               </span>
                             </div>
                           ) : (
@@ -1045,8 +1057,8 @@ export function CardDetailView({
                             </div>
                           )}
                           <p className="text-[11px] text-gray-400 mt-0.5">
-                            {card.ebayPrice && card.ebayPrice > 0
-                              ? 'Verified Fair Market Value tracked from completed eBay sales.'
+                            {vintageEffectivePrice && vintageEffectivePrice > 0
+                              ? 'Calculated as the 3-sale moving average from recent completed eBay transactions.'
                               : 'No fixed baseline on record. Tap "View Sold on eBay" to view recent realized transactions.'}
                           </p>
                         </div>
@@ -1323,69 +1335,145 @@ export function CardDetailView({
               })()
             )}
 
-              {/* Recent Community Sales Quick Summary Section */}
-              <div className="pt-3.5 mt-2 border-t border-[#34384c]">
-                <div className="flex items-center justify-between pb-2">
-                  <div className="flex items-center gap-1.5 text-xs font-black text-white uppercase tracking-wider">
-                    <Users className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Recent Community Sales</span>
-                    <span className="text-[10px] text-gray-400 font-mono font-normal">({card.id})</span>
+              {/* Recent Sales Breakdown Section: Vintage eBay 3-Sale Table or Community Sales */}
+              {isVintage ? (
+                <div className="pt-3.5 mt-2 border-t border-[#34384c]">
+                  <div className="flex items-center justify-between pb-2">
+                    <div className="flex items-center gap-1.5 text-xs font-black text-amber-400 uppercase tracking-wider">
+                      <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Recent eBay Sales (3 Latest Last Solds)</span>
+                      <span className="text-[10px] text-gray-400 font-mono font-normal">({card.id})</span>
+                    </div>
+                    <a
+                      href={ebayUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] font-bold text-amber-400 hover:text-amber-300 transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>View All on eBay</span>
+                      <ChevronRight className="w-3 h-3" />
+                    </a>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('community')}
-                    className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>{communitySales.length > 0 ? `View All (${communitySales.length})` : 'Sales Reference'}</span>
-                    <ChevronRight className="w-3 h-3" />
-                  </button>
-                </div>
 
-                {isLoadingCommunitySales ? (
-                  <div className="p-3 rounded-xl bg-[#1e212c] border border-[#32384a] text-center text-xs text-gray-400">
-                    Loading verified community sales…
-                  </div>
-                ) : communitySales.length === 0 ? (
-                  <div className="p-3 rounded-xl bg-[#1e212c] border border-[#32384a] text-center text-xs text-gray-400">
-                    No community transactions recorded yet for this exact variant.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto rounded-xl border border-[#32384a] bg-[#1e212c]">
+                  <div className="overflow-x-auto rounded-xl border border-amber-500/20 bg-[#1a1d27]">
                     <table className="w-full text-left text-xs">
                       <thead>
-                        <tr className="border-b border-[#32384a] bg-[#181a24] text-[9px] uppercase font-black text-gray-400">
-                          <th className="py-2 px-3">Date</th>
-                          <th className="py-2 px-2.5">Condition</th>
-                          <th className="py-2 px-2.5">Variant</th>
-                          <th className="py-2 px-3 text-right">Sold Price</th>
+                        <tr className="border-b border-[#32384a] bg-[#141620] text-[9px] uppercase font-black text-gray-400">
+                          <th className="py-2.5 px-3">Sale Date</th>
+                          <th className="py-2.5 px-3">Listing Title</th>
+                          <th className="py-2.5 px-2.5">Condition</th>
+                          <th className="py-2.5 px-3 text-right">Sold Price</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#2a2f40]">
-                        {communitySales.slice(0, 3).map((s) => (
+                        {vintageSales.map((s) => (
                           <tr key={s.id} className="text-[11px] hover:bg-white/[0.02]">
-                            <td className="py-2 px-3 text-gray-300 font-mono">
-                              {s.soldDate
-                                ? new Date(s.soldDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-                                : 'Recent'}
+                            <td className="py-2.5 px-3 text-gray-300 font-mono whitespace-nowrap">
+                              {s.date}
                             </td>
-                            <td className="py-2 px-2.5 font-bold text-gray-200">
-                              <span className="px-1.5 py-0.2 rounded bg-black/60 border border-white/10 text-[9px]">
-                                {s.condition || 'NM'}
+                            <td className="py-2.5 px-3 text-gray-200 max-w-[280px] sm:max-w-md truncate" title={s.title}>
+                              <span className="font-medium text-white">{s.title}</span>
+                            </td>
+                            <td className="py-2.5 px-2.5">
+                              <span className="px-1.5 py-0.5 rounded bg-black/60 border border-white/10 text-[9px] text-gray-300">
+                                {s.condition || 'Pre-Owned'}
                               </span>
                             </td>
-                            <td className="py-2 px-2.5 text-purple-300 truncate max-w-[120px]">
-                              {cardIdInfo.variantLabel || 'Base Version'}
-                            </td>
-                            <td className="py-2 px-3 font-mono font-black text-emerald-400 text-right">
-                              {formatSalePrice(s.soldPrice, s.soldCurrency)}
+                            <td className="py-2.5 px-3 text-right whitespace-nowrap font-mono font-black text-amber-400">
+                              <span>{formatPrice(s.priceUsd).full}</span>
+                              <span className="text-[10px] text-gray-400 font-normal ml-1.5">
+                                (${s.priceUsd.toFixed(2)})
+                              </span>
                             </td>
                           </tr>
                         ))}
                       </tbody>
+                      <tfoot>
+                        <tr className="border-t border-amber-500/30 bg-[#141620] text-xs">
+                          <td colSpan={3} className="py-2.5 px-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-amber-400 font-black">3 Latest Solds Average:</span>
+                              <span className="text-[11px] text-gray-400">
+                                Mean of the 3 recent realized transactions
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-mono font-black text-emerald-400 whitespace-nowrap">
+                            <span>{formatPrice(vintageEffectivePrice).full}</span>
+                            <span className="text-[10px] text-gray-400 font-normal ml-1.5">
+                              (${vintageEffectivePrice.toFixed(2)} USD)
+                            </span>
+                          </td>
+                        </tr>
+                      </tfoot>
                     </table>
                   </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                /* Recent Community Sales Quick Summary Section */
+                <div className="pt-3.5 mt-2 border-t border-[#34384c]">
+                  <div className="flex items-center justify-between pb-2">
+                    <div className="flex items-center gap-1.5 text-xs font-black text-white uppercase tracking-wider">
+                      <Users className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Recent Community Sales</span>
+                      <span className="text-[10px] text-gray-400 font-mono font-normal">({card.id})</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('community')}
+                      className="text-[10px] font-bold text-emerald-400 hover:text-emerald-300 transition flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>{communitySales.length > 0 ? `View All (${communitySales.length})` : 'Sales Reference'}</span>
+                      <ChevronRight className="w-3 h-3" />
+                    </button>
+                  </div>
+
+                  {isLoadingCommunitySales ? (
+                    <div className="p-3 rounded-xl bg-[#1e212c] border border-[#32384a] text-center text-xs text-gray-400">
+                      Loading verified community sales…
+                    </div>
+                  ) : communitySales.length === 0 ? (
+                    <div className="p-3 rounded-xl bg-[#1e212c] border border-[#32384a] text-center text-xs text-gray-400">
+                      No community transactions recorded yet for this exact variant.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto rounded-xl border border-[#32384a] bg-[#1e212c]">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="border-b border-[#32384a] bg-[#181a24] text-[9px] uppercase font-black text-gray-400">
+                            <th className="py-2 px-3">Date</th>
+                            <th className="py-2 px-2.5">Condition</th>
+                            <th className="py-2 px-2.5">Variant</th>
+                            <th className="py-2 px-3 text-right">Sold Price</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#2a2f40]">
+                          {communitySales.slice(0, 3).map((s) => (
+                            <tr key={s.id} className="text-[11px] hover:bg-white/[0.02]">
+                              <td className="py-2 px-3 text-gray-300 font-mono">
+                                {s.soldDate
+                                  ? new Date(s.soldDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                                  : 'Recent'}
+                              </td>
+                              <td className="py-2 px-2.5 font-bold text-gray-200">
+                                <span className="px-1.5 py-0.2 rounded bg-black/60 border border-white/10 text-[9px]">
+                                  {s.condition || 'NM'}
+                                </span>
+                              </td>
+                              <td className="py-2 px-2.5 text-purple-300 truncate max-w-[120px]">
+                                {cardIdInfo.variantLabel || 'Base Version'}
+                              </td>
+                              <td className="py-2 px-3 font-mono font-black text-emerald-400 text-right">
+                                {formatSalePrice(s.soldPrice, s.soldCurrency)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
