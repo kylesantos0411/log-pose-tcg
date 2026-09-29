@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyPassword, verifyCode } from '@/lib/auth-server';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limiter';
+import { sanitizeString } from '@/lib/sanitizer';
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    const rateCheck = checkRateLimit(`login:${ip}`, { maxRequests: 10, windowSeconds: 60, namespace: 'login' });
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: `Too many login attempts. Please wait ${rateCheck.retryAfterSeconds} seconds.` },
+        { status: 429, headers: { 'Retry-After': String(rateCheck.retryAfterSeconds) } }
+      );
+    }
+
     const body = await req.json();
     const { identifier, password, code, token } = body;
 
-    const cleanId = (identifier || '').trim();
+    const cleanId = sanitizeString(identifier, 100);
     if (!cleanId) {
       return NextResponse.json({ error: 'Please enter your email, Collector Tag, or username.' }, { status: 400 });
     }
@@ -32,15 +43,15 @@ export async function POST(req: NextRequest) {
       console.warn('Prisma find user error:', findErr);
     }
 
-    if (!user) {
-      return NextResponse.json({
-        error: 'No account found matching this identifier. Please verify your details or create a new account.',
-      }, { status: 404 });
-    }
-
     // 2. Authentication via 6-digit verification code
     if (code) {
-      const cleanCode = code.trim();
+      if (!user) {
+        return NextResponse.json({
+          error: 'Invalid or expired 6-digit verification code.',
+        }, { status: 400 });
+      }
+
+      const cleanCode = sanitizeString(code, 10);
       const verification = await verifyCode(user.email, cleanCode, 'login', verificationToken);
       if (!verification.valid) {
         return NextResponse.json({
@@ -65,17 +76,39 @@ export async function POST(req: NextRequest) {
         user: userSession,
         message: `Welcome back, ${user.username}!`,
       });
+
+      const sessionPayload = encodeURIComponent(
+        JSON.stringify({
+          id: user.id,
+          tag: user.tag,
+          email: user.email,
+        })
+      );
+      res.cookies.set('logpose_session', sessionPayload, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 3600,
+        path: '/',
+      });
       res.cookies.delete('logpose_verification_token');
       return res;
     }
 
     // 3. Authentication via password
     if (password) {
-      const cleanPass = password.trim();
+      if (!user) {
+        // Return generic message to prevent account enumeration
+        return NextResponse.json({
+          error: 'Invalid identifier or password. Please verify your credentials.',
+        }, { status: 401 });
+      }
+
+      const cleanPass = String(password).trim().slice(0, 200);
       const isValid = verifyPassword(cleanPass, user.passwordHash);
       if (!isValid) {
         return NextResponse.json({
-          error: 'Incorrect password. Please check your credentials or reset your password.',
+          error: 'Invalid identifier or password. Please verify your credentials.',
         }, { status: 401 });
       }
 
@@ -91,11 +124,28 @@ export async function POST(req: NextRequest) {
         createdAt: user.createdAt instanceof Date ? user.createdAt.toISOString() : user.createdAt,
       };
 
-      return NextResponse.json({
+      const res = NextResponse.json({
         success: true,
         user: userSession,
         message: `Welcome back, ${user.username}!`,
       });
+
+      const sessionPayload = encodeURIComponent(
+        JSON.stringify({
+          id: user.id,
+          tag: user.tag,
+          email: user.email,
+        })
+      );
+      res.cookies.set('logpose_session', sessionPayload, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 30 * 24 * 3600,
+        path: '/',
+      });
+
+      return res;
     }
 
     return NextResponse.json({
@@ -103,6 +153,6 @@ export async function POST(req: NextRequest) {
     }, { status: 400 });
   } catch (error: any) {
     console.error('Login error:', error);
-    return NextResponse.json({ error: error.message || 'Login failed.' }, { status: 500 });
+    return NextResponse.json({ error: 'Authentication failed. Please try again.' }, { status: 500 });
   }
 }

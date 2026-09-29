@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { prisma } from '@/lib/prisma';
+import { sanitizeIdentifier } from '@/lib/sanitizer';
 
 const CACHE_DIR = path.join(process.cwd(), 'public', 'cards');
 if (!fs.existsSync(CACHE_DIR)) {
@@ -162,14 +163,14 @@ export async function GET(req: NextRequest) {
   }
 
   // Derive card identifiers
-  let cleanId = id.trim();
+  let cleanId = sanitizeIdentifier(id);
   let baseId = cleanId ? cleanId.split('_')[0] : '';
 
   // If id is not explicitly provided, try extracting it from url or DB
   if (!cleanId && url) {
     const fileMatch = url.match(/\/([A-Z0-9]+-[0-9]+(?:_[A-Za-z0-9]+)?)\.(?:png|jpg|jpeg|webp)/i);
     if (fileMatch) {
-      cleanId = fileMatch[1];
+      cleanId = sanitizeIdentifier(fileMatch[1]);
       baseId = cleanId.split('_')[0];
     } else {
       // Try DB lookup by imageUrl

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { sanitizeSearchQuery, sanitizeString } from '@/lib/sanitizer';
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const q = searchParams.get('q') || '';
-    const type = searchParams.get('type');
+    const q = sanitizeSearchQuery(searchParams.get('q') || '', 50);
+    const type = sanitizeString(searchParams.get('type') || '', 20);
 
     const where: any = {};
 
@@ -105,6 +106,7 @@ export async function GET(req: NextRequest) {
       total: formattedPacks.length,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Error fetching sets:', error);
+    return NextResponse.json({ error: 'Failed to retrieve set data' }, { status: 500 });
   }
 }

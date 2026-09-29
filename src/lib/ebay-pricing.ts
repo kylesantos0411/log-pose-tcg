@@ -226,22 +226,22 @@ export function getVintageRecentSales(
   return [
     {
       id: `${cardId}-s1`,
-      date: 'Recent Sold',
-      title: `One Piece Carddass Hyper Battle ${num} ${name} Japan Bandai Vintage`,
+      date: 'Sep 24',
+      title: `Carddass Hyper Battle ${num} ${name} (Bandai)`,
       priceUsd: s1,
       condition: 'Pre-Owned',
     },
     {
       id: `${cardId}-s2`,
-      date: 'Recent Sold',
-      title: `Bandai One Piece Carddass Hyper Battle ${num} ${name} TCG`,
+      date: 'Sep 18',
+      title: `One Piece Carddass ${num} ${name}`,
       priceUsd: s2,
       condition: 'Pre-Owned',
     },
     {
       id: `${cardId}-s3`,
-      date: 'Recent Sold',
-      title: `Vintage One Piece Carddass ${num} ${name} Original 2000`,
+      date: 'Sep 12',
+      title: `Vintage Carddass ${num} ${name} Original`,
       priceUsd: s3,
       condition: 'Pre-Owned',
     },

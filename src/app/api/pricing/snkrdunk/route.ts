@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { fetchSnkrdunkPricing } from '@/lib/snkrdunk';
+import { sanitizeIdentifier, sanitizeString } from '@/lib/sanitizer';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -8,10 +9,11 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const cardId = searchParams.get('cardId') || searchParams.get('id');
+    const rawCardId = searchParams.get('cardId') || searchParams.get('id');
+    const cardId = sanitizeIdentifier(rawCardId);
 
     if (!cardId) {
-      return NextResponse.json({ error: 'cardId parameter is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Valid cardId parameter is required' }, { status: 400 });
     }
 
     const card = await prisma.card.findUnique({
@@ -24,11 +26,11 @@ export async function GET(req: NextRequest) {
       const fallbackCard = {
         id: cardId,
         cardNumber: cardId.split('_')[0],
-        name: searchParams.get('name') || cardId,
+        name: sanitizeString(searchParams.get('name') || cardId, 100),
         isAltArt: cardId.includes('_p'),
         pack: {
-          code: searchParams.get('packCode') || cardId.split('-')[0],
-          name: searchParams.get('packName') || '',
+          code: sanitizeString(searchParams.get('packCode') || cardId.split('-')[0], 20),
+          name: sanitizeString(searchParams.get('packName') || '', 100),
         },
       };
       const pricing = await fetchSnkrdunkPricing(fallbackCard);
@@ -40,7 +42,7 @@ export async function GET(req: NextRequest) {
   } catch (error: any) {
     console.error('Error fetching SNKRDUNK pricing:', error);
     return NextResponse.json(
-      { success: false, error: error.message || 'Internal Server Error' },
+      { success: false, error: 'Failed to retrieve SNKRDUNK pricing' },
       { status: 500 }
     );
   }

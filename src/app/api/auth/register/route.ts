@@ -1,27 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hashPassword, generateUniqueTag, verifyCode } from '@/lib/auth-server';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limiter';
+import { sanitizeEmail, sanitizeString, isValidUsername } from '@/lib/sanitizer';
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    const rateCheck = checkRateLimit(`register:${ip}`, { maxRequests: 5, windowSeconds: 60, namespace: 'register' });
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: `Too many registration attempts. Please wait ${rateCheck.retryAfterSeconds} seconds.` },
+        { status: 429, headers: { 'Retry-After': String(rateCheck.retryAfterSeconds) } }
+      );
+    }
+
     const body = await req.json();
     const { username, email, password, code, token, avatar = '👒', crew = 'Straw Hat Pirates', customTag, inviteCode } = body;
 
-    const cleanUsername = (username || '').trim();
-    const cleanEmail = (email || '').trim().toLowerCase();
-    const cleanPassword = (password || '').trim();
-    const cleanCode = (code || '').trim();
-    const cleanInviteCode = (inviteCode || '').trim().toUpperCase();
+    const cleanUsername = sanitizeString(username, 30);
+    const cleanEmail = sanitizeEmail(email);
+    const cleanPassword = String(password || '').trim();
+    const cleanCode = sanitizeString(code, 10);
+    const cleanInviteCode = sanitizeString(inviteCode, 30).toUpperCase();
+    const cleanAvatar = sanitizeString(avatar, 20) || 'default';
+    const cleanCrew = sanitizeString(crew, 50) || 'Collector';
+    const cleanCustomTag = customTag ? sanitizeString(customTag, 35) : '';
     const verificationToken = token || req.cookies.get('logpose_verification_token')?.value;
 
-    if (!cleanUsername || cleanUsername.length < 2) {
-      return NextResponse.json({ error: 'Username must be at least 2 characters long.' }, { status: 400 });
+    if (!cleanUsername || !isValidUsername(cleanUsername)) {
+      return NextResponse.json({ error: 'Username must be 2-30 characters (letters, numbers, hyphens, and underscores only).' }, { status: 400 });
     }
-    if (!cleanEmail || !cleanEmail.includes('@')) {
+    if (!cleanEmail) {
       return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 });
     }
-    if (!cleanPassword || cleanPassword.length < 6) {
-      return NextResponse.json({ error: 'Password must be at least 6 characters long.' }, { status: 400 });
+    if (!cleanPassword || cleanPassword.length < 6 || cleanPassword.length > 100) {
+      return NextResponse.json({ error: 'Password must be between 6 and 100 characters long.' }, { status: 400 });
     }
 
     // 1. Validate invite code (required for all new registrations)
@@ -149,12 +163,27 @@ export async function POST(req: NextRequest) {
       message: 'Account successfully registered and verified!',
     });
 
+    const sessionPayload = encodeURIComponent(
+      JSON.stringify({
+        id: user.id,
+        tag: user.tag,
+        email: user.email,
+      })
+    );
+    response.cookies.set('logpose_session', sessionPayload, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 24 * 3600,
+      path: '/',
+    });
+
     // Clear verification token cookie
     response.cookies.delete('logpose_verification_token');
 
     return response;
   } catch (error: any) {
     console.error('Registration error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to register account.' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to complete registration. Please try again.' }, { status: 500 });
   }
 }

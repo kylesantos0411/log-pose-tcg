@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCardArtist, getCardIdsByArtist, ARTIST_PROFILES, isGuestArtist } from '@/lib/artist-data';
+import { sanitizeIdentifier, sanitizeSearchQuery, sanitizeString } from '@/lib/sanitizer';
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const q = searchParams.get('q') || '';
-    const artist = searchParams.get('artist');
-    const color = searchParams.get('color');
-    const category = searchParams.get('category');
-    const rarity = searchParams.get('rarity');
-    const set = searchParams.get('set');
+    const q = sanitizeSearchQuery(searchParams.get('q') || '');
+    const artist = sanitizeString(searchParams.get('artist') || '', 50);
+    const color = sanitizeString(searchParams.get('color') || '', 20);
+    const category = sanitizeString(searchParams.get('category') || '', 30);
+    const rarity = sanitizeString(searchParams.get('rarity') || '', 20);
+    const set = sanitizeString(searchParams.get('set') || '', 30);
     const rawPage = parseInt(searchParams.get('page') || '1', 10);
-    const page = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+    const page = isNaN(rawPage) || rawPage < 1 ? 1 : Math.min(rawPage, 1000);
     const rawLimit = parseInt(searchParams.get('limit') || '36', 10);
     const limit = isNaN(rawLimit) || rawLimit < 1 ? 36 : Math.min(rawLimit, 100);
 
@@ -33,7 +34,11 @@ export async function GET(req: NextRequest) {
 
     const idsParam = searchParams.get('ids');
     if (idsParam) {
-      const targetIds = idsParam.split(',').map((s) => s.trim()).filter(Boolean);
+      const targetIds = idsParam
+        .split(',')
+        .map((s) => sanitizeIdentifier(s.trim()))
+        .filter(Boolean)
+        .slice(0, 100);
       if (targetIds.length > 0) {
         where.id = { in: targetIds };
         delete where.hasJpPrint;
@@ -367,6 +372,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Error in /api/cards route:', error);
+    return NextResponse.json({ error: 'Failed to retrieve card data' }, { status: 500 });
   }
 }

@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { generateEbaySoldSearchUrl } from '@/lib/ebay-pricing';
+import { sanitizeIdentifier } from '@/lib/sanitizer';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const cardId = searchParams.get('id');
+  const rawId = searchParams.get('id');
+  const cardId = sanitizeIdentifier(rawId);
 
   if (!cardId) {
-    return NextResponse.json({ error: 'Missing card id parameter' }, { status: 400 });
+    return NextResponse.json({ error: 'Missing or invalid card id parameter' }, { status: 400 });
   }
 
   try {
@@ -46,6 +48,7 @@ export async function GET(req: NextRequest) {
       lastUpdated: card.ebayLastUpdated,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('eBay pricing lookup error:', error);
+    return NextResponse.json({ error: 'Failed to retrieve eBay pricing data' }, { status: 500 });
   }
 }

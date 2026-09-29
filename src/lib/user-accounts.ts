@@ -229,8 +229,23 @@ export function setActiveSession(user: UserSession | null): void {
   try {
     if (user) {
       localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(user));
+      try {
+        const sessionPayload = encodeURIComponent(
+          JSON.stringify({
+            id: user.id,
+            tag: user.tag,
+            email: user.email,
+            role: user.role,
+          })
+        );
+        const secureFlag = window.location.protocol === 'https:' ? '; Secure' : '';
+        document.cookie = `logpose_session=${sessionPayload}; path=/; max-age=${30 * 24 * 3600}; SameSite=Lax${secureFlag}`;
+      } catch {}
     } else {
       localStorage.removeItem(SESSION_STORAGE_KEY);
+      try {
+        document.cookie = 'logpose_session=; path=/; max-age=0; SameSite=Lax';
+      } catch {}
     }
     window.dispatchEvent(new Event('logpose_auth_changed'));
     window.dispatchEvent(new Event('logpose_collection_updated'));
