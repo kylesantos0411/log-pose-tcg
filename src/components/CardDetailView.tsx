@@ -398,6 +398,9 @@ export function CardDetailView({
 
   // Modals & interaction states
   const [showArtistModal, setShowArtistModal] = useState(false);
+  const [artistCards, setArtistCards] = useState<CardDetailData[]>([]);
+  const [artistTotalCount, setArtistTotalCount] = useState<number | null>(null);
+  const [loadingArtistCards, setLoadingArtistCards] = useState(false);
   const [showFullscreenChart, setShowFullscreenChart] = useState(false);
   const [showEditionModal, setShowEditionModal] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -431,6 +434,22 @@ export function CardDetailView({
 
   // Card artist information (only set if card has a verified human/guest illustrator)
   const artist: ArtistProfile | null = getCardArtist(card.id, card.name, card.artistName || (card as any).artist_name);
+
+  // Dynamically load all authentic cards illustrated by this artist directly from DB
+  useEffect(() => {
+    if (!showArtistModal || !artist?.name) return;
+    setLoadingArtistCards(true);
+    fetch(`/api/cards?artist=${encodeURIComponent(artist.name)}&limit=100&lang=jp`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.cards) {
+          setArtistCards(data.cards);
+          setArtistTotalCount(data.pagination?.total || data.cards.length);
+        }
+      })
+      .catch((e) => console.error('Failed to load artist cards', e))
+      .finally(() => setLoadingArtistCards(false));
+  }, [showArtistModal, artist?.name]);
 
   // Derive realistic market quotes matching the OP.TCG screenshot
   const basePrice = card.marketPrice || 25.0;
@@ -2651,8 +2670,12 @@ export function CardDetailView({
             <div className="bg-[#1e212c] p-3.5 rounded-2xl border border-[#32384a] space-y-2 text-xs">
               <p className="text-gray-300 leading-relaxed">{artist.bio}</p>
               <div className="flex items-center gap-4 pt-2 border-t border-white/10 text-gray-400 font-medium">
-                <div>Total Illustrated: <strong className="text-white">{artist.totalCards} cards</strong></div>
-                <div>Set Debuts: <strong className="text-white">{packCode}</strong></div>
+                <div>Total Illustrated: <strong className="text-white">{artistTotalCount ?? artist.totalCards} cards</strong></div>
+                <div>Set Debuts: <strong className="text-white">{
+                  artistCards.length > 0
+                    ? ([...artistCards].map((c) => c.pack?.code || c.id.split('-')[0]).filter(Boolean).sort()[0] || 'OP-01')
+                    : (artist.featuredCards?.[0]?.id.split('-')[0] || 'OP-01')
+                }</strong></div>
               </div>
             </div>
 
@@ -2663,22 +2686,26 @@ export function CardDetailView({
                   Notable Cards Illustrated by {artist.name}
                 </h4>
                 <span className="text-[10px] text-gray-500 font-semibold">
-                  {artist.featuredCards.length} Featured
+                  {loadingArtistCards ? 'Loading...' : `${(artistCards.length > 0 ? artistCards : (artist.featuredCards || [])).length} Cards`}
                 </span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[360px] overflow-y-auto pr-1">
-                {artist.featuredCards.map((feat) => {
-                  const featImg = getEditionCardImageUrl(feat.id, selectedLang);
-                  const isJp = selectedLang === 'jp';
+                {(artistCards.length > 0 ? artistCards : (artist.featuredCards || [])).map((feat: any) => {
+                  const featImg = getEditionCardImageUrl(feat.id, selectedLang, feat.imageUrl);
                   const displayName = feat.name;
+                  const rarity = feat.rarity || 'Special';
+                  const price = feat.yuyuPrice ? (feat.yuyuPrice / 152) : (feat.marketPrice || 25);
 
                   return (
                     <div
                       key={feat.id}
                       onClick={() => {
                         setShowArtistModal(false);
-                        if (onBack) onBack();
-                        router.push(`/cards/${feat.id}`);
+                        if (onSelectCard) {
+                          onSelectCard(feat as CardDetailData);
+                        } else {
+                          router.push(`/cards/${feat.id}`);
+                        }
                       }}
                       className="group p-2 rounded-xl bg-[#1e212c] hover:bg-[#282c3a] border border-[#32384a] hover:border-[#3b82f6] transition cursor-pointer flex flex-col justify-between shadow-sm hover:shadow-md"
                     >
@@ -2686,7 +2713,7 @@ export function CardDetailView({
                       <div className="aspect-[7/10] bg-[#14161f] rounded-lg overflow-hidden mb-2 relative flex items-center justify-center">
                         <img
                           src={featImg}
-                          alt={feat.name}
+                          alt={displayName}
                           referrerPolicy="no-referrer"
                           className="w-full h-full object-contain group-hover:scale-105 transition duration-300"
                           loading="lazy"
@@ -2702,15 +2729,15 @@ export function CardDetailView({
 
                       {/* Card Info */}
                       <div className="space-y-0.5">
-                        <div className="text-[10px] font-bold text-[#f59e0b] uppercase tracking-wide">
-                          {feat.rarity}
+                        <div className="text-[10px] font-bold text-[#f59e0b] uppercase tracking-wide truncate">
+                          {rarity}
                         </div>
-                        <div className="text-xs font-bold text-white group-hover:text-[#3b82f6] transition truncate" title={feat.name}>
+                        <div className="text-xs font-bold text-white group-hover:text-[#3b82f6] transition truncate" title={displayName}>
                           {displayName}
                         </div>
                         <div className="flex items-center justify-between text-[10px] text-gray-400 pt-1 border-t border-[#32384a] mt-1">
                           <span className="font-bold text-[#f59e0b]">
-                            {formatPrice(feat.marketPrice || 25, { lang: selectedLang }).full}
+                            {formatPrice(price, { lang: selectedLang, rawJPY: feat.yuyuPrice }).full}
                           </span>
                           <span className="text-[9px] text-gray-500 group-hover:text-[#3b82f6] transition">View Art →</span>
                         </div>
@@ -2731,7 +2758,7 @@ export function CardDetailView({
               className="w-full py-3 rounded-xl bg-[#e76d78] text-white font-extrabold text-xs hover:bg-[#d45b66] transition flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-[#e76d78]/20"
             >
               <Eye className="w-4 h-4" />
-              View All Cards by {artist.name} in Database List
+              View All {(artistTotalCount ?? artist.totalCards)} Cards by {artist.name} in Database List
             </button>
           </div>
         </div>

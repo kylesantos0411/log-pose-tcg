@@ -188,31 +188,19 @@ function CardsContent() {
   useEffect(() => {
     const artistParam = searchParams.get('artist') || 'All';
     setSelectedArtist(artistParam);
-    const setParam = searchParams.get('set');
-    if (setParam) {
-      setSelectedSet(setParam);
-      setPage(1);
-    }
-    const categoryParam = searchParams.get('category');
-    if (categoryParam) {
-      setSelectedCategory(categoryParam);
-      setPage(1);
-    }
-    const rarityParam = searchParams.get('rarity');
-    if (rarityParam) {
-      setSelectedRarity(rarityParam);
-      setPage(1);
-    }
-    const queryParam = searchParams.get('q');
-    if (queryParam !== null && queryParam !== undefined) {
-      setSearch(queryParam);
-      setDebouncedSearch(queryParam);
-      setPage(1);
-    }
-    const currentSort = searchParams.get('sort');
-    if (currentSort) {
-      setSortBy(currentSort);
-    }
+    const setParam = searchParams.get('set') || 'All';
+    setSelectedSet(setParam);
+    const categoryParam = searchParams.get('category') || 'All';
+    setSelectedCategory(categoryParam);
+    const rarityParam = searchParams.get('rarity') || 'All';
+    setSelectedRarity(rarityParam);
+    const queryParam = searchParams.get('q') || '';
+    setSearch(queryParam);
+    setDebouncedSearch(queryParam);
+    const currentSort = searchParams.get('sort') || 'latest';
+    setSortBy(currentSort);
+    setPage(1);
+    setActiveCard(null);
   }, [searchParams]);
 
   useEffect(() => {
