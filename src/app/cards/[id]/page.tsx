@@ -14,7 +14,7 @@ export default async function CardPage({ params, searchParams }: Props) {
   const sp = searchParams ? await searchParams : {};
   const initialLanguage = sp.lang === 'jp' ? 'jp' : 'en';
 
-  const card = await prisma.card.findUnique({
+  let card = await prisma.card.findUnique({
     where: { id },
     include: {
       pack: {
@@ -25,6 +25,20 @@ export default async function CardPage({ params, searchParams }: Props) {
       },
     },
   });
+
+  if (!card && id === 'OP01-120_p2') {
+    card = await prisma.card.findUnique({
+      where: { id: 'OP01-120_p4' },
+      include: {
+        pack: {
+          select: {
+            code: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
 
   if (!card) {
     notFound();

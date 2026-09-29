@@ -19,7 +19,8 @@ export const ARTIST_PROFILES: Record<string, ArtistProfile> = {
     totalCards: 14,
     featuredCards: [
       { id: 'OP05-119_p1', name: 'Monkey.D.Luffy (Manga Gear 5)', rarity: 'SecretRare', marketPrice: 2400.00 },
-      { id: 'OP01-120_p1', name: 'Shanks (Manga)', rarity: 'SecretRare', marketPrice: 1450.00 },
+      { id: 'OP01-120_p4', name: 'Shanks (Manga)', rarity: 'Special', marketPrice: 914.29 },
+      { id: 'OP01-120_p6', name: 'Shanks (Manga Reprint with Stamp)', rarity: 'Special', marketPrice: 1414.29 },
       { id: 'OP02-013_p1', name: 'Portgas.D.Ace (Manga)', rarity: 'SuperRare', marketPrice: 980.00 },
       { id: 'OP06-118_p1', name: 'Roronoa Zoro (Manga)', rarity: 'SecretRare', marketPrice: 1200.00 },
       { id: 'OP07-051_p3', name: 'Boa Hancock (Manga)', rarity: 'Special', marketPrice: 1100.00 },
@@ -49,7 +50,7 @@ export const ARTIST_PROFILES: Record<string, ArtistProfile> = {
     bio: 'Renowned international fantasy and TCG painter distinguished for cinematic atmosphere, volumetric lighting, and dramatic fire compositions.',
     totalCards: 8,
     featuredCards: [
-      { id: 'OP01-120_p2', name: 'Shanks (Secret Parallel)', rarity: 'SecretRare', marketPrice: 320.00 },
+      { id: 'OP01-025_p1', name: 'Roronoa Zoro (SR Alt)', rarity: 'SuperRare', marketPrice: 45.00 },
       { id: 'OP02-013_p2', name: 'Portgas.D.Ace (Parallel)', rarity: 'SuperRare', marketPrice: 145.00 },
       { id: 'OP04-083_p2', name: 'Sabo (Parallel)', rarity: 'SuperRare', marketPrice: 85.00 },
       { id: 'OP05-069_p1', name: 'Trafalgar Law (Parallel)', rarity: 'SuperRare', marketPrice: 115.00 },
@@ -196,13 +197,31 @@ export const ARTIST_PROFILES: Record<string, ArtistProfile> = {
       { id: 'OP06-035', name: 'Hiyori (Common)', rarity: 'Common', marketPrice: 3.00 },
     ],
   },
+  lack: {
+    name: 'lack',
+    style: 'Dynamic Shading, Intense Kinetic Poses, High-Contrast Atmospheric Light',
+    bio: 'Prominent Japanese illustrator and character designer acclaimed for dramatic lighting, muscular anatomy, and high-impact battle poses across major TCGs.',
+    totalCards: 9,
+    featuredCards: [
+      { id: 'OP01-120_p5', name: 'Shanks (PRB Parallel)', rarity: 'SecretRare', marketPrice: 3.57 },
+      { id: 'OP07-119', name: 'Portgas.D.Ace (SEC)', rarity: 'SecretRare', marketPrice: 3.57 },
+      { id: 'OP08-002_p1', name: 'Marco (Leader Alt)', rarity: 'Leader', marketPrice: 9.14 },
+      { id: 'OP09-065_p1', name: 'Sanji (SR Alt)', rarity: 'SuperRare', marketPrice: 4.14 },
+      { id: 'OP10-119', name: 'Trafalgar Law (SEC)', rarity: 'SecretRare', marketPrice: 2.29 },
+      { id: 'OP11-067_p1', name: 'Charlotte Katakuri (SR Alt)', rarity: 'SuperRare', marketPrice: 10.57 },
+      { id: 'OP12-030_p1', name: 'Dracule Mihawk (SR Alt)', rarity: 'SuperRare', marketPrice: 7.00 },
+      { id: 'OP16-032_p1', name: 'Boa Hancock (SR Alt)', rarity: 'SuperRare', marketPrice: 35.57 },
+    ],
+  },
 };
 
 // Verified authentic card ID mappings for specific illustrators
 export const EXACT_CARD_ARTISTS: Record<string, string> = {
   // === Eiichiro Oda (Manga Rares & Signed Special Rares) ===
-  'OP01-120_p1': 'Eiichiro Oda', // Manga Shanks
-  'OP01-120_p5': 'Eiichiro Oda', // Manga Shanks (reprint with stamp)
+  'OP01-120_p1': 'Eiichiro Oda', // Romance Dawn Alt Art (manga panel)
+  'OP01-120_p2': 'Eiichiro Oda', // Romance Dawn Manga Shanks
+  'OP01-120_p4': 'Eiichiro Oda', // Romance Dawn Manga Shanks (database ID)
+  'OP01-120_p6': 'Eiichiro Oda', // PRB-01 Manga Shanks reprint with stamp
   'OP02-013_p1': 'Eiichiro Oda', // Manga Ace
   'OP02-013_p5': 'Eiichiro Oda', // Manga Ace (reprint with stamp)
   'OP03-122_p2': 'Eiichiro Oda', // Manga Sogeking
@@ -267,7 +286,7 @@ export const EXACT_CARD_ARTISTS: Record<string, string> = {
   'OP08-106_p1': 'Sunohara',
 
   // === Akira Egawa ===
-  'OP01-120_p2': 'Akira Egawa',
+  'OP01-025_p1': 'Akira Egawa',
   'OP02-013_p2': 'Akira Egawa',
   'OP03-099_p1': 'Akira Egawa',
   'OP04-083_p2': 'Akira Egawa',
@@ -275,6 +294,17 @@ export const EXACT_CARD_ARTISTS: Record<string, string> = {
   'OP05-060_p2': 'Akira Egawa',
   'OP05-069_p1': 'Akira Egawa',
   'OP07-001_p1': 'Akira Egawa',
+
+  // === lack ===
+  'OP01-120_p5': 'lack',
+  'OP07-119': 'lack',
+  'OP08-002_p1': 'lack',
+  'OP09-065_p1': 'lack',
+  'OP10-119': 'lack',
+  'OP11-067_p1': 'lack',
+  'OP12-030_p1': 'lack',
+  'OP13-066_p1': 'lack',
+  'OP16-032_p1': 'lack',
 
   // === Makitoshi ===
   'OP01-094_p1': 'Makitoshi',
@@ -288,7 +318,6 @@ export const EXACT_CARD_ARTISTS: Record<string, string> = {
   'OP09-118': 'Makitoshi',
 
   // === BASHIKOU ===
-  'OP01-025_p1': 'BASHIKOU',
   'OP01-047_p1': 'BASHIKOU',
   'OP01-051_p1': 'BASHIKOU',
   'OP03-099': 'BASHIKOU',
