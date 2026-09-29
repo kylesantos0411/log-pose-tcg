@@ -493,16 +493,37 @@ export default function AdminPage() {
               {/* Preview */}
               {announcementMsg && (
                 <div className="space-y-1">
-                  <span className="text-[10px] uppercase font-bold text-gray-500">Live Preview:</span>
-                  <div className={`p-2.5 rounded-xl border text-xs flex items-center gap-2 ${
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold text-gray-500">Live Preview (Marquee Ticker):</span>
+                    <span className="text-[10px] text-gray-400">Hover to pause</span>
+                  </div>
+                  <div className={`p-2.5 rounded-xl border text-xs flex items-center gap-2.5 overflow-hidden relative select-none ${
                     announcementType === 'alert'
                       ? 'bg-red-950/70 border-red-500/40 text-red-200'
                       : announcementType === 'warning'
                       ? 'bg-amber-950/70 border-amber-500/40 text-amber-200'
                       : 'bg-blue-950/70 border-blue-500/40 text-blue-200'
                   }`}>
-                    <Megaphone className="w-3.5 h-3.5 flex-shrink-0 animate-pulse" />
-                    <span className="truncate">{announcementMsg}</span>
+                    <div className="flex items-center gap-1.5 flex-shrink-0 z-10 font-bold uppercase text-[10px] px-1.5 py-0.5 rounded bg-white/10">
+                      <Megaphone className="w-3 h-3 flex-shrink-0 animate-pulse" />
+                      <span>{announcementType === 'alert' ? 'Urgent' : announcementType === 'warning' ? 'Notice' : 'Broadcast'}</span>
+                    </div>
+                    <div
+                      className="flex-1 overflow-hidden relative min-w-0"
+                      style={{
+                        maskImage: 'linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent)',
+                        WebkitMaskImage: 'linear-gradient(to right, transparent, black 16px, black calc(100% - 16px), transparent)',
+                      }}
+                    >
+                      <div className="animate-marquee flex items-center gap-8 group hover:[animation-play-state:paused]">
+                        {[0, 1, 2].map((idx) => (
+                          <div key={idx} className="flex shrink-0 items-center gap-6 pr-2" aria-hidden={idx > 0}>
+                            <span className="font-semibold">{announcementMsg}</span>
+                            <span className="opacity-40 text-[9px]">✦</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
