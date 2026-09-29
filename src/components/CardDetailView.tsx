@@ -442,6 +442,14 @@ export function CardDetailView({
 
   // Vintage Card Detection and Sales Data
   const isVintage = Boolean(card.isVintage || card.vintageSeries || card.id.startsWith('HB'));
+
+  // Ensure vintage cards never remain on grading tab
+  useEffect(() => {
+    if (isVintage && activeTab === 'grading') {
+      setActiveTab('market');
+    }
+  }, [isVintage, activeTab]);
+
   const vintageSales = useMemo(() => {
     if (!isVintage) return [];
     return getVintageRecentSales(card.id, card.cardNumber, card.name, card.ebayPrice);
@@ -1055,18 +1063,20 @@ export function CardDetailView({
                 )}
               </button>
 
-              <button
-                onClick={() => setActiveTab('grading')}
-                className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-wider pb-1 relative transition cursor-pointer flex-shrink-0 ${
-                  activeTab === 'grading' ? 'text-white' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                <Layers className="w-4 h-4 text-gray-400" />
-                <span>GRADING</span>
-                {activeTab === 'grading' && (
-                  <span className="absolute -bottom-3 inset-x-0 h-0.5 bg-white rounded-full"></span>
-                )}
-              </button>
+              {!isVintage && (
+                <button
+                  onClick={() => setActiveTab('grading')}
+                  className={`flex items-center gap-1.5 text-xs font-black uppercase tracking-wider pb-1 relative transition cursor-pointer flex-shrink-0 ${
+                    activeTab === 'grading' ? 'text-white' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <Layers className="w-4 h-4 text-gray-400" />
+                  <span>GRADING</span>
+                  {activeTab === 'grading' && (
+                    <span className="absolute -bottom-3 inset-x-0 h-0.5 bg-white rounded-full"></span>
+                  )}
+                </button>
+              )}
 
               <button
                 onClick={() => setActiveTab('community')}
@@ -1642,7 +1652,7 @@ export function CardDetailView({
           )}
 
           {/* TAB 2: GRADING & POPULATION DASHBOARD VIEW */}
-          {activeTab === 'grading' && (
+          {activeTab === 'grading' && !isVintage && (
             <div className="pt-4 space-y-4">
               {/* Grading Header */}
               <div className="flex items-center justify-between bg-[#1e212c] p-3 rounded-xl border border-[#32384a]">
