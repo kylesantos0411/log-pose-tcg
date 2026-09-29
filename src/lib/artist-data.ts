@@ -202,19 +202,48 @@ export const ARTIST_PROFILES: Record<string, ArtistProfile> = {
 export const EXACT_CARD_ARTISTS: Record<string, string> = {
   // === Eiichiro Oda (Manga Rares & Signed Special Rares) ===
   'OP01-120_p1': 'Eiichiro Oda', // Manga Shanks
+  'OP01-120_p5': 'Eiichiro Oda', // Manga Shanks (reprint with stamp)
   'OP02-013_p1': 'Eiichiro Oda', // Manga Ace
-  'OP03-122_p1': 'Eiichiro Oda', // Manga Sogeking
+  'OP02-013_p5': 'Eiichiro Oda', // Manga Ace (reprint with stamp)
+  'OP03-122_p2': 'Eiichiro Oda', // Manga Sogeking
+  'OP03-122_p3': 'Eiichiro Oda', // Manga Sogeking (with stamp)
   'ST01-012_p1': 'Eiichiro Oda', // Oda Signed Luffy Special
   'OP04-083_p1': 'Eiichiro Oda', // Manga Sabo
-  'OP05-060_p1': 'Eiichiro Oda', // Oda Anniversary Signed Luffy
+  'OP04-083_p4': 'Eiichiro Oda', // Manga Sabo (with stamp)
+  'OP05-060_p1': 'Eiichiro Oda', // 1st Anniversary Gold Signed Luffy
   'OP05-119_p1': 'Eiichiro Oda', // Manga Gear 5 Luffy
   'OP06-118_p1': 'Eiichiro Oda', // Manga Zoro
-  'OP07-051_p3': 'Eiichiro Oda', // Manga Boa Hancock (Authentic Manga Rare ID)
-  'OP07-119_p2': 'Eiichiro Oda', // Manga Ace (OP-07 Manga Rare)
+  'OP06-118_p2': 'Eiichiro Oda', // Manga Zoro (Anniversary gold foil)
+  'OP07-051_p3': 'Eiichiro Oda', // Manga Boa Hancock
+  'OP07-119_p2': 'Eiichiro Oda', // Manga Ace (Flagship Winner)
   'OP08-118_p1': 'Eiichiro Oda', // Manga Silvers Rayleigh
+  'OP08-118_p2': 'Eiichiro Oda', // Manga Silvers Rayleigh (with stamp)
+  'OP09-061_p1': 'Eiichiro Oda', // 2nd Anniversary Gold Signed Leader Luffy
+  'OP09-061_p3': 'Eiichiro Oda', // English 2nd Anniversary Gold Signed Leader Luffy
+  'OP09-004_p6': 'Eiichiro Oda', // Manga Shanks
+  'OP09-093_p5': 'Eiichiro Oda', // Manga Marshall.D.Teach
   'OP09-118_p3': 'Eiichiro Oda', // Manga Gol.D.Roger
-  'OP09-119_p4': 'Eiichiro Oda', // Manga Luffy (OP-09 Manga Rare)
+  'OP09-119_p4': 'Eiichiro Oda', // Manga Luffy
   'OP10-119_p1': 'Eiichiro Oda', // Manga Trafalgar Law
+  'OP11-118_p2': 'Eiichiro Oda', // Manga Luffy
+  'OP12-118_p2': 'Eiichiro Oda', // Manga Bonney
+  'OP13-118_p3': 'Eiichiro Oda', // Manga Luffy
+  'OP13-118_p4': 'Eiichiro Oda', // Manga Luffy Red Super Parallel
+  'OP13-119_p3': 'Eiichiro Oda', // Manga Ace
+  'OP13-119_p4': 'Eiichiro Oda', // Manga Ace Red Super Parallel
+  'OP13-120_p3': 'Eiichiro Oda', // Manga Sabo
+  'OP13-120_p4': 'Eiichiro Oda', // Manga Sabo Red Super Parallel
+  'OP14-119_p2': 'Eiichiro Oda', // Manga Mihawk
+  'OP15-118_p2': 'Eiichiro Oda', // Manga Enel
+  'OP16-063_p2': 'Eiichiro Oda', // Manga Kuzan
+  'OP16-065_p2': 'Eiichiro Oda', // Manga Sakazuki
+  'OP16-073_p2': 'Eiichiro Oda', // Manga Borsalino
+  'EB03-061_p2': 'Eiichiro Oda', // Manga Uta
+  'EB04-044_p2': 'Eiichiro Oda', // Manga Koby
+  'OP17-DON-01_p1': 'Eiichiro Oda',
+  'OP17-DON-02_p1': 'Eiichiro Oda',
+  'OP17-DON-03_p1': 'Eiichiro Oda',
+  'OP17-DON-04_p1': 'Eiichiro Oda',
 
   // === Sunohara ===
   'OP01-016_p1': 'Sunohara',
@@ -375,14 +404,17 @@ export function getCardArtist(cardId: string, cardName: string = '', cardArtistN
     };
   }
 
-  // 2. Strict Manga Rare detection (Eiichiro Oda only!)
+  // 2. Strict Manga Rare & Oda Anniversary Signature detection (Eiichiro Oda only!)
   const lowerName = (cardName || '').toLowerCase();
   const isMangaRare = 
     lowerName.includes('(manga)') || 
     lowerName.includes('manga rare') ||
     lowerName.includes('manga alt') ||
     lowerName.includes('manga super rare') ||
-    normId === 'OP05-060_p1';
+    normId === 'OP05-060_p1' ||
+    normId === 'OP09-061_p1' ||
+    normId === 'OP09-061_p3' ||
+    normId === 'ST01-012_p1';
 
   if (isMangaRare) {
     return ARTIST_PROFILES['Eiichiro Oda'];
