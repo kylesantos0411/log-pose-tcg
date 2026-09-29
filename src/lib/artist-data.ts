@@ -211,7 +211,17 @@ export const EXACT_CARD_ARTISTS: Record<string, string> = {
   'OP04-083_p1': 'Eiichiro Oda', // Manga Sabo
   'OP04-083_p4': 'Eiichiro Oda', // Manga Sabo (with stamp)
   'OP05-060_p1': 'Eiichiro Oda', // 1st Anniversary Gold Signed Luffy
+  'OP05-060_p4': 'Eiichiro Oda', // 1st Anniversary Gold Foil Signed Luffy
   'OP05-119_p1': 'Eiichiro Oda', // Manga Gear 5 Luffy
+  'OP05-119_p2': 'Eiichiro Oda', // Secret Parallel Gear 5 Luffy
+  'OP05-119_p3': 'Eiichiro Oda', // Secret Parallel Gear 5 Luffy
+  'OP05-119_p6': 'Eiichiro Oda', // OP-09 WANTED Poster Gear 5 Luffy
+  'OP05-119_p7': 'Eiichiro Oda', // OP-11 Gold Serial Gear 5 Luffy
+  'OP05-119_p8': 'Eiichiro Oda', // OP-11 Silver Serial Gear 5 Luffy
+  'ST01-012_p3': 'Eiichiro Oda', // Oda Manga Special Luffy
+  'ST01-012_p4': 'Eiichiro Oda', // Jump Special Oda Luffy
+  'OP04-083_p5': 'Eiichiro Oda', // 2nd Anniversary Manga Sabo
+  'OP06-118_p4': 'Eiichiro Oda', // 2nd Anniversary Manga Zoro
   'OP06-118_p1': 'Eiichiro Oda', // Manga Zoro
   'OP06-118_p2': 'Eiichiro Oda', // Manga Zoro (Anniversary gold foil)
   'OP07-051_p3': 'Eiichiro Oda', // Manga Boa Hancock
@@ -412,9 +422,13 @@ export function getCardArtist(cardId: string, cardName: string = '', cardArtistN
     lowerName.includes('manga alt') ||
     lowerName.includes('manga super rare') ||
     normId === 'OP05-060_p1' ||
+    normId === 'OP05-060_p4' ||
     normId === 'OP09-061_p1' ||
     normId === 'OP09-061_p3' ||
-    normId === 'ST01-012_p1';
+    normId === 'ST01-012_p1' ||
+    normId === 'ST01-012_p3' ||
+    normId === 'ST01-012_p4' ||
+    ['OP05-119_p1', 'OP05-119_p2', 'OP05-119_p3', 'OP05-119_p6', 'OP05-119_p7', 'OP05-119_p8'].includes(normId);
 
   if (isMangaRare) {
     return ARTIST_PROFILES['Eiichiro Oda'];
