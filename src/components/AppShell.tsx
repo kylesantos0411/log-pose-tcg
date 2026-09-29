@@ -118,20 +118,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navItemClass = (path: string) =>
     `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-150 ${
       isActive(path)
-        ? 'bg-[#3b82f6]/15 text-white font-bold border border-[#3b82f6]/30 shadow-sm'
-        : 'text-gray-300 hover:text-white hover:bg-[#2c3140] font-medium'
+        ? 'bg-[#1c202d] text-white font-semibold border border-[#2c3345] shadow-sm'
+        : 'text-slate-400 hover:text-slate-200 hover:bg-[#161823] font-medium border border-transparent'
     }`;
 
   return (
     <div className="flex min-h-screen">
       {/* Desktop Navigation Sidebar */}
-      <aside className="w-64 fixed inset-y-0 left-0 bg-[#232733] border-r border-[#2d3242] flex-col justify-between hidden md:flex z-40">
+      <aside className="w-64 fixed inset-y-0 left-0 bg-[#12141c] border-r border-[#1e222e] flex-col justify-between hidden md:flex z-40">
         {/* Logo / Brand Header */}
         <Link
           href="/"
-          className="h-16 flex items-center gap-3 px-6 border-b border-[#2d3242] hover:bg-[#2c3140]/40 transition group cursor-pointer"
+          className="h-16 flex items-center gap-3 px-6 border-b border-[#1e222e] hover:bg-[#161823]/60 transition group cursor-pointer"
         >
-          <div className="w-10 h-10 rounded-xl overflow-hidden bg-white shadow-md flex items-center justify-center p-0.5 border border-[#343a4c] group-hover:scale-105 transition-transform flex-shrink-0">
+          <div className="w-10 h-10 rounded-xl overflow-hidden bg-white shadow-md flex items-center justify-center p-0.5 border border-[#262b3a] group-hover:scale-105 transition-transform flex-shrink-0">
             <img
               src="/logo.png"
               alt="Log Pose TCG"
@@ -161,7 +161,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Layers className={`w-4 h-4 ${isActive('/cards') ? 'text-[#3b82f6]' : 'text-[#3b82f6]/80'}`} />
             <span>Card Database</span>
             {systemSettings.features?.cards?.locked && (
-              <span className="ml-auto text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              <span className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
                 PAUSED
               </span>
             )}
@@ -171,7 +171,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Boxes className={`w-4 h-4 ${isActive('/sets') ? 'text-emerald-400' : 'text-emerald-400/80'}`} />
             <span>Expansion Sets</span>
             {systemSettings.features?.sets?.locked && (
-              <span className="ml-auto text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              <span className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
                 PAUSED
               </span>
             )}
@@ -181,7 +181,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <FolderHeart className={`w-4 h-4 ${isActive('/collection') ? 'text-[#f59e0b]' : 'text-[#f59e0b]/80'}`} />
             <span>My Collection</span>
             {systemSettings.features?.collection?.locked && (
-              <span className="ml-auto text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              <span className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
                 PAUSED
               </span>
             )}
@@ -191,7 +191,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Star className={`w-4 h-4 ${isActive('/favorites') ? 'text-[#c084fc]' : 'text-[#c084fc]/80'}`} />
             <span>Favorites</span>
             {systemSettings.features?.favorites?.locked && (
-              <span className="ml-auto text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              <span className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
                 PAUSED
               </span>
             )}
@@ -201,7 +201,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Swords className={`w-4 h-4 ${isActive('/decks') ? 'text-[#f4727d]' : 'text-[#f4727d]/80'}`} />
             <span>Recommended Decks</span>
             {systemSettings.features?.decks?.locked && (
-              <span className="ml-auto text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              <span className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
                 PAUSED
               </span>
             )}
@@ -211,7 +211,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Users className={`w-4 h-4 ${isActive('/friends') ? 'text-purple-400' : 'text-purple-400/80'}`} />
             <span>Friends &amp; Trades</span>
             {systemSettings.features?.friends?.locked && (
-              <span className="ml-auto text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              <span className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
                 PAUSED
               </span>
             )}
@@ -220,7 +220,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Link href="/preview" className={navItemClass('/preview')}>
             <Smartphone className="w-4 h-4 text-[#e76d78]" />
             <span>Phone Simulator</span>
-            <span className="ml-auto text-[9px] font-black px-1.5 py-0.2 rounded bg-[#e76d78]/20 text-[#e76d78] border border-[#e76d78]/30">
+            <span className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#e76d78]/10 text-[#e76d78] border border-[#e76d78]/20">
               SIM
             </span>
           </Link>
@@ -230,7 +230,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link href="/admin" className={navItemClass('/admin')}>
               <ShieldAlert className={`w-4 h-4 ${isActive('/admin') ? 'text-red-400' : 'text-red-400/80'}`} />
               <span>Admin Controls</span>
-              <span className="ml-auto text-[9px] font-black px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">
+              <span className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded bg-red-500/10 text-red-300 border border-red-500/20">
                 ADMIN
               </span>
             </Link>
@@ -250,21 +250,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <Link
             href="/cards?set=OP-05"
-            className="flex items-center justify-between px-3 py-2 rounded-lg text-xs text-gray-400 hover:text-gray-200 hover:bg-[#2c3140] transition"
+            className="flex items-center justify-between px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-slate-200 hover:bg-[#161823] transition"
           >
             <span>OP-05 Awakening New Era</span>
             <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
           </Link>
           <Link
             href="/cards?set=OP-01"
-            className="flex items-center justify-between px-3 py-2 rounded-lg text-xs text-gray-400 hover:text-gray-200 hover:bg-[#2c3140] transition"
+            className="flex items-center justify-between px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-slate-200 hover:bg-[#161823] transition"
           >
             <span>OP-01 Romance Dawn</span>
             <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
           </Link>
           <Link
             href="/cards?set=ST-01"
-            className="flex items-center justify-between px-3 py-2 rounded-lg text-xs text-gray-400 hover:text-gray-200 hover:bg-[#2c3140] transition"
+            className="flex items-center justify-between px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-slate-200 hover:bg-[#161823] transition"
           >
             <span>ST-01 Straw Hat Crew</span>
             <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
@@ -272,15 +272,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* User / Storage Status */}
-        <div className="p-4 border-t border-[#2d3242]">
+        <div className="p-4 border-t border-[#1e222e]">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#3b82f6] to-[#c084fc] p-0.5 flex items-center justify-center font-bold text-xs text-white shadow">
-              <div className="w-full h-full bg-[#1e212b] rounded-full flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-[#1c202d] border border-[#2c3345] p-0.5 flex items-center justify-center font-bold text-xs text-slate-300 shadow-sm">
+              <div className="w-full h-full bg-[#12141c] rounded-full flex items-center justify-center">
                 {user ? user.name.slice(0, 2).toUpperCase() : 'LP'}
               </div>
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-semibold text-gray-200 truncate">
+              <span className="text-xs font-semibold text-slate-200 truncate">
                 {user ? user.name : 'Guest Collector'}
               </span>
               <div className="flex items-center gap-1.5 text-[10px] text-emerald-400">
@@ -296,12 +296,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col md:pl-64 min-w-0 overflow-x-hidden">
         {/* Admin Maintenance Active Bypass Notice */}
         {systemSettings.maintenance.enabled && isAdmin && (
-          <div className="bg-amber-500 text-slate-950 px-4 py-2 text-xs font-black flex items-center justify-between shadow-md z-30">
+          <div className="bg-amber-950/60 border-b border-amber-500/30 text-amber-200 px-4 py-2 text-xs font-semibold flex items-center justify-between shadow-sm z-30">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-slate-950 animate-ping" />
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
               <span>⚠️ MAINTENANCE MODE IS ACTIVE — Non-admin visitors see the dry dock screen. (Admin Bypass Enabled)</span>
             </div>
-            <Link href="/admin" className="underline font-black hover:text-black">
+            <Link href="/admin" className="underline font-bold text-amber-300 hover:text-white">
               Manage Controls &rarr;
             </Link>
           </div>
@@ -309,14 +309,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Admin Individual Feature Locked Notice (Admin Bypass Mode) */}
         {!systemSettings.maintenance.enabled && isCurrentFeatureLocked && isAdmin && (
-          <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-300 px-4 py-2 text-xs font-bold flex items-center justify-between shadow-sm z-30">
+          <div className="bg-amber-950/40 border-b border-amber-500/20 text-amber-200/90 px-4 py-2 text-xs font-medium flex items-center justify-between shadow-sm z-30">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
               <span>
                 ⚠️ FEATURE PAUSED: This section is currently locked for visitors ({currentFeatureLock?.message || 'Scheduled Maintenance'}). Admin Bypass is active.
               </span>
             </div>
-            <Link href="/admin" className="underline font-black text-amber-200 hover:text-white">
+            <Link href="/admin" className="underline font-bold text-amber-300 hover:text-white">
               Admin Switchboard &rarr;
             </Link>
           </div>
@@ -344,9 +344,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="fixed bottom-5 right-5 z-40 md:hidden animate-in fade-in zoom-in duration-200">
             <Link
               href="/admin"
-              className="flex items-center gap-2 py-2 px-3.5 rounded-full bg-gradient-to-r from-red-600 to-rose-600 text-white font-black text-xs shadow-2xl border border-red-400/50 hover:brightness-110 active:scale-95 transition"
+              className="flex items-center gap-2 py-2 px-3.5 rounded-full bg-[#1c202d] text-rose-300 font-bold text-xs shadow-xl border border-rose-500/30 hover:bg-[#242938] active:scale-95 transition"
             >
-              <ShieldAlert className="w-4 h-4 animate-pulse" />
+              <ShieldAlert className="w-4 h-4 animate-pulse text-rose-400" />
               <span>Admin</span>
             </Link>
           </div>

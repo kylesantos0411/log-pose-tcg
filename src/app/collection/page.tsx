@@ -423,12 +423,12 @@ export default function CollectionPage() {
           </button>
 
           {/* List / Grid Toggle */}
-          <div className="flex items-center bg-[#1e212c] p-0.5 rounded-xl border border-[#343a4c]">
+          <div className="flex items-center bg-[#141620] p-0.5 rounded-xl border border-[#222533]">
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                viewMode === 'list' ? 'bg-[#3b82f6] text-white shadow' : 'text-gray-400 hover:text-white'
+              className={`p-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                viewMode === 'list' ? 'bg-[#222738] text-white shadow-sm border border-[#343b52]' : 'text-slate-400 hover:text-white'
               }`}
               title="List View"
             >
@@ -437,8 +437,8 @@ export default function CollectionPage() {
             <button
               type="button"
               onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
-                viewMode === 'grid' ? 'bg-[#3b82f6] text-white shadow' : 'text-gray-400 hover:text-white'
+              className={`p-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                viewMode === 'grid' ? 'bg-[#222738] text-white shadow-sm border border-[#343b52]' : 'text-slate-400 hover:text-white'
               }`}
               title="Grid View"
             >
@@ -449,7 +449,7 @@ export default function CollectionPage() {
           {/* Add Cards Shortcut */}
           <Link
             href="/cards"
-            className="px-2.5 py-1.5 rounded-xl bg-[#e76d78] text-white font-bold text-xs hover:bg-[#d45b66] transition flex items-center gap-1 cursor-pointer shadow-sm"
+            className="px-2.5 py-1.5 rounded-xl bg-[#e05d68] text-white font-bold text-xs hover:bg-[#d04e59] transition flex items-center gap-1 cursor-pointer shadow-sm"
             title="Browse & Add Cards"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -460,21 +460,21 @@ export default function CollectionPage() {
 
       {/* Account Identity Bar or Guest Mode Alert Banner */}
       {user ? (
-        <div className="flex items-center justify-between p-3 rounded-2xl bg-[#202433] border border-[#343a4c] shadow-sm">
+        <div className="flex items-center justify-between p-3 rounded-2xl bg-[#141620] border border-[#222533] shadow-sm">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-300 flex items-center justify-center flex-shrink-0">
-              <User className="w-5 h-5 text-purple-300" />
+            <div className="w-10 h-10 rounded-xl bg-[#1a1e2b] border border-[#2c3345] text-slate-300 flex items-center justify-center flex-shrink-0">
+              <User className="w-5 h-5 text-slate-300" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-sm font-black text-white truncate">{user.name}</span>
-                <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <span className="text-sm font-bold text-white truncate">{user.name}</span>
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                   {user.crew}
                 </span>
               </div>
-              <div className="font-mono text-[10px] text-gray-400 flex items-center gap-1 truncate">
-                <span>Tag: <strong className="text-amber-400 font-bold">{user.tag}</strong></span>
-                <span className="text-gray-500">&bull;</span>
+              <div className="font-mono text-[10px] text-slate-400 flex items-center gap-1 truncate">
+                <span>Tag: <strong className="text-amber-400/90 font-bold">{user.tag}</strong></span>
+                <span className="text-slate-600">&bull;</span>
                 <span className="truncate">{user.rank}</span>
               </div>
             </div>
@@ -487,7 +487,7 @@ export default function CollectionPage() {
                 setAccountModalTab('login');
                 setShowAccountModal(true);
               }}
-              className="px-2.5 py-1.5 rounded-xl bg-[#292e40] hover:bg-[#343a50] border border-[#3b4258] text-[11px] font-bold text-gray-300 hover:text-white transition cursor-pointer"
+              className="px-2.5 py-1.5 rounded-xl bg-[#1a1e2b] hover:bg-[#232838] border border-[#282f42] text-[11px] font-semibold text-slate-300 hover:text-white transition cursor-pointer"
               title="Switch Account"
             >
               Switch
@@ -499,7 +499,7 @@ export default function CollectionPage() {
                   logout();
                 }
               }}
-              className="px-2.5 py-1.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-[11px] font-bold text-red-400 hover:text-red-300 transition cursor-pointer flex items-center gap-1"
+              className="px-2.5 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/25 text-[11px] font-semibold text-red-300 hover:text-red-200 transition cursor-pointer flex items-center gap-1"
               title="Log Out"
             >
               <LogOut className="w-3 h-3" />
@@ -508,20 +508,20 @@ export default function CollectionPage() {
           </div>
         </div>
       ) : (
-        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#202433] via-[#24283b] to-[#1e2230] border border-amber-500/35 shadow-md space-y-2.5">
+        <div className="p-3.5 rounded-2xl bg-[#141620] border border-amber-500/25 shadow-sm space-y-2.5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xl flex-shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-xl flex-shrink-0">
                 👤
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-black text-white">Guest Mode (Logged Out)</span>
-                  <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  <span className="text-xs font-bold text-white">Guest Mode (Logged Out)</span>
+                  <span className="text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
                     Not Synced
                   </span>
                 </div>
-                <p className="text-[11px] text-gray-400 leading-snug">
+                <p className="text-[11px] text-slate-400 leading-snug">
                   You are currently logged out. Cards and sales stay local to this device. Sign in to sync your sales with community market data.
                 </p>
               </div>
@@ -535,7 +535,7 @@ export default function CollectionPage() {
                 setAccountModalTab('login');
                 setShowAccountModal(true);
               }}
-              className="flex-1 py-2 px-3 rounded-xl bg-[#3b82f6] hover:bg-[#2563eb] text-white text-xs font-black transition text-center shadow cursor-pointer flex items-center justify-center gap-1.5"
+              className="flex-1 py-2 px-3 rounded-xl bg-[#3b82f6] hover:bg-[#2563eb] text-white text-xs font-bold transition text-center shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
             >
               <LogIn className="w-3.5 h-3.5" />
               <span>Sign In to Account</span>
@@ -546,7 +546,7 @@ export default function CollectionPage() {
                 setAccountModalTab('register');
                 setShowAccountModal(true);
               }}
-              className="flex-1 py-2 px-3 rounded-xl bg-[#f45d6a] hover:bg-[#e04f5c] text-white text-xs font-black transition text-center shadow cursor-pointer flex items-center justify-center gap-1.5"
+              className="flex-1 py-2 px-3 rounded-xl bg-[#1a1e2b] hover:bg-[#232838] border border-[#282f42] text-slate-200 text-xs font-semibold transition text-center cursor-pointer flex items-center justify-center gap-1.5"
             >
               <UserPlus className="w-3.5 h-3.5" />
               <span>Create Account</span>
@@ -557,30 +557,30 @@ export default function CollectionPage() {
 
       {/* Pending Mutual Trade Confirmations Banner */}
       {pendingTrades.length > 0 && (
-        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-[#202938] to-[#1c2230] border border-emerald-500/40 shadow-md space-y-2.5 animate-in fade-in">
+        <div className="p-3.5 rounded-2xl bg-[#131917] border border-emerald-500/30 shadow-sm space-y-2.5 animate-in fade-in">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span className="text-xs font-black text-white">
+              <span className="text-xs font-bold text-white">
                 Pending Trade Verifications ({pendingTrades.length})
               </span>
             </div>
-            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+            <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
               Verified Trades
             </span>
           </div>
-          <p className="text-[11px] text-gray-400 leading-snug">
+          <p className="text-[11px] text-slate-400 leading-snug">
             Friends logged a sale to you. Confirm the purchase below to award a <strong>Verified Mutual Trade</strong> badge!
           </p>
           <div className="space-y-2 pt-0.5">
             {pendingTrades.map((t) => (
               <div
                 key={t.id}
-                className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#161922] border border-[#2d3246] text-xs"
+                className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[#0e1017] border border-[#222533] text-xs"
               >
                 <div className="min-w-0">
                   <span className="font-bold text-white truncate block">{t.cardName || t.cardId}</span>
-                  <span className="text-[11px] text-gray-400 font-mono">
+                  <span className="text-[11px] text-slate-400 font-mono">
                     Price:{' '}
                     <strong className="text-emerald-400 font-bold">
                       {t.soldCurrency === 'PHP' ? '₱' : t.soldCurrency === 'JPY' ? '¥' : '$'}
@@ -592,7 +592,7 @@ export default function CollectionPage() {
                 <button
                   type="button"
                   onClick={() => handleConfirmPendingTrade(t)}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition cursor-pointer flex items-center gap-1 shadow flex-shrink-0"
+                  className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition cursor-pointer flex items-center gap-1 shadow-sm flex-shrink-0"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>Confirm Purchase</span>
@@ -604,14 +604,14 @@ export default function CollectionPage() {
       )}
 
       {/* 2. Collection vs Sold Cards Segmented Tab Navigation */}
-      <div className="flex items-center p-1 rounded-2xl bg-[#1d202c] border border-[#2e3346] gap-1">
+      <div className="flex items-center p-1 rounded-2xl bg-[#10121a] border border-[#1f2330] gap-1">
         <button
           type="button"
           onClick={() => setActiveTab('collection')}
-          className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center justify-center gap-1.5 cursor-pointer ${
+          className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-1.5 cursor-pointer ${
             activeTab === 'collection'
-              ? 'bg-[#2a2e40] text-white shadow-md border border-[#3b4159]'
-              : 'text-gray-400 hover:text-gray-200'
+              ? 'bg-[#1c202d] text-white shadow-sm border border-[#2c3345]'
+              : 'text-slate-400 hover:text-slate-200'
           }`}
         >
           <FolderHeart className="w-3.5 h-3.5 text-rose-400" />
@@ -621,16 +621,16 @@ export default function CollectionPage() {
         <button
           type="button"
           onClick={() => setActiveTab('sold')}
-          className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center justify-center gap-1.5 cursor-pointer ${
+          className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition flex items-center justify-center gap-1.5 cursor-pointer ${
             activeTab === 'sold'
-              ? 'bg-[#2a2e40] text-white shadow-md border border-[#3b4159]'
-              : 'text-gray-400 hover:text-gray-200'
+              ? 'bg-[#1c202d] text-white shadow-sm border border-[#2c3345]'
+              : 'text-slate-400 hover:text-slate-200'
           }`}
         >
           <ShoppingBag className="w-3.5 h-3.5 text-emerald-400" />
           <span>Sold Cards ({soldItems.length})</span>
           {soldItems.length > 0 && (
-            <span className="w-4 h-4 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-black flex items-center justify-center">
+            <span className="w-4 h-4 rounded-full bg-emerald-500 text-slate-950 text-[10px] font-bold flex items-center justify-center">
               {soldItems.length}
             </span>
           )}
@@ -641,17 +641,17 @@ export default function CollectionPage() {
       {activeTab === 'collection' && portfolioStats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 pt-1">
           {/* Total Estimated Value */}
-          <div className="p-3 sm:p-3.5 rounded-2xl bg-[#242836] border border-[#343a4c] shadow-sm flex flex-col justify-between">
-            <span className="text-[10px] sm:text-xs text-gray-400 font-bold uppercase tracking-wider">
+          <div className="p-3 sm:p-3.5 rounded-2xl bg-[#141620] border border-[#222533] shadow-sm flex flex-col justify-between">
+            <span className="text-[10px] sm:text-xs text-slate-400 font-semibold uppercase tracking-wider">
               Portfolio Value
             </span>
-            <div className="text-lg sm:text-2xl font-black text-emerald-400 truncate mt-0.5">
+            <div className="text-lg sm:text-2xl font-bold text-emerald-400 truncate mt-0.5">
               {formatPrice(portfolioStats.totalEstimatedValue, { source: 'yuyutei', lang: 'jp' }).full}
             </div>
-            <div className="text-[10px] text-gray-400 truncate mt-0.5">
+            <div className="text-[10px] text-slate-400 truncate mt-0.5">
               Cost: {formatPrice(portfolioStats.totalInvested, { source: 'yuyutei', lang: 'jp' }).full}
               {portfolioStats.profitPercentage !== 0 && (
-                <span className={`ml-1 font-bold ${portfolioStats.netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                <span className={`ml-1 font-semibold ${portfolioStats.netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   ({portfolioStats.netProfit >= 0 ? '+' : ''}{portfolioStats.profitPercentage.toFixed(0)}%)
                 </span>
               )}
@@ -659,20 +659,20 @@ export default function CollectionPage() {
           </div>
 
           {/* Cards Count */}
-          <div className="p-3 sm:p-3.5 rounded-2xl bg-[#242836] border border-[#343a4c] shadow-sm flex flex-col justify-between">
-            <span className="text-[10px] sm:text-xs text-gray-400 font-bold uppercase tracking-wider">
+          <div className="p-3 sm:p-3.5 rounded-2xl bg-[#141620] border border-[#222533] shadow-sm flex flex-col justify-between">
+            <span className="text-[10px] sm:text-xs text-slate-400 font-semibold uppercase tracking-wider">
               Cards Owned
             </span>
-            <div className="text-lg sm:text-2xl font-black text-white truncate mt-0.5">
+            <div className="text-lg sm:text-2xl font-bold text-white truncate mt-0.5">
               {portfolioStats.totalCardsCount}
-              <span className="text-xs sm:text-sm font-semibold text-gray-400 ml-1.5">
+              <span className="text-xs sm:text-sm font-semibold text-slate-400 ml-1.5">
                 ({portfolioStats.uniqueCardsCount} unique)
               </span>
             </div>
-            <div className="text-[10px] text-gray-400 flex items-center gap-1.5 truncate mt-0.5">
+            <div className="text-[10px] text-slate-400 flex items-center gap-1.5 truncate mt-0.5">
               <span>{portfolioStats.foilsCount} Foils</span>
               <span>&bull;</span>
-              <span className="text-[#3b82f6] font-bold">🇯🇵 Japanese</span>
+              <span className="text-[#3b82f6] font-semibold">🇯🇵 Japanese</span>
             </div>
           </div>
         </div>
@@ -681,32 +681,32 @@ export default function CollectionPage() {
       {activeTab === 'sold' && soldStats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 pt-1">
           {/* Total Revenue */}
-          <div className="p-3 sm:p-3.5 rounded-2xl bg-[#242836] border border-emerald-500/20 shadow-sm flex flex-col justify-between">
-            <span className="text-[10px] sm:text-xs text-gray-400 font-bold uppercase tracking-wider">
+          <div className="p-3 sm:p-3.5 rounded-2xl bg-[#141620] border border-emerald-500/20 shadow-sm flex flex-col justify-between">
+            <span className="text-[10px] sm:text-xs text-slate-400 font-semibold uppercase tracking-wider">
               Total Sales Revenue
             </span>
-            <div className="text-lg sm:text-2xl font-black text-emerald-400 truncate mt-0.5">
+            <div className="text-lg sm:text-2xl font-bold text-emerald-400 truncate mt-0.5">
               {soldStats.totalRevenuePHP > 0
                 ? `₱${Math.round(soldStats.totalRevenuePHP).toLocaleString()}`
                 : soldStats.totalRevenueJPY > 0
                 ? `¥${Math.round(soldStats.totalRevenueJPY).toLocaleString()}`
                 : `$${soldStats.totalRevenueUSD.toLocaleString()}`}
             </div>
-            <div className="text-[10px] text-gray-400 truncate mt-0.5">
+            <div className="text-[10px] text-slate-400 truncate mt-0.5">
               Across {soldStats.totalSalesCount} confirmed sale{soldStats.totalSalesCount !== 1 ? 's' : ''}
             </div>
           </div>
 
           {/* Sold Copies Count */}
-          <div className="p-3 sm:p-3.5 rounded-2xl bg-[#242836] border border-[#343a4c] shadow-sm flex flex-col justify-between">
-            <span className="text-[10px] sm:text-xs text-gray-400 font-bold uppercase tracking-wider">
+          <div className="p-3 sm:p-3.5 rounded-2xl bg-[#141620] border border-[#222533] shadow-sm flex flex-col justify-between">
+            <span className="text-[10px] sm:text-xs text-slate-400 font-semibold uppercase tracking-wider">
               Cards Liquidated
             </span>
-            <div className="text-lg sm:text-2xl font-black text-white truncate mt-0.5">
+            <div className="text-lg sm:text-2xl font-bold text-white truncate mt-0.5">
               {soldStats.totalSoldCardsCount} Copies
             </div>
-            <div className="text-[10px] text-gray-400 flex items-center gap-1.5 truncate mt-0.5">
-              <span className="text-emerald-400 font-bold">Realized History</span>
+            <div className="text-[10px] text-slate-400 flex items-center gap-1.5 truncate mt-0.5">
+              <span className="text-emerald-400 font-semibold">Realized History</span>
             </div>
           </div>
         </div>
@@ -714,13 +714,13 @@ export default function CollectionPage() {
 
       {/* 4. Search Bar */}
       <div className="relative">
-        <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         <input
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder={activeTab === 'collection' ? 'Search your binder (e.g. Luffy, OP05, ST01)...' : 'Search sold cards history...'}
-          className="w-full bg-[#1e212c] border border-[#343a4c] focus:border-[#3b82f6] rounded-xl pl-9 pr-9 py-2 text-xs text-white placeholder-gray-500 focus:outline-none transition shadow-inner"
+          className="w-full bg-[#141620] border border-[#222533] focus:border-[#3b82f6]/60 rounded-xl pl-9 pr-9 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition shadow-sm"
         />
         {searchTerm && (
           <button

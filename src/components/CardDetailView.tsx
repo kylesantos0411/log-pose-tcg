@@ -810,20 +810,20 @@ export function CardDetailView({
   };
 
   return (
-    <div className="w-full max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto bg-[#1a1c24] text-white sm:rounded-3xl border-0 sm:border border-[#32384a] overflow-hidden shadow-2xl font-sans relative">
+    <div className="w-full max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto bg-[#12141c] text-white sm:rounded-2xl border-0 sm:border border-[#222533] overflow-hidden shadow-xl font-sans relative">
       {/* Floating Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-[#1d202c] border border-[#e76d78] text-white text-xs font-bold px-4 py-2 rounded-2xl shadow-2xl flex items-center gap-2 animate-bounce">
-          <Sparkles className="w-3.5 h-3.5 text-[#e76d78]" />
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-[#141620] border border-[#e05d68] text-white text-xs font-semibold px-4 py-2 rounded-2xl shadow-xl flex items-center gap-2">
+          <Sparkles className="w-3.5 h-3.5 text-[#e05d68]" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Top Header Bar */}
-      <div className="h-12 px-3.5 flex items-center justify-between border-b border-[#2d3142] bg-[#1e222d]">
+      <div className="h-12 px-3.5 flex items-center justify-between border-b border-[#1f2330] bg-[#141620]">
         <button
           onClick={onBack}
-          className="p-1.5 rounded-full hover:bg-white/10 text-gray-300 hover:text-white transition cursor-pointer"
+          className="p-1.5 rounded-full hover:bg-white/5 text-slate-300 hover:text-white transition cursor-pointer"
           aria-label="Go back"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -839,14 +839,14 @@ export function CardDetailView({
           <button
             type="button"
             onClick={openSettings}
-            className="p-1.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-amber-400 transition cursor-pointer"
+            className="p-1.5 rounded-full hover:bg-white/5 text-slate-400 hover:text-amber-400 transition cursor-pointer"
             title={`Active Currency: ${currency === 'source' ? 'Source Native' : currency} (Click to change)`}
           >
             <SettingsIcon className="w-4 h-4" />
           </button>
           <button
             onClick={handleToggleFavorite}
-            className="p-1.5 rounded-full hover:bg-white/10 text-gray-300 hover:text-amber-400 transition cursor-pointer"
+            className="p-1.5 rounded-full hover:bg-white/5 text-slate-300 hover:text-amber-400 transition cursor-pointer"
             aria-label="Add to favorites"
           >
             <Star className={`w-4 h-4 ${isFavorite ? 'text-amber-400 fill-amber-400' : ''}`} />
@@ -861,7 +861,7 @@ export function CardDetailView({
             {/* Main 2-Column Section on Mobile / 1-Column on Desktop */}
             <div className="grid grid-cols-[38%_62%] sm:grid-cols-[40%_60%] lg:grid-cols-1 gap-2.5 items-stretch">
               {/* Left Column: Card Artwork */}
-              <div className="relative aspect-[7/10] w-full rounded-2xl overflow-hidden bg-[#14161f] border border-[#2d3142] shadow-md flex items-center justify-center group lg:max-w-[320px] lg:mx-auto">
+              <div className="relative aspect-[7/10] w-full rounded-xl sm:rounded-2xl overflow-hidden bg-[#0e1017] border border-[#222533] shadow-sm flex items-center justify-center group lg:max-w-[320px] lg:mx-auto">
             {!imgErrorJp ? (
               <img
                 src={getSafeCardImageUrl(card.imageUrl, card.id || card.cardNumber) || jpImageUrl}
@@ -872,24 +872,24 @@ export function CardDetailView({
               />
             ) : (
               <div className="flex flex-col items-center justify-center p-2 text-center">
-                <span className="text-xs text-gray-400 font-bold">{card.name}</span>
-                <span className="text-[10px] text-gray-500 mt-1">JP Artwork</span>
+                <span className="text-xs text-slate-400 font-bold">{card.name}</span>
+                <span className="text-[10px] text-slate-500 mt-1">JP Artwork</span>
               </div>
             )}
 
             {/* Language Pill on Image */}
-            <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md bg-black/85 backdrop-blur-md text-[9px] font-extrabold text-white flex items-center gap-1 border border-white/20 shadow pointer-events-none">
+            <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md bg-black/85 backdrop-blur-md text-[9px] font-bold text-white flex items-center gap-1 border border-white/20 shadow pointer-events-none">
               <span>🇯🇵 JP</span>
             </div>
           </div>
 
           {/* Right Column: Stats Box Matching Reference */}
-          <div className="bg-[#242735] rounded-3xl p-3 sm:p-4 flex flex-col justify-between border border-[#34384c]/50 shadow-xl relative select-none">
+          <div className="bg-[#141620] rounded-2xl p-3 sm:p-4 flex flex-col justify-between border border-[#222533] shadow-sm relative select-none">
             {/* Top Row: Cost Badge (Left) & Version/Parallel Badge (Right) */}
             <div className="flex items-center justify-between">
               {/* Cost Circle */}
               <div
-                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full ${costBg} flex items-center justify-center font-black text-base sm:text-lg text-white shadow-md`}
+                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full ${costBg} flex items-center justify-center font-bold text-base sm:text-lg text-white shadow-sm`}
                 title={`Card Cost: ${card.cost ?? '-'}`}
               >
                 {card.cost ?? '-'}
@@ -897,7 +897,7 @@ export function CardDetailView({
 
               {/* Set Code White Circle Badge (e.g. OP01, OP17, ST01) */}
               <div
-                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white flex items-center justify-center font-black text-[#1e212b] shadow-md select-none shrink-0 ${
+                className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white flex items-center justify-center font-black text-[#1e212b] shadow-sm select-none shrink-0 ${
                   cardSetBadge.length >= 5
                     ? 'text-[9px] sm:text-[10px] tracking-tighter'
                     : cardSetBadge.length >= 4
@@ -912,10 +912,10 @@ export function CardDetailView({
 
             {/* Middle Block (Centered): Name, Category, Power, Traits, Illustrator */}
             <div className="my-auto py-2 text-center space-y-1">
-              <h2 className="text-base sm:text-xl font-black text-white leading-tight tracking-wide px-1" title={card.name}>
+              <h2 className="text-base sm:text-xl font-bold text-white leading-tight tracking-wide px-1" title={card.name}>
                 {card.name}
               </h2>
-              <div className="text-[11px] sm:text-xs italic font-normal text-gray-400 tracking-wider uppercase">
+              <div className="text-[11px] sm:text-xs italic font-normal text-slate-400 tracking-wider uppercase">
                 {card.category}
               </div>
 
@@ -923,7 +923,7 @@ export function CardDetailView({
                 <span className="font-bold">Power</span> <span className="font-normal">{card.power != null ? card.power : '-'}</span>
               </div>
 
-              <div className="text-xs sm:text-sm italic text-gray-300 font-light leading-snug px-1">
+              <div className="text-xs sm:text-sm italic text-slate-300 font-light leading-snug px-1">
                 {formattedTypes}
               </div>
 
@@ -933,16 +933,16 @@ export function CardDetailView({
                   <button
                     type="button"
                     onClick={() => setShowArtistModal(true)}
-                    className="inline-flex items-center gap-2 px-4 py-1.5 sm:px-5 sm:py-2 rounded-xl sm:rounded-2xl bg-[#2e3243] hover:bg-[#383d52] font-bold text-xs sm:text-sm text-white tracking-wider uppercase transition shadow-sm cursor-pointer whitespace-nowrap"
+                    className="inline-flex items-center gap-2 px-4 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-[#1c202d] hover:bg-[#252b3d] border border-[#2c3345] font-semibold text-xs sm:text-sm text-white tracking-wider uppercase transition shadow-sm cursor-pointer whitespace-nowrap"
                     title={`View Illustrator: ${artist.name}`}
                   >
-                    <PenTool className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#e76d78] stroke-[2.2]" />
+                    <PenTool className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#e05d68] stroke-[2.2]" />
                     <span>{artist.name.toUpperCase()}</span>
-                    <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 stroke-[2.5]" />
+                    <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 stroke-[2.5]" />
                   </button>
                 ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#242735] border border-white/5 text-[11px] font-semibold text-gray-400 tracking-wider">
-                    <Layers className="w-3 h-3 text-gray-500" />
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#10121a] border border-[#1f2330] text-[11px] font-semibold text-slate-400 tracking-wider">
+                    <Layers className="w-3 h-3 text-slate-500" />
                     Official Card Art
                   </span>
                 )}
@@ -951,7 +951,7 @@ export function CardDetailView({
 
             {/* Bottom Row: Rarity (Left), Code Pill (Center), Attribute & Block Number (Right) */}
             <div className="flex items-center justify-between pt-2 gap-1">
-              <span className="text-base sm:text-lg font-black text-white tracking-wider pl-1 flex-shrink-0">
+              <span className="text-base sm:text-lg font-bold text-white tracking-wider pl-1 flex-shrink-0">
                 {formatRarityCode(card.rarity, card.isAltArt, card.promoSource, card.category)}
               </span>
 
@@ -959,19 +959,19 @@ export function CardDetailView({
                 type="button"
                 onClick={handleCopyCode}
                 title={`Copy card code: ${cardIdInfo.displayId}`}
-                className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#2e3243] hover:bg-[#383d52] font-black text-xs sm:text-sm text-white tracking-wide whitespace-nowrap transition cursor-pointer flex-shrink-0"
+                className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#1c202d] hover:bg-[#252b3d] border border-[#2c3345] font-bold text-xs sm:text-sm text-white tracking-wide whitespace-nowrap transition cursor-pointer flex-shrink-0"
               >
                 <span>{cardIdInfo.baseId}</span>
                 {copiedCode ? (
                   <Check className="w-3.5 h-3.5 text-emerald-400 stroke-[3]" />
                 ) : (
-                  <ChevronRight className="w-3.5 h-3.5 text-white stroke-[2.5]" />
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 stroke-[2.5]" />
                 )}
               </button>
 
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <div
-                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full ${attrInfo.bg} flex items-center justify-center font-black text-sm sm:text-base text-white shadow-sm`}
+                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full ${attrInfo.bg} flex items-center justify-center font-bold text-sm sm:text-base text-white shadow-sm`}
                   title={`Attribute: ${card.attributes || 'Slash'}`}
                 >
                   {attrInfo.kanji}
@@ -1010,12 +1010,12 @@ export function CardDetailView({
         </div>
 
         {/* Rules & Effect Section */}
-          <div className="bg-[#242735] rounded-2xl p-3.5 border border-[#34384c] flex items-start gap-2.5 text-xs text-gray-200 leading-relaxed shadow-sm">
-            <FileText className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
+          <div className="bg-[#141620] rounded-2xl p-3.5 border border-[#222533] flex items-start gap-2.5 text-xs text-slate-200 leading-relaxed shadow-sm">
+            <FileText className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              {renderFormattedEffect(card.effect) || <span className="text-gray-500 italic">No effect text.</span>}
+              {renderFormattedEffect(card.effect) || <span className="text-slate-500 italic">No effect text.</span>}
               {card.trigger && (
-                <div className="mt-2 text-xs text-amber-200 bg-amber-950/25 border border-amber-800/40 p-2.5 rounded-xl leading-relaxed">
+                <div className="mt-2 text-xs text-amber-200 bg-amber-950/20 border border-amber-800/30 p-2.5 rounded-xl leading-relaxed">
                   <span className="font-bold text-[#f59e0b] block mb-1">TRIGGER:</span>
                   {card.trigger}
                 </div>
@@ -1027,7 +1027,7 @@ export function CardDetailView({
           {onAddToCollection && (
             <button
               onClick={() => onAddToCollection(card, selectedLang)}
-              className="w-full py-3 rounded-2xl bg-[#e76d78] hover:bg-[#d45b66] text-white font-extrabold text-sm shadow-xl shadow-[#e76d78]/20 flex items-center justify-center gap-2 transition cursor-pointer"
+              className="w-full py-3 rounded-xl bg-[#e05d68] hover:bg-[#d04e59] text-white font-bold text-sm shadow-sm flex items-center justify-center gap-2 transition cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               Add to My Collection
@@ -1038,7 +1038,7 @@ export function CardDetailView({
         {/* Right Column (Desktop 7-cols): Market & Grading, Interactive Chart, Variations */}
         <div className="lg:col-span-7 space-y-3">
           {/* BOX 1: MARKET & GRADING Tabs Container */}
-          <div className="bg-[#242735] rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-[#363a4c] shadow-lg">
+          <div className="bg-[#141620] rounded-2xl p-4 sm:p-5 border border-[#222533] shadow-sm">
           {/* Tab Navigation */}
           <div className="flex items-center justify-between border-b border-[#363a4c] pb-3">
             <div className="flex items-center gap-4 sm:gap-6 overflow-x-auto no-scrollbar">

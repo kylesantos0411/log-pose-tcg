@@ -274,7 +274,7 @@ export default function SetsPage() {
   return (
     <div className="w-full max-w-md sm:max-w-xl md:max-w-4xl lg:max-w-7xl mx-auto space-y-3 pb-32 sm:pb-24 font-sans select-none px-2 sm:px-3">
       {/* Sleek Top Header Bar: Back Button, Clean Title, View Mode Switcher */}
-      <header className="sticky top-0 z-30 bg-[#1e202a]/95 backdrop-blur-md border-b border-[#2d3140]/60 -mx-2 sm:-mx-3 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between shadow-sm">
+      <header className="sticky top-0 z-30 bg-[#0e1017]/95 backdrop-blur-md border-b border-[#1f2330] -mx-2 sm:-mx-3 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <Link
             href="/"
@@ -289,14 +289,14 @@ export default function SetsPage() {
         </div>
 
         {/* View Mode Toggle: List vs Grid */}
-        <div className="flex items-center bg-[#1e212c] p-0.5 sm:p-1 rounded-xl border border-[#343a4c]">
+        <div className="flex items-center bg-[#141620] p-0.5 sm:p-1 rounded-xl border border-[#222533]">
           <button
             type="button"
             onClick={() => setViewMode('yuyutei')}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
               viewMode === 'yuyutei'
-                ? 'bg-[#3b82f6] text-white shadow'
-                : 'text-gray-400 hover:text-white'
+                ? 'bg-[#222738] text-white shadow-sm border border-[#343b52]'
+                : 'text-slate-400 hover:text-white'
             }`}
             title="List View"
           >
@@ -306,10 +306,10 @@ export default function SetsPage() {
           <button
             type="button"
             onClick={() => setViewMode('grid')}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
               viewMode === 'grid'
-                ? 'bg-[#3b82f6] text-white shadow'
-                : 'text-gray-400 hover:text-white'
+                ? 'bg-[#222738] text-white shadow-sm border border-[#343b52]'
+                : 'text-slate-400 hover:text-white'
             }`}
             title="Grid View"
           >
@@ -322,13 +322,13 @@ export default function SetsPage() {
       {/* Search & Actions Bar */}
       <div className="flex items-center gap-2 pt-1">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search set code or name (e.g. OP17, Romance Dawn, ST36)..."
-            className="w-full bg-[#1e212c] border border-[#343a4c] focus:border-[#3b82f6] rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none transition shadow-inner"
+            className="w-full bg-[#141620] border border-[#222533] focus:border-[#3b82f6]/60 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition shadow-sm"
           />
         </div>
 
@@ -337,7 +337,7 @@ export default function SetsPage() {
             <button
               type="button"
               onClick={expandAll}
-              className="p-2 sm:px-3 sm:py-2 rounded-xl bg-[#242836] hover:bg-[#2c3142] border border-[#343a4c] text-gray-300 hover:text-white text-xs font-medium transition cursor-pointer flex items-center gap-1 shadow-sm"
+              className="p-2 sm:px-3 sm:py-2 rounded-xl bg-[#141620] hover:bg-[#1a1e2b] border border-[#222533] text-slate-300 hover:text-white text-xs font-medium transition cursor-pointer flex items-center gap-1 shadow-sm"
               title="Expand All"
             >
               <Maximize2 className="w-3.5 h-3.5" />
@@ -346,7 +346,7 @@ export default function SetsPage() {
             <button
               type="button"
               onClick={collapseAll}
-              className="p-2 sm:px-3 sm:py-2 rounded-xl bg-[#242836] hover:bg-[#2c3142] border border-[#343a4c] text-gray-300 hover:text-white text-xs font-medium transition cursor-pointer flex items-center gap-1 shadow-sm"
+              className="p-2 sm:px-3 sm:py-2 rounded-xl bg-[#141620] hover:bg-[#1a1e2b] border border-[#222533] text-slate-300 hover:text-white text-xs font-medium transition cursor-pointer flex items-center gap-1 shadow-sm"
               title="Collapse All"
             >
               <Minimize2 className="w-3.5 h-3.5" />
@@ -358,15 +358,15 @@ export default function SetsPage() {
 
       {/* DARK THEMED ACCORDION LIST VIEW (Optimized to App Theme & Collapsed by Default) */}
       {viewMode === 'yuyutei' ? (
-        <div className="bg-[#242836] rounded-2xl border border-[#343a4c] shadow-xl overflow-hidden divide-y divide-[#32384a]">
+        <div className="bg-[#141620] rounded-2xl border border-[#222533] shadow-lg overflow-hidden divide-y divide-[#1f2330]">
           {filteredCategories.length === 0 ? (
-            <div className="py-16 text-center text-gray-400">
-              <Boxes className="w-10 h-10 mx-auto mb-2 text-gray-500" />
-              <p className="text-sm font-bold text-gray-200">No sets found matching &quot;{search}&quot;</p>
+            <div className="py-16 text-center text-slate-400">
+              <Boxes className="w-10 h-10 mx-auto mb-2 text-slate-500" />
+              <p className="text-sm font-bold text-slate-200">No sets found matching &quot;{search}&quot;</p>
               <button
                 type="button"
                 onClick={() => setSearch('')}
-                className="mt-3 px-3 py-1.5 text-xs font-bold text-[#3b82f6] hover:underline cursor-pointer"
+                className="mt-3 px-3 py-1.5 text-xs font-semibold text-[#3b82f6] hover:underline cursor-pointer"
               >
                 Clear search
               </button>
@@ -381,7 +381,7 @@ export default function SetsPage() {
                   <button
                     type="button"
                     onClick={() => toggleSection(category.id)}
-                    className="w-full flex items-center justify-between px-4 py-3.5 sm:px-6 sm:py-4 bg-[#242836] hover:bg-[#2a2f40] transition select-none group cursor-pointer"
+                    className="w-full flex items-center justify-between px-4 py-3.5 sm:px-6 sm:py-4 bg-[#141620] hover:bg-[#181b26] transition select-none group cursor-pointer"
                   >
                     <div className="flex items-center gap-2.5">
                       {/* Vertical Accent Bar */}
@@ -393,7 +393,7 @@ export default function SetsPage() {
                       {/* Title */}
                       <span
                         className={`text-sm sm:text-base font-bold tracking-tight transition-colors ${
-                          isExpanded ? 'text-white' : 'text-gray-200 group-hover:text-white'
+                          isExpanded ? 'text-white' : 'text-slate-200 group-hover:text-white'
                         }`}
                       >
                         {category.name}
@@ -401,39 +401,39 @@ export default function SetsPage() {
 
                       {/* Paused Badge if Vintage is Locked */}
                       {category.id === 'vintage' && isVintageLocked && (
-                        <span className="text-[10px] font-black text-amber-300 bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span className="text-[10px] font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
                           <Lock className="w-3 h-3 text-amber-400" />
                           <span>PAUSED</span>
                         </span>
                       )}
 
                       {/* Item Count Badge */}
-                      <span className="text-[11px] font-bold text-gray-400 bg-[#1e212c] border border-[#343a4c] px-2 py-0.5 rounded-full ml-1">
+                      <span className="text-[11px] font-medium text-slate-400 bg-[#10121a] border border-[#222533] px-2 py-0.5 rounded-full ml-1">
                         {category.items.length}
                       </span>
                     </div>
 
                     {/* Right Toggle Icon: + when collapsed, - when expanded */}
-                    <div className="w-6 h-6 flex items-center justify-center text-gray-400 group-hover:text-white font-black transition-colors">
+                    <div className="w-6 h-6 flex items-center justify-center text-slate-400 group-hover:text-white font-bold transition-colors">
                       {isExpanded ? (
-                        <Minus className="w-4 h-4 stroke-[3]" />
+                        <Minus className="w-4 h-4 stroke-[2.5]" />
                       ) : (
-                        <Plus className="w-4 h-4 stroke-[3]" />
+                        <Plus className="w-4 h-4 stroke-[2.5]" />
                       )}
                     </div>
                   </button>
 
                   {/* Category Content: Chamfered Cards matching App Theme */}
                   {isExpanded && (
-                    <div className="px-3 pb-4 pt-3 sm:px-6 sm:pb-5 bg-[#181a22]/70 border-t border-[#2e3346]">
+                    <div className="px-3 pb-4 pt-3 sm:px-6 sm:pb-5 bg-[#10121a]/80 border-t border-[#1f2330]">
                       {category.id === 'vintage' && isVintageLocked && !isAdmin ? (
-                        <div className="py-8 px-4 rounded-2xl bg-[#1e2230] border border-amber-500/30 text-center space-y-3">
-                          <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-400 flex items-center justify-center mx-auto shadow-md">
+                        <div className="py-8 px-4 rounded-2xl bg-[#141620] border border-amber-500/20 text-center space-y-3">
+                          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-400 flex items-center justify-center mx-auto shadow-sm">
                             <Lock className="w-6 h-6 animate-pulse" />
                           </div>
                           <div className="space-y-1">
-                            <h4 className="text-sm sm:text-base font-black text-white">Vintage Cards Archive is Temporarily Paused</h4>
-                            <p className="text-xs text-gray-300 max-w-md mx-auto leading-relaxed">
+                            <h4 className="text-sm sm:text-base font-bold text-white">Vintage Cards Archive is Temporarily Paused</h4>
+                            <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
                               {vintageLockMessage}
                             </p>
                           </div>
@@ -441,7 +441,7 @@ export default function SetsPage() {
                       ) : (
                         <>
                           {category.id === 'vintage' && isVintageLocked && isAdmin && (
-                            <div className="mb-3 p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-2">
+                            <div className="mb-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs font-semibold flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                               <span>Vintage Archive is locked for non-admins. Admin bypass is active.</span>
                             </div>
@@ -468,14 +468,14 @@ export default function SetsPage() {
                             >
                               {/* Outer border container with chamfered top-right corner */}
                               <div
-                                className="w-full bg-[#343a4c] group-hover:bg-[#3b82f6] transition-colors p-[1px] shadow-sm"
+                                className="w-full bg-[#222533] group-hover:bg-[#343b50] transition-colors p-[1px] shadow-sm"
                                 style={{
                                   clipPath: 'polygon(0 4px, 4px 0, calc(100% - 11px) 0, 100% 11px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0 calc(100% - 4px))',
                                 }}
                               >
                                 {/* Inner dark container matching app theme */}
                                 <div
-                                  className="w-full bg-[#1e212c] group-hover:bg-[#252a3b] transition-colors px-3 py-2 sm:py-2.5 flex items-center justify-between gap-2 min-h-[44px]"
+                                  className="w-full bg-[#141620] group-hover:bg-[#1a1e2b] transition-colors px-3 py-2 sm:py-2.5 flex items-center justify-between gap-2 min-h-[44px]"
                                   style={{
                                     clipPath: 'polygon(0 3px, 3px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 3px), calc(100% - 3px) 100%, 3px 100%, 0 calc(100% - 3px))',
                                   }}
@@ -483,17 +483,17 @@ export default function SetsPage() {
                                   {/* Left text: [Code] Title */}
                                   <div className="flex items-center gap-1.5 min-w-0 pr-1 text-left flex-wrap">
                                     {item.displayCode ? (
-                                      <span className="font-mono font-black text-[#3b82f6] text-xs sm:text-[13px] tracking-tight shrink-0">
+                                      <span className="font-mono font-bold text-[#3b82f6] text-xs sm:text-[13px] tracking-tight shrink-0">
                                         {item.displayCode}
                                       </span>
                                     ) : item.code ? (
-                                      <span className="font-mono font-black text-[#3b82f6] text-xs sm:text-[13px] tracking-tight shrink-0">
+                                      <span className="font-mono font-bold text-[#3b82f6] text-xs sm:text-[13px] tracking-tight shrink-0">
                                         [{item.code}]
                                       </span>
                                     ) : null}
 
                                     {item.title && (
-                                      <span className="font-bold text-gray-200 group-hover:text-white text-xs sm:text-[12.5px] leading-tight break-words">
+                                      <span className="font-semibold text-slate-200 group-hover:text-white text-xs sm:text-[12.5px] leading-tight break-words">
                                         {item.title}
                                       </span>
                                     )}
@@ -502,11 +502,11 @@ export default function SetsPage() {
                                   {/* Right: Chevron Arrow > */}
                                   <div className="flex items-center gap-1 shrink-0">
                                     {matchedDb && matchedDb.cardsCount > 0 && (
-                                      <span className="text-[10px] font-bold text-[#f59e0b] bg-[#181a22] border border-[#343a4c] px-1.5 py-0.5 rounded">
+                                      <span className="text-[10px] font-semibold text-amber-400 bg-[#10121a] border border-[#222533] px-1.5 py-0.5 rounded">
                                         {matchedDb.cardsCount}
                                       </span>
                                     )}
-                                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#3b82f6] group-hover:translate-x-0.5 transition-transform stroke-[2.5]" />
+                                    <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-[#3b82f6] group-hover:translate-x-0.5 transition-transform stroke-[2]" />
                                   </div>
                                 </div>
                               </div>

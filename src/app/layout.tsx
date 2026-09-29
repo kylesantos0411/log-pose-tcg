@@ -11,7 +11,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: '#14161f',
+  themeColor: '#0e1017',
 };
 
 export const metadata: Metadata = {
@@ -61,7 +61,7 @@ if(typeof window!=='undefined'&&'serviceWorker' in navigator){
           }}
         />
       </head>
-      <body className="bg-[#1e212b] text-[#f8fafc] antialiased min-h-screen selection:bg-[#e76d78] selection:text-white overflow-x-hidden">
+      <body className="bg-[#0e1017] text-[#f8fafc] antialiased min-h-screen selection:bg-[#e05d68] selection:text-white overflow-x-hidden">
         <Providers>
           <AppSyncLoadingScreen />
           <InstallAppPrompt />

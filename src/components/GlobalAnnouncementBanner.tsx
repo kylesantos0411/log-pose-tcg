@@ -41,16 +41,16 @@ export function GlobalAnnouncementBanner({ announcement }: GlobalAnnouncementBan
   const isWarning = announcement.type === 'warning';
 
   const bgStyle = isAlert
-    ? 'bg-gradient-to-r from-red-950 via-rose-950 to-red-950 border-red-500/40 text-red-100 shadow-[0_4px_20px_rgba(239,68,68,0.2)]'
+    ? 'bg-[#181316] border-red-500/30 text-red-200'
     : isWarning
-    ? 'bg-gradient-to-r from-amber-950 via-orange-950 to-amber-950 border-amber-500/40 text-amber-100 shadow-[0_4px_20px_rgba(245,158,11,0.2)]'
-    : 'bg-gradient-to-r from-blue-950 via-indigo-950 to-blue-950 border-blue-500/40 text-blue-100 shadow-[0_4px_20px_rgba(59,130,246,0.2)]';
+    ? 'bg-[#181611] border-amber-500/30 text-amber-200'
+    : 'bg-[#131722] border-blue-500/30 text-blue-200';
 
   const badgeBg = isAlert
-    ? 'bg-red-500/25 border-red-500/40 text-red-300'
+    ? 'bg-red-500/15 border-red-500/30 text-red-300'
     : isWarning
-    ? 'bg-amber-500/25 border-amber-500/40 text-amber-300'
-    : 'bg-blue-500/25 border-blue-500/40 text-blue-300';
+    ? 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+    : 'bg-blue-500/15 border-blue-500/30 text-blue-300';
 
   const badgeLabel = isAlert ? 'Urgent' : isWarning ? 'Notice' : 'Broadcast';
 

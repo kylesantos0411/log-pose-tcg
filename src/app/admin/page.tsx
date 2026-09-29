@@ -376,29 +376,27 @@ export default function AdminPage() {
       )}
 
       {/* Admin Header */}
-      <div className="rounded-3xl bg-gradient-to-br from-[#1e2230] via-[#242938] to-[#1a1c26] border border-[#3b4256] p-6 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-red-500/5 rounded-full blur-3xl pointer-events-none" />
-        
+      <div className="rounded-2xl bg-[#141620] border border-[#222533] p-6 shadow-sm relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/15 border border-red-500/30 text-red-300 text-xs font-black uppercase tracking-wider">
-              <ShieldCheck className="w-3.5 h-3.5 text-red-400" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1c202d] border border-[#2c3345] text-slate-300 text-xs font-semibold uppercase tracking-wider">
+              <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
               <span>Admin Control Center</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-2">
               Log Pose Fleet Command
             </h1>
-            <p className="text-xs text-gray-400">
-              Authenticated as Chief Administrator: <strong className="text-white">@{user?.tag.replace(/^@/, '')}</strong> ({user?.email})
+            <p className="text-xs text-slate-400">
+              Authenticated as Chief Administrator: <strong className="text-slate-200">@{user?.tag.replace(/^@/, '')}</strong> ({user?.email})
             </p>
           </div>
 
           {/* Quick status pill */}
           <div className="flex items-center gap-3">
-            <div className={`px-3.5 py-2 rounded-2xl border flex items-center gap-2 text-xs font-bold ${
+            <div className={`px-3.5 py-2 rounded-xl border flex items-center gap-2 text-xs font-semibold ${
               maintenanceEnabled
-                ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
-                : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
             }`}>
               <span className={`w-2 h-2 rounded-full ${maintenanceEnabled ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
               <span>{maintenanceEnabled ? 'Maintenance Active' : 'System Normal / Online'}</span>
@@ -407,7 +405,7 @@ export default function AdminPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-2 pt-6 overflow-x-auto no-scrollbar border-t border-white/5 mt-6">
+        <div className="flex gap-2 pt-6 overflow-x-auto no-scrollbar border-t border-[#1f2330] mt-6">
           {[
             { id: 'system', label: '🛑 System & Maintenance', icon: Power },
             { 
@@ -426,10 +424,10 @@ export default function AdminPage() {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`py-2.5 px-4 rounded-xl text-xs font-black transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
+                className={`py-2.5 px-4 rounded-xl text-xs font-semibold transition flex items-center gap-2 whitespace-nowrap cursor-pointer ${
                   isActive
-                    ? 'bg-red-500 text-white shadow-lg shadow-red-500/20'
-                    : 'bg-[#181a24] text-gray-400 hover:text-white hover:bg-[#202330] border border-[#2d3242]'
+                    ? 'bg-[#222738] text-white border border-[#343b52] shadow-sm'
+                    : 'bg-[#10121a] text-slate-400 hover:text-slate-200 hover:bg-[#141620] border border-[#1f2330]'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -446,15 +444,15 @@ export default function AdminPage() {
       {activeTab === 'system' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Card 1: Maintenance Mode Killswitch */}
-          <div className="rounded-3xl bg-[#1e2230] border border-[#343a4c] p-6 space-y-5 shadow-lg">
+          <div className="rounded-2xl bg-[#141620] border border-[#222533] p-6 space-y-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
                   <Power className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-black text-white">Maintenance Mode</h2>
-                  <p className="text-[11px] text-gray-400">Lock app for non-admin visitors</p>
+                  <h2 className="text-base font-bold text-white">Maintenance Mode</h2>
+                  <p className="text-[11px] text-slate-400">Lock app for non-admin visitors</p>
                 </div>
               </div>
 
@@ -463,21 +461,21 @@ export default function AdminPage() {
                 type="button"
                 onClick={() => setMaintenanceEnabled(!maintenanceEnabled)}
                 className={`w-14 h-8 rounded-full transition-colors p-1 cursor-pointer flex items-center ${
-                  maintenanceEnabled ? 'bg-amber-500 justify-end' : 'bg-[#2b3040] justify-start'
+                  maintenanceEnabled ? 'bg-amber-600 justify-end' : 'bg-[#222738] justify-start'
                 }`}
               >
                 <div className="w-6 h-6 rounded-full bg-white shadow-md transform transition-transform" />
               </button>
             </div>
 
-            <div className="p-3 rounded-2xl bg-[#14161f] border border-[#2d3242] text-xs text-gray-300">
+            <div className="p-3 rounded-xl bg-[#10121a] border border-[#1f2330] text-xs text-slate-300">
               {maintenanceEnabled ? (
-                <div className="text-amber-300 font-bold flex items-center gap-1.5">
+                <div className="text-amber-300 font-semibold flex items-center gap-1.5">
                   <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                   <span>MAINTENANCE IS TURNED ON: Regular visitors see the dry dock screen. Admins retain full access.</span>
                 </div>
               ) : (
-                <div className="text-emerald-400 font-bold flex items-center gap-1.5">
+                <div className="text-emerald-400 font-semibold flex items-center gap-1.5">
                   <Check className="w-4 h-4 flex-shrink-0" />
                   <span>SYSTEM NORMAL: All collectors can freely access the app.</span>
                 </div>
@@ -486,7 +484,7 @@ export default function AdminPage() {
 
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-gray-300 block mb-1">
+                <label className="text-xs font-semibold text-slate-300 block mb-1">
                   Custom Maintenance Notice
                 </label>
                 <textarea
@@ -494,12 +492,12 @@ export default function AdminPage() {
                   value={maintenanceMsg}
                   onChange={(e) => setMaintenanceMsg(e.target.value)}
                   placeholder="Explain why the app is under maintenance..."
-                  className="w-full px-3 py-2.5 rounded-xl bg-[#14161f] border border-[#2d3242] text-white text-xs focus:outline-none focus:border-amber-500 placeholder-gray-500"
+                  className="w-full px-3 py-2.5 rounded-xl bg-[#0e1017] border border-[#222533] text-white text-xs focus:outline-none focus:border-[#3b82f6]/60 placeholder-slate-500"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-300 block mb-1">
+                <label className="text-xs font-semibold text-slate-300 block mb-1">
                   Estimated Uptime / Return (Optional)
                 </label>
                 <input
@@ -507,7 +505,7 @@ export default function AdminPage() {
                   value={maintenanceTime}
                   onChange={(e) => setMaintenanceTime(e.target.value)}
                   placeholder="e.g. Back online at 9:30 PM PHT"
-                  className="w-full px-3 py-2.5 rounded-xl bg-[#14161f] border border-[#2d3242] text-white text-xs focus:outline-none focus:border-amber-500 placeholder-gray-500"
+                  className="w-full px-3 py-2.5 rounded-xl bg-[#0e1017] border border-[#222533] text-white text-xs focus:outline-none focus:border-[#3b82f6]/60 placeholder-slate-500"
                 />
               </div>
             </div>
@@ -516,22 +514,22 @@ export default function AdminPage() {
               type="button"
               onClick={handleSaveMaintenance}
               disabled={savingSettings}
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider shadow transition cursor-pointer disabled:opacity-50"
+              className="w-full py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 active:scale-95 text-white font-bold text-xs uppercase tracking-wider shadow-sm transition cursor-pointer disabled:opacity-50"
             >
               {savingSettings ? 'Saving...' : 'Save Maintenance Settings'}
             </button>
           </div>
 
           {/* Card 2: Global Announcement Banner */}
-          <div className="rounded-3xl bg-[#1e2230] border border-[#343a4c] p-6 space-y-5 shadow-lg">
+          <div className="rounded-2xl bg-[#141620] border border-[#222533] p-6 space-y-5 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
                   <Megaphone className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-black text-white">Global Broadcast Banner</h2>
-                  <p className="text-[11px] text-gray-400">Broadcast notices to all active users</p>
+                  <h2 className="text-base font-bold text-white">Global Broadcast Banner</h2>
+                  <p className="text-[11px] text-slate-400">Broadcast notices to all active users</p>
                 </div>
               </div>
 
@@ -540,7 +538,7 @@ export default function AdminPage() {
                 type="button"
                 onClick={() => setAnnouncementEnabled(!announcementEnabled)}
                 className={`w-14 h-8 rounded-full transition-colors p-1 cursor-pointer flex items-center ${
-                  announcementEnabled ? 'bg-blue-500 justify-end' : 'bg-[#2b3040] justify-start'
+                  announcementEnabled ? 'bg-blue-600 justify-end' : 'bg-[#222738] justify-start'
                 }`}
               >
                 <div className="w-6 h-6 rounded-full bg-white shadow-md transform transition-transform" />
@@ -549,23 +547,23 @@ export default function AdminPage() {
 
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-gray-300 block mb-1">
+                <label className="text-xs font-semibold text-slate-300 block mb-1">
                   Banner Severity Level
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { id: 'info', label: 'ℹ️ Info (Blue)', color: 'text-blue-400' },
-                    { id: 'warning', label: '⚠️ Notice (Amber)', color: 'text-amber-400' },
-                    { id: 'alert', label: '🚨 Urgent (Red)', color: 'text-red-400' },
+                    { id: 'info', label: 'ℹ️ Info', color: 'text-blue-400' },
+                    { id: 'warning', label: '⚠️ Notice', color: 'text-amber-400' },
+                    { id: 'alert', label: '🚨 Urgent', color: 'text-rose-400' },
                   ].map((lvl) => (
                     <button
                       key={lvl.id}
                       type="button"
                       onClick={() => setAnnouncementType(lvl.id as any)}
-                      className={`py-2 px-2.5 rounded-xl border text-xs font-bold transition text-center ${
+                      className={`py-2 px-2.5 rounded-xl border text-xs font-semibold transition text-center cursor-pointer ${
                         announcementType === lvl.id
-                          ? 'bg-white/10 border-white/40 text-white'
-                          : 'bg-[#14161f] border-[#2d3242] text-gray-400 hover:text-white'
+                          ? 'bg-[#222738] border-[#343b52] text-white shadow-sm'
+                          : 'bg-[#10121a] border-[#1f2330] text-slate-400 hover:text-slate-200'
                       }`}
                     >
                       {lvl.label}
@@ -575,7 +573,7 @@ export default function AdminPage() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-gray-300 block mb-1">
+                <label className="text-xs font-semibold text-slate-300 block mb-1">
                   Announcement Message
                 </label>
                 <textarea
@@ -583,7 +581,7 @@ export default function AdminPage() {
                   value={announcementMsg}
                   onChange={(e) => setAnnouncementMsg(e.target.value)}
                   placeholder="e.g. OP-09 Expansion cards have been added to the database!"
-                  className="w-full px-3 py-2.5 rounded-xl bg-[#14161f] border border-[#2d3242] text-white text-xs focus:outline-none focus:border-blue-500 placeholder-gray-500"
+                  className="w-full px-3 py-2.5 rounded-xl bg-[#0e1017] border border-[#222533] text-white text-xs focus:outline-none focus:border-[#3b82f6]/60 placeholder-slate-500"
                 />
               </div>
 
@@ -591,15 +589,15 @@ export default function AdminPage() {
               {announcementMsg && (
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase font-bold text-gray-500">Live Preview (Marquee Ticker):</span>
-                    <span className="text-[10px] text-gray-400">Hover to pause</span>
+                    <span className="text-[10px] uppercase font-semibold text-slate-400">Live Preview:</span>
+                    <span className="text-[10px] text-slate-500">Hover to pause</span>
                   </div>
                   <div className={`p-2.5 rounded-xl border text-xs flex items-center gap-2.5 overflow-hidden relative select-none ${
                     announcementType === 'alert'
-                      ? 'bg-red-950/70 border-red-500/40 text-red-200'
+                      ? 'bg-[#181316] border-red-500/25 text-red-200'
                       : announcementType === 'warning'
-                      ? 'bg-amber-950/70 border-amber-500/40 text-amber-200'
-                      : 'bg-blue-950/70 border-blue-500/40 text-blue-200'
+                      ? 'bg-[#181611] border-amber-500/25 text-amber-200'
+                      : 'bg-[#131722] border-blue-500/25 text-blue-200'
                   }`}>
                     <div className="flex items-center gap-1.5 flex-shrink-0 z-10 font-bold uppercase text-[10px] px-1.5 py-0.5 rounded bg-white/10">
                       <Megaphone className="w-3 h-3 flex-shrink-0 animate-pulse" />
@@ -630,27 +628,27 @@ export default function AdminPage() {
               type="button"
               onClick={handleSaveAnnouncement}
               disabled={savingSettings}
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:brightness-110 active:scale-95 text-white font-black text-xs uppercase tracking-wider shadow transition cursor-pointer disabled:opacity-50"
+              className="w-full py-2.5 rounded-xl bg-[#222738] hover:bg-[#2b3147] border border-[#343b52] active:scale-95 text-white font-bold text-xs uppercase tracking-wider shadow-sm transition cursor-pointer disabled:opacity-50"
             >
               {savingSettings ? 'Saving...' : 'Save & Broadcast Banner'}
             </button>
           </div>
 
           {/* Quick jump to individual feature switchboard */}
-          <div className="md:col-span-2 p-5 rounded-3xl bg-gradient-to-r from-blue-900/20 via-[#1e2230] to-purple-900/20 border border-blue-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="md:col-span-2 p-5 rounded-2xl bg-[#141620] border border-[#222533] flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-blue-500/20 border border-blue-500/40 text-blue-400 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-[#1c202d] border border-[#2c3345] text-slate-300 flex items-center justify-center flex-shrink-0">
                 <SlidersHorizontal className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-black text-white">Looking to pause an individual feature instead?</h3>
-                <p className="text-xs text-gray-400">Lock specific tabs (e.g. Decks, Collection, Sets, Vintage, or Community Sales) without locking the whole site.</p>
+                <h3 className="text-sm font-bold text-white">Looking to pause an individual feature instead?</h3>
+                <p className="text-xs text-slate-400">Lock specific tabs (e.g. Decks, Collection, Sets, Vintage, or Community Sales) without locking the whole site.</p>
               </div>
             </div>
             <button
               type="button"
               onClick={() => setActiveTab('features')}
-              className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 whitespace-nowrap transition cursor-pointer"
+              className="py-2.5 px-4 rounded-xl bg-[#222738] hover:bg-[#2b3147] border border-[#343b52] text-white font-semibold text-xs flex items-center gap-2 whitespace-nowrap transition cursor-pointer"
             >
               <span>Open Feature Switchboard</span>
               <ChevronRight className="w-4 h-4" />
@@ -665,31 +663,31 @@ export default function AdminPage() {
       {activeTab === 'features' && (
         <div className="space-y-6">
           {/* Header Banner */}
-          <div className="rounded-3xl bg-[#1e2230] border border-[#343a4c] p-6 shadow-lg">
+          <div className="rounded-2xl bg-[#141620] border border-[#222533] p-6 shadow-sm">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div className="space-y-1">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300 text-xs font-black uppercase tracking-wider">
-                  <SlidersHorizontal className="w-3.5 h-3.5 text-blue-400" />
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1c202d] border border-[#2c3345] text-slate-300 text-xs font-semibold uppercase tracking-wider">
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
                   <span>Granular Maintenance Controls</span>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-black text-white">
+                <h2 className="text-xl sm:text-2xl font-bold text-white">
                   Individual Feature Switchboard
                 </h2>
-                <p className="text-xs text-gray-400 max-w-2xl leading-relaxed">
+                <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
                   Lock or pause specific features when running targeted updates, database migrations, or content changes. Visitors attempting to use a locked feature will see your custom notice, while Chief Admins and Admins maintain seamless bypass access.
                 </p>
               </div>
 
               {/* Status pills & Action buttons */}
               <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#14161f] border border-[#2d3242] text-xs font-bold">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#10121a] border border-[#1f2330] text-xs font-semibold">
                   <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                  <span className="text-gray-300">
+                  <span className="text-slate-300">
                     {FEATURE_DEFINITIONS.length - Object.values(featureLocks).filter((f) => f?.locked).length} Live
                   </span>
                 </div>
                 {Object.values(featureLocks).filter((f) => f?.locked).length > 0 && (
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-xs font-bold text-amber-300">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs font-semibold text-amber-300">
                     <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                     <span>
                       {Object.values(featureLocks).filter((f) => f?.locked).length} Paused
@@ -701,7 +699,7 @@ export default function AdminPage() {
                   type="button"
                   onClick={handleUnlockAllFeatures}
                   disabled={savingFeatures}
-                  className="py-2 px-3 rounded-xl bg-[#282d3d] hover:bg-[#343a4e] text-xs font-bold text-gray-300 hover:text-white flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                  className="py-2 px-3 rounded-xl bg-[#1c202d] hover:bg-[#252b3d] text-xs font-semibold text-slate-300 hover:text-white border border-[#2c3345] flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
                   title="Unlock all features at once"
                 >
                   <Unlock className="w-3.5 h-3.5" />
@@ -712,7 +710,7 @@ export default function AdminPage() {
                   type="button"
                   onClick={() => handleSaveFeatureLocks()}
                   disabled={savingFeatures}
-                  className="py-2 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider shadow transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                  className="py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs uppercase tracking-wider shadow-sm transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                 >
                   <Check className="w-4 h-4" />
                   <span>{savingFeatures ? 'Saving...' : 'Save Switchboard'}</span>
@@ -741,38 +739,38 @@ export default function AdminPage() {
               return (
                 <div
                   key={def.key}
-                  className={`rounded-3xl border transition-all duration-200 p-5 sm:p-6 space-y-4 shadow-lg ${
+                  className={`rounded-2xl border transition-all duration-200 p-5 sm:p-6 space-y-4 shadow-sm ${
                     isLocked
-                      ? 'bg-[#1f1e24] border-amber-500/40 shadow-amber-500/5'
-                      : 'bg-[#1e2230] border-[#343a4c] hover:border-[#424a61]'
+                      ? 'bg-[#181518] border-amber-500/30'
+                      : 'bg-[#141620] border-[#222533] hover:border-[#2f3548]'
                   }`}
                 >
                   {/* Top Bar: Icon, Name, Scope, Toggle */}
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 border transition ${
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 border transition ${
                         isLocked
-                          ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
-                          : 'bg-blue-500/15 border-blue-500/30 text-blue-400'
+                          ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                          : 'bg-[#1c202d] border-[#2c3345] text-slate-300'
                       }`}>
                         <Icon className="w-5 h-5" />
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-base font-black text-white truncate">
+                          <h3 className="text-base font-bold text-white truncate">
                             {def.label}
                           </h3>
                           {def.route ? (
-                            <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#14161f] text-gray-400 border border-[#2d3242]">
+                            <span className="font-mono text-[10px] font-semibold px-2 py-0.5 rounded-md bg-[#10121a] text-slate-400 border border-[#1f2330]">
                               {def.route}
                             </span>
                           ) : (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-300 border border-purple-500/20">
                               In-App Action
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">
+                        <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">
                           {def.description}
                         </p>
                       </div>
@@ -782,10 +780,10 @@ export default function AdminPage() {
                     <button
                       type="button"
                       onClick={() => toggleFeatureLock(def.key)}
-                      className={`py-1.5 px-3 rounded-xl font-black text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer border flex-shrink-0 ${
+                      className={`py-1.5 px-3 rounded-xl font-bold text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer border flex-shrink-0 ${
                         isLocked
-                          ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20'
-                          : 'bg-[#282d3d] text-gray-300 hover:text-white border-[#343a4c]'
+                          ? 'bg-amber-500/15 text-amber-300 border-amber-500/30 shadow-sm'
+                          : 'bg-[#1c202d] text-slate-300 hover:text-white border-[#2c3345]'
                       }`}
                       title={isLocked ? 'Click to Unlock' : 'Click to Lock/Pause'}
                     >
@@ -804,17 +802,17 @@ export default function AdminPage() {
                   </div>
 
                   {/* Status Indicator Bar */}
-                  <div className={`p-3 rounded-2xl border text-xs flex items-center justify-between gap-2 ${
+                  <div className={`p-3 rounded-xl border text-xs flex items-center justify-between gap-2 ${
                     isLocked
-                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-300 font-bold'
-                      : 'bg-[#14161f] border-[#2a2f40] text-gray-400 font-medium'
+                      ? 'bg-amber-500/10 border-amber-500/25 text-amber-300 font-semibold'
+                      : 'bg-[#10121a] border-[#1f2330] text-slate-400 font-medium'
                   }`}>
                     <div className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${isLocked ? 'bg-amber-400 animate-ping' : 'bg-emerald-400'}`} />
+                      <span className={`w-2 h-2 rounded-full ${isLocked ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
                       <span>{isLocked ? 'Feature is Locked for Regular Users' : 'Feature is Live & Operational'}</span>
                     </div>
                     {isLocked && (
-                      <span className="text-[10px] text-amber-400 uppercase tracking-wider font-black">
+                      <span className="text-[10px] text-amber-400 uppercase tracking-wider font-bold">
                         Admin Bypass Enabled
                       </span>
                     )}
@@ -824,13 +822,13 @@ export default function AdminPage() {
                   {isLocked && (
                     <div className="space-y-2 pt-1 animate-in fade-in duration-150">
                       <div className="flex items-center justify-between">
-                        <label className="text-[11px] font-bold text-gray-300">
+                        <label className="text-[11px] font-semibold text-slate-300">
                           Custom Notice for Visitors
                         </label>
                         <button
                           type="button"
                           onClick={() => updateFeatureMessage(def.key, def.defaultMessage)}
-                          className="text-[10px] text-gray-400 hover:text-gray-200 underline cursor-pointer"
+                          className="text-[10px] text-slate-400 hover:text-slate-200 underline cursor-pointer"
                         >
                           Reset to Default
                         </button>
@@ -840,7 +838,7 @@ export default function AdminPage() {
                         value={lockInfo.message ?? def.defaultMessage}
                         onChange={(e) => updateFeatureMessage(def.key, e.target.value)}
                         placeholder={def.defaultMessage}
-                        className="w-full px-3 py-2 rounded-xl bg-[#14161f] border border-[#2d3242] text-white text-xs focus:outline-none focus:border-amber-500 placeholder-gray-500 resize-none font-medium"
+                        className="w-full px-3 py-2 rounded-xl bg-[#0e1017] border border-[#222533] text-white text-xs focus:outline-none focus:border-amber-500/60 placeholder-slate-500 resize-none font-medium"
                       />
                     </div>
                   )}
@@ -850,8 +848,8 @@ export default function AdminPage() {
           </div>
 
           {/* Bottom Save Bar */}
-          <div className="p-5 rounded-3xl bg-[#1e2230] border border-[#343a4c] flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg">
-            <div className="flex items-center gap-3 text-xs text-gray-400">
+          <div className="p-5 rounded-2xl bg-[#141620] border border-[#222533] flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-center gap-3 text-xs text-slate-400">
               <Sparkles className="w-4 h-4 text-emerald-400 flex-shrink-0" />
               <span>
                 Changes take effect across all user sessions and devices once saved.
@@ -861,7 +859,7 @@ export default function AdminPage() {
               type="button"
               onClick={() => handleSaveFeatureLocks()}
               disabled={savingFeatures}
-              className="w-full sm:w-auto py-2.5 px-6 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider shadow transition cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto py-2.5 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs uppercase tracking-wider shadow-sm transition cursor-pointer disabled:opacity-50"
             >
               {savingFeatures ? 'Saving Switchboard...' : 'Save All Feature Locks'}
             </button>
@@ -873,16 +871,16 @@ export default function AdminPage() {
       {/* TAB 3: USER MODERATION & BANS                                  */}
       {/* ────────────────────────────────────────────────────────────── */}
       {activeTab === 'users' && (
-        <div className="rounded-3xl bg-[#1e2230] border border-[#343a4c] p-6 space-y-5 shadow-lg">
+        <div className="rounded-2xl bg-[#141620] border border-[#222533] p-6 space-y-5 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-black text-white">Registered Collectors &amp; Users</h2>
-              <p className="text-xs text-gray-400">Search, manage roles, and suspend malicious accounts</p>
+              <h2 className="text-lg font-bold text-white">Registered Collectors &amp; Users</h2>
+              <p className="text-xs text-slate-400">Search, manage roles, and suspend malicious accounts</p>
             </div>
             <button
               type="button"
               onClick={loadUsers}
-              className="self-start sm:self-auto py-2 px-3 rounded-xl bg-[#282d3d] hover:bg-[#343a4e] text-xs font-bold text-gray-300 hover:text-white flex items-center gap-1.5 transition"
+              className="self-start sm:self-auto py-2 px-3 rounded-xl bg-[#1c202d] hover:bg-[#252b3d] text-xs font-semibold text-slate-300 hover:text-white border border-[#2c3345] flex items-center gap-1.5 transition"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Refresh List</span>
@@ -892,13 +890,13 @@ export default function AdminPage() {
           {/* Search & Filter bar */}
           <div className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
               <input
                 type="text"
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
                 placeholder="Search by tag (@username), email, or name..."
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#14161f] border border-[#2d3242] text-white text-xs placeholder-gray-500 focus:outline-none focus:border-red-500"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#0e1017] border border-[#222533] text-white text-xs placeholder-slate-500 focus:outline-none focus:border-[#3b82f6]/60"
               />
             </div>
 
@@ -914,10 +912,12 @@ export default function AdminPage() {
                     key={f.id}
                     type="button"
                     onClick={() => setUserFilter(f.id as any)}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                    className={`py-2 px-3 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
                       userFilter === f.id
-                        ? f.isOnline ? 'bg-emerald-600 text-white' : 'bg-red-500 text-white'
-                        : 'bg-[#14161f] border border-[#2d3242] text-gray-400 hover:text-white'
+                        ? f.isOnline
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'bg-[#222738] text-white border border-[#343b52] shadow-sm'
+                        : 'bg-[#10121a] border border-[#1f2330] text-slate-400 hover:text-slate-200'
                     }`}
                   >
                     {f.isOnline && (
@@ -929,18 +929,18 @@ export default function AdminPage() {
               </div>
 
               {/* Sort Selector */}
-              <div className="flex items-center gap-1.5 bg-[#14161f] border border-[#2d3242] px-3 py-1.5 rounded-xl">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-gray-400" />
+              <div className="flex items-center gap-1.5 bg-[#10121a] border border-[#1f2330] px-3 py-1.5 rounded-xl">
+                <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
                 <select
                   value={userSort}
                   onChange={(e) => setUserSort(e.target.value as any)}
                   className="bg-transparent text-white text-xs font-semibold focus:outline-none cursor-pointer"
                 >
-                  <option value="recent_active" className="bg-[#1e2230]">Sort: Recently Active</option>
-                  <option value="last_login" className="bg-[#1e2230]">Sort: Last Login</option>
-                  <option value="newest" className="bg-[#1e2230]">Sort: Newest First</option>
-                  <option value="cards" className="bg-[#1e2230]">Sort: Collection Size</option>
-                  <option value="sales" className="bg-[#1e2230]">Sort: Market Sales</option>
+                  <option value="recent_active" className="bg-[#141620]">Sort: Recently Active</option>
+                  <option value="last_login" className="bg-[#141620]">Sort: Last Login</option>
+                  <option value="newest" className="bg-[#141620]">Sort: Newest First</option>
+                  <option value="cards" className="bg-[#141620]">Sort: Collection Size</option>
+                  <option value="sales" className="bg-[#141620]">Sort: Market Sales</option>
                 </select>
               </div>
             </div>
@@ -948,14 +948,14 @@ export default function AdminPage() {
 
           {/* Users Table */}
           {loadingUsers ? (
-            <div className="py-12 text-center text-gray-400 text-xs">Loading user registry...</div>
+            <div className="py-12 text-center text-slate-400 text-xs">Loading user registry...</div>
           ) : filteredUsers.length === 0 ? (
-            <div className="py-12 text-center text-gray-500 text-xs">No users matching search criteria.</div>
+            <div className="py-12 text-center text-slate-500 text-xs">No users matching search criteria.</div>
           ) : (
             <div className="overflow-x-auto no-scrollbar">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-[#2d3242] text-gray-400 text-[11px] uppercase tracking-wider font-bold">
+                  <tr className="border-b border-[#222533] text-slate-400 text-[11px] uppercase tracking-wider font-semibold">
                     <th className="py-3 px-3">Collector</th>
                     <th className="py-3 px-3">Role</th>
                     <th className="py-3 px-3">Status</th>
@@ -965,21 +965,21 @@ export default function AdminPage() {
                     <th className="py-3 px-3 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#242938]">
+                <tbody className="divide-y divide-[#1c1f2b]">
                   {filteredUsers.map((u) => {
                     const online = isUserRecentlyActive(u.lastActive);
                     return (
                       <tr key={u.id} className="hover:bg-white/[0.02] transition">
                         <td className="py-3.5 px-3">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center font-black text-xs text-white flex-shrink-0">
+                            <div className="w-8 h-8 rounded-full bg-[#1c202d] border border-[#2c3345] flex items-center justify-center font-bold text-xs text-slate-200 flex-shrink-0">
                               {u.username.slice(0, 2).toUpperCase()}
                             </div>
                             <div className="min-w-0">
-                              <span className="font-bold text-white block truncate">
+                              <span className="font-semibold text-white block truncate">
                                 {u.username}
                               </span>
-                              <span className="text-[11px] text-gray-400 font-mono">
+                              <span className="text-[11px] text-slate-400 font-mono">
                                 @{u.tag.replace(/^@/, '')} {u.email ? `• ${u.email}` : ''}
                               </span>
                             </div>
@@ -987,10 +987,10 @@ export default function AdminPage() {
                         </td>
 
                         <td className="py-3.5 px-3">
-                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${
                             u.role === 'admin'
-                              ? 'bg-red-500/20 text-red-300 border border-red-500/30'
-                              : 'bg-gray-500/15 text-gray-300 border border-gray-500/20'
+                              ? 'bg-red-500/10 text-red-300 border border-red-500/20'
+                              : 'bg-slate-500/10 text-slate-300 border border-slate-500/20'
                           }`}>
                             {u.role}
                           </span>
@@ -999,18 +999,18 @@ export default function AdminPage() {
                         <td className="py-3.5 px-3">
                           {u.isBanned ? (
                             <div className="space-y-0.5">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-rose-500/10 text-rose-300 border border-rose-500/20">
                                 <ShieldAlert className="w-3 h-3 text-rose-400" />
                                 <span>Banned</span>
                               </span>
                               {u.banReason && (
-                                <span className="block text-[10px] text-gray-400 truncate max-w-xs italic">
+                                <span className="block text-[10px] text-slate-400 truncate max-w-xs italic">
                                   "{u.banReason}"
                                 </span>
                               )}
                             </div>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                               <span>Active</span>
                             </span>

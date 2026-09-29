@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #1e212b;
-  --foreground: #f8fafc;
-  --card-bg: #262a36;
-  --card-border: #343a4c;
-  --card-sub: #1d202c;
-  --brand-red: #e76d78;
+  --background: #0e1017;
+  --foreground: #f1f5f9;
+  --card-bg: #141620;
+  --card-border: #222533;
+  --card-sub: #10121a;
+  --brand-red: #e05d68;
   --brand-blue: #3b82f6;
-  --brand-gold: #f59e0b;
+  --brand-gold: #d97706;
 }
 
 body {
@@ -24,14 +24,14 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #1a1d26;
+  background: #0e1017;
 }
 ::-webkit-scrollbar-thumb {
-  background: #343a4c;
+  background: #222533;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #464e66;
+  background: #2e3447;
 }
 
 @keyframes laserSweep {

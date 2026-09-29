@@ -322,7 +322,7 @@ function CardsContent() {
   return (
     <div className="w-full max-w-md sm:max-w-xl md:max-w-4xl lg:max-w-7xl mx-auto pb-16 select-none">
       {/* 1. Sleek Top Bar with Permanent Always-Visible Search Bar */}
-      <header className="sticky top-0 z-30 bg-[#1e202a]/95 backdrop-blur-md border-b border-[#2d3140]/60 px-2 sm:px-4 py-2 sm:py-2.5 shadow-sm space-y-2">
+      <header className="sticky top-0 z-30 bg-[#0e1017]/95 backdrop-blur-md border-b border-[#1f2330] px-2 sm:px-4 py-2 sm:py-2.5 shadow-sm space-y-2">
         {/* Top Row: Navigation, Page Title, and Quick Actions */}
         <div className="flex items-center justify-between">
           {/* Left: Back Arrow & Page Title */}
@@ -336,18 +336,18 @@ function CardsContent() {
             </Link>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <h1 className="text-base sm:text-lg font-black text-white tracking-tight truncate">
+                <h1 className="text-base sm:text-lg font-bold text-white tracking-tight truncate">
                   {pageTitle}
                 </h1>
                 {isLatestMode && (
-                  <span className="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-rose-500/25 text-rose-300 border border-rose-500/40 shrink-0 flex items-center gap-1">
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30 shrink-0 flex items-center gap-1">
                     <Flame className="w-2.5 h-2.5 fill-current" />
                     NEWEST FIRST
                   </span>
                 )}
               </div>
               {isLatestMode && (
-                <p className="text-[10px] text-amber-300 font-semibold tracking-wide">
+                <p className="text-[10px] text-amber-300/90 font-medium tracking-wide">
                   Sorted by release date: OP-17, OP-16, OP-15 &amp; newest sets first (OP-18 upcoming)
                 </p>
               )}
@@ -359,7 +359,7 @@ function CardsContent() {
             {/* Diamond / Collection Icon */}
             <Link
               href="/collection"
-              className="p-1.5 sm:p-2 text-gray-300 hover:text-white hover:bg-white/5 rounded-xl transition cursor-pointer"
+              className="p-1.5 sm:p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition cursor-pointer"
               title="Collection"
             >
               <svg
@@ -384,7 +384,7 @@ function CardsContent() {
             <button
               type="button"
               onClick={() => setGridCols(gridCols === 3 ? 2 : 3)}
-              className="p-1.5 sm:p-2 text-gray-300 hover:text-white hover:bg-white/5 rounded-xl transition cursor-pointer"
+              className="p-1.5 sm:p-2 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition cursor-pointer"
               title={`Toggle between 2 and 3 columns (Current: ${gridCols})`}
             >
               {gridCols === 3 ? (
@@ -404,19 +404,19 @@ function CardsContent() {
         <div className="flex items-center gap-2">
           {/* Main Search Input */}
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               placeholder="Search card or code (e.g. OP05-119, Luffy)..."
-              className="w-full bg-[#181a24] border border-[#343a4c] focus:border-[#3b82f6] rounded-xl pl-9.5 pr-8 py-2 text-xs sm:text-sm text-gray-100 placeholder-gray-400 focus:outline-none transition shadow-inner"
+              className="w-full bg-[#141620] border border-[#222533] focus:border-[#3b82f6]/60 rounded-xl pl-9.5 pr-8 py-2 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none transition shadow-sm"
             />
             {search && (
               <button
                 type="button"
                 onClick={() => { setSearch(''); setPage(1); }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white p-1 rounded-full hover:bg-white/10 cursor-pointer"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 rounded-full hover:bg-white/10 cursor-pointer"
                 title="Clear Search"
               >
                 <X className="w-3.5 h-3.5" />
@@ -428,17 +428,17 @@ function CardsContent() {
           <button
             type="button"
             onClick={() => setShowFilters(!showFilters)}
-            className={`px-3 py-2 rounded-xl border text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
+            className={`px-3 py-2 rounded-xl border text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer shrink-0 ${
               showFilters || activeDetailedFilterCount > 0
-                ? 'bg-[#3b82f6]/20 text-[#3b82f6] border-[#3b82f6]/50 shadow-sm'
-                : 'bg-[#181a24] text-gray-300 border-[#343a4c] hover:border-gray-500'
+                ? 'bg-[#1a202e] text-sky-400 border-sky-500/40 shadow-sm'
+                : 'bg-[#141620] text-slate-300 border-[#222533] hover:border-[#2f3548]'
             }`}
             title="Toggle Detailed Filters"
           >
             <SlidersHorizontal className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             <span className="text-xs">Filter</span>
             {activeDetailedFilterCount > 0 && (
-              <span className="w-4 h-4 rounded-full bg-[#e76d78] text-white text-[9px] font-black flex items-center justify-center shadow">
+              <span className="w-4 h-4 rounded-full bg-[#e05d68] text-white text-[9px] font-bold flex items-center justify-center shadow-sm">
                 {activeDetailedFilterCount}
               </span>
             )}
@@ -448,15 +448,15 @@ function CardsContent() {
 
       {/* 2. Collapsible Filter Drawer for Advanced Filters (Categories, Rarities, Sets, Colors) */}
       {showFilters && (
-        <div className="mx-2 sm:mx-3 mt-2 mb-3 p-3.5 rounded-2xl bg-[#242836] border border-[#343a4c] shadow-xl space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="flex items-center justify-between pb-2 border-b border-[#32384a]">
-            <span className="text-xs font-bold text-gray-300">Advanced Filters</span>
+        <div className="mx-2 sm:mx-3 mt-2 mb-3 p-3.5 rounded-2xl bg-[#141620] border border-[#222533] shadow-xl space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center justify-between pb-2 border-b border-[#1f2330]">
+            <span className="text-xs font-bold text-slate-300">Advanced Filters</span>
             <div className="flex items-center gap-2">
               {activeDetailedFilterCount > 0 && (
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="text-[11px] font-semibold text-[#e76d78] hover:underline cursor-pointer"
+                  className="text-[11px] font-semibold text-[#e05d68] hover:underline cursor-pointer"
                 >
                   Reset all
                 </button>
@@ -464,16 +464,16 @@ function CardsContent() {
               <button
                 type="button"
                 onClick={openSettings}
-                className="px-2 py-1 rounded-lg bg-[#1e212c] border border-[#343a4c] text-[11px] font-bold text-[#f59e0b] flex items-center gap-1 hover:border-[#f59e0b] transition cursor-pointer"
+                className="px-2 py-1 rounded-lg bg-[#0e1017] border border-[#222533] text-[11px] font-semibold text-amber-300 flex items-center gap-1 hover:border-amber-400/50 transition cursor-pointer"
               >
                 <Coins className="w-3 h-3" />
                 <span>{currency === 'source' ? '¥ JPY' : currency}</span>
-                <SettingsIcon className="w-2.5 h-2.5 text-gray-400" />
+                <SettingsIcon className="w-2.5 h-2.5 text-slate-500" />
               </button>
               <button
                 type="button"
                 onClick={() => setShowFilters(false)}
-                className="p-1 text-gray-400 hover:text-white rounded-lg hover:bg-white/5 cursor-pointer"
+                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 cursor-pointer"
                 title="Close Filters"
               >
                 <X className="w-4 h-4" />
@@ -492,7 +492,7 @@ function CardsContent() {
                 setPage(1);
                 router.replace(`/cards?sort=${s}`);
               }}
-              className="bg-[#1e212c] border border-amber-500/40 text-amber-300 font-bold focus:border-[#3b82f6] rounded-xl px-3 py-2 text-xs focus:outline-none transition cursor-pointer"
+              className="bg-[#0e1017] border border-amber-500/30 text-amber-300/90 font-medium focus:border-amber-400/60 rounded-xl px-3 py-2 text-xs focus:outline-none transition cursor-pointer"
             >
               <option value="latest">📅 Release Date (Latest First)</option>
               <option value="date-asc">📅 Release Date (Oldest First)</option>
@@ -504,7 +504,7 @@ function CardsContent() {
             <select
               value={selectedCategory}
               onChange={(e) => { setSelectedCategory(e.target.value); setPage(1); }}
-              className="bg-[#1e212c] border border-[#32384a] focus:border-[#3b82f6] rounded-xl px-3 py-2 text-xs text-gray-200 focus:outline-none transition cursor-pointer"
+              className="bg-[#0e1017] border border-[#202434] focus:border-[#3b82f6]/60 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none transition cursor-pointer"
             >
               {YUYU_KINDS.map((k) => (
                 <option key={k.value} value={k.value}>{k.label}</option>
@@ -514,7 +514,7 @@ function CardsContent() {
             <select
               value={selectedRarity}
               onChange={(e) => { setSelectedRarity(e.target.value); setPage(1); }}
-              className="bg-[#1e212c] border border-[#32384a] focus:border-[#3b82f6] rounded-xl px-3 py-2 text-xs text-gray-200 focus:outline-none transition cursor-pointer"
+              className="bg-[#0e1017] border border-[#202434] focus:border-[#3b82f6]/60 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none transition cursor-pointer"
             >
               <option value="All">All Rarities</option>
               {YUYU_RARITIES.slice(1).map((r) => (
@@ -525,7 +525,7 @@ function CardsContent() {
             <select
               value={selectedSet}
               onChange={(e) => { setSelectedSet(e.target.value); setPage(1); }}
-              className="bg-[#1e212c] border border-[#32384a] focus:border-[#3b82f6] rounded-xl px-3 py-2 text-xs text-gray-200 focus:outline-none transition cursor-pointer"
+              className="bg-[#0e1017] border border-[#202434] focus:border-[#3b82f6]/60 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none transition cursor-pointer"
             >
               <option value="All">All Sets ({availableSets.length} Sets)</option>
               {availableSets.map((s) => (
@@ -538,7 +538,7 @@ function CardsContent() {
             <select
               value={selectedArtist}
               onChange={(e) => { setSelectedArtist(e.target.value); setPage(1); }}
-              className="bg-[#1e212c] border border-[#32384a] focus:border-[#3b82f6] rounded-xl px-3 py-2 text-xs text-gray-200 focus:outline-none transition cursor-pointer"
+              className="bg-[#0e1017] border border-[#202434] focus:border-[#3b82f6]/60 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none transition cursor-pointer"
             >
               <option value="All">All Illustrators</option>
               {Object.keys(ARTIST_PROFILES).map((artistName) => (
@@ -550,8 +550,8 @@ function CardsContent() {
           </div>
 
           {/* Color Pills */}
-          <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-[#32384a]">
-            <span className="text-[11px] text-gray-400 mr-1 font-medium">Color:</span>
+          <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-[#1f2330]">
+            <span className="text-[11px] text-slate-400 mr-1 font-medium">Color:</span>
             {COLORS.map((col) => {
               const active = selectedColor === col;
               return (
@@ -559,10 +559,10 @@ function CardsContent() {
                   key={col}
                   type="button"
                   onClick={() => { setSelectedColor(col); setPage(1); }}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition cursor-pointer ${
                     active
-                      ? 'bg-[#e76d78] text-white shadow-sm'
-                      : 'bg-[#1e212c] text-gray-300 hover:text-white border border-[#32384a]'
+                      ? 'bg-[#222738] text-white border border-[#343b52] shadow-sm'
+                      : 'bg-[#0e1017] text-slate-400 hover:text-slate-200 border border-[#202434]'
                   }`}
                 >
                   {col}
@@ -659,7 +659,7 @@ function CardsContent() {
                 {Array.from({ length: 12 }).map((_, i) => (
                   <div
                     key={i}
-                    className="aspect-[2.5/3.5] rounded-xl sm:rounded-2xl bg-[#222533] animate-pulse border border-[#2d3140]/40"
+                    className="aspect-[2.5/3.5] rounded-xl sm:rounded-2xl bg-[#141620] animate-pulse border border-[#202432]"
                   />
                 ))}
               </div>
@@ -668,14 +668,14 @@ function CardsContent() {
 
           if (cards.length === 0) {
             return (
-              <div className="text-center py-20 bg-[#222533]/60 rounded-3xl border border-[#2d3140] my-4">
-                <Layers className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+              <div className="text-center py-20 bg-[#141620] rounded-3xl border border-[#222533] my-4">
+                <Layers className="w-12 h-12 text-slate-500 mx-auto mb-3" />
                 <h3 className="text-sm font-bold text-white">No cards found</h3>
-                <p className="text-xs text-gray-400 mt-1">Try resetting the filters or searching a different card.</p>
+                <p className="text-xs text-slate-400 mt-1">Try resetting the filters or searching a different card.</p>
                 <button
                   type="button"
                   onClick={resetFilters}
-                  className="mt-4 px-4 py-2 rounded-xl bg-[#e76d78] text-white text-xs font-bold hover:bg-[#d45b66] transition cursor-pointer shadow"
+                  className="mt-4 px-4 py-2 rounded-xl bg-[#e05d68] text-white text-xs font-semibold hover:bg-[#d04e59] transition cursor-pointer shadow-sm"
                 >
                   Reset Filters
                 </button>
@@ -692,7 +692,7 @@ function CardsContent() {
                   <div
                     key={card.id}
                     onClick={() => setActiveCard(card)}
-                    className="group relative aspect-[2.5/3.5] rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer shadow-md hover:shadow-xl transition-all duration-200 active:scale-[0.97] bg-[#1a1c25] border border-[#343a4c]/50 hover:border-[#3b82f6]"
+                    className="group relative aspect-[2.5/3.5] rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98] bg-[#12141c] border border-[#1f2330] hover:border-[#343b50]"
                   >
                     {/* Pure Edge-to-Edge Card Artwork */}
                     <img
@@ -705,12 +705,12 @@ function CardsContent() {
                     />
 
                     {/* Top-Left Release Set Badge */}
-                    <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 px-1.5 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[8px] sm:text-[9px] font-black text-amber-300 border border-white/10 shadow pointer-events-none">
+                    <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 px-1.5 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[8px] sm:text-[9px] font-bold text-amber-300 border border-white/10 shadow pointer-events-none">
                       {card.displaySet || card.display_set || card.pack?.code || card.id.split('-')[0]}
                     </div>
 
                     {/* Subtle Floating Price Badge on Bottom-Left */}
-                    <div className="absolute bottom-1.5 left-1.5 sm:bottom-2 sm:left-2 px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-md text-[9px] sm:text-[10px] font-bold text-amber-300 border border-white/10 shadow-sm pointer-events-none">
+                    <div className="absolute bottom-1.5 left-1.5 sm:bottom-2 sm:left-2 px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-md text-[9px] sm:text-[10px] font-semibold text-amber-300 border border-white/10 shadow-sm pointer-events-none">
                       {card.isVintage ? (
                         card.ebayPrice && card.ebayPrice > 0 ? (
                           formatUsdPrice(card.ebayPrice).full
@@ -751,18 +751,18 @@ function CardsContent() {
             <button
               disabled={page <= 1}
               onClick={() => { setPage((p) => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-              className="p-2 rounded-xl bg-[#242836] border border-[#343a4c] text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#2e3344] transition cursor-pointer"
+              className="p-2 rounded-xl bg-[#141620] border border-[#222533] text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1a1e2b] transition cursor-pointer"
               title="Previous Page"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="text-xs text-gray-400 font-medium">
+            <span className="text-xs text-slate-400 font-medium">
               Page <strong className="text-white">{page}</strong> of {totalPages}
             </span>
             <button
               disabled={page >= totalPages}
               onClick={() => { setPage((p) => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-              className="p-2 rounded-xl bg-[#242836] border border-[#343a4c] text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#2e3344] transition cursor-pointer"
+              className="p-2 rounded-xl bg-[#141620] border border-[#222533] text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1a1e2b] transition cursor-pointer"
               title="Next Page"
             >
               <ChevronRight className="w-4 h-4" />
