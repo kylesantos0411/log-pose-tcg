@@ -57,6 +57,8 @@ import {
 
 export default function AdminPage() {
   const { user } = useSettings();
+  const isChiefAdmin = checkIsChiefAdmin(user);
+  const isAdmin = checkIsAdmin(user);
 
   // Active Admin Tab
   const [activeTab, setActiveTab] = useState<'system' | 'features' | 'users' | 'sales' | 'overview'>('system');
@@ -161,9 +163,16 @@ export default function AdminPage() {
     await handleSaveFeatureLocks(unlocked);
   };
 
-  // Load users and reported sales when switching tabs
+  // Load users and reported sales when switching tabs or on initial admin load
   useEffect(() => {
-    if (user?.role === 'admin') {
+    if (isAdmin) {
+      loadUsers();
+      loadReportedSales();
+    }
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (isAdmin) {
       if (activeTab === 'users' || activeTab === 'overview') {
         loadUsers();
       }
@@ -171,7 +180,7 @@ export default function AdminPage() {
         loadReportedSales();
       }
     }
-  }, [activeTab, user?.role]);
+  }, [activeTab, isAdmin]);
 
   async function loadUsers() {
     setLoadingUsers(true);
@@ -296,10 +305,6 @@ export default function AdminPage() {
       alert(`Failed to dismiss flags: ${res.error}`);
     }
   }
-
-  // Check if current user is admin (Strictly locked to your verified account)
-  const isChiefAdmin = checkIsChiefAdmin(user);
-  const isAdmin = checkIsAdmin(user);
 
   if (!isAdmin) {
     return (
