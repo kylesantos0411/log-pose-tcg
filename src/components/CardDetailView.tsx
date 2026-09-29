@@ -33,13 +33,22 @@ import {
   AlertTriangle,
   ShieldAlert,
   ShoppingBag,
-  CheckCircle2
+  CheckCircle2,
+  Lock
 } from 'lucide-react';
 import { getSafeCardImageUrl, getEditionCardImageUrl, JAPANESE_NAME_MAP, handleCardImageError } from '@/lib/card-image';
 import { getCardArtist, ArtistProfile } from '@/lib/artist-data';
 import { useSettings, CURRENCIES } from '@/context/SettingsContext';
 import { isCardFavorite, toggleCardFavorite } from '@/lib/favorites';
-import { fetchCommunitySales, reportSuspiciousSale, type CloudSaleRecord } from '@/lib/supabase-sync';
+import { 
+  fetchCommunitySales, 
+  reportSuspiciousSale, 
+  type CloudSaleRecord, 
+  fetchSystemSettings, 
+  checkIsAdmin, 
+  DEFAULT_SYSTEM_SETTINGS, 
+  type SystemSettingsState 
+} from '@/lib/supabase-sync';
 import { generateEbaySoldSearchUrl, getVintageRecentSales, calculateThreeSaleAverage } from '@/lib/ebay-pricing';
 
 export interface CardDetailData {
@@ -150,7 +159,8 @@ export function CardDetailView({
     openSettings, 
     formatCard,
     enabledPriceSources,
-    togglePriceSource
+    togglePriceSource,
+    user
   } = useSettings();
 
   // Active language and variants state
@@ -217,6 +227,19 @@ export function CardDetailView({
   const [showComparison, setShowComparison] = useState(false);
   const [imgErrorEn, setImgErrorEn] = useState(false);
   const [imgErrorJp, setImgErrorJp] = useState(false);
+
+  const [systemSettings, setSystemSettings] = useState<SystemSettingsState>(DEFAULT_SYSTEM_SETTINGS);
+  const isAdmin = checkIsAdmin(user);
+
+  useEffect(() => {
+    fetchSystemSettings().then(setSystemSettings);
+    const handleUpdate = () => fetchSystemSettings().then(setSystemSettings);
+    window.addEventListener('logpose_settings_updated', handleUpdate);
+    return () => window.removeEventListener('logpose_settings_updated', handleUpdate);
+  }, []);
+
+  const isVintageLocked = Boolean(systemSettings.features?.vintage?.locked);
+  const vintageLockMessage = systemSettings.features?.vintage?.message || 'Vintage Cards Archive is temporarily paused for pricing updates.';
 
   // Community Sales Data State (Strictly by exact card.id canonical variant)
   const [communitySales, setCommunitySales] = useState<CloudSaleRecord[]>([]);
@@ -1090,8 +1113,29 @@ export function CardDetailView({
           {activeTab === 'market' && (
             <div>
               {isVintage ? (
-                <div className="pt-3.5 pb-1 space-y-3">
-                  <div className="bg-gradient-to-b from-[#1c1f2e] via-[#161824] to-[#12141c] border border-amber-500/30 rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden">
+                isVintageLocked && !isAdmin ? (
+                  <div className="pt-3.5 pb-1">
+                    <div className="py-8 px-4 rounded-3xl bg-[#1e2230] border border-amber-500/30 text-center space-y-3 shadow-lg">
+                      <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-400 flex items-center justify-center mx-auto shadow-md">
+                        <Lock className="w-6 h-6 animate-pulse" />
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="text-sm sm:text-base font-black text-white">Vintage Card Market Pricing Paused</h4>
+                        <p className="text-xs text-gray-300 max-w-md mx-auto leading-relaxed">
+                          {vintageLockMessage}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="pt-3.5 pb-1 space-y-3">
+                    {isVintageLocked && isAdmin && (
+                      <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                        <span>Vintage Pricing is locked for regular visitors. Admin bypass enabled.</span>
+                      </div>
+                    )}
+                    <div className="bg-gradient-to-b from-[#1c1f2e] via-[#161824] to-[#12141c] border border-amber-500/30 rounded-2xl p-4 sm:p-5 shadow-xl relative overflow-hidden">
                     {/* Subtle warm ambient glow */}
                     <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -1222,7 +1266,8 @@ export function CardDetailView({
                     </div>
                   </div>
                 </div>
-              ) : (
+              )
+            ) : (
                 (() => {
                   const activeCount = [
                     enabledPriceSources.yuyutei,

@@ -25,7 +25,12 @@ import {
   ChevronRight,
   Flame,
   CheckCircle2,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Swords,
+  FolderHeart,
+  Boxes,
+  Star,
+  Sparkles
 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import {
@@ -39,6 +44,10 @@ import {
   type SystemSettingsState,
   type AdminUserRecord,
   type CloudSaleRecord,
+  type AppFeatureKey,
+  type FeaturesLockMap,
+  type FeatureLockStatus,
+  FEATURE_DEFINITIONS,
   DEFAULT_SYSTEM_SETTINGS,
   checkIsAdmin,
   checkIsChiefAdmin,
@@ -48,7 +57,7 @@ export default function AdminPage() {
   const { user } = useSettings();
 
   // Active Admin Tab
-  const [activeTab, setActiveTab] = useState<'system' | 'users' | 'sales' | 'overview'>('system');
+  const [activeTab, setActiveTab] = useState<'system' | 'features' | 'users' | 'sales' | 'overview'>('system');
 
   // System Settings state
   const [systemSettings, setSystemSettings] = useState<SystemSettingsState>(DEFAULT_SYSTEM_SETTINGS);
@@ -58,6 +67,10 @@ export default function AdminPage() {
   const [announcementEnabled, setAnnouncementEnabled] = useState(false);
   const [announcementMsg, setAnnouncementMsg] = useState('');
   const [announcementType, setAnnouncementType] = useState<'info' | 'warning' | 'alert'>('info');
+
+  // Feature Switchboard state
+  const [featureLocks, setFeatureLocks] = useState<FeaturesLockMap>({});
+  const [savingFeatures, setSavingFeatures] = useState(false);
 
   const [savingSettings, setSavingSettings] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -92,8 +105,58 @@ export default function AdminPage() {
       setAnnouncementEnabled(s.announcement.enabled);
       setAnnouncementMsg(s.announcement.message || '');
       setAnnouncementType(s.announcement.type || 'info');
+      setFeatureLocks(s.features || {});
     });
   }, []);
+
+  const toggleFeatureLock = (key: AppFeatureKey) => {
+    setFeatureLocks((prev) => {
+      const current = prev[key] || { locked: false };
+      const def = FEATURE_DEFINITIONS.find((f) => f.key === key);
+      return {
+        ...prev,
+        [key]: {
+          locked: !current.locked,
+          message: current.message || def?.defaultMessage || '',
+          lockedAt: !current.locked ? new Date().toISOString() : undefined,
+        },
+      };
+    });
+  };
+
+  const updateFeatureMessage = (key: AppFeatureKey, message: string) => {
+    setFeatureLocks((prev) => ({
+      ...prev,
+      [key]: {
+        ...(prev[key] || { locked: true }),
+        message,
+      },
+    }));
+  };
+
+  const handleSaveFeatureLocks = async (updatedLocks?: FeaturesLockMap) => {
+    const toSave = updatedLocks || featureLocks;
+    setSavingFeatures(true);
+    try {
+      const res = await updateSystemSetting('features', toSave, user?.tag);
+      if (res.success) {
+        showToast('Feature switchboard saved & updated across all clients!');
+      } else {
+        showToast(`Failed to update feature locks: ${res.error}`);
+      }
+    } finally {
+      setSavingFeatures(false);
+    }
+  };
+
+  const handleUnlockAllFeatures = async () => {
+    const unlocked: FeaturesLockMap = {};
+    FEATURE_DEFINITIONS.forEach((f) => {
+      unlocked[f.key] = { locked: false, message: '' };
+    });
+    setFeatureLocks(unlocked);
+    await handleSaveFeatureLocks(unlocked);
+  };
 
   // Load users and reported sales when switching tabs
   useEffect(() => {
@@ -317,7 +380,12 @@ export default function AdminPage() {
         {/* Tab Navigation */}
         <div className="flex gap-2 pt-6 overflow-x-auto no-scrollbar border-t border-white/5 mt-6">
           {[
-            { id: 'system', label: '🛑 System Controls & Maintenance', icon: SlidersHorizontal },
+            { id: 'system', label: '🛑 System & Maintenance', icon: Power },
+            { 
+              id: 'features', 
+              label: `🎛️ Feature Switchboard (${Object.values(featureLocks).filter((f) => f?.locked).length > 0 ? `${Object.values(featureLocks).filter((f) => f?.locked).length} Paused` : 'All Live'})`, 
+              icon: SlidersHorizontal 
+            },
             { id: 'users', label: `👥 User Moderation (${usersList.length})`, icon: Users },
             { id: 'sales', label: `🚩 Reported Sales (${reportedSales.length})`, icon: AlertTriangle },
             { id: 'overview', label: '📊 System Telemetry', icon: Layers },
@@ -538,11 +606,242 @@ export default function AdminPage() {
               {savingSettings ? 'Saving...' : 'Save & Broadcast Banner'}
             </button>
           </div>
+
+          {/* Quick jump to individual feature switchboard */}
+          <div className="md:col-span-2 p-5 rounded-3xl bg-gradient-to-r from-blue-900/20 via-[#1e2230] to-purple-900/20 border border-blue-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-blue-500/20 border border-blue-500/40 text-blue-400 flex items-center justify-center flex-shrink-0">
+                <SlidersHorizontal className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-white">Looking to pause an individual feature instead?</h3>
+                <p className="text-xs text-gray-400">Lock specific tabs (e.g. Decks, Collection, Sets, Vintage, or Community Sales) without locking the whole site.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveTab('features')}
+              className="py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 whitespace-nowrap transition cursor-pointer"
+            >
+              <span>Open Feature Switchboard</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
 
       {/* ────────────────────────────────────────────────────────────── */}
-      {/* TAB 2: USER MODERATION & BANS                                  */}
+      {/* TAB: INDIVIDUAL FEATURE SWITCHBOARD (MAINTENANCE LOCKS)        */}
+      {/* ────────────────────────────────────────────────────────────── */}
+      {activeTab === 'features' && (
+        <div className="space-y-6">
+          {/* Header Banner */}
+          <div className="rounded-3xl bg-[#1e2230] border border-[#343a4c] p-6 shadow-lg">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-300 text-xs font-black uppercase tracking-wider">
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Granular Maintenance Controls</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black text-white">
+                  Individual Feature Switchboard
+                </h2>
+                <p className="text-xs text-gray-400 max-w-2xl leading-relaxed">
+                  Lock or pause specific features when running targeted updates, database migrations, or content changes. Visitors attempting to use a locked feature will see your custom notice, while Chief Admins and Admins maintain seamless bypass access.
+                </p>
+              </div>
+
+              {/* Status pills & Action buttons */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#14161f] border border-[#2d3242] text-xs font-bold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span className="text-gray-300">
+                    {FEATURE_DEFINITIONS.length - Object.values(featureLocks).filter((f) => f?.locked).length} Live
+                  </span>
+                </div>
+                {Object.values(featureLocks).filter((f) => f?.locked).length > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-xs font-bold text-amber-300">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                    <span>
+                      {Object.values(featureLocks).filter((f) => f?.locked).length} Paused
+                    </span>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleUnlockAllFeatures}
+                  disabled={savingFeatures}
+                  className="py-2 px-3 rounded-xl bg-[#282d3d] hover:bg-[#343a4e] text-xs font-bold text-gray-300 hover:text-white flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                  title="Unlock all features at once"
+                >
+                  <Unlock className="w-3.5 h-3.5" />
+                  <span>Unlock All</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleSaveFeatureLocks()}
+                  disabled={savingFeatures}
+                  className="py-2 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider shadow transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{savingFeatures ? 'Saving...' : 'Save Switchboard'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Features Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {FEATURE_DEFINITIONS.map((def) => {
+              const lockInfo = featureLocks[def.key] || { locked: false };
+              const isLocked = Boolean(lockInfo.locked);
+              const iconMap: Record<string, any> = {
+                Swords,
+                FolderHeart,
+                Boxes,
+                Layers,
+                Star,
+                Users,
+                Flame,
+                ShoppingBag,
+              };
+              const Icon = iconMap[def.iconName] || SlidersHorizontal;
+
+              return (
+                <div
+                  key={def.key}
+                  className={`rounded-3xl border transition-all duration-200 p-5 sm:p-6 space-y-4 shadow-lg ${
+                    isLocked
+                      ? 'bg-[#1f1e24] border-amber-500/40 shadow-amber-500/5'
+                      : 'bg-[#1e2230] border-[#343a4c] hover:border-[#424a61]'
+                  }`}
+                >
+                  {/* Top Bar: Icon, Name, Scope, Toggle */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 border transition ${
+                        isLocked
+                          ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
+                          : 'bg-blue-500/15 border-blue-500/30 text-blue-400'
+                      }`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-base font-black text-white truncate">
+                            {def.label}
+                          </h3>
+                          {def.route ? (
+                            <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#14161f] text-gray-400 border border-[#2d3242]">
+                              {def.route}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                              In-App Action
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">
+                          {def.description}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Toggle Button */}
+                    <button
+                      type="button"
+                      onClick={() => toggleFeatureLock(def.key)}
+                      className={`py-1.5 px-3 rounded-xl font-black text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer border flex-shrink-0 ${
+                        isLocked
+                          ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/20'
+                          : 'bg-[#282d3d] text-gray-300 hover:text-white border-[#343a4c]'
+                      }`}
+                      title={isLocked ? 'Click to Unlock' : 'Click to Lock/Pause'}
+                    >
+                      {isLocked ? (
+                        <>
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>PAUSED</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>LIVE</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Status Indicator Bar */}
+                  <div className={`p-3 rounded-2xl border text-xs flex items-center justify-between gap-2 ${
+                    isLocked
+                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-300 font-bold'
+                      : 'bg-[#14161f] border-[#2a2f40] text-gray-400 font-medium'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full ${isLocked ? 'bg-amber-400 animate-ping' : 'bg-emerald-400'}`} />
+                      <span>{isLocked ? 'Feature is Locked for Regular Users' : 'Feature is Live & Operational'}</span>
+                    </div>
+                    {isLocked && (
+                      <span className="text-[10px] text-amber-400 uppercase tracking-wider font-black">
+                        Admin Bypass Enabled
+                      </span>
+                    )}
+                  </div>
+
+                  {/* If Locked: Custom Message Config */}
+                  {isLocked && (
+                    <div className="space-y-2 pt-1 animate-in fade-in duration-150">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-gray-300">
+                          Custom Notice for Visitors
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => updateFeatureMessage(def.key, def.defaultMessage)}
+                          className="text-[10px] text-gray-400 hover:text-gray-200 underline cursor-pointer"
+                        >
+                          Reset to Default
+                        </button>
+                      </div>
+                      <textarea
+                        rows={2}
+                        value={lockInfo.message ?? def.defaultMessage}
+                        onChange={(e) => updateFeatureMessage(def.key, e.target.value)}
+                        placeholder={def.defaultMessage}
+                        className="w-full px-3 py-2 rounded-xl bg-[#14161f] border border-[#2d3242] text-white text-xs focus:outline-none focus:border-amber-500 placeholder-gray-500 resize-none font-medium"
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Bottom Save Bar */}
+          <div className="p-5 rounded-3xl bg-[#1e2230] border border-[#343a4c] flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg">
+            <div className="flex items-center gap-3 text-xs text-gray-400">
+              <Sparkles className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <span>
+                Changes take effect across all user sessions and devices once saved.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleSaveFeatureLocks()}
+              disabled={savingFeatures}
+              className="w-full sm:w-auto py-2.5 px-6 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:brightness-110 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider shadow transition cursor-pointer disabled:opacity-50"
+            >
+              {savingFeatures ? 'Saving Switchboard...' : 'Save All Feature Locks'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ────────────────────────────────────────────────────────────── */}
+      {/* TAB 3: USER MODERATION & BANS                                  */}
       {/* ────────────────────────────────────────────────────────────── */}
       {activeTab === 'users' && (
         <div className="rounded-3xl bg-[#1e2230] border border-[#343a4c] p-6 space-y-5 shadow-lg">

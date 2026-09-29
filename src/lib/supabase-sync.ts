@@ -1559,9 +1559,102 @@ export interface AnnouncementSetting {
   type?: 'info' | 'warning' | 'alert';
 }
 
+export type AppFeatureKey = 
+  | 'decks' 
+  | 'collection' 
+  | 'sets' 
+  | 'cards' 
+  | 'favorites' 
+  | 'friends' 
+  | 'vintage' 
+  | 'communitySales';
+
+export interface FeatureLockStatus {
+  locked: boolean;
+  message?: string;
+  lockedAt?: string;
+}
+
+export type FeaturesLockMap = Partial<Record<AppFeatureKey, FeatureLockStatus>>;
+
+export interface FeatureDefinition {
+  key: AppFeatureKey;
+  label: string;
+  route?: string;
+  description: string;
+  iconName: string;
+  defaultMessage: string;
+}
+
+export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
+  {
+    key: 'decks',
+    label: 'Recommended Decks',
+    route: '/decks',
+    description: 'Deck lists, meta archetypes, and deck details',
+    iconName: 'Swords',
+    defaultMessage: 'Recommended Decks is temporarily paused for decklist balancing and updates.',
+  },
+  {
+    key: 'collection',
+    label: 'My Collection & Binder',
+    route: '/collection',
+    description: 'User card collection, cloud binder sync, and sales logging',
+    iconName: 'FolderHeart',
+    defaultMessage: 'My Collection binder is temporarily locked for scheduled database maintenance.',
+  },
+  {
+    key: 'sets',
+    label: 'Expansion Sets Explorer',
+    route: '/sets',
+    description: 'Official booster packs, starter decks, and promo catalogs',
+    iconName: 'Boxes',
+    defaultMessage: 'Expansion Sets browser is temporarily paused for catalog updates.',
+  },
+  {
+    key: 'cards',
+    label: 'Card Database Search',
+    route: '/cards',
+    description: 'Global card database search and detailed card pages',
+    iconName: 'Layers',
+    defaultMessage: 'Card Database search is temporarily paused for data synchronization.',
+  },
+  {
+    key: 'favorites',
+    label: 'Favorites & Wishlist',
+    route: '/favorites',
+    description: 'Personal saved cards and wishlist tracking',
+    iconName: 'Star',
+    defaultMessage: 'Favorites & Wishlist is temporarily paused for maintenance.',
+  },
+  {
+    key: 'friends',
+    label: 'Friends & Community Trades',
+    route: '/friends',
+    description: 'Community profiles, trade discovery, and friend requests',
+    iconName: 'Users',
+    defaultMessage: 'Friends & Community Trading is temporarily paused for maintenance.',
+  },
+  {
+    key: 'vintage',
+    label: 'Vintage Cards Archive',
+    description: 'Vintage Carddass (1999-2005) sets catalog & eBay pricing',
+    iconName: 'Flame',
+    defaultMessage: 'Vintage Cards Archive is temporarily paused for market pricing calibration.',
+  },
+  {
+    key: 'communitySales',
+    label: 'Community Sales Submissions',
+    description: 'Marking cards as sold and submitting public transaction prices',
+    iconName: 'ShoppingBag',
+    defaultMessage: 'Public community sales submissions are temporarily locked for moderation.',
+  },
+];
+
 export interface SystemSettingsState {
   maintenance: MaintenanceSetting;
   announcement: AnnouncementSetting;
+  features?: FeaturesLockMap;
 }
 
 export const DEFAULT_SYSTEM_SETTINGS: SystemSettingsState = {
@@ -1575,15 +1668,36 @@ export const DEFAULT_SYSTEM_SETTINGS: SystemSettingsState = {
     message: '',
     type: 'info',
   },
+  features: {},
 };
 
+const SYSTEM_SETTINGS_CACHE_KEY = 'logpose_system_settings_cache';
+
 /**
- * Fetch global system settings (maintenance mode & announcement)
+ * Fetch global system settings (maintenance mode, announcement & individual feature locks)
  */
 export async function fetchSystemSettings(): Promise<SystemSettingsState> {
+  // Check local cache first for instant fallback
+  let cachedSettings: SystemSettingsState = { ...DEFAULT_SYSTEM_SETTINGS };
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(SYSTEM_SETTINGS_CACHE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        cachedSettings = {
+          maintenance: { ...DEFAULT_SYSTEM_SETTINGS.maintenance, ...(parsed.maintenance || {}) },
+          announcement: { ...DEFAULT_SYSTEM_SETTINGS.announcement, ...(parsed.announcement || {}) },
+          features: { ...(parsed.features || {}) },
+        };
+      }
+    } catch {
+      // ignore JSON errors
+    }
+  }
+
   const client = getSupabaseBrowserClient();
   if (!client || !isSupabaseConfigured()) {
-    return DEFAULT_SYSTEM_SETTINGS;
+    return cachedSettings;
   }
 
   try {
@@ -1592,12 +1706,13 @@ export async function fetchSystemSettings(): Promise<SystemSettingsState> {
       .select('key, value');
 
     if (error || !data || data.length === 0) {
-      return DEFAULT_SYSTEM_SETTINGS;
+      return cachedSettings;
     }
 
     const res: SystemSettingsState = {
       maintenance: { ...DEFAULT_SYSTEM_SETTINGS.maintenance },
       announcement: { ...DEFAULT_SYSTEM_SETTINGS.announcement },
+      features: {},
     };
 
     data.forEach((row) => {
@@ -1605,13 +1720,23 @@ export async function fetchSystemSettings(): Promise<SystemSettingsState> {
         res.maintenance = { ...DEFAULT_SYSTEM_SETTINGS.maintenance, ...row.value };
       } else if (row.key === 'announcement' && row.value) {
         res.announcement = { ...DEFAULT_SYSTEM_SETTINGS.announcement, ...row.value };
+      } else if (row.key === 'features' && row.value) {
+        res.features = { ...row.value };
       }
     });
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(SYSTEM_SETTINGS_CACHE_KEY, JSON.stringify(res));
+      } catch {
+        // ignore
+      }
+    }
 
     return res;
   } catch (err) {
     console.warn('fetchSystemSettings error:', err);
-    return DEFAULT_SYSTEM_SETTINGS;
+    return cachedSettings;
   }
 }
 
@@ -1619,13 +1744,32 @@ export async function fetchSystemSettings(): Promise<SystemSettingsState> {
  * Update system settings (Admin only)
  */
 export async function updateSystemSetting(
-  key: 'maintenance' | 'announcement',
+  key: 'maintenance' | 'announcement' | 'features',
   value: Record<string, any>,
   adminTag?: string
 ): Promise<{ success: boolean; error?: string }> {
+  // Update local cache immediately
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(SYSTEM_SETTINGS_CACHE_KEY);
+      const parsed: SystemSettingsState = stored ? JSON.parse(stored) : { ...DEFAULT_SYSTEM_SETTINGS };
+      if (key === 'maintenance') {
+        parsed.maintenance = { ...parsed.maintenance, ...(value as any) };
+      } else if (key === 'announcement') {
+        parsed.announcement = { ...parsed.announcement, ...(value as any) };
+      } else if (key === 'features') {
+        parsed.features = { ...(value as any) };
+      }
+      localStorage.setItem(SYSTEM_SETTINGS_CACHE_KEY, JSON.stringify(parsed));
+      window.dispatchEvent(new Event('logpose_settings_updated'));
+    } catch {
+      // ignore
+    }
+  }
+
   const client = getSupabaseBrowserClient();
   if (!client || !isSupabaseConfigured()) {
-    return { success: false, error: 'Database connection unavailable' };
+    return { success: true };
   }
 
   try {
@@ -1639,7 +1783,12 @@ export async function updateSystemSetting(
       });
 
     if (error) {
+      console.warn('updateSystemSetting supabase error, fallback to local:', error.message);
       return { success: false, error: error.message };
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('logpose_settings_updated'));
     }
 
     return { success: true };

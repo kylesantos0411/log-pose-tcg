@@ -42,7 +42,11 @@ import {
   fetchPendingTradeConfirmations,
   confirmMutualTrade,
   type FriendshipProfile,
-  type CloudSaleRecord
+  type CloudSaleRecord,
+  fetchSystemSettings,
+  checkIsAdmin,
+  DEFAULT_SYSTEM_SETTINGS,
+  type SystemSettingsState
 } from '@/lib/supabase-sync';
 import { 
   getLocalBinder, 
@@ -62,6 +66,18 @@ interface UserCardRecord extends LocalUserCard {}
 
 export default function CollectionPage() {
   const { currency, formatPrice, formatYuyuPrice, openSettings, formatCard, user, logout } = useSettings();
+  const isAdmin = checkIsAdmin(user);
+  const [systemSettings, setSystemSettings] = useState<SystemSettingsState>(DEFAULT_SYSTEM_SETTINGS);
+
+  useEffect(() => {
+    fetchSystemSettings().then(setSystemSettings);
+    const handleUpdate = () => fetchSystemSettings().then(setSystemSettings);
+    window.addEventListener('logpose_settings_updated', handleUpdate);
+    return () => window.removeEventListener('logpose_settings_updated', handleUpdate);
+  }, []);
+
+  const isCommunitySalesLocked = Boolean(systemSettings.features?.communitySales?.locked);
+  const communitySalesLockMessage = systemSettings.features?.communitySales?.message || 'Public community sales submissions are temporarily locked for moderation.';
   
   const [items, setItems] = useState<UserCardRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1204,21 +1220,40 @@ export default function CollectionPage() {
 
                 {/* Community Market Data Sharing Toggle */}
                 <div className="p-3 rounded-2xl bg-[#1d2232] border border-[#343a4c] space-y-1.5">
-                  <label className="flex items-center justify-between cursor-pointer">
-                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <Globe className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Share with Community Market Data</span>
-                    </span>
-                    <input
-                      type="checkbox"
-                      checked={isPublicSale}
-                      onChange={(e) => setIsPublicSale(e.target.checked)}
-                      className="w-4 h-4 accent-emerald-500 cursor-pointer rounded"
-                    />
-                  </label>
-                  <p className="text-[11px] text-gray-400 leading-snug">
-                    Helps other collectors see real recent transaction prices on the card's page. Contributes to verified market pricing while keeping your identity private.
-                  </p>
+                  {isCommunitySalesLocked && !isAdmin ? (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300">
+                        <Lock className="w-3.5 h-3.5 text-amber-400" />
+                        <span>Community Submissions Paused</span>
+                      </div>
+                      <p className="text-[11px] text-gray-400 leading-snug">
+                        {communitySalesLockMessage} (You can still record this sale for your private collection tracking).
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {isCommunitySalesLocked && isAdmin && (
+                        <div className="text-[10px] text-amber-300 font-bold mb-1 flex items-center gap-1">
+                          <span>⚠️ Submissions are paused for non-admins. Admin bypass active.</span>
+                        </div>
+                      )}
+                      <label className="flex items-center justify-between cursor-pointer">
+                        <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>Share with Community Market Data</span>
+                        </span>
+                        <input
+                          type="checkbox"
+                          checked={isPublicSale}
+                          onChange={(e) => setIsPublicSale(e.target.checked)}
+                          className="w-4 h-4 accent-emerald-500 cursor-pointer rounded"
+                        />
+                      </label>
+                      <p className="text-[11px] text-gray-400 leading-snug">
+                        Helps other collectors see real recent transaction prices on the card's page. Contributes to verified market pricing while keeping your identity private.
+                      </p>
+                    </>
+                  )}
                 </div>
 
                 {/* Buttons */}

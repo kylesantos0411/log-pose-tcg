@@ -13,9 +13,12 @@ import {
   ListFilter,
   ArrowRight,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Lock
 } from 'lucide-react';
 import { getSafeCardImageUrl, handleCardImageError } from '@/lib/card-image';
+import { useSettings } from '@/context/SettingsContext';
+import { fetchSystemSettings, checkIsAdmin, DEFAULT_SYSTEM_SETTINGS, type SystemSettingsState } from '@/lib/supabase-sync';
 
 interface SampleCard {
   id: string;
@@ -167,6 +170,9 @@ const CATEGORIES: AccordionCategory[] = [
 ];
 
 export default function SetsPage() {
+  const { user } = useSettings();
+  const isAdmin = checkIsAdmin(user);
+  const [systemSettings, setSystemSettings] = useState<SystemSettingsState>(DEFAULT_SYSTEM_SETTINGS);
   const [dbSets, setDbSets] = useState<SetItem[]>([]);
   const [, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -176,6 +182,16 @@ export default function SetsPage() {
 
   // Accordion state: ALWAYS collapsed by default when user opens the screen
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    fetchSystemSettings().then(setSystemSettings);
+    const handleUpdate = () => fetchSystemSettings().then(setSystemSettings);
+    window.addEventListener('logpose_settings_updated', handleUpdate);
+    return () => window.removeEventListener('logpose_settings_updated', handleUpdate);
+  }, []);
+
+  const isVintageLocked = Boolean(systemSettings.features?.vintage?.locked);
+  const vintageLockMessage = systemSettings.features?.vintage?.message || 'Vintage Cards Archive is temporarily paused for pricing updates.';
 
   useEffect(() => {
     loadSets();
@@ -383,6 +399,14 @@ export default function SetsPage() {
                         {category.name}
                       </span>
 
+                      {/* Paused Badge if Vintage is Locked */}
+                      {category.id === 'vintage' && isVintageLocked && (
+                        <span className="text-[10px] font-black text-amber-300 bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Lock className="w-3 h-3 text-amber-400" />
+                          <span>PAUSED</span>
+                        </span>
+                      )}
+
                       {/* Item Count Badge */}
                       <span className="text-[11px] font-bold text-gray-400 bg-[#1e212c] border border-[#343a4c] px-2 py-0.5 rounded-full ml-1">
                         {category.items.length}
@@ -402,7 +426,27 @@ export default function SetsPage() {
                   {/* Category Content: Chamfered Cards matching App Theme */}
                   {isExpanded && (
                     <div className="px-3 pb-4 pt-3 sm:px-6 sm:pb-5 bg-[#181a22]/70 border-t border-[#2e3346]">
-                      <div className={gridClass}>
+                      {category.id === 'vintage' && isVintageLocked && !isAdmin ? (
+                        <div className="py-8 px-4 rounded-2xl bg-[#1e2230] border border-amber-500/30 text-center space-y-3">
+                          <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-400 flex items-center justify-center mx-auto shadow-md">
+                            <Lock className="w-6 h-6 animate-pulse" />
+                          </div>
+                          <div className="space-y-1">
+                            <h4 className="text-sm sm:text-base font-black text-white">Vintage Cards Archive is Temporarily Paused</h4>
+                            <p className="text-xs text-gray-300 max-w-md mx-auto leading-relaxed">
+                              {vintageLockMessage}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          {category.id === 'vintage' && isVintageLocked && isAdmin && (
+                            <div className="mb-3 p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                              <span>Vintage Archive is locked for non-admins. Admin bypass is active.</span>
+                            </div>
+                          )}
+                          <div className={gridClass}>
                         {category.items.map((item) => {
                           const cleanCode = (item.code || '').replace(/[^A-Z0-9]/g, '');
                           const matchedDb = dbSetMap.get(cleanCode) || dbSetMap.get(item.targetSet.toUpperCase().replace(/[^A-Z0-9]/g, ''));
@@ -470,6 +514,8 @@ export default function SetsPage() {
                           );
                         })}
                       </div>
+                      </>
+                    )}
                     </div>
                   )}
                 </div>

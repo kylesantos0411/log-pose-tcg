@@ -21,10 +21,12 @@ import { useSettings } from '@/context/SettingsContext';
 import { MaintenanceScreen } from '@/components/MaintenanceScreen';
 import { AccountBannedScreen } from '@/components/AccountBannedScreen';
 import { GlobalAnnouncementBanner } from '@/components/GlobalAnnouncementBanner';
+import { FeatureLockedScreen } from '@/components/FeatureLockedScreen';
 import { 
   fetchSystemSettings, 
   DEFAULT_SYSTEM_SETTINGS, 
   type SystemSettingsState,
+  type AppFeatureKey,
   checkIsAdmin
 } from '@/lib/supabase-sync';
 
@@ -73,6 +75,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (isPreview) {
     return <div className="min-h-screen bg-[#13151b]">{children}</div>;
   }
+
+  const ROUTE_FEATURE_MAP: Record<string, AppFeatureKey> = {
+    '/decks': 'decks',
+    '/collection': 'collection',
+    '/sets': 'sets',
+    '/cards': 'cards',
+    '/favorites': 'favorites',
+    '/friends': 'friends',
+  };
+
+  const matchingRoutePrefix = Object.keys(ROUTE_FEATURE_MAP).find(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+  const currentFeatureKey = matchingRoutePrefix ? ROUTE_FEATURE_MAP[matchingRoutePrefix] : undefined;
+  const currentFeatureLock = currentFeatureKey ? systemSettings.features?.[currentFeatureKey] : undefined;
+  const isCurrentFeatureLocked = Boolean(currentFeatureLock?.locked);
 
   const isActive = (path: string) => {
     if (path === '/') return pathname === '/';
@@ -124,31 +142,61 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Link href="/cards" className={navItemClass('/cards')}>
             <Layers className={`w-4 h-4 ${isActive('/cards') ? 'text-[#3b82f6]' : 'text-[#3b82f6]/80'}`} />
             <span>Card Database</span>
+            {systemSettings.features?.cards?.locked && (
+              <span className="ml-auto text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                PAUSED
+              </span>
+            )}
           </Link>
 
           <Link href="/sets" className={navItemClass('/sets')}>
             <Boxes className={`w-4 h-4 ${isActive('/sets') ? 'text-emerald-400' : 'text-emerald-400/80'}`} />
             <span>Expansion Sets</span>
+            {systemSettings.features?.sets?.locked && (
+              <span className="ml-auto text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                PAUSED
+              </span>
+            )}
           </Link>
 
           <Link href="/collection" className={navItemClass('/collection')}>
             <FolderHeart className={`w-4 h-4 ${isActive('/collection') ? 'text-[#f59e0b]' : 'text-[#f59e0b]/80'}`} />
             <span>My Collection</span>
+            {systemSettings.features?.collection?.locked && (
+              <span className="ml-auto text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                PAUSED
+              </span>
+            )}
           </Link>
 
           <Link href="/favorites" className={navItemClass('/favorites')}>
             <Star className={`w-4 h-4 ${isActive('/favorites') ? 'text-[#c084fc]' : 'text-[#c084fc]/80'}`} />
             <span>Favorites</span>
+            {systemSettings.features?.favorites?.locked && (
+              <span className="ml-auto text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                PAUSED
+              </span>
+            )}
           </Link>
 
           <Link href="/decks" className={navItemClass('/decks')}>
             <Swords className={`w-4 h-4 ${isActive('/decks') ? 'text-[#f4727d]' : 'text-[#f4727d]/80'}`} />
             <span>Recommended Decks</span>
+            {systemSettings.features?.decks?.locked && (
+              <span className="ml-auto text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                PAUSED
+              </span>
+            )}
           </Link>
 
           <Link href="/friends" className={navItemClass('/friends')}>
             <Users className={`w-4 h-4 ${isActive('/friends') ? 'text-purple-400' : 'text-purple-400/80'}`} />
             <span>Friends &amp; Trades</span>
+            {systemSettings.features?.friends?.locked && (
+              <span className="ml-auto text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                PAUSED
+              </span>
+            )}
           </Link>
 
           <Link href="/preview" className={navItemClass('/preview')}>
@@ -241,12 +289,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
+        {/* Admin Individual Feature Locked Notice (Admin Bypass Mode) */}
+        {!systemSettings.maintenance.enabled && isCurrentFeatureLocked && isAdmin && (
+          <div className="bg-amber-500/15 border-b border-amber-500/30 text-amber-300 px-4 py-2 text-xs font-bold flex items-center justify-between shadow-sm z-30">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+              <span>
+                ⚠️ FEATURE PAUSED: This section is currently locked for visitors ({currentFeatureLock?.message || 'Scheduled Maintenance'}). Admin Bypass is active.
+              </span>
+            </div>
+            <Link href="/admin" className="underline font-black text-amber-200 hover:text-white">
+              Admin Switchboard &rarr;
+            </Link>
+          </div>
+        )}
+
         {/* Global Announcement Banner */}
         <GlobalAnnouncementBanner announcement={systemSettings.announcement} />
 
         {/* Main Viewport Content */}
         <main className="flex-1 p-2.5 sm:p-6 md:p-8 max-w-7xl w-full mx-auto pb-8 min-w-0">
-          {children}
+          {!isAdmin && isCurrentFeatureLocked ? (
+            <FeatureLockedScreen
+              featureKey={currentFeatureKey!}
+              lockStatus={currentFeatureLock}
+              isAdmin={isAdmin}
+              onRefresh={loadSettings}
+            />
+          ) : (
+            children
+          )}
         </main>
 
         {/* Mobile Floating Admin Shortcut (Mobile phones only, when logged in as Admin) */}
