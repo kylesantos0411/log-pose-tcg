@@ -151,8 +151,15 @@ export async function GET(req: NextRequest) {
       const isPureFlagship = /^(flagship|flagships|flagship\s*battle)$/i.test(cleanQ || q.trim());
       const isPureTournament = /^(tournament|tournaments|tournament\s*pack|regional|regionals|treasure\s*cup|championship)$/i.test(cleanQ || q.trim());
       const isPureAnniversary = /^(anniversary|anniv|anniversary\s*set|25th)$/i.test(cleanQ || q.trim());
-      const isPureDon = /^(don|don!|don!!|don!!\s*cards?|don\s*cards?|ドン|ドン!!|ドン!!カード)$/i.test((cleanQ || q).trim());
-      const isCompoundDon = !isPureDon &&
+      
+      const isDonCategory = (cat: string | null) => {
+        if (!cat || cat.toLowerCase() === 'all') return false;
+        return /^(don|don!|don!!|don!!\s*cards?|don\s*cards?|ドン|ドン!!|ドン!!カード)$/i.test(cat.trim());
+      };
+      const isNonDonCategorySelected = category && category !== 'All' && !isDonCategory(category);
+
+      const isPureDon = !isNonDonCategorySelected && /^(don|don!|don!!|don!!\s*cards?|don\s*cards?|ドン|ドン!!|ドン!!カード)$/i.test((cleanQ || q).trim());
+      const isCompoundDon = !isNonDonCategorySelected && !isPureDon &&
         !/donquixote|don\s*marlon/i.test(cleanQ || q) &&
         !/don't/i.test(cleanQ || q) &&
         /(?:^|\b)(?:don(?:!!?|\s*cards?|!!\s*cards?)?|ドン(?:!!?|カード)?)(?:\b|$)/i.test(cleanQ || q);
@@ -442,6 +449,9 @@ export async function GET(req: NextRequest) {
         setOrs.push({ pack: { code: 'SPECIAL' } });
         setOrs.push({ displaySet: 'SPECIAL' });
         setOrs.push({ yuyuteiSet: 'SPECIAL' });
+      } else if (clean.toUpperCase() === 'DON') {
+        setOrs.push({ category: 'DON!!' });
+        setOrs.push({ id: { contains: 'DON' } });
       }
 
       andConditions.push({ OR: setOrs });

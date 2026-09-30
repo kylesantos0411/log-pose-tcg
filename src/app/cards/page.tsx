@@ -82,12 +82,12 @@ interface CardItem {
 
 const COLORS = ['All', 'Red', 'Green', 'Blue', 'Purple', 'Black', 'Yellow'];
 const YUYU_KINDS = [
-  { value: 'All', label: 'All Kinds' },
-  { value: 'character', label: 'character' },
-  { value: 'event', label: 'event' },
-  { value: 'stage', label: 'stage' },
+  { value: 'All', label: 'All Categories' },
+  { value: 'Character', label: 'Character' },
+  { value: 'Event', label: 'Event' },
+  { value: 'Stage', label: 'Stage' },
   { value: 'Don!! Card', label: 'Don!! Card' },
-  { value: 'leader', label: 'leader' },
+  { value: 'Leader', label: 'Leader' },
 ];
 const YUYU_RARITIES = [
   'All',
@@ -127,8 +127,13 @@ function CardsContent() {
   const initialQuery = searchParams.get('q') || '';
   const initialSet = searchParams.get('set') || 'All';
   const normalizeCategory = (cat: string) => {
-    if (!cat || cat === 'All') return 'All';
-    if (/^(don|don!|don!!|don!!\s*cards?|don\s*cards?|ドン|ドン!!|ドン!!カード)$/i.test(cat.trim())) {
+    if (!cat || cat.toLowerCase() === 'all') return 'All';
+    const c = cat.trim().toLowerCase();
+    if (c === 'character') return 'Character';
+    if (c === 'event') return 'Event';
+    if (c === 'stage') return 'Stage';
+    if (c === 'leader') return 'Leader';
+    if (/^(don|don!|don!!|don!!\s*cards?|don\s*cards?|ドン|ドン!!|ドン!!カード)$/i.test(c)) {
       return 'Don!! Card';
     }
     return cat;
@@ -326,7 +331,11 @@ function CardsContent() {
     setSelectedSet('All');
     setSelectedArtist('All');
     setSearch('');
+    setDebouncedSearch('');
     setPage(1);
+    if (searchParams.toString()) {
+      router.replace('/cards');
+    }
   };
 
   // Header Title Logic
@@ -444,7 +453,17 @@ function CardsContent() {
             {search && (
               <button
                 type="button"
-                onClick={() => { setSearch(''); setDebouncedSearch(''); setPage(1); }}
+                onClick={() => {
+                  setSearch('');
+                  setDebouncedSearch('');
+                  setPage(1);
+                  if (searchParams.get('q')) {
+                    const next = new URLSearchParams(searchParams.toString());
+                    next.delete('q');
+                    const qs = next.toString();
+                    router.replace(qs ? `/cards?${qs}` : '/cards', { scroll: false });
+                  }
+                }}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1 rounded-full hover:bg-white/10 cursor-pointer"
                 title="Clear Search"
               >
@@ -519,7 +538,11 @@ function CardsContent() {
                 const s = e.target.value;
                 setSortBy(s);
                 setPage(1);
-                router.replace(`/cards?sort=${s}`);
+                if (searchParams.toString()) {
+                  const next = new URLSearchParams(searchParams.toString());
+                  next.set('sort', s);
+                  router.replace(`/cards?${next.toString()}`, { scroll: false });
+                }
               }}
               className="bg-[#0e1017] border border-amber-500/30 text-amber-300/90 font-medium focus:border-amber-400/60 rounded-xl px-3 py-2 text-xs focus:outline-none transition cursor-pointer"
             >
@@ -617,37 +640,98 @@ function CardsContent() {
           {selectedArtist !== 'All' && (
             <span className="px-2 py-0.5 rounded-md bg-[#8b5cf6]/20 text-[#c084fc] border border-[#8b5cf6]/30 font-bold flex-shrink-0 flex items-center gap-1">
               🎨 {selectedArtist}
-              <button type="button" onClick={() => setSelectedArtist('All')}>&times;</button>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setSelectedArtist('All');
+                  setPage(1);
+                  if (searchParams.get('artist')) {
+                    const next = new URLSearchParams(searchParams.toString());
+                    next.delete('artist');
+                    const qs = next.toString();
+                    router.replace(qs ? `/cards?${qs}` : '/cards', { scroll: false });
+                  }
+                }}
+              >&times;</button>
             </span>
           )}
           {selectedSet !== 'All' && (
             <span className="px-2 py-0.5 rounded-md bg-[#e76d78]/20 text-[#e76d78] border border-[#e76d78]/30 font-bold flex-shrink-0 flex items-center gap-1">
               {selectedSet}
-              <button type="button" onClick={() => setSelectedSet('All')}>&times;</button>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setSelectedSet('All');
+                  setPage(1);
+                  if (searchParams.get('set')) {
+                    const next = new URLSearchParams(searchParams.toString());
+                    next.delete('set');
+                    const qs = next.toString();
+                    router.replace(qs ? `/cards?${qs}` : '/cards', { scroll: false });
+                  }
+                }}
+              >&times;</button>
             </span>
           )}
           {selectedCategory !== 'All' && (
             <span className="px-2 py-0.5 rounded-md bg-[#10b981]/20 text-[#34d399] border border-[#10b981]/30 font-bold flex-shrink-0 flex items-center gap-1">
               {selectedCategory}
-              <button type="button" onClick={() => setSelectedCategory('All')}>&times;</button>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setSelectedCategory('All');
+                  setPage(1);
+                  if (searchParams.get('category')) {
+                    const next = new URLSearchParams(searchParams.toString());
+                    next.delete('category');
+                    const qs = next.toString();
+                    router.replace(qs ? `/cards?${qs}` : '/cards', { scroll: false });
+                  }
+                }}
+              >&times;</button>
             </span>
           )}
           {selectedColor !== 'All' && (
             <span className="px-2 py-0.5 rounded-md bg-[#3b82f6]/20 text-[#3b82f6] border border-[#3b82f6]/30 font-bold flex-shrink-0 flex items-center gap-1">
               {selectedColor}
-              <button type="button" onClick={() => setSelectedColor('All')}>&times;</button>
+              <button type="button" onClick={() => { setSelectedColor('All'); setPage(1); }}>&times;</button>
             </span>
           )}
           {selectedRarity !== 'All' && (
             <span className="px-2 py-0.5 rounded-md bg-[#f59e0b]/20 text-[#f59e0b] border border-[#f59e0b]/30 font-bold flex-shrink-0 flex items-center gap-1">
               {selectedRarity}
-              <button type="button" onClick={() => setSelectedRarity('All')}>&times;</button>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setSelectedRarity('All');
+                  setPage(1);
+                  if (searchParams.get('rarity')) {
+                    const next = new URLSearchParams(searchParams.toString());
+                    next.delete('rarity');
+                    const qs = next.toString();
+                    router.replace(qs ? `/cards?${qs}` : '/cards', { scroll: false });
+                  }
+                }}
+              >&times;</button>
             </span>
           )}
           {search && (
             <span className="px-2 py-0.5 rounded-md bg-white/10 text-gray-200 border border-white/15 font-bold flex-shrink-0 flex items-center gap-1">
               &ldquo;{search}&rdquo;
-              <button type="button" onClick={() => setSearch('')}>&times;</button>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setSearch('');
+                  setDebouncedSearch('');
+                  setPage(1);
+                  if (searchParams.get('q')) {
+                    const next = new URLSearchParams(searchParams.toString());
+                    next.delete('q');
+                    const qs = next.toString();
+                    router.replace(qs ? `/cards?${qs}` : '/cards', { scroll: false });
+                  }
+                }}
+              >&times;</button>
             </span>
           )}
           <button
