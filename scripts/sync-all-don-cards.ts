@@ -133,7 +133,7 @@ async function main() {
     byFolder[c.folder].push(c);
   }
 
-  // First, remove old bogus DON cards (e.g. STxx-DON-*, OPxx-DON with bad images, etc.)
+  // Remove old or misattributed DON cards
   console.log('🗑️ Removing old or misattributed DON cards...');
   const deleteResult = await prisma.card.deleteMany({
     where: {
@@ -173,11 +173,8 @@ async function main() {
       const printingType = isSuperParallel ? 'Super Parallel' : isParallel ? 'Parallel' : 'Original';
       const rarity = isSuperParallel ? 'Special' : isParallel ? 'Parallel' : 'Common';
 
-      // Clean name
-      let cleanName = don.title;
-      if (cleanName.startsWith('ドン!!カード')) {
-        cleanName = 'DON!! Card ' + cleanName.substring(6).trim();
-      }
+      // Clean name: replace Japanese ドン!!カード with English DON!! Card
+      let cleanName = don.title.replace(/^ドン!!カード\s*/, 'DON!! Card ');
 
       const releaseDate = pack.releaseDate || '2024-01-01';
       const releaseOrder = pack.releaseOrder || 20240101;
