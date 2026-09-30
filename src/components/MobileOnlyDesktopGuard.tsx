@@ -3,12 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { Smartphone, QrCode } from 'lucide-react';
+import QRCode from 'qrcode';
 
 export function MobileOnlyDesktopGuard() {
   const pathname = usePathname();
   const [isDesktop, setIsDesktop] = useState(false);
   const [isBypassed, setIsBypassed] = useState(false);
-  const [currentUrl, setCurrentUrl] = useState('');
+  const [qrDataUrl, setQrDataUrl] = useState('');
 
   const isAdminRoute = pathname?.startsWith('/admin');
 
@@ -19,7 +20,19 @@ export function MobileOnlyDesktopGuard() {
       setIsBypassed(true);
     }
 
-    setCurrentUrl(window.location.href);
+    const targetUrl = window.location.href || 'https://log-pose-tcg.vercel.app';
+    QRCode.toDataURL(targetUrl, {
+      width: 220,
+      margin: 1,
+      color: {
+        dark: '#0f172a',
+        light: '#ffffff',
+      },
+    })
+      .then((url: string) => setQrDataUrl(url))
+      .catch((err: Error) => {
+        console.error('QR generation error:', err);
+      });
 
     const checkDevice = () => {
       const isWide = window.innerWidth >= 1024;
@@ -41,9 +54,6 @@ export function MobileOnlyDesktopGuard() {
   if (!isDesktop || isBypassed || isAdminRoute) {
     return null;
   }
-
-  const qrTarget = currentUrl || 'https://log-pose-tcg.vercel.app';
-  const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrTarget)}&color=0f172a&bgcolor=ffffff&margin=6`;
 
   return (
     <aside 
@@ -67,13 +77,19 @@ export function MobileOnlyDesktopGuard() {
         </p>
 
         {/* Clean White QR Card */}
-        <div className="bg-white p-3 rounded-xl shadow-md mb-6">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img 
-            src={qrApiUrl} 
-            alt="Scan QR code" 
-            className="w-36 h-36 object-contain block"
-          />
+        <div className="bg-white p-2.5 rounded-xl shadow-md mb-6 w-44 h-44 flex items-center justify-center">
+          {qrDataUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img 
+              src={qrDataUrl} 
+              alt="Scan QR code to open on mobile" 
+              className="w-full h-full object-contain block rounded-lg"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-zinc-400 text-xs">
+              Loading code...
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5 text-xs text-zinc-500 mb-6">
