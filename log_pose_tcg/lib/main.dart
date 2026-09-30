@@ -57,23 +57,23 @@ class LogPoseApp extends ConsumerWidget {
           builder: (context, constraints) {
             if (constraints.maxWidth > 900) {
               return Scaffold(
-                backgroundColor: const Color(0xFF0E1017),
+                backgroundColor: const Color(0xFF0B0D13),
                 body: Center(
                   child: Container(
-                    constraints: const BoxConstraints(maxWidth: 480),
+                    constraints: const BoxConstraints(maxWidth: 380),
                     margin: const EdgeInsets.all(24),
-                    padding: const EdgeInsets.all(32),
+                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF151824),
-                      borderRadius: BorderRadius.circular(24),
+                      color: const Color(0xFF12151E),
+                      borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: const Color(0xFFE05D68).withValues(alpha: 0.3),
+                        color: Colors.white.withValues(alpha: 0.08),
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.5),
-                          blurRadius: 40,
-                          offset: const Offset(0, 10),
+                          color: Colors.black.withValues(alpha: 0.4),
+                          blurRadius: 30,
+                          offset: const Offset(0, 8),
                         ),
                       ],
                     ),
@@ -81,60 +81,41 @@ class LogPoseApp extends ConsumerWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(16),
+                          width: 48,
+                          height: 48,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFD97706).withValues(alpha: 0.15),
+                            color: Colors.white.withValues(alpha: 0.05),
                             shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.1),
+                            ),
                           ),
                           child: const Icon(
-                            Icons.smartphone_rounded,
-                            size: 48,
-                            color: Color(0xFFF59E0B),
+                            Icons.smartphone_outlined,
+                            size: 24,
+                            color: Colors.white70,
                           ),
                         ),
                         const SizedBox(height: 20),
                         const Text(
-                          'Mobile-First Experience',
+                          'Open on Mobile',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: -0.2,
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
                         Text(
-                          'LOG POSE TCG is designed exclusively for smartphones. Please open the app on your mobile device or resize your browser window for the optimal view.',
+                          'Log Pose TCG is optimized for smartphone screens. Please view on your mobile device for the best experience.',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.7),
-                            fontSize: 14,
+                            color: Colors.white.withValues(alpha: 0.6),
+                            fontSize: 13,
                             height: 1.5,
                           ),
                           textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 24),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.05),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                          ),
-                          child: const Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.crop_free, size: 16, color: Color(0xFFF59E0B)),
-                              SizedBox(width: 8),
-                              Text(
-                                'Recommended width: < 500px',
-                                style: TextStyle(
-                                  color: Color(0xFFF59E0B),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
                       ],
                     ),
