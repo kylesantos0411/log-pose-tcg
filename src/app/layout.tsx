@@ -47,17 +47,11 @@ export default function RootLayout({
         <meta name="application-name" content="Log Pose TCG" />
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{if(sessionStorage.getItem('log_pose_app_synced')==='true'){document.documentElement.classList.add('app-synced');}}catch(e){}
-if(typeof window!=='undefined'&&'serviceWorker' in navigator){
+            __html: `if(typeof window!=='undefined'&&'serviceWorker' in navigator){
   window.addEventListener('load',function(){
     navigator.serviceWorker.register('/sw.js').catch(function(){});
   });
 }`,
-          }}
-        />
-        <style
-          dangerouslySetInnerHTML={{
-            __html: `html.app-synced #app-sync-loader{display:none!important;}`,
           }}
         />
       </head>

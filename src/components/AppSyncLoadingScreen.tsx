@@ -15,74 +15,72 @@ export function AppSyncLoadingScreen() {
   });
 
   useEffect(() => {
-    // Check if app was already synced in this session (unless forced via query ?sync)
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const forceSync = urlParams.has('sync');
-      if (!forceSync && sessionStorage.getItem('log_pose_app_synced') === 'true') {
-        setHidden(true);
-        return;
-      }
-    } catch {
-      // ignore
-    }
-
     let isMounted = true;
 
     async function runSyncSequence() {
-      // Step 1: Database (Authentic query + deliberate 850ms pacing)
+      // Step 1: Database (Pre-warm DB & sets catalog with authentic pacing)
+      const t1 = Date.now();
       try {
-        await Promise.allSettled([
-          fetch('/api/sets', { cache: 'no-store' }),
-          new Promise((r) => setTimeout(r, 850)),
-        ]);
+        await fetch('/api/sets', { cache: 'no-store' });
       } catch {
-        await new Promise((r) => setTimeout(r, 850));
+        // Fallback gracefully
+      }
+      const elapsed1 = Date.now() - t1;
+      const minDuration1 = 1200; // 1.2s deliberate pacing
+      if (elapsed1 < minDuration1) {
+        await new Promise((r) => setTimeout(r, minDuration1 - elapsed1));
       }
 
       if (!isMounted) return;
       setSteps((s) => ({ ...s, database: 'completed', account: 'loading' }));
 
-      // Step 2: Your account (Verify local user session, binder, and cloud sync status)
+      // Step 2: Your account (Verify local binder, wishlist, collection and settings)
+      const t2 = Date.now();
       try {
         const session = localStorage.getItem('logpose_user_session');
+        const binder = localStorage.getItem('optcg_binder');
         if (session) JSON.parse(session);
+        if (binder) JSON.parse(binder);
       } catch {
-        // Continue gracefully
+        // Fallback gracefully
       }
-      await new Promise((r) => setTimeout(r, 750));
+      const elapsed2 = Date.now() - t2;
+      const minDuration2 = 1000; // 1.0s deliberate pacing
+      if (elapsed2 < minDuration2) {
+        await new Promise((r) => setTimeout(r, minDuration2 - elapsed2));
+      }
 
       if (!isMounted) return;
       setSteps((s) => ({ ...s, account: 'completed', prices: 'loading' }));
 
-      // Step 3: Prices (Pre-warm live card prices, Yuyu-tei rates & currency exchange)
+      // Step 3: Prices (Pre-warm live card market prices & currency exchange rates)
+      const t3 = Date.now();
       try {
         await Promise.allSettled([
           fetch('/api/cards?page=1&limit=30', { cache: 'no-store' }),
-          new Promise((r) => setTimeout(r, 900)),
+          fetch('/api/currency', { cache: 'no-store' }),
         ]);
       } catch {
-        await new Promise((r) => setTimeout(r, 900));
+        // Fallback gracefully
+      }
+      const elapsed3 = Date.now() - t3;
+      const minDuration3 = 1300; // 1.3s deliberate pacing
+      if (elapsed3 < minDuration3) {
+        await new Promise((r) => setTimeout(r, minDuration3 - elapsed3));
       }
 
       if (!isMounted) return;
       setSteps((s) => ({ ...s, prices: 'completed' }));
 
-      // Satisfying completion pause: hold all 3 green checkmarks for 550ms so user registers success
-      await new Promise((r) => setTimeout(r, 550));
+      // Success hold: give the user 650ms to register all 3 green checkmarks
+      await new Promise((r) => setTimeout(r, 650));
       if (!isMounted) return;
       setFading(true);
 
       setTimeout(() => {
         if (!isMounted) return;
         setHidden(true);
-        try {
-          sessionStorage.setItem('log_pose_app_synced', 'true');
-          document.documentElement.classList.add('app-synced');
-        } catch {
-          // ignore
-        }
-      }, 400);
+      }, 450);
     }
 
     runSyncSequence();
@@ -97,20 +95,20 @@ export function AppSyncLoadingScreen() {
   return (
     <div
       id="app-sync-loader"
-      className={`fixed inset-0 z-[99999] bg-[#14151f] flex flex-col items-center justify-center p-6 select-none transition-opacity duration-400 ease-out ${
+      className={`fixed inset-0 z-[99999] bg-[#12131c] flex flex-col items-center justify-center p-6 select-none transition-opacity duration-450 ease-out ${
         fading ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
-      {/* Brand Logo & Title Above */}
-      <div className="flex flex-col items-center mb-6">
-        <div className="w-14 h-14 rounded-2xl bg-white p-1.5 shadow-xl shadow-black/50 border border-white/20 flex items-center justify-center mb-3">
+      {/* Brand Logo & Name */}
+      <div className="flex flex-col items-center mb-7 animate-fade-in">
+        <div className="w-14 h-14 rounded-2xl bg-white p-1.5 shadow-2xl shadow-black/60 border border-white/20 flex items-center justify-center mb-3">
           <img
             src="/logo.png"
             alt="Log Pose TCG Logo"
             className="w-full h-full object-contain drop-shadow-sm"
           />
         </div>
-        <h1 className="text-sm font-black text-white tracking-[0.2em] uppercase opacity-90">
+        <h1 className="text-[13px] font-black text-white tracking-[0.22em] uppercase opacity-90">
           LOG POSE TCG
         </h1>
       </div>
@@ -196,7 +194,7 @@ function StatusIcon({ status }: { status: StepStatus }) {
   if (status === 'loading') {
     return (
       <div className="w-[18px] h-[18px] shrink-0 flex items-center justify-center">
-        <div className="w-[16px] h-[16px] rounded-full border-[2px] border-slate-600/40 border-t-white animate-spin" />
+        <div className="w-[16px] h-[16px] rounded-full border-[2px] border-slate-600/30 border-t-white animate-spin" />
       </div>
     );
   }
