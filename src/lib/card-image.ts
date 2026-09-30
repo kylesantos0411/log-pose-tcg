@@ -59,6 +59,10 @@ const JP_CARD_IMAGE_MAP: Record<string, string> = {
   'OP01-120_p5': 'https://card.yuyu-tei.jp/opc/front/prb01/10023.jpg',   // PRB-01 Parallel by lack (¥500)
   'OP01-120_p6': 'https://onepiece-cardgame.com/images/cardlist/card/OP01-120_p6.png', // PRB-01 Manga Super Parallel (刻印あり - ¥198,000)
 
+  // Promotion Cards
+  'P-094':       'https://card.yuyu-tei.jp/opc/front/promo-100/10117.jpg', // Roronoa Zoro (V Jump July 2024 - ¥980)
+  'P-095':       'https://card.yuyu-tei.jp/opc/front/promo-100/10120.jpg', // Sanji (Saikyo Jump July 2024 - ¥420)
+
   // OP05-119 Monkey.D.Luffy exact 8 Japanese variations from Yuyu-tei & Bandai Japan
   'OP05-119':    'https://onepiece-cardgame.com/images/cardlist/card/OP05-119.png',      // Base SEC Laughing Gear 5 (¥780)
   'OP05-119_p1': 'https://onepiece-cardgame.com/images/cardlist/card/OP05-119_p1.png',   // "GEAR 5" Comic Pop-Art (¥24,800)
