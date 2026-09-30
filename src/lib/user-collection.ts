@@ -75,7 +75,7 @@ export function getActiveUserTag(): string | null {
  * Resolves the isolated localStorage key for a specific user tag or guest mode
  */
 export function getBinderStorageKey(targetTag?: string | null): string {
-  const tag = targetTag !== undefined ? targetTag : getActiveUserTag();
+  const tag = targetTag || getActiveUserTag();
   if (!tag) {
     return 'logpose_binder_guest';
   }
@@ -128,6 +128,66 @@ export function saveLocalBinder(cards: LocalUserCard[], userTag?: string | null)
   }
 }
 
+export interface DeletedCardTombstone {
+  cardId: string;
+  condition?: string;
+  isFoil?: boolean;
+  language?: string;
+  status?: string;
+  deletedAt: number;
+}
+
+export function getDeletedCardsKey(userTag?: string | null): string {
+  const tag = userTag || getActiveUserTag();
+  if (!tag) return 'logpose_deleted_cards_guest';
+  return `logpose_deleted_cards_${tag.toUpperCase()}`;
+}
+
+export function getDeletedCards(userTag?: string | null): DeletedCardTombstone[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const key = getDeletedCardsKey(userTag);
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function recordDeletedCard(card: LocalUserCard, userTag?: string | null): void {
+  if (typeof window === 'undefined' || !card) return;
+  try {
+    const key = getDeletedCardsKey(userTag);
+    const deleted = getDeletedCards(userTag);
+    const exists = deleted.some((d) => d.cardId === card.cardId && (d.status || 'OWNED') === (card.status || 'OWNED'));
+    if (!exists) {
+      deleted.push({
+        cardId: card.cardId,
+        condition: card.condition,
+        isFoil: card.isFoil,
+        language: card.language,
+        status: card.status || 'OWNED',
+        deletedAt: Date.now(),
+      });
+      localStorage.setItem(key, JSON.stringify(deleted));
+    }
+  } catch {}
+}
+
+export function clearDeletedCard(cardId: string, status?: string, userTag?: string | null): void {
+  if (typeof window === 'undefined' || !cardId) return;
+  try {
+    const key = getDeletedCardsKey(userTag);
+    const deleted = getDeletedCards(userTag);
+    const filtered = deleted.filter(
+      (d) => !(d.cardId === cardId && (!status || (d.status || 'OWNED') === status))
+    );
+    localStorage.setItem(key, JSON.stringify(filtered));
+  } catch {}
+}
+
 export function addCardToLocalBinder(
   cardData: {
     cardId: string;
@@ -141,6 +201,9 @@ export function addCardToLocalBinder(
   },
   userTag?: string | null
 ): LocalUserCard[] {
+  // Clear any tombstone so card can be collected again
+  clearDeletedCard(cardData.cardId, 'OWNED', userTag);
+
   const current = getLocalBinder(userTag);
   const qty = cardData.quantity || 1;
   const cond = cardData.condition || 'NM';
@@ -203,6 +266,7 @@ export function removeCardFromLocalBinder(recordId: string, userTag?: string | n
 
   // Auto-sync removal with Supabase cloud if user is authenticated
   if (target) {
+    recordDeletedCard(target, userTag);
     try {
       const session = getActiveSession();
       if (session?.id) {

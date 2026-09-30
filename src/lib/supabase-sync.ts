@@ -1,5 +1,6 @@
 import { getSupabaseBrowserClient, isSupabaseConfigured } from './supabase/client';
-import { getLocalSoldCards, type LocalUserCard } from './user-collection';
+import { getLocalSoldCards, getDeletedCards, type LocalUserCard } from './user-collection';
+import { getDeletedFavoriteIds } from './favorites';
 
 export interface CloudProfile {
   id: string;
@@ -348,19 +349,30 @@ export async function removeCardFromCloud(
   language?: string
 ): Promise<boolean> {
   const client = getSupabaseBrowserClient();
-  if (!client || !isSupabaseConfigured() || !isValidUuid(userId)) return false;
+  if (!client || !isSupabaseConfigured() || !cardId) return false;
+
+  let targetUserId = userId;
+  if (!isValidUuid(targetUserId)) {
+    try {
+      const { data: authData } = await client.auth.getSession();
+      if (authData?.session?.user?.id && isValidUuid(authData.session.user.id)) {
+        targetUserId = authData.session.user.id;
+      }
+    } catch {}
+  }
+  if (!isValidUuid(targetUserId)) return false;
 
   try {
     let query = client
       .from('user_cards')
       .delete()
-      .eq('user_id', userId)
-      .eq('card_id', cardId)
+      .eq('user_id', targetUserId)
+      .ilike('card_id', cardId.trim())
       .eq('is_wishlist', false);
 
-    if (condition) query = query.eq('condition', condition);
+    if (condition) query = query.ilike('condition', condition.trim());
     if (isFoil !== undefined) query = query.eq('is_foil', isFoil);
-    if (language) query = query.eq('language', language);
+    if (language) query = query.ilike('language', language.trim());
 
     const { error } = await query;
     return !error;
@@ -1107,14 +1119,25 @@ export async function addFavoriteToCloud(userId: string, cardId: string): Promis
  */
 export async function removeFavoriteFromCloud(userId: string, cardId: string): Promise<boolean> {
   const client = getSupabaseBrowserClient();
-  if (!client || !isSupabaseConfigured() || !isValidUuid(userId) || !cardId) return false;
+  if (!client || !isSupabaseConfigured() || !cardId) return false;
+
+  let targetUserId = userId;
+  if (!isValidUuid(targetUserId)) {
+    try {
+      const { data: authData } = await client.auth.getSession();
+      if (authData?.session?.user?.id && isValidUuid(authData.session.user.id)) {
+        targetUserId = authData.session.user.id;
+      }
+    } catch {}
+  }
+  if (!isValidUuid(targetUserId)) return false;
 
   try {
     const { error } = await client
       .from('user_cards')
       .delete()
-      .eq('user_id', userId)
-      .eq('card_id', cardId)
+      .eq('user_id', targetUserId)
+      .ilike('card_id', cardId.trim())
       .eq('is_wishlist', true);
     return !error;
   } catch (err) {
@@ -1124,7 +1147,7 @@ export async function removeFavoriteFromCloud(userId: string, cardId: string): P
 }
 
 /**
- * Synchronize local favorites with Supabase cloud (bidirectional union)
+ * Synchronize local favorites with Supabase cloud (bidirectional union respecting local tombstones)
  */
 export async function syncFavoritesWithCloud(userId: string): Promise<string[]> {
   if (typeof window === 'undefined' || !isValidUuid(userId)) return [];
@@ -1139,10 +1162,24 @@ export async function syncFavoritesWithCloud(userId: string): Promise<string[]> 
     }
   } catch {}
 
+  const deletedFavoriteIds = new Set(getDeletedFavoriteIds());
+  // Ensure local favorites do not contain any locally deleted items
+  localFavorites = localFavorites.filter((id) => !deletedFavoriteIds.has(id));
+
   const cloudIds = await fetchCloudFavorites(userId);
 
+  // For any favorite marked as deleted locally that still exists in cloud, purge it from cloud
+  for (const delId of deletedFavoriteIds) {
+    if (cloudIds.includes(delId)) {
+      removeFavoriteFromCloud(userId, delId).catch(() => {});
+    }
+  }
+
+  // Filter cloud favorites to omit any locally deleted cards
+  const activeCloudIds = cloudIds.filter((id) => !deletedFavoriteIds.has(id));
+
   // Union of local and cloud favorites
-  const mergedSet = new Set<string>([...cloudIds, ...localFavorites]);
+  const mergedSet = new Set<string>([...activeCloudIds, ...localFavorites]);
   const mergedList = Array.from(mergedSet);
 
   // If local had favorites not yet in cloud, upload them to Supabase
@@ -1220,10 +1257,37 @@ export async function syncUserCloudData(userId: string, userTag: string): Promis
       }
     } catch {}
 
+    // Tombstone filtering: check for locally deleted cards
+    const deletedCards = getDeletedCards(userTag);
+    if (deletedCards.length > 0) {
+      localCards = localCards.filter((lc) => {
+        return !deletedCards.some(
+          (d) => d.cardId === lc.cardId && (d.status || 'OWNED') === (lc.status || 'OWNED')
+        );
+      });
+
+      // Dispatch deletion to cloud for any deleted card still reported in cloud
+      for (const del of deletedCards) {
+        const foundInCloud = cloudCards.some(
+          (c) => c.cardId === del.cardId && (c.status || 'OWNED') === (del.status || 'OWNED')
+        );
+        if (foundInCloud) {
+          removeCardFromCloud(userId, del.cardId, del.condition, del.isFoil, del.language).catch(() => {});
+        }
+      }
+    }
+
+    // Filter cloud cards to exclude any tombstoned cards
+    const activeCloudCards = cloudCards.filter((cloud) => {
+      return !deletedCards.some(
+        (d) => d.cardId === cloud.cardId && (d.status || 'OWNED') === (cloud.status || 'OWNED')
+      );
+    });
+
     // 5. Intelligent Merge:
-    // If logging in on a new device (local binder is empty), populate it directly from cloud!
-    if (localCards.length === 0 && cloudCards.length > 0) {
-      localStorage.setItem(userKey, JSON.stringify(cloudCards));
+    // If logging in on a new device (local binder is empty), populate it directly from active cloud cards!
+    if (localCards.length === 0 && activeCloudCards.length > 0) {
+      localStorage.setItem(userKey, JSON.stringify(activeCloudCards));
       window.dispatchEvent(new Event('logpose_collection_updated'));
       return;
     }
@@ -1232,7 +1296,7 @@ export async function syncUserCloudData(userId: string, userTag: string): Promis
     const merged: LocalUserCard[] = [...localCards];
     const newCardsToUpload: LocalUserCard[] = [];
 
-    for (const cloud of cloudCards) {
+    for (const cloud of activeCloudCards) {
       // Match by exact card identity AND status (OWNED vs SOLD)
       const existingIdx = merged.findIndex(
         (m) =>

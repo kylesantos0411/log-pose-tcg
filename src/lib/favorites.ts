@@ -4,6 +4,7 @@ import { addFavoriteToCloud, removeFavoriteFromCloud } from './supabase-sync';
 import { getActiveSession } from './user-accounts';
 
 const FAVORITES_STORAGE_KEY = 'logpose_favorite_cards';
+const DELETED_FAVORITES_STORAGE_KEY = 'logpose_deleted_favorites';
 
 export function getFavoriteCardIds(): string[] {
   if (typeof window === 'undefined') return [];
@@ -15,6 +16,38 @@ export function getFavoriteCardIds(): string[] {
   } catch {
     return [];
   }
+}
+
+export function getDeletedFavoriteIds(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(DELETED_FAVORITES_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function recordDeletedFavorite(cardId: string): void {
+  if (typeof window === 'undefined' || !cardId) return;
+  try {
+    const deleted = getDeletedFavoriteIds();
+    if (!deleted.includes(cardId)) {
+      deleted.push(cardId);
+      localStorage.setItem(DELETED_FAVORITES_STORAGE_KEY, JSON.stringify(deleted));
+    }
+  } catch {}
+}
+
+export function clearDeletedFavorite(cardId: string): void {
+  if (typeof window === 'undefined' || !cardId) return;
+  try {
+    const deleted = getDeletedFavoriteIds();
+    const filtered = deleted.filter((id) => id !== cardId);
+    localStorage.setItem(DELETED_FAVORITES_STORAGE_KEY, JSON.stringify(filtered));
+  } catch {}
 }
 
 export function isCardFavorite(cardId: string): boolean {
@@ -31,7 +64,9 @@ export function toggleCardFavorite(cardId: string): boolean {
 
   if (exists) {
     updated = ids.filter((id) => id !== cardId);
+    recordDeletedFavorite(cardId);
   } else {
+    clearDeletedFavorite(cardId);
     updated = [cardId, ...ids.filter((id) => id !== cardId)];
   }
 
@@ -67,6 +102,8 @@ export function removeCardFavorite(cardId: string): void {
   if (!cardId || typeof window === 'undefined') return;
   const ids = getFavoriteCardIds();
   const updated = ids.filter((id) => id !== cardId);
+  recordDeletedFavorite(cardId);
+
   try {
     localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new CustomEvent('logpose_favorites_updated', { detail: { cardId, isFavorite: false, all: updated } }));
