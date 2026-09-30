@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cards/sync",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}
