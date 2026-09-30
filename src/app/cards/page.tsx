@@ -747,8 +747,12 @@ function CardsContent() {
                         ) : (
                           <span className="text-gray-300">eBay</span>
                         )
+                      ) : card.yuyuPrice && card.yuyuPrice > 0 ? (
+                        formatYuyuPrice(card.yuyuPrice).full
+                      ) : card.marketPrice && card.marketPrice > 0 ? (
+                        formatUsdPrice(card.marketPrice).full
                       ) : (
-                        formatYuyuPrice(card.yuyuPrice || Math.round((card.marketPrice || 1) * 140)).full
+                        <span className="text-gray-400">Not Available</span>
                       )}
                     </div>
 
@@ -812,7 +816,7 @@ function CardsContent() {
               onSelectCard={(selected) => setActiveCard(selected as CardItem)}
               onAddToCollection={(c) => {
                 setAddModalCard(c as CardItem);
-                setAddPrice(c.yuyuPrice ? c.yuyuPrice.toString() : Math.round((c.marketPrice || 0.25) * 140).toString());
+                setAddPrice(c.yuyuPrice ? c.yuyuPrice.toString() : (c.marketPrice ? Math.round(c.marketPrice * 140).toString() : ''));
               }}
             />
           </div>
@@ -911,7 +915,7 @@ function CardsContent() {
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs text-gray-300 font-bold">Purchase Price (¥ Japanese Yen)</label>
                     <span className="text-[11px] text-gray-400">
-                      Market: ¥{(addModalCard.yuyuPrice || Math.round((addModalCard.marketPrice || 0) * 140)).toLocaleString()}
+                      Market: {addModalCard.yuyuPrice ? `¥${addModalCard.yuyuPrice.toLocaleString()}` : (addModalCard.marketPrice ? `¥${Math.round(addModalCard.marketPrice * 140).toLocaleString()}` : 'Not Available')}
                     </span>
                   </div>
                   <input
@@ -919,7 +923,7 @@ function CardsContent() {
                     step="1"
                     value={addPrice}
                     onChange={(e) => setAddPrice(e.target.value)}
-                    placeholder={`e.g. ${addModalCard.yuyuPrice || Math.round((addModalCard.marketPrice || 0) * 140)}`}
+                    placeholder={addModalCard.yuyuPrice ? `e.g. ${addModalCard.yuyuPrice}` : (addModalCard.marketPrice ? `e.g. ${Math.round(addModalCard.marketPrice * 140)}` : '0')}
                     className="w-full bg-[#1e212c] border border-[#343a4c] focus:border-[#3b82f6] rounded-xl px-3 py-2 text-sm text-white focus:outline-none placeholder-gray-500"
                   />
                   <p className="text-[10px] text-gray-400 mt-1">

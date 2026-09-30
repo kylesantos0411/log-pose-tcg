@@ -454,9 +454,10 @@ export function CardDetailView({
   // Derive realistic market quotes matching the OP.TCG screenshot
   const basePrice = card.marketPrice || 25.0;
   // Authentic Yuyu-tei Japanese store price in JPY directly from DB yuyuPrice
-  const yuyuteiYen = card.yuyuPrice ? Math.round(card.yuyuPrice) : Math.round(basePrice * 140);
-  const yuyuteiYenChange = Math.round(yuyuteiYen * 0.0274) || 196;
-  const convertedYuyuYen = card.yuyuPrice ? (card.yuyuPrice / 152) : basePrice;
+  const hasYuyuPrice = Boolean(card.yuyuPrice && card.yuyuPrice > 0);
+  const yuyuteiYen = hasYuyuPrice ? Math.round(card.yuyuPrice!) : 0;
+  const yuyuteiYenChange = Math.round(yuyuteiYen * 0.0274);
+  const convertedYuyuYen = hasYuyuPrice ? (card.yuyuPrice! / 152) : 0;
   const convertedYuyuYenChange = convertedYuyuYen * 0.0274;
 
   // Vintage Card Detection and Sales Data
@@ -527,7 +528,7 @@ export function CardDetailView({
     if (enabledPriceSources.psa) activeMaxPrice = Math.max(activeMaxPrice, psaPrice);
     if (enabledPriceSources.ebay) activeMaxPrice = Math.max(activeMaxPrice, ebayPrice);
     if (enabledPriceSources.cardmarket) activeMaxPrice = Math.max(activeMaxPrice, cardmarketPrice);
-    if (enabledPriceSources.yuyutei) activeMaxPrice = Math.max(activeMaxPrice, Math.round(yuyuteiYen / 152));
+    if (enabledPriceSources.yuyutei && hasYuyuPrice) activeMaxPrice = Math.max(activeMaxPrice, Math.round(yuyuteiYen / 152));
     if (enabledPriceSources.snkrdunk && snkrdunkRawUsd) activeMaxPrice = Math.max(activeMaxPrice, snkrdunkRawUsd);
   }
   const maxChartVal = isVintage
@@ -717,7 +718,7 @@ export function CardDetailView({
       ];
     }
 
-    const snkVal = snkrdunkRawUsd !== null ? snkrdunkRawUsd : (snkrdunkRawYen ? snkrdunkRawYen / 152 : yuyuteiYen / 152);
+    const snkVal = snkrdunkRawUsd !== null ? snkrdunkRawUsd : (snkrdunkRawYen ? snkrdunkRawYen / 152 : (hasYuyuPrice ? yuyuteiYen / 152 : (cardmarketPrice || basePrice)));
     if (timeframe === '7D') {
       const dates = ['09/15', '09/16', '09/17', '09/18', '09/19', '09/20', '09/21'];
       return [
@@ -1308,6 +1309,28 @@ export function CardDetailView({
                     <div className={`grid ${gridClass} gap-x-3 sm:gap-x-6 gap-y-3.5 pt-3.5 pb-1`}>
                     {/* 1. Yuyu-tei */}
                     {enabledPriceSources.yuyutei && (() => {
+                      if (!hasYuyuPrice) {
+                        return (
+                          <div
+                            title="Not listed on Yuyu-tei (遊々亭)"
+                            className="flex items-center gap-2 sm:gap-2.5 opacity-60 min-w-0"
+                          >
+                            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 shadow-md overflow-hidden p-1 border border-white/10 grayscale">
+                              <img src="/logos/yuyutei.png" alt="Yuyu-tei" className="w-full h-full object-contain opacity-70" />
+                            </div>
+                            <div className="min-w-0 flex-1 overflow-hidden">
+                              <div className="flex items-center gap-1 leading-tight">
+                                <span className="font-bold text-gray-400 text-xs sm:text-sm whitespace-nowrap">
+                                  Not Available
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-gray-500 font-medium mt-0.5 leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
+                                Not listed on 遊々亭
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
                       const priceFormatted = formatPrice(convertedYuyuYen).full;
                       const changeFormatted = formatPrice(convertedYuyuYenChange).full;
                       return (
@@ -2194,7 +2217,7 @@ export function CardDetailView({
                       )}
 
                       {/* Blue line: Yuyu-tei */}
-                      {!isVintage && enabledPriceSources.yuyutei && (
+                      {!isVintage && enabledPriceSources.yuyutei && hasYuyuPrice && (
                         <path
                           d={getSvgPath((d) => Math.round(d.yuyuYen / 152))}
                           fill="none"
@@ -2300,7 +2323,7 @@ export function CardDetailView({
                               strokeWidth="1.2"
                             />
                           )}
-                          {!isVintage && enabledPriceSources.yuyutei && (
+                          {!isVintage && enabledPriceSources.yuyutei && hasYuyuPrice && (
                             <circle
                               cx={(hoverIndex / (currentSeries.length - 1)) * 320}
                               cy={Math.max(8, Math.min(115, Math.round(115 - (Math.round(currentSeries[hoverIndex].yuyuYen / 152) / maxChartVal) * 105)))}
@@ -2352,7 +2375,9 @@ export function CardDetailView({
                               <div className="text-sky-400">CM: {formatPrice(currentSeries[hoverIndex].cardmarket, { source: 'cardmarket' }).full}</div>
                             )}
                             {enabledPriceSources.yuyutei && (
-                              <div className="text-blue-400">Yuyu: {formatPrice(Math.round(currentSeries[hoverIndex].yuyuYen / 152)).full}</div>
+                              <div className="text-blue-400">
+                                Yuyu: {hasYuyuPrice ? formatPrice(Math.round(currentSeries[hoverIndex].yuyuYen / 152)).full : 'Not Available'}
+                              </div>
                             )}
                           </div>
                         )}
@@ -2585,7 +2610,8 @@ export function CardDetailView({
                     {visibleVariants.map((v) => {
                       const isSelected = v.id === card.id;
                       const vInfo = formatCard(v.id);
-                      const vYen = v.yuyuPrice ? Math.round(v.yuyuPrice) : Math.round((v.marketPrice || 25) * 140);
+                      const hasVYuyu = Boolean(v.yuyuPrice && v.yuyuPrice > 0);
+                      const vYen = hasVYuyu ? Math.round(v.yuyuPrice!) : null;
                       return (
                         <button
                           key={v.id}
@@ -2620,10 +2646,14 @@ export function CardDetailView({
                             <div className="text-[8px] text-gray-400 truncate">
                               {v.promoSource ? v.promoSource.split(' (')[0] : v.rarity}
                             </div>
-                            <div className="text-[10px] font-extrabold text-[#4ade80] mt-0.5">
+                            <div className="text-[10px] font-extrabold mt-0.5">
                               {selectedLang === 'jp'
-                                ? formatYuyuPrice(vYen).full
-                                : formatUsdPrice(v.marketPrice || 1).full}
+                                ? (vYen !== null ? (
+                                    <span className="text-[#4ade80]">{formatYuyuPrice(vYen).full}</span>
+                                  ) : (
+                                    <span className="text-gray-400 font-semibold text-[9px]">Not Available</span>
+                                  ))
+                                : <span className="text-[#4ade80]">{formatUsdPrice(v.marketPrice || 1).full}</span>}
                             </div>
                           </div>
                         </button>
@@ -2810,7 +2840,7 @@ export function CardDetailView({
                 <line x1="0" y1="30" x2="300" y2="30" stroke="#2a2d3c" strokeDasharray="2 2" />
                 <line x1="0" y1="60" x2="300" y2="60" stroke="#2a2d3c" strokeDasharray="2 2" />
                 <line x1="0" y1="90" x2="300" y2="90" stroke="#2a2d3c" strokeDasharray="2 2" />
-                <path d={getSvgPath((d) => Math.round(d.yuyuYen / 152))} fill="none" stroke="#3b82f6" strokeWidth="1.5" />
+                {hasYuyuPrice && <path d={getSvgPath((d) => Math.round(d.yuyuYen / 152))} fill="none" stroke="#3b82f6" strokeWidth="1.5" />}
                 <path d={getSvgPath((d) => d.cardmarket)} fill="none" stroke="#0284c7" strokeWidth="1.5" />
                 <path d={getSvgPath((d) => d.ebay)} fill="none" stroke="#84cc16" strokeWidth="1.5" />
                 <path d={getSvgPath((d) => d.snkrdunk || 0)} fill="none" stroke="#10b981" strokeWidth="1.5" />
@@ -2876,7 +2906,8 @@ export function CardDetailView({
                   {modalVariants.map((v) => {
                   const isSelected = v.id === card.id;
                   const vInfo = formatCard(v.id);
-                  const vYen = v.yuyuPrice ? Math.round(v.yuyuPrice) : Math.round((v.marketPrice || 25) * 140);
+                  const hasVYuyu = Boolean(v.yuyuPrice && v.yuyuPrice > 0);
+                  const vYen = hasVYuyu ? Math.round(v.yuyuPrice!) : null;
                   const vEnPrice = v.marketPrice || 25;
                   return (
                     <div
@@ -2929,8 +2960,8 @@ export function CardDetailView({
                         <div className="flex items-center gap-4 pt-1 border-t border-white/10 text-xs">
                           <div>
                             <span className="text-gray-400 text-[10px] block">遊々亭 (Yuyu-tei):</span>
-                            <span className="font-extrabold text-[#4ade80]">
-                              {formatYuyuPrice(vYen).full}
+                            <span className={`font-extrabold ${vYen !== null ? 'text-[#4ade80]' : 'text-gray-400'}`}>
+                              {vYen !== null ? formatYuyuPrice(vYen).full : 'Not Available'}
                             </span>
                           </div>
                         </div>
