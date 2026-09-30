@@ -406,32 +406,40 @@ export default function AdminPage() {
       )}
 
       {/* Admin Header */}
-      <div className="rounded-2xl bg-[#141620] border border-[#222533] p-6 shadow-sm relative overflow-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-          <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1c202d] border border-[#2c3345] text-slate-300 text-xs font-semibold uppercase tracking-wider">
-              <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
-              <span>Admin Control Center</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-2">
-              Log Pose Fleet Command
-            </h1>
-            <p className="text-xs text-slate-400">
-              Authenticated as Chief Administrator: <strong className="text-slate-200">@{user?.tag.replace(/^@/, '')}</strong> ({user?.email})
-            </p>
-          </div>
+      <div className="rounded-2xl bg-[#141620] border border-[#222533] p-5 sm:p-6 shadow-sm relative overflow-hidden">
+        {/* Top Navigation Row: Back Button & System Status Pill */}
+        <div className="flex items-center justify-between gap-3 mb-5 relative z-10">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#1c202d] hover:bg-[#252b3d] border border-[#2c3345] hover:border-slate-500 text-xs font-semibold text-slate-200 hover:text-white transition-all shadow-sm active:scale-95 group"
+          >
+            <ArrowLeft className="w-4 h-4 text-slate-400 group-hover:text-white group-hover:-translate-x-0.5 transition-transform" />
+            <span>Back to Dashboard</span>
+          </Link>
 
           {/* Quick status pill */}
-          <div className="flex items-center gap-3">
-            <div className={`px-3.5 py-2 rounded-xl border flex items-center gap-2 text-xs font-semibold ${
-              maintenanceEnabled
-                ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-            }`}>
-              <span className={`w-2 h-2 rounded-full ${maintenanceEnabled ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
-              <span>{maintenanceEnabled ? 'Maintenance Active' : 'System Normal / Online'}</span>
-            </div>
+          <div className={`px-3 py-1.5 rounded-xl border flex items-center gap-2 text-xs font-semibold ${
+            maintenanceEnabled
+              ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
+              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+          }`}>
+            <span className={`w-2 h-2 rounded-full ${maintenanceEnabled ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
+            <span className="hidden sm:inline">{maintenanceEnabled ? 'Maintenance Active' : 'System Normal / Online'}</span>
+            <span className="sm:hidden">{maintenanceEnabled ? 'Maintenance' : 'Online'}</span>
           </div>
+        </div>
+
+        <div className="space-y-1.5 relative z-10">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1c202d] border border-[#2c3345] text-slate-300 text-xs font-semibold uppercase tracking-wider">
+            <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
+            <span>Admin Control Center</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-2">
+            Log Pose Fleet Command
+          </h1>
+          <p className="text-xs text-slate-400">
+            Authenticated as Chief Administrator: <strong className="text-slate-200">@{user?.tag.replace(/^@/, '')}</strong> ({user?.email})
+          </p>
         </div>
 
         {/* Tab Navigation */}
