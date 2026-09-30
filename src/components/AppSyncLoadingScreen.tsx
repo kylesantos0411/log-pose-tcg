@@ -2,15 +2,30 @@
 
 import React, { useState, useEffect } from 'react';
 
+type StepStatus = 'pending' | 'loading' | 'completed';
+
+interface SyncItem {
+  id: string;
+  label: string;
+  status: StepStatus;
+}
+
 export function AppSyncLoadingScreen() {
   const [fading, setFading] = useState(false);
   const [hidden, setHidden] = useState(false);
-  const [syncStep, setSyncStep] = useState('Initializing card catalog...');
+
+  const [steps, setSteps] = useState<Record<string, StepStatus>>({
+    database: 'loading',
+    account: 'pending',
+    prices: 'pending',
+  });
 
   useEffect(() => {
-    // Check if app was already loaded/synced in this session
+    // Check if app was already synced in this session (unless forced via query ?sync)
     try {
-      if (sessionStorage.getItem('log_pose_app_synced') === 'true') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const forceSync = urlParams.has('sync');
+      if (!forceSync && sessionStorage.getItem('log_pose_app_synced') === 'true') {
         setHidden(true);
         return;
       }
@@ -19,49 +34,65 @@ export function AppSyncLoadingScreen() {
     }
 
     let isMounted = true;
-    const startTime = Date.now();
 
-    async function initializeApp() {
+    async function runSyncSequence() {
+      // 1. Step: Database
       try {
-        setSyncStep('Connecting to local card database...');
-        
-        // Actually pre-warm the database and network queries in parallel
-        await Promise.allSettled([
+        await Promise.race([
           fetch('/api/sets', { cache: 'no-store' }),
-          fetch('/api/cards?page=1&limit=30', { cache: 'no-store' }),
+          new Promise((r) => setTimeout(r, 450)),
         ]);
-
-        if (isMounted) {
-          setSyncStep('Loading market prices & currency rates...');
-        }
       } catch {
-        // Safe to ignore offline or serverless
+        // Continue gracefully
       }
 
-      // Ensure smooth, polished transition timing (between 1.2s and 1.8s)
-      const elapsed = Date.now() - startTime;
-      const minDisplayTime = 1400;
-      const remaining = Math.max(minDisplayTime - elapsed, 200);
+      if (!isMounted) return;
+      setSteps((s) => ({ ...s, database: 'completed', account: 'loading' }));
+
+      // 2. Step: Your account
+      await new Promise((r) => setTimeout(r, 380));
+      try {
+        // Read local session or active binder
+        const session = localStorage.getItem('logpose_user_session');
+        if (session) JSON.parse(session);
+      } catch {
+        // Continue gracefully
+      }
+
+      if (!isMounted) return;
+      setSteps((s) => ({ ...s, account: 'completed', prices: 'loading' }));
+
+      // 3. Step: Prices
+      try {
+        await Promise.race([
+          fetch('/api/cards?page=1&limit=30', { cache: 'no-store' }),
+          new Promise((r) => setTimeout(r, 480)),
+        ]);
+      } catch {
+        // Continue gracefully
+      }
+
+      if (!isMounted) return;
+      setSteps((s) => ({ ...s, prices: 'completed' }));
+
+      // Brief delay after all checks turn green
+      await new Promise((r) => setTimeout(r, 360));
+      if (!isMounted) return;
+      setFading(true);
 
       setTimeout(() => {
         if (!isMounted) return;
-        setSyncStep('Ready!');
-        setFading(true);
-
-        setTimeout(() => {
-          if (!isMounted) return;
-          setHidden(true);
-          try {
-            sessionStorage.setItem('log_pose_app_synced', 'true');
-            document.documentElement.classList.add('app-synced');
-          } catch {
-            // ignore
-          }
-        }, 400);
-      }, remaining);
+        setHidden(true);
+        try {
+          sessionStorage.setItem('log_pose_app_synced', 'true');
+          document.documentElement.classList.add('app-synced');
+        } catch {
+          // ignore
+        }
+      }, 350);
     }
 
-    initializeApp();
+    runSyncSequence();
 
     return () => {
       isMounted = false;
@@ -71,37 +102,116 @@ export function AppSyncLoadingScreen() {
   if (hidden) return null;
 
   return (
-    <div 
+    <div
       id="app-sync-loader"
-      className={`fixed inset-0 z-[99999] bg-[#242735] flex flex-col items-center justify-center p-6 text-center font-sans select-none transition-opacity duration-400 ease-out ${
+      className={`fixed inset-0 z-[99999] bg-[#14151f] flex flex-col items-center justify-center p-6 select-none transition-opacity duration-350 ease-out ${
         fading ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
-      {/* Centered App Icon Badge with Seamless White Background */}
-      <div className="relative">
-        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-white p-2.5 shadow-2xl shadow-black/40 border-2 border-white/30 flex items-center justify-center relative overflow-hidden">
+      {/* Brand Logo & Title Above */}
+      <div className="flex flex-col items-center mb-6">
+        <div className="w-14 h-14 rounded-2xl bg-white p-1.5 shadow-xl shadow-black/50 border border-white/20 flex items-center justify-center mb-3">
           <img
             src="/logo.png"
             alt="Log Pose TCG Logo"
-            className="w-full h-full object-contain relative z-10 drop-shadow-sm"
+            className="w-full h-full object-contain drop-shadow-sm"
           />
         </div>
+        <h1 className="text-sm font-black text-white tracking-[0.2em] uppercase opacity-90">
+          LOG POSE TCG
+        </h1>
       </div>
 
-      {/* Bold App Title: LOG POSE TCG */}
-      <h1 className="text-2xl sm:text-3xl font-black text-white tracking-wider uppercase mt-6 drop-shadow-sm">
-        LOG POSE TCG
-      </h1>
+      {/* SYNCHRONIZATION Card matching user screenshot exactly */}
+      <div className="w-full max-w-[340px] bg-[#272836] border border-[#37394c]/80 rounded-[22px] px-6 py-5 shadow-2xl text-left transition-all">
+        <h3 className="text-[11px] font-black text-white tracking-[0.14em] uppercase mb-4 opacity-95">
+          SYNCHRONIZATION
+        </h3>
 
-      {/* Circular Rotating Spinner */}
-      <div className="mt-7 flex items-center justify-center">
-        <div className="w-7 h-7 rounded-full border-[3px] border-white/20 border-t-white animate-spin" />
+        <div className="space-y-3.5">
+          {/* Item 1: Database */}
+          <div className="flex items-center gap-3">
+            <StatusIcon status={steps.database} />
+            <span
+              className={`text-[13.5px] transition-colors ${
+                steps.database === 'completed'
+                  ? 'text-slate-200 font-semibold'
+                  : steps.database === 'loading'
+                  ? 'text-white font-bold'
+                  : 'text-slate-400 font-normal'
+              }`}
+            >
+              Database
+            </span>
+          </div>
+
+          {/* Item 2: Your account */}
+          <div className="flex items-center gap-3">
+            <StatusIcon status={steps.account} />
+            <span
+              className={`text-[13.5px] transition-colors ${
+                steps.account === 'completed'
+                  ? 'text-slate-200 font-semibold'
+                  : steps.account === 'loading'
+                  ? 'text-white font-bold'
+                  : 'text-slate-400 font-normal'
+              }`}
+            >
+              Your account
+            </span>
+          </div>
+
+          {/* Item 3: Prices */}
+          <div className="flex items-center gap-3">
+            <StatusIcon status={steps.prices} />
+            <span
+              className={`text-[13.5px] transition-colors ${
+                steps.prices === 'completed'
+                  ? 'text-slate-200 font-semibold'
+                  : steps.prices === 'loading'
+                  ? 'text-white font-bold'
+                  : 'text-slate-400 font-normal'
+              }`}
+            >
+              Prices
+            </span>
+          </div>
+        </div>
       </div>
+    </div>
+  );
+}
 
-      {/* Real-time Status Subtitle */}
-      <p className="mt-6 text-xs sm:text-sm text-gray-300 font-medium text-center max-w-[280px] sm:max-w-xs leading-relaxed transition-all">
-        {syncStep}
-      </p>
+function StatusIcon({ status }: { status: StepStatus }) {
+  if (status === 'completed') {
+    return (
+      <div className="w-[18px] h-[18px] shrink-0 flex items-center justify-center text-[#22c55e]">
+        <svg className="w-full h-full" viewBox="0 0 20 20" fill="none">
+          <circle cx="10" cy="10" r="8.5" stroke="currentColor" strokeWidth="1.6" />
+          <path
+            d="M6.2 10.3L8.8 12.8L13.8 7.5"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+    );
+  }
+
+  if (status === 'loading') {
+    return (
+      <div className="w-[18px] h-[18px] shrink-0 flex items-center justify-center">
+        <div className="w-[16px] h-[16px] rounded-full border-[2px] border-slate-600/40 border-t-white animate-spin" />
+      </div>
+    );
+  }
+
+  // Pending
+  return (
+    <div className="w-[18px] h-[18px] shrink-0 flex items-center justify-center">
+      <div className="w-[16px] h-[16px] rounded-full border-[1.5px] border-slate-600/50" />
     </div>
   );
 }
