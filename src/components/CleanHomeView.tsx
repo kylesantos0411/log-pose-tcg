@@ -69,9 +69,13 @@ export function CleanHomeView({
          ========================================================================= */}
       <div className="flex items-center justify-between px-0.5 pt-1 pb-1">
         <Link href="/" className="group flex items-center gap-2.5">
-          {/* Compass Needle Badge */}
-          <div className="w-8 h-8 rounded-xl bg-[#161822] border border-[#242838] p-1 shadow-sm group-hover:rotate-12 transition-transform duration-300 flex-shrink-0 flex items-center justify-center">
-            <Compass className="w-4 h-4 text-[#e05d68] group-hover:scale-110 transition-transform" />
+          {/* Log Pose TCG Logo Badge */}
+          <div className="w-8 h-8 rounded-xl bg-[#161822] border border-[#242838] p-0.5 shadow-sm group-hover:scale-110 transition-transform duration-300 flex-shrink-0 flex items-center justify-center overflow-hidden">
+            <img
+              src="/logo-transparent.png"
+              alt="Log Pose TCG Logo"
+              className="w-full h-full object-contain"
+            />
           </div>
 
           {/* 3-Color Brand Title */}
