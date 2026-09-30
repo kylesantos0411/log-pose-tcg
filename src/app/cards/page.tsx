@@ -840,10 +840,8 @@ function CardsContent() {
                         )
                       ) : card.yuyuPrice && card.yuyuPrice > 0 ? (
                         formatYuyuPrice(card.yuyuPrice).full
-                      ) : card.marketPrice && card.marketPrice > 0 ? (
-                        formatUsdPrice(card.marketPrice).full
                       ) : (
-                        <span className="text-gray-400">Not Available</span>
+                        <span className="text-gray-400 font-semibold text-[10.5px]">Not Available</span>
                       )}
                     </div>
 

@@ -22,12 +22,12 @@ export async function GET(req: NextRequest) {
       (set && /^HB/i.test(set.trim())) ||
       searchParams.get('isVintage') === 'true';
 
-    // JP-only mode: show cards with Yuyu-tei price for modern, or vintage cards
+    // Show cards with Japanese prints or vintage cards
     const where: any = isVintageQuery
       ? { isVintage: true }
       : {
           OR: [
-            { hasJpPrint: true, yuyuPrice: { not: null, gt: 0 } },
+            { hasJpPrint: true },
             { isVintage: true },
           ],
         };
