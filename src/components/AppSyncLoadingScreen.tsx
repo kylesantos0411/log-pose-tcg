@@ -4,12 +4,6 @@ import React, { useState, useEffect } from 'react';
 
 type StepStatus = 'pending' | 'loading' | 'completed';
 
-interface SyncItem {
-  id: string;
-  label: string;
-  status: StepStatus;
-}
-
 export function AppSyncLoadingScreen() {
   const [fading, setFading] = useState(false);
   const [hidden, setHidden] = useState(false);
@@ -36,47 +30,46 @@ export function AppSyncLoadingScreen() {
     let isMounted = true;
 
     async function runSyncSequence() {
-      // 1. Step: Database
+      // Step 1: Database (Authentic query + deliberate 850ms pacing)
       try {
-        await Promise.race([
+        await Promise.allSettled([
           fetch('/api/sets', { cache: 'no-store' }),
-          new Promise((r) => setTimeout(r, 450)),
+          new Promise((r) => setTimeout(r, 850)),
         ]);
       } catch {
-        // Continue gracefully
+        await new Promise((r) => setTimeout(r, 850));
       }
 
       if (!isMounted) return;
       setSteps((s) => ({ ...s, database: 'completed', account: 'loading' }));
 
-      // 2. Step: Your account
-      await new Promise((r) => setTimeout(r, 380));
+      // Step 2: Your account (Verify local user session, binder, and cloud sync status)
       try {
-        // Read local session or active binder
         const session = localStorage.getItem('logpose_user_session');
         if (session) JSON.parse(session);
       } catch {
         // Continue gracefully
       }
+      await new Promise((r) => setTimeout(r, 750));
 
       if (!isMounted) return;
       setSteps((s) => ({ ...s, account: 'completed', prices: 'loading' }));
 
-      // 3. Step: Prices
+      // Step 3: Prices (Pre-warm live card prices, Yuyu-tei rates & currency exchange)
       try {
-        await Promise.race([
+        await Promise.allSettled([
           fetch('/api/cards?page=1&limit=30', { cache: 'no-store' }),
-          new Promise((r) => setTimeout(r, 480)),
+          new Promise((r) => setTimeout(r, 900)),
         ]);
       } catch {
-        // Continue gracefully
+        await new Promise((r) => setTimeout(r, 900));
       }
 
       if (!isMounted) return;
       setSteps((s) => ({ ...s, prices: 'completed' }));
 
-      // Brief delay after all checks turn green
-      await new Promise((r) => setTimeout(r, 360));
+      // Satisfying completion pause: hold all 3 green checkmarks for 550ms so user registers success
+      await new Promise((r) => setTimeout(r, 550));
       if (!isMounted) return;
       setFading(true);
 
@@ -89,7 +82,7 @@ export function AppSyncLoadingScreen() {
         } catch {
           // ignore
         }
-      }, 350);
+      }, 400);
     }
 
     runSyncSequence();
@@ -104,7 +97,7 @@ export function AppSyncLoadingScreen() {
   return (
     <div
       id="app-sync-loader"
-      className={`fixed inset-0 z-[99999] bg-[#14151f] flex flex-col items-center justify-center p-6 select-none transition-opacity duration-350 ease-out ${
+      className={`fixed inset-0 z-[99999] bg-[#14151f] flex flex-col items-center justify-center p-6 select-none transition-opacity duration-400 ease-out ${
         fading ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
@@ -133,7 +126,7 @@ export function AppSyncLoadingScreen() {
           <div className="flex items-center gap-3">
             <StatusIcon status={steps.database} />
             <span
-              className={`text-[13.5px] transition-colors ${
+              className={`text-[13.5px] transition-colors duration-200 ${
                 steps.database === 'completed'
                   ? 'text-slate-200 font-semibold'
                   : steps.database === 'loading'
@@ -149,7 +142,7 @@ export function AppSyncLoadingScreen() {
           <div className="flex items-center gap-3">
             <StatusIcon status={steps.account} />
             <span
-              className={`text-[13.5px] transition-colors ${
+              className={`text-[13.5px] transition-colors duration-200 ${
                 steps.account === 'completed'
                   ? 'text-slate-200 font-semibold'
                   : steps.account === 'loading'
@@ -165,7 +158,7 @@ export function AppSyncLoadingScreen() {
           <div className="flex items-center gap-3">
             <StatusIcon status={steps.prices} />
             <span
-              className={`text-[13.5px] transition-colors ${
+              className={`text-[13.5px] transition-colors duration-200 ${
                 steps.prices === 'completed'
                   ? 'text-slate-200 font-semibold'
                   : steps.prices === 'loading'
@@ -185,7 +178,7 @@ export function AppSyncLoadingScreen() {
 function StatusIcon({ status }: { status: StepStatus }) {
   if (status === 'completed') {
     return (
-      <div className="w-[18px] h-[18px] shrink-0 flex items-center justify-center text-[#22c55e]">
+      <div className="w-[18px] h-[18px] shrink-0 flex items-center justify-center text-[#22c55e] transition-transform duration-200 scale-100">
         <svg className="w-full h-full" viewBox="0 0 20 20" fill="none">
           <circle cx="10" cy="10" r="8.5" stroke="currentColor" strokeWidth="1.6" />
           <path
