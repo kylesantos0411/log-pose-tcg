@@ -92,6 +92,10 @@ export async function GET(req: NextRequest) {
       ],
     });
 
+    const donCount = await prisma.card.count({
+      where: { category: 'DON!!' },
+    });
+
     const formattedPacks = packs.map((pack) => ({
       id: pack.id,
       code: pack.code || 'SET',
@@ -100,6 +104,17 @@ export async function GET(req: NextRequest) {
       cardsCount: pack._count.cards,
       sampleCards: pack.cards,
     }));
+
+    if (donCount > 0) {
+      formattedPacks.push({
+        id: 'don',
+        code: 'DON',
+        name: 'Don!! Card',
+        seriesType: 'DON!!',
+        cardsCount: donCount,
+        sampleCards: [],
+      });
+    }
 
     return NextResponse.json({
       sets: formattedPacks,

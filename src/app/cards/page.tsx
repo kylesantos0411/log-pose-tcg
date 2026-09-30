@@ -126,7 +126,14 @@ function CardsContent() {
   const sortParam = searchParams.get('sort') || '';
   const initialQuery = searchParams.get('q') || '';
   const initialSet = searchParams.get('set') || 'All';
-  const initialCategory = searchParams.get('category') || 'All';
+  const normalizeCategory = (cat: string) => {
+    if (!cat || cat === 'All') return 'All';
+    if (/^(don|don!|don!!|don!!\s*cards?|don\s*cards?|ドン|ドン!!|ドン!!カード)$/i.test(cat.trim())) {
+      return 'Don!! Card';
+    }
+    return cat;
+  };
+  const initialCategory = normalizeCategory(searchParams.get('category') || 'All');
   const initialRarity = searchParams.get('rarity') || 'All';
   const initialArtist = searchParams.get('artist') || 'All';
 
@@ -190,7 +197,7 @@ function CardsContent() {
     setSelectedArtist(artistParam);
     const setParam = searchParams.get('set') || 'All';
     setSelectedSet(setParam);
-    const categoryParam = searchParams.get('category') || 'All';
+    const categoryParam = normalizeCategory(searchParams.get('category') || 'All');
     setSelectedCategory(categoryParam);
     const rarityParam = searchParams.get('rarity') || 'All';
     setSelectedRarity(rarityParam);

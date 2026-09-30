@@ -150,7 +150,7 @@ const VINTAGE_SETS: YuyuteiSetDefinition[] = [
 ];
 
 const DON_SETS: YuyuteiSetDefinition[] = [
-  { id: 'don', displayCode: 'Don!! Card', title: '', targetSet: 'All', categoryParam: 'DON!!', query: 'DON!!' },
+  { id: 'don', code: 'DON', displayCode: 'Don!! Card', title: '', targetSet: 'All', categoryParam: 'Don!! Card' },
 ];
 
 interface AccordionCategory {

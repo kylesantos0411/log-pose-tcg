@@ -151,8 +151,73 @@ export async function GET(req: NextRequest) {
       const isPureFlagship = /^(flagship|flagships|flagship\s*battle)$/i.test(cleanQ || q.trim());
       const isPureTournament = /^(tournament|tournaments|tournament\s*pack|regional|regionals|treasure\s*cup|championship)$/i.test(cleanQ || q.trim());
       const isPureAnniversary = /^(anniversary|anniv|anniversary\s*set|25th)$/i.test(cleanQ || q.trim());
+      const isPureDon = /^(don|don!|don!!|don!!\s*cards?|don\s*cards?|ドン|ドン!!|ドン!!カード)$/i.test((cleanQ || q).trim());
+      const isCompoundDon = !isPureDon &&
+        !/donquixote|don\s*marlon/i.test(cleanQ || q) &&
+        !/don't/i.test(cleanQ || q) &&
+        /(?:^|\b)(?:don(?:!!?|\s*cards?|!!\s*cards?)?|ドン(?:!!?|カード)?)(?:\b|$)/i.test(cleanQ || q);
 
-      if (isPureParallel) {
+      if (isPureDon) {
+        andConditions.push({
+          OR: [
+            { category: 'DON!!' },
+            { id: { contains: 'DON' } },
+            { name: { startsWith: 'DON!!' } },
+          ],
+        });
+      } else if (isCompoundDon) {
+        const donWordRegex = /(?:^|\b)(?:don(?:!!?|\s*cards?|!!\s*cards?)?|ドン(?:!!?|カード)?)(?:\b|$)/i;
+        const subQuery = (cleanQ || q).replace(donWordRegex, ' ').replace(/\s+/g, ' ').trim();
+
+        andConditions.push({
+          OR: [
+            { category: 'DON!!' },
+            { id: { contains: 'DON' } },
+            { name: { startsWith: 'DON!!' } },
+          ],
+        });
+
+        if (subQuery) {
+          const isParallelSub = /^(parallel|super parallel|alt|alt art|パラレル|スーパーパラレル)$/i.test(subQuery);
+          const isSuperParallelSub = /^(super parallel|スーパーパラレル)$/i.test(subQuery);
+          const isGoldSub = /^(gold|golden|金文字|箔押し)$/i.test(subQuery);
+
+          if (isSuperParallelSub) {
+            andConditions.push({
+              OR: [
+                { name: { contains: 'Super Parallel' } },
+                { promoSource: { contains: 'スーパーパラレル' } },
+              ],
+            });
+          } else if (isParallelSub) {
+            andConditions.push({
+              OR: [
+                { id: { contains: '_p' } },
+                { rarity: 'Special' },
+                { promoSource: { contains: 'Parallel' } },
+                { promoSource: { contains: 'パラレル' } },
+              ],
+            });
+          } else if (isGoldSub) {
+            andConditions.push({
+              OR: [
+                { name: { contains: '金文字' } },
+                { name: { contains: '箔押し' } },
+                { promoSource: { contains: '金文字' } },
+                { promoSource: { contains: '箔押し' } },
+              ],
+            });
+          } else {
+            andConditions.push({
+              OR: [
+                { id: { contains: subQuery } },
+                { name: { contains: subQuery } },
+                { promoSource: { contains: subQuery } },
+              ],
+            });
+          }
+        }
+      } else if (isPureParallel) {
         andConditions.push({ id: { contains: '_p' } });
       } else if (isPurePromo) {
         andConditions.push({
@@ -216,12 +281,16 @@ export async function GET(req: NextRequest) {
         const orFilters: any[] = [
           { id: { contains: searchTerm } },
           { name: { contains: searchTerm } },
-          { types: { contains: searchTerm } },
           { promoSource: { contains: searchTerm } },
           { displaySet: { contains: searchTerm } },
           { vintageSeries: { contains: searchTerm } },
           { vintagePart: { contains: searchTerm } },
         ];
+
+        // Prevent substring bleed: don't match types on 'don'
+        if (!/^(don|don!|don!!)$/i.test(searchTerm.trim())) {
+          orFilters.push({ types: { contains: searchTerm } });
+        }
 
         if (matchedArtistsForTerm.length > 0) {
           orFilters.push({ artistName: { in: matchedArtistsForTerm } });
@@ -245,7 +314,18 @@ export async function GET(req: NextRequest) {
         where.category = 'Event';
       } else if (catLower === 'stage') {
         where.category = 'Stage';
-      } else if (catLower === 'don!! card' || catLower === 'don!!' || catLower === 'don') {
+      } else if (
+        catLower === 'don!! card' ||
+        catLower === 'don!! cards' ||
+        catLower === 'don card' ||
+        catLower === 'don cards' ||
+        catLower === 'don!!' ||
+        catLower === 'don!' ||
+        catLower === 'don' ||
+        catLower === 'ドン' ||
+        catLower === 'ドン!!' ||
+        catLower === 'ドン!!カード'
+      ) {
         where.category = 'DON!!';
       } else if (catLower === 'leader') {
         where.category = 'Leader';
