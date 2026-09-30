@@ -222,34 +222,6 @@ export function CleanHomeView({
         </div>
       </div>
 
-      {/* Admin Mobile & Desktop Control Banner */}
-      {isAdmin && (
-        <Link
-          href="/admin"
-          className="block p-3.5 rounded-2xl bg-[#161318] border border-red-500/30 hover:border-red-500/50 text-white shadow-sm transition active:scale-[0.99] cursor-pointer"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 flex items-center justify-center flex-shrink-0">
-                <ShieldAlert className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-white">Admin Control Center</span>
-                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-red-500/20 text-red-300 border border-red-500/30 uppercase tracking-wider">
-                    CHIEF
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-400 truncate">
-                  Maintenance switch, user bans &amp; market moderation
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="w-4 h-4 text-red-400/80 flex-shrink-0" />
-          </div>
-        </Link>
-      )}
-
       {/* =========================================================================
           3. 6-TILE FEATURE GRID (Responsive: 2 cols on mobile, 3 on tablet, 6 on desktop)
          ========================================================================= */}
