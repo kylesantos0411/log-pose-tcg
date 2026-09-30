@@ -1,0 +1,40 @@
+name: Scheduled Japanese Card Sync
+
+on:
+  schedule:
+    # Run once daily at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync-cards:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: tools/card_pipeline/package.json
+
+      - name: Install Pipeline Dependencies
+        run: |
+          cd tools/card_pipeline
+          npm ci || npm install
+
+      - name: Run Integrity Tests
+        run: |
+          cd tools/card_pipeline
+          npm test
+
+      - name: Execute Live Scheduled Job
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          cd tools/card_pipeline
+          npm run scheduled-sync
