@@ -23,7 +23,6 @@ import { useSettings } from '@/context/SettingsContext';
 
 import { SupportModal } from '@/components/SupportModal';
 import { AccountModal } from '@/components/AccountModal';
-import { LatestCardsSyncModal } from '@/components/LatestCardsSyncModal';
 import { checkIsAdmin, checkIsChiefAdmin } from '@/lib/supabase-sync';
 
 interface CleanHomeViewProps {
@@ -41,7 +40,6 @@ export function CleanHomeView({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
-  const [showLatestSyncModal, setShowLatestSyncModal] = useState(false);
   const [homeSearch, setHomeSearch] = useState('');
 
   const isChiefAdmin = checkIsChiefAdmin(user);
@@ -333,10 +331,9 @@ export function CleanHomeView({
         </Link>
 
         {/* Tile 5: Latest */}
-        <button
-          type="button"
-          onClick={() => setShowLatestSyncModal(true)}
-          className="group rounded-2xl bg-[#141620] hover:bg-[#181b26] border border-[#222533] hover:border-[#2f3548] p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer text-left w-full"
+        <Link
+          href="/cards?sort=latest"
+          className="group rounded-2xl bg-[#141620] hover:bg-[#181b26] border border-[#222533] hover:border-[#2f3548] p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer"
         >
           <div className="flex items-start justify-between">
             <Flame className="w-7 h-7 text-slate-300 group-hover:text-white stroke-[1.8] group-hover:scale-105 transition-transform" />
@@ -350,7 +347,7 @@ export function CleanHomeView({
               Newly added cards
             </p>
           </div>
-        </button>
+        </Link>
 
         {/* Tile 6: Friends */}
         <Link
@@ -417,12 +414,6 @@ export function CleanHomeView({
         isOpen={showAccountModal}
         onClose={() => setShowAccountModal(false)}
         defaultTab="register"
-      />
-
-      {/* Latest Released Cards Interactive Sync Modal */}
-      <LatestCardsSyncModal
-        isOpen={showLatestSyncModal}
-        onClose={() => setShowLatestSyncModal(false)}
       />
     </div>
   );
