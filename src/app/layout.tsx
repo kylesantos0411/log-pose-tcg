@@ -4,6 +4,7 @@ import { Providers } from '@/components/Providers';
 import { AppShell } from '@/components/AppShell';
 import { AppSyncLoadingScreen } from '@/components/AppSyncLoadingScreen';
 import { InstallAppPrompt } from '@/components/InstallAppPrompt';
+import { MobileOnlyDesktopGuard } from '@/components/MobileOnlyDesktopGuard';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -57,6 +58,7 @@ export default function RootLayout({
       </head>
       <body className="bg-[#0e1017] text-[#f8fafc] antialiased min-h-screen selection:bg-[#e05d68] selection:text-white overflow-x-hidden">
         <Providers>
+          <MobileOnlyDesktopGuard />
           <AppSyncLoadingScreen />
           <InstallAppPrompt />
           <AppShell>{children}</AppShell>
@@ -65,3 +67,4 @@ export default function RootLayout({
     </html>
   );
 }
+

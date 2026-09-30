@@ -84,13 +84,14 @@ export function LatestCardsSyncModal({ isOpen, onClose }: LatestCardsSyncModalPr
         <X className="w-5 h-5" />
       </button>
 
-      {/* Centered App Icon Badge with Seamless White Background */}
+      {/* Centered App Logo */}
       <div className="relative">
-        <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-white p-2.5 shadow-2xl shadow-black/40 border-2 border-white/30 flex items-center justify-center relative overflow-hidden">
+        <div className="w-24 h-24 sm:w-28 sm:h-28 flex items-center justify-center relative">
+          <div className="absolute inset-0 bg-blue-500/10 blur-2xl rounded-full scale-110 pointer-events-none" />
           <img
-            src="/logo.png"
+            src="/logo-transparent.png"
             alt="Log Pose TCG Logo"
-            className="w-full h-full object-contain relative z-10 drop-shadow-sm"
+            className="w-full h-full object-contain relative z-10 drop-shadow-[0_10px_25px_rgba(0,0,0,0.6)] select-none pointer-events-none"
           />
         </div>
       </div>

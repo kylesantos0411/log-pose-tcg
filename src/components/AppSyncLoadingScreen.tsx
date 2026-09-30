@@ -99,18 +99,16 @@ export function AppSyncLoadingScreen() {
         fading ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
-      {/* Brand Logo & Name */}
-      <div className="flex flex-col items-center mb-7 animate-fade-in">
-        <div className="w-14 h-14 rounded-2xl bg-white p-1.5 shadow-2xl shadow-black/60 border border-white/20 flex items-center justify-center mb-3">
+      {/* Brand Logo */}
+      <div className="flex flex-col items-center mb-6">
+        <div className="relative w-28 h-28 flex items-center justify-center">
+          <div className="absolute inset-0 bg-blue-500/10 blur-2xl rounded-full scale-110 pointer-events-none" />
           <img
-            src="/logo.png"
+            src="/logo-transparent.png"
             alt="Log Pose TCG Logo"
-            className="w-full h-full object-contain drop-shadow-sm"
+            className="w-full h-full object-contain drop-shadow-[0_12px_28px_rgba(0,0,0,0.65)] relative z-10 select-none pointer-events-none"
           />
         </div>
-        <h1 className="text-[13px] font-black text-white tracking-[0.22em] uppercase opacity-90">
-          LOG POSE TCG
-        </h1>
       </div>
 
       {/* SYNCHRONIZATION Card matching user screenshot exactly */}

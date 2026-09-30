@@ -197,11 +197,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           href="/"
           className="h-16 flex items-center gap-3 px-6 border-b border-[#1e222e] hover:bg-[#161823]/60 transition group cursor-pointer"
         >
-          <div className="w-10 h-10 rounded-xl overflow-hidden bg-white shadow-md flex items-center justify-center p-0.5 border border-[#262b3a] group-hover:scale-105 transition-transform flex-shrink-0">
+          <div className="w-10 h-10 rounded-xl overflow-hidden bg-[#181b24] shadow-md flex items-center justify-center p-1 border border-[#262b3a] group-hover:scale-105 transition-transform flex-shrink-0">
             <img
-              src="/logo.png"
+              src="/logo-transparent.png"
               alt="Log Pose TCG"
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain drop-shadow"
             />
           </div>
           <div className="flex flex-col">
