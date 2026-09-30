@@ -406,18 +406,6 @@ export function CleanHomeView({
         </div>
       </div>
 
-      {/* =========================================================================
-          6. DEVELOPER CREDIT FOOTER
-         ========================================================================= */}
-      <div className="pt-2 pb-6 flex flex-col items-center justify-center gap-1 text-center select-none">
-        <p className="text-xs text-slate-500 font-medium tracking-wide">
-          Developed by <span className="text-slate-300 font-semibold hover:text-[#e05d68] transition-colors">Kyle Santos</span>
-        </p>
-        <p className="text-[10px] text-slate-600 tracking-widest uppercase font-semibold">
-          LOG POSE TCG
-        </p>
-      </div>
-
       {/* Dedicated Server Donation & Maintenance Modal */}
       <SupportModal
         isOpen={showSupportModal}

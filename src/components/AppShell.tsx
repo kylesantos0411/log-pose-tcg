@@ -392,7 +392,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <GlobalAnnouncementBanner announcement={systemSettings.announcement} />
 
         {/* Main Viewport Content */}
-        <main className="flex-1 p-2.5 sm:p-6 md:p-8 max-w-7xl w-full mx-auto pb-8 min-w-0">
+        <main className="flex-1 p-2.5 sm:p-6 md:p-8 max-w-7xl w-full mx-auto pb-4 min-w-0">
           {!isAdmin && isCurrentFeatureLocked ? (
             <FeatureLockedScreen
               featureKey={currentFeatureKey!}
@@ -404,6 +404,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             children
           )}
         </main>
+
+        {/* Global Developer Credit Footer across all screens */}
+        <footer className="w-full py-6 pb-12 flex flex-col items-center justify-center gap-1 text-center select-none mt-auto">
+          <p className="text-xs text-slate-400 font-medium tracking-wide">
+            Developed by{' '}
+            <span className="text-white font-bold hover:text-[#e05d68] transition-colors">
+              Kyle Santos
+            </span>
+          </p>
+          <p className="text-[10.5px] text-slate-500 tracking-[0.22em] uppercase font-bold">
+            LOG POSE TCG
+          </p>
+        </footer>
 
         {/* Mobile Floating Admin Shortcut (Mobile phones only, when logged in as Admin) */}
         {isAdmin && pathname !== '/admin' && (
