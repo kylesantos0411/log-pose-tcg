@@ -21,7 +21,8 @@ import {
   Database,
   ShieldCheck,
   ShieldAlert,
-  Globe
+  Globe,
+  RefreshCw
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSettings, CURRENCIES, CurrencyCode } from '@/context/SettingsContext';
@@ -34,6 +35,10 @@ export function SettingsModal() {
   const { 
     currency, 
     setCurrency, 
+    exchangeRates,
+    exchangeRatesLastUpdated,
+    refreshExchangeRates,
+    isRefreshingRates,
     altArtStyle, 
     setAltArtStyle, 
     isSettingsOpen, 
@@ -220,8 +225,40 @@ export function SettingsModal() {
                 <Coins className="w-3.5 h-3.5 text-blue-400" />
                 Market Currency Display
               </span>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-[#141620] text-slate-300 border border-[#282d3e]">
-                Active: {currency === 'source' ? 'Source Native' : currency}
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={isRefreshingRates}
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    await refreshExchangeRates();
+                    showToast('Exchange rates synced to live daily forex');
+                  }}
+                  className="px-2 py-0.5 rounded-md bg-[#141620] hover:bg-[#1f2333] border border-[#282d3e] text-[10px] text-slate-400 hover:text-white flex items-center gap-1 transition cursor-pointer"
+                  title="Refresh everyday forex exchange rates"
+                >
+                  <RefreshCw className={`w-2.5 h-2.5 ${isRefreshingRates ? 'animate-spin text-emerald-400' : 'text-slate-400'}`} />
+                  <span>{isRefreshingRates ? 'Syncing...' : 'Sync Rates'}</span>
+                </button>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-[#141620] text-slate-300 border border-[#282d3e]">
+                  Active: {currency === 'source' ? 'Source Native' : currency}
+                </span>
+              </div>
+            </div>
+
+            {/* Live Exchange Rate Status Banner */}
+            <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-300">
+              <div className="flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span className="font-semibold">Live Everyday Rates Active</span>
+              </div>
+              <span className="text-emerald-400/80 font-mono text-[9px]">
+                {exchangeRatesLastUpdated 
+                  ? new Date(exchangeRatesLastUpdated).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                  : 'Daily Sync'}
               </span>
             </div>
 
@@ -266,6 +303,7 @@ export function SettingsModal() {
                 .map((code) => {
                   const item = CURRENCIES[code];
                   const isSelected = currency === code;
+                  const liveRate = exchangeRates?.[code];
 
                   return (
                     <button
@@ -288,6 +326,16 @@ export function SettingsModal() {
                           <div className="text-[10px] text-slate-400 truncate">
                             {item.name}
                           </div>
+                          {code !== 'USD' && liveRate && (
+                            <div className="text-[9px] font-mono text-emerald-400/90 font-medium">
+                              1 USD = {item.symbol}{liveRate.toFixed(code === 'JPY' ? 1 : 2)}
+                            </div>
+                          )}
+                          {code === 'USD' && (
+                            <div className="text-[9px] font-mono text-slate-400 font-medium">
+                              Base Forex ($1.00)
+                            </div>
+                          )}
                         </div>
                       </div>
 

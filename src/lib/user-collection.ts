@@ -2,6 +2,7 @@
 
 import { syncCardToCloud, removeCardFromCloud, recordCloudSale, undoCloudSale, editCloudSale } from './supabase-sync';
 import { getActiveSession } from './user-accounts';
+import { getCachedExchangeRates, type ExchangeRatesMap } from './exchange-rates';
 
 export interface LocalUserCard {
   id: string; // unique record id
@@ -534,9 +535,11 @@ export function editCardSale(
   return current;
 }
 
-export function getLocalBinderStats(cards: LocalUserCard[]) {
+export function getLocalBinderStats(cards: LocalUserCard[], rates?: ExchangeRatesMap) {
   // Only calculate active collection stats for cards currently OWNED
   const ownedCards = cards.filter((c) => c.status !== 'SOLD');
+  const activeRates = rates || getCachedExchangeRates();
+  const jpyRate = activeRates.JPY || 157.30;
 
   let totalCardsCount = 0;
   let totalEstimatedValue = 0;
@@ -552,7 +555,7 @@ export function getLocalBinderStats(cards: LocalUserCard[]) {
     const isJp = uc.language === 'jp';
 
     const unitPriceUsd = isJp
-      ? (uc.card.yuyuPrice ? uc.card.yuyuPrice / 152.0 : (uc.card.marketPrice || 0))
+      ? (uc.card.yuyuPrice ? uc.card.yuyuPrice / jpyRate : (uc.card.marketPrice || 0))
       : (uc.card.marketPrice || 0);
 
     const buyPriceUsd = uc.purchasePrice !== null && uc.purchasePrice !== undefined
@@ -586,8 +589,11 @@ export function getLocalBinderStats(cards: LocalUserCard[]) {
   };
 }
 
-export function getSoldStats(cards: LocalUserCard[]) {
+export function getSoldStats(cards: LocalUserCard[], rates?: ExchangeRatesMap) {
   const soldCards = cards.filter((c) => c.status === 'SOLD');
+  const activeRates = rates || getCachedExchangeRates();
+  const phpRate = activeRates.PHP || 62.75;
+  const jpyRate = activeRates.JPY || 157.30;
 
   let totalSoldCardsCount = 0;
   let totalRevenuePHP = 0;
@@ -605,10 +611,10 @@ export function getSoldStats(cards: LocalUserCard[]) {
 
     if (currency === 'PHP') {
       totalRevenuePHP += price;
-      totalRevenueNormalizedUsd += price / 57.5;
+      totalRevenueNormalizedUsd += price / phpRate;
     } else if (currency === 'JPY') {
       totalRevenueJPY += price;
-      totalRevenueNormalizedUsd += price / 152.0;
+      totalRevenueNormalizedUsd += price / jpyRate;
     } else {
       totalRevenueUSD += price;
       totalRevenueNormalizedUsd += price;

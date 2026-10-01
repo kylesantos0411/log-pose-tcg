@@ -160,8 +160,12 @@ export function CardDetailView({
     formatCard,
     enabledPriceSources,
     togglePriceSource,
-    user
+    user,
+    exchangeRates
   } = useSettings();
+
+  const liveJpyRate = exchangeRates?.JPY || 157.30;
+  const livePhpRate = exchangeRates?.PHP || 62.75;
 
   // Active language and variants state
   const [selectedLang, setSelectedLang] = useState<'en' | 'jp'>('jp');
@@ -305,10 +309,10 @@ export function CardDetailView({
       benchmarkInCurrency =
         currency === 'JPY'
           ? card.yuyuPrice
-          : Math.round((card.yuyuPrice / 152) * (currency === 'PHP' ? 57.5 : 1));
+          : Math.round((card.yuyuPrice / liveJpyRate) * (currency === 'PHP' ? livePhpRate : 1));
     } else if (card.marketPrice) {
       benchmarkInCurrency =
-        Math.round(card.marketPrice * (currency === 'PHP' ? 57.5 : currency === 'JPY' ? 152 : 1));
+        Math.round(card.marketPrice * (currency === 'PHP' ? livePhpRate : currency === 'JPY' ? liveJpyRate : 1));
     }
 
     // 2. Exclude flagged sales (>= 3 flags or reported by current user)
@@ -457,7 +461,7 @@ export function CardDetailView({
   const hasYuyuPrice = Boolean(card.yuyuPrice && card.yuyuPrice > 0);
   const yuyuteiYen = hasYuyuPrice ? Math.round(card.yuyuPrice!) : 0;
   const yuyuteiYenChange = Math.round(yuyuteiYen * 0.0274);
-  const convertedYuyuYen = hasYuyuPrice ? (card.yuyuPrice! / 152) : 0;
+  const convertedYuyuYen = hasYuyuPrice ? (card.yuyuPrice! / liveJpyRate) : 0;
   const convertedYuyuYenChange = convertedYuyuYen * 0.0274;
 
   // Vintage Card Detection and Sales Data
@@ -501,7 +505,7 @@ export function CardDetailView({
   const snkrdunkCondition: 'A' | 'B' | 'C' | 'D' | null = snkrdunkPricing?.rawCondition ?? null;
   const snkrdunkGradedOnly: boolean = Boolean(snkrdunkPricing?.hasGradedOnly);
   const snkrdunkActivePrice: number | null = snkrdunkRawYen ?? snkrdunkRawLowest ?? null;
-  const snkrdunkRawUsd: number | null = snkrdunkActivePrice ? snkrdunkActivePrice / 152 : null;
+  const snkrdunkRawUsd: number | null = snkrdunkActivePrice ? snkrdunkActivePrice / liveJpyRate : null;
   const snkrdunkUrl = snkrdunkPricing?.url || `https://snkrdunk.com/search?keywords=${encodeURIComponent(card.cardNumber || card.id.split('_')[0])}`;
 
   // All graded card prices are sourced exclusively from SNKRDUNK
@@ -516,7 +520,7 @@ export function CardDetailView({
   const snkrdunkCgc10: number | null = snkrdunkPricing?.cgc10 ?? null;
 
   // Sourced from SNKRDUNK PSA 10 (or fallback if pending)
-  const psaPrice = snkrdunkPsa10 ? Math.round((snkrdunkPsa10 / 152) * 100) / 100 : Math.round(cardmarketPrice * 2.85 * 100) / 100;
+  const psaPrice = snkrdunkPsa10 ? Math.round((snkrdunkPsa10 / liveJpyRate) * 100) / 100 : Math.round(cardmarketPrice * 2.85 * 100) / 100;
 
   // Chart scaling dynamically adapted to enabled sources
   let activeMaxPrice = 10;
@@ -528,7 +532,7 @@ export function CardDetailView({
     if (enabledPriceSources.psa) activeMaxPrice = Math.max(activeMaxPrice, psaPrice);
     if (enabledPriceSources.ebay) activeMaxPrice = Math.max(activeMaxPrice, ebayPrice);
     if (enabledPriceSources.cardmarket) activeMaxPrice = Math.max(activeMaxPrice, cardmarketPrice);
-    if (enabledPriceSources.yuyutei && hasYuyuPrice) activeMaxPrice = Math.max(activeMaxPrice, Math.round(yuyuteiYen / 152));
+    if (enabledPriceSources.yuyutei && hasYuyuPrice) activeMaxPrice = Math.max(activeMaxPrice, Math.round(yuyuteiYen / liveJpyRate));
     if (enabledPriceSources.snkrdunk && snkrdunkRawUsd) activeMaxPrice = Math.max(activeMaxPrice, snkrdunkRawUsd);
   }
   const maxChartVal = isVintage
@@ -718,7 +722,7 @@ export function CardDetailView({
       ];
     }
 
-    const snkVal = snkrdunkRawUsd !== null ? snkrdunkRawUsd : (snkrdunkRawYen ? snkrdunkRawYen / 152 : (hasYuyuPrice ? yuyuteiYen / 152 : (cardmarketPrice || basePrice)));
+    const snkVal = snkrdunkRawUsd !== null ? snkrdunkRawUsd : (snkrdunkRawYen ? snkrdunkRawYen / liveJpyRate : (hasYuyuPrice ? yuyuteiYen / liveJpyRate : (cardmarketPrice || basePrice)));
     if (timeframe === '7D') {
       const dates = ['09/15', '09/16', '09/17', '09/18', '09/19', '09/20', '09/21'];
       return [
@@ -2219,7 +2223,7 @@ export function CardDetailView({
                       {/* Blue line: Yuyu-tei */}
                       {!isVintage && enabledPriceSources.yuyutei && hasYuyuPrice && (
                         <path
-                          d={getSvgPath((d) => Math.round(d.yuyuYen / 152))}
+                          d={getSvgPath((d) => Math.round(d.yuyuYen / liveJpyRate))}
                           fill="none"
                           stroke="#2563eb"
                           strokeWidth="1.2"
@@ -2326,7 +2330,7 @@ export function CardDetailView({
                           {!isVintage && enabledPriceSources.yuyutei && hasYuyuPrice && (
                             <circle
                               cx={(hoverIndex / (currentSeries.length - 1)) * 320}
-                              cy={Math.max(8, Math.min(115, Math.round(115 - (Math.round(currentSeries[hoverIndex].yuyuYen / 152) / maxChartVal) * 105)))}
+                              cy={Math.max(8, Math.min(115, Math.round(115 - (Math.round(currentSeries[hoverIndex].yuyuYen / liveJpyRate) / maxChartVal) * 105)))}
                               r="3.5"
                               fill="#2563eb"
                               stroke="#ffffff"
@@ -2376,7 +2380,7 @@ export function CardDetailView({
                             )}
                             {enabledPriceSources.yuyutei && (
                               <div className="text-blue-400">
-                                Yuyu: {hasYuyuPrice ? formatPrice(Math.round(currentSeries[hoverIndex].yuyuYen / 152)).full : 'Not Available'}
+                                Yuyu: {hasYuyuPrice ? formatPrice(Math.round(currentSeries[hoverIndex].yuyuYen / liveJpyRate)).full : 'Not Available'}
                               </div>
                             )}
                           </div>
@@ -2724,7 +2728,7 @@ export function CardDetailView({
                   const featImg = getEditionCardImageUrl(feat.id, selectedLang, feat.imageUrl);
                   const displayName = feat.name;
                   const rarity = feat.rarity || 'Special';
-                  const price = feat.yuyuPrice ? (feat.yuyuPrice / 152) : (feat.marketPrice || 25);
+                  const price = feat.yuyuPrice ? (feat.yuyuPrice / liveJpyRate) : (feat.marketPrice || 25);
 
                   return (
                     <div
@@ -2840,7 +2844,7 @@ export function CardDetailView({
                 <line x1="0" y1="30" x2="300" y2="30" stroke="#2a2d3c" strokeDasharray="2 2" />
                 <line x1="0" y1="60" x2="300" y2="60" stroke="#2a2d3c" strokeDasharray="2 2" />
                 <line x1="0" y1="90" x2="300" y2="90" stroke="#2a2d3c" strokeDasharray="2 2" />
-                {hasYuyuPrice && <path d={getSvgPath((d) => Math.round(d.yuyuYen / 152))} fill="none" stroke="#3b82f6" strokeWidth="1.5" />}
+                {hasYuyuPrice && <path d={getSvgPath((d) => Math.round(d.yuyuYen / liveJpyRate))} fill="none" stroke="#3b82f6" strokeWidth="1.5" />}
                 <path d={getSvgPath((d) => d.cardmarket)} fill="none" stroke="#0284c7" strokeWidth="1.5" />
                 <path d={getSvgPath((d) => d.ebay)} fill="none" stroke="#84cc16" strokeWidth="1.5" />
                 <path d={getSvgPath((d) => d.snkrdunk || 0)} fill="none" stroke="#10b981" strokeWidth="1.5" />

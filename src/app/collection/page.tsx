@@ -65,7 +65,7 @@ import {
 interface UserCardRecord extends LocalUserCard {}
 
 export default function CollectionPage() {
-  const { currency, formatPrice, formatYuyuPrice, openSettings, formatCard, user, logout } = useSettings();
+  const { currency, formatPrice, formatYuyuPrice, openSettings, formatCard, user, logout, exchangeRates } = useSettings();
   const isAdmin = checkIsAdmin(user);
   const [systemSettings, setSystemSettings] = useState<SystemSettingsState>(DEFAULT_SYSTEM_SETTINGS);
 
@@ -204,24 +204,26 @@ export default function CollectionPage() {
   const ownedItems = useMemo(() => items.filter((it) => it.status !== 'SOLD'), [items]);
   const soldItems = useMemo(() => items.filter((it) => it.status === 'SOLD'), [items]);
 
-  // Stats calculation
-  const portfolioStats = useMemo(() => (ownedItems.length > 0 ? getLocalBinderStats(ownedItems) : null), [ownedItems]);
-  const soldStats = useMemo(() => (soldItems.length > 0 ? getSoldStats(soldItems) : null), [soldItems]);
+  // Stats calculation using real-time everyday rates
+  const portfolioStats = useMemo(() => (ownedItems.length > 0 ? getLocalBinderStats(ownedItems, exchangeRates) : null), [ownedItems, exchangeRates]);
+  const soldStats = useMemo(() => (soldItems.length > 0 ? getSoldStats(soldItems, exchangeRates) : null), [soldItems, exchangeRates]);
 
-  // Calculate benchmark in active soldCurrency for outlier warning
+  // Calculate benchmark in active soldCurrency for outlier warning using everyday rates
   const suggestedBenchmark = useMemo(() => {
     if (!sellingItem?.card) return null;
     const c = sellingItem.card;
+    const jpyRate = exchangeRates?.JPY || 157.30;
+    const phpRate = exchangeRates?.PHP || 62.75;
     if (c.yuyuPrice) {
-      return soldCurrency === 'JPY'
-        ? c.yuyuPrice
-        : Math.round((c.yuyuPrice / 152) * (soldCurrency === 'PHP' ? 57.5 : 1));
+      if (soldCurrency === 'JPY') return c.yuyuPrice;
+      const usd = c.yuyuPrice / jpyRate;
+      return Math.round(usd * (soldCurrency === 'PHP' ? phpRate : 1));
     }
     if (c.marketPrice) {
-      return Math.round(c.marketPrice * (soldCurrency === 'PHP' ? 57.5 : soldCurrency === 'JPY' ? 152 : 1));
+      return Math.round(c.marketPrice * (soldCurrency === 'PHP' ? phpRate : soldCurrency === 'JPY' ? jpyRate : 1));
     }
     return null;
-  }, [sellingItem, soldCurrency]);
+  }, [sellingItem, soldCurrency, exchangeRates]);
 
   const isOutlierPrice = useMemo(() => {
     const num = parseFloat(soldPrice);
@@ -240,13 +242,15 @@ export default function CollectionPage() {
   function handleOpenSellModal(item: UserCardRecord) {
     setSellingItem(item);
     setSellStep('form');
-    // Pre-fill suggested market price if available
+    // Pre-fill suggested market price if available using live everyday rates
+    const jpyRate = exchangeRates?.JPY || 157.30;
+    const phpRate = exchangeRates?.PHP || 62.75;
     const initialPrice = item.card.yuyuPrice
       ? soldCurrency === 'JPY'
         ? item.card.yuyuPrice.toString()
-        : Math.round((item.card.yuyuPrice / 152) * (soldCurrency === 'PHP' ? 57.5 : 1)).toString()
+        : Math.round((item.card.yuyuPrice / jpyRate) * (soldCurrency === 'PHP' ? phpRate : 1)).toString()
       : item.card.marketPrice
-      ? Math.round(item.card.marketPrice * (soldCurrency === 'PHP' ? 57.5 : soldCurrency === 'JPY' ? 152 : 1)).toString()
+      ? Math.round(item.card.marketPrice * (soldCurrency === 'PHP' ? phpRate : soldCurrency === 'JPY' ? jpyRate : 1)).toString()
       : '';
     setSoldPrice(initialPrice);
     setSoldQuantity(1);

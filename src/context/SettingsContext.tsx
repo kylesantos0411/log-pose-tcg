@@ -39,6 +39,14 @@ import {
   checkIsAdmin,
   touchUserActivity
 } from '@/lib/supabase-sync';
+import {
+  DEFAULT_EXCHANGE_RATES,
+  getCachedExchangeRates,
+  getCachedRatesUpdatedAt,
+  fetchLiveExchangeRates,
+  type ExchangeRatesMap,
+  type SupportedCurrency,
+} from '@/lib/exchange-rates';
 
 export const BETA_INVITE_CODES = [
   // Original batch (15)
@@ -126,8 +134,8 @@ export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
     name: 'Japanese Yen',
     symbol: '¥',
     flag: '🇯🇵',
-    rateToUSD: 152.0,
-    description: 'Official Bandai Japanese card game currency (used by Yuyu-tei)',
+    rateToUSD: DEFAULT_EXCHANGE_RATES.JPY,
+    description: 'Official Bandai Japanese card game currency (used by Yuyu-tei & SNKRDUNK)',
   },
   EUR: {
     code: 'EUR',
@@ -135,7 +143,7 @@ export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
     name: 'Euro',
     symbol: '€',
     flag: '🇪🇺',
-    rateToUSD: 0.92,
+    rateToUSD: DEFAULT_EXCHANGE_RATES.EUR,
     description: 'European Union domestic pricing',
   },
   GBP: {
@@ -144,7 +152,7 @@ export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
     name: 'British Pound',
     symbol: '£',
     flag: '🇬🇧',
-    rateToUSD: 0.78,
+    rateToUSD: DEFAULT_EXCHANGE_RATES.GBP,
     description: 'United Kingdom domestic pricing',
   },
   CAD: {
@@ -153,7 +161,7 @@ export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
     name: 'Canadian Dollar',
     symbol: 'C$',
     flag: '🇨🇦',
-    rateToUSD: 1.36,
+    rateToUSD: DEFAULT_EXCHANGE_RATES.CAD,
     description: 'Canadian domestic pricing',
   },
   AUD: {
@@ -162,7 +170,7 @@ export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
     name: 'Australian Dollar',
     symbol: 'A$',
     flag: '🇦🇺',
-    rateToUSD: 1.52,
+    rateToUSD: DEFAULT_EXCHANGE_RATES.AUD,
     description: 'Oceania & Australian domestic pricing',
   },
   SGD: {
@@ -171,7 +179,7 @@ export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
     name: 'Singapore Dollar',
     symbol: 'S$',
     flag: '🇸🇬',
-    rateToUSD: 1.32,
+    rateToUSD: DEFAULT_EXCHANGE_RATES.SGD,
     description: 'Southeast Asia benchmark pricing',
   },
   PHP: {
@@ -180,7 +188,7 @@ export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
     name: 'Philippine Peso',
     symbol: '₱',
     flag: '🇵🇭',
-    rateToUSD: 57.5,
+    rateToUSD: DEFAULT_EXCHANGE_RATES.PHP,
     description: 'Philippine card community pricing',
   },
 };
@@ -213,6 +221,10 @@ export function generateCollectorTag(name: string): string {
 interface SettingsContextType {
   currency: CurrencyCode;
   setCurrency: (currency: CurrencyCode) => void;
+  exchangeRates: ExchangeRatesMap;
+  exchangeRatesLastUpdated: string | null;
+  refreshExchangeRates: () => Promise<void>;
+  isRefreshingRates: boolean;
   altArtStyle: AltArtLabelStyle;
   setAltArtStyle: (style: AltArtLabelStyle) => void;
   enabledPriceSources: EnabledPriceSources;
@@ -314,8 +326,36 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
+  // Real-Time Everyday Exchange Rates
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRatesMap>(() => getCachedExchangeRates());
+  const [exchangeRatesLastUpdated, setExchangeRatesLastUpdated] = useState<string | null>(() => getCachedRatesUpdatedAt());
+  const [isRefreshingRates, setIsRefreshingRates] = useState(false);
+
+  const refreshExchangeRates = async () => {
+    setIsRefreshingRates(true);
+    try {
+      const res = await fetchLiveExchangeRates();
+      setExchangeRates(res.rates);
+      setExchangeRatesLastUpdated(res.updatedAt);
+    } catch (err) {
+      console.warn('Failed to refresh live exchange rates:', err);
+    } finally {
+      setIsRefreshingRates(false);
+    }
+  };
+
   useEffect(() => {
     setIsMounted(true);
+    // Background refresh of everyday real-time rates
+    refreshExchangeRates();
+
+    const handleRatesUpdate = (e: any) => {
+      if (e.detail?.rates) {
+        setExchangeRates(e.detail.rates);
+        if (e.detail.updatedAt) setExchangeRatesLastUpdated(e.detail.updatedAt);
+      }
+    };
+    window.addEventListener('logpose_rates_updated', handleRatesUpdate);
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const currParam = urlParams.get('currency') || urlParams.get('curr');
@@ -426,6 +466,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener('logpose_auth_changed', handleAuthChange);
     return () => {
       window.removeEventListener('logpose_auth_changed', handleAuthChange);
+      window.removeEventListener('logpose_rates_updated', handleRatesUpdate);
       if (authUnsubscribe) authUnsubscribe();
     };
   }, []);
@@ -1103,6 +1144,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     setAccountsState([]);
   };
 
+  const getRate = (code: CurrencyCode): number => {
+    if (code === 'source' || code === 'USD') return 1.0;
+    return exchangeRates[code as SupportedCurrency] || CURRENCIES[code]?.rateToUSD || 1.0;
+  };
+
   const convertPrice = (
     amountUSD: number,
     targetCurrency?: CurrencyCode,
@@ -1112,18 +1158,18 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
     if (activeCurr === 'source') {
       if (source === 'yuyutei' || source === 'snkrdunk') {
-        // Japanese marketplace native is JPY
-        return Math.round(amountUSD * 0.92 * 152);
+        const jpyRate = getRate('JPY');
+        return Math.round(amountUSD * jpyRate);
       }
       if (source === 'cardmarket') {
-        // Cardmarket native is EUR
-        return Math.round(amountUSD * 0.92 * 100) / 100;
+        const eurRate = getRate('EUR');
+        return Math.round(amountUSD * eurRate * 100) / 100;
       }
       return amountUSD;
     }
 
-    const config = CURRENCIES[activeCurr] || CURRENCIES.USD;
-    return amountUSD * config.rateToUSD;
+    const rate = getRate(activeCurr);
+    return amountUSD * rate;
   };
 
   const formatPrice = (
@@ -1138,6 +1184,8 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const source = options?.source || 'generic';
     const lang = options?.lang || 'jp';
     const decimals = options?.decimals;
+    const jpyRate = getRate('JPY');
+    const eurRate = getRate('EUR');
 
     // If rawJPY was supplied for yuyutei/snkrdunk source or japanese language
     if (options?.rawJPY !== undefined && (source === 'yuyutei' || source === 'snkrdunk' || lang === 'jp')) {
@@ -1147,7 +1195,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     // 1. If Currency is set to 'source' (Default):
     if (currency === 'source') {
       if (source === 'yuyutei' || source === 'snkrdunk') {
-        const yenVal = options?.rawJPY !== undefined ? Math.round(options.rawJPY) : Math.round(amountUSD * 152);
+        const yenVal = options?.rawJPY !== undefined ? Math.round(options.rawJPY) : Math.round(amountUSD * jpyRate);
         return {
           symbol: '¥',
           value: yenVal,
@@ -1158,7 +1206,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (source === 'cardmarket') {
-        const eurVal = Math.round(amountUSD * 0.92 * 100) / 100;
+        const eurVal = Math.round(amountUSD * eurRate * 100) / 100;
         return {
           symbol: '€',
           value: eurVal,
@@ -1175,7 +1223,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (source === 'generic' && lang === 'jp') {
-        const yenVal = options?.rawJPY !== undefined ? Math.round(options.rawJPY) : Math.round(amountUSD * 152);
+        const yenVal = options?.rawJPY !== undefined ? Math.round(options.rawJPY) : Math.round(amountUSD * jpyRate);
         return {
           symbol: '¥',
           value: yenVal,
@@ -1210,11 +1258,12 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     // If computing for Yuyu-tei or SNKRDUNK specifically when converting to another currency
     if (source === 'yuyutei' || source === 'snkrdunk') {
       if (options?.rawJPY !== undefined) {
-        baseUsd = options.rawJPY * JPY_TO_USD;
+        baseUsd = options.rawJPY / jpyRate;
       }
     }
 
-    const convertedVal = baseUsd * config.rateToUSD;
+    const targetRate = getRate(currency);
+    const convertedVal = baseUsd * targetRate;
 
     if (currency === 'JPY') {
       const yen = Math.round(convertedVal);
@@ -1243,21 +1292,20 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   };
 
   /**
-   * formatYuyuPrice — converts a raw Yuyu-tei JPY price to the user's selected currency.
+   * formatYuyuPrice — converts a raw Yuyu-tei JPY price to the user's selected currency using everyday rates.
    * Source of truth: yuyuPrice field in the DB (already in JPY ¥).
-   * JPY → user currency without any lossy intermediate conversion.
    */
-  const JPY_TO_USD = 1 / 152.0; // 1 JPY = 0.00657 USD
-
   const formatYuyuPrice = (yenAmount: number): FormattedPriceResult => {
     if (currency === 'source' || currency === 'JPY') {
       const yen = Math.round(yenAmount);
       return { symbol: '¥', value: yen, formatted: yen.toLocaleString(), full: `¥${yen.toLocaleString()}`, currencyCode: 'JPY' };
     }
-    // Convert JPY → target currency via USD pivot
-    const usd = yenAmount * JPY_TO_USD;
+    // Convert JPY → target currency via live daily rate
+    const jpyRate = getRate('JPY');
+    const usd = yenAmount / jpyRate;
+    const targetRate = getRate(currency);
     const config = CURRENCIES[currency] || CURRENCIES.USD;
-    const converted = usd * config.rateToUSD;
+    const converted = usd * targetRate;
     const dec = (currency === 'PHP' || converted >= 100) ? 0 : 2;
     const formatted = converted.toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec });
     return { symbol: config.symbol, value: converted, formatted, full: `${config.symbol}${formatted}`, currencyCode: config.code };
@@ -1265,7 +1313,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
   /**
    * formatUsdPrice — converts a raw USD market price (Cardmarket / eBay / PSA) to the user's selected currency.
-   * Source of truth: marketPrice field in DB (already in USD $).
    */
   const formatUsdPrice = (usdAmount: number): FormattedPriceResult => {
     if (currency === 'source' || currency === 'USD') {
@@ -1274,11 +1321,13 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       return { symbol: '$', value: usdAmount, formatted, full: `$${formatted}`, currencyCode: 'USD' };
     }
     if (currency === 'JPY') {
-      const yen = Math.round(usdAmount * 152);
+      const jpyRate = getRate('JPY');
+      const yen = Math.round(usdAmount * jpyRate);
       return { symbol: '¥', value: yen, formatted: yen.toLocaleString(), full: `¥${yen.toLocaleString()}`, currencyCode: 'JPY' };
     }
+    const targetRate = getRate(currency);
     const config = CURRENCIES[currency] || CURRENCIES.USD;
-    const converted = usdAmount * config.rateToUSD;
+    const converted = usdAmount * targetRate;
     const dec = (currency === 'PHP' || converted >= 100) ? 0 : 2;
     const formatted = converted.toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec });
     return { symbol: config.symbol, value: converted, formatted, full: `${config.symbol}${formatted}`, currencyCode: config.code };
@@ -1289,6 +1338,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       value={{
         currency,
         setCurrency,
+        exchangeRates,
+        exchangeRatesLastUpdated,
+        refreshExchangeRates,
+        isRefreshingRates,
         altArtStyle,
         setAltArtStyle,
         enabledPriceSources,

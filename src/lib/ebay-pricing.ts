@@ -283,6 +283,8 @@ export function generateEbaySoldSearchUrl(
   return `https://www.ebay.com/sch/i.html?${params.toString()}`;
 }
 
+import { getCachedExchangeRates, type SupportedCurrency } from './exchange-rates';
+
 export function formatEbayPrice(
   usdPrice: number | null | undefined,
   targetCurrency: 'USD' | 'JPY' | 'PHP' | 'EUR' = 'USD'
@@ -291,15 +293,9 @@ export function formatEbayPrice(
     return { formatted: 'Check eBay', rawUsd: 0 };
   }
 
-  // Currency exchange rates (synced with app's settings rates)
-  const rates: Record<string, number> = {
-    USD: 1.0,
-    JPY: 155.0,
-    PHP: 58.5,
-    EUR: 0.92,
-  };
-
-  const rate = rates[targetCurrency] || 1.0;
+  // Currency exchange rates (real-time everyday rates from exchange-rates engine)
+  const cachedRates = getCachedExchangeRates();
+  const rate = cachedRates[targetCurrency as SupportedCurrency] || 1.0;
   const converted = usdPrice * rate;
 
   let formatted = '';

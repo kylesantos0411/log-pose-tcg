@@ -121,7 +121,7 @@ export default function CardsPage() {
 function CardsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { currency, formatYuyuPrice, formatUsdPrice, openSettings, formatCard, user } = useSettings();
+  const { currency, formatYuyuPrice, formatUsdPrice, openSettings, formatCard, user, exchangeRates } = useSettings();
   
   const sortParam = searchParams.get('sort') || '';
   const initialQuery = searchParams.get('q') || '';
@@ -274,7 +274,8 @@ function CardsContent() {
     const parsedPrice = addPrice ? parseFloat(addPrice) : null;
     let purchasePriceUSD = addModalCard.marketPrice;
     if (parsedPrice !== null && !isNaN(parsedPrice)) {
-      purchasePriceUSD = parsedPrice / 152;
+      const jpyRate = exchangeRates?.JPY || 157.30;
+      purchasePriceUSD = parsedPrice / jpyRate;
     }
 
     setSavingCollection(true);
@@ -1004,7 +1005,7 @@ function CardsContent() {
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs text-gray-300 font-bold">Purchase Price (¥ Japanese Yen)</label>
                     <span className="text-[11px] text-gray-400">
-                      Market: {addModalCard.yuyuPrice ? `¥${addModalCard.yuyuPrice.toLocaleString()}` : (addModalCard.marketPrice ? `¥${Math.round(addModalCard.marketPrice * 140).toLocaleString()}` : 'Not Available')}
+                      Market: {addModalCard.yuyuPrice ? `¥${addModalCard.yuyuPrice.toLocaleString()}` : (addModalCard.marketPrice ? `¥${Math.round(addModalCard.marketPrice * (exchangeRates?.JPY || 157.30)).toLocaleString()}` : 'Not Available')}
                     </span>
                   </div>
                   <input
@@ -1012,7 +1013,7 @@ function CardsContent() {
                     step="1"
                     value={addPrice}
                     onChange={(e) => setAddPrice(e.target.value)}
-                    placeholder={addModalCard.yuyuPrice ? `e.g. ${addModalCard.yuyuPrice}` : (addModalCard.marketPrice ? `e.g. ${Math.round(addModalCard.marketPrice * 140)}` : '0')}
+                    placeholder={addModalCard.yuyuPrice ? `e.g. ${addModalCard.yuyuPrice}` : (addModalCard.marketPrice ? `e.g. ${Math.round(addModalCard.marketPrice * (exchangeRates?.JPY || 157.30))}` : '0')}
                     className="w-full bg-[#1e212c] border border-[#343a4c] focus:border-[#3b82f6] rounded-xl px-3 py-2 text-sm text-white focus:outline-none placeholder-gray-500"
                   />
                   <p className="text-[10px] text-gray-400 mt-1">
