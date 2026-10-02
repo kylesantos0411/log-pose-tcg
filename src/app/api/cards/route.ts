@@ -299,51 +299,87 @@ export async function GET(req: NextRequest) {
           { vintagePart: { contains: searchTerm } },
         ];
 
-        // Set Code & PRB Alias expansion (e.g. PRB, THE BEST, PRB01 -> PRB-01)
+        // Set Code & PRB Alias expansion (e.g. PRB01, PRB-01, OP01, PRB, THE BEST)
         const cleanUpperTerm = searchTerm.trim().toUpperCase();
-        if (cleanUpperTerm === 'PRB' || cleanUpperTerm === 'THE BEST' || cleanUpperTerm === 'PRB01' || cleanUpperTerm === 'PRB-1' || cleanUpperTerm === 'PRB-01') {
+        const setCodeMatch = cleanUpperTerm.match(/^([A-Z]{2,4})[-_\s]?0?(\d{1,2})$/);
+
+        if (setCodeMatch) {
+          const prefix = setCodeMatch[1];
+          const num = parseInt(setCodeMatch[2], 10);
+          const formattedNum = String(num).padStart(2, '0');
+          const dashCode = `${prefix}-${formattedNum}`;
+          const noDashCode = `${prefix}${formattedNum}`;
+
           orFilters.push(
+            { displaySet: dashCode },
+            { displaySet: noDashCode },
+            { pack: { is: { code: dashCode } } },
+            { pack: { is: { code: noDashCode } } },
+            { pack: { is: { name: { contains: `[${dashCode}]` } } } },
+            { printedSetCode: dashCode },
+            { printedSetCode: noDashCode },
+            { id: { startsWith: dashCode } },
+            { id: { startsWith: noDashCode } },
+            { cardNumber: { startsWith: dashCode } },
+            { cardNumber: { startsWith: noDashCode } }
+          );
+        } else if (cleanUpperTerm === 'PRB') {
+          orFilters.push(
+            { displaySet: { contains: 'PRB' } },
+            { pack: { is: { code: { contains: 'PRB' } } } },
             { id: { contains: 'PRB' } },
-            { displaySet: { contains: 'PRB-01' } },
-            { pack: { is: { code: { contains: 'PRB-01' } } } },
-            { pack: { is: { name: { contains: 'THE BEST' } } } }
+            { cardNumber: { contains: 'PRB' } }
+          );
+        } else if (cleanUpperTerm === 'THE BEST' || cleanUpperTerm === 'THEBEST') {
+          orFilters.push(
+            { pack: { is: { name: { contains: 'THE BEST' } } } },
+            { displaySet: { contains: 'PRB' } }
+          );
+        } else if (/^THE\s*BEST\s*(?:VOL\.?\s*)?0?1$/i.test(cleanUpperTerm)) {
+          orFilters.push(
+            { displaySet: 'PRB-01' },
+            { pack: { is: { code: 'PRB-01' } } },
+            { pack: { is: { name: { contains: '[PRB-01]' } } } }
+          );
+        } else if (/^THE\s*BEST\s*(?:VOL\.?\s*)?0?2$/i.test(cleanUpperTerm)) {
+          orFilters.push(
+            { displaySet: 'PRB-02' },
+            { pack: { is: { code: 'PRB-02' } } },
+            { pack: { is: { name: { contains: '[PRB-02]' } } } }
           );
         }
 
-        // Detect Set + Number compound queries like "PRB01-013", "PRB-01-013", "PRB01 013", "PRB-01 013", etc.
-        const compoundMatch = searchTerm.match(/^([A-Za-z]{2,4}[-0-9]*)[-\s]+([0-9]{2,3}(?:_p\d+)?)$/i);
+        // Detect Set + Number compound queries like "PRB01-013", "PRB-01-013", "PRB01 013", etc.
+        const compoundMatch = searchTerm.match(/^([A-Za-z]{2,4}[-_]?\d{1,2})[-\s]+(\d{2,3}(?:_p\d+)?)$/i);
         if (compoundMatch) {
           const rawSet = compoundMatch[1];
           const cardNum = compoundMatch[2];
           const cleanSet = rawSet.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
           
-          let setCode = rawSet;
-          let setPrefix = rawSet;
+          let dashSet = rawSet;
+          let compactSet = cleanSet;
 
-          if (/^PRB0?1$/i.test(cleanSet) || cleanSet === 'THEBEST') {
-            setCode = 'PRB-01';
-            setPrefix = 'PRB';
-          } else if (/^PRB0?2$/i.test(cleanSet)) {
-            setCode = 'PRB-02';
-            setPrefix = 'PRB';
-          } else {
-            const m = cleanSet.match(/^([A-Za-z]+)(\d+)$/);
-            if (m) {
-              setPrefix = m[1];
-              setCode = `${m[1]}-${m[2].padStart(2, '0')}`;
-            }
+          const sm = cleanSet.match(/^([A-Z]{2,4})0?(\d{1,2})$/);
+          if (sm) {
+            const p = sm[1];
+            const n = String(parseInt(sm[2], 10)).padStart(2, '0');
+            dashSet = `${p}-${n}`;
+            compactSet = `${p}${n}`;
           }
 
           orFilters.push({
             AND: [
               {
                 OR: [
-                  { displaySet: { contains: setCode } },
-                  { pack: { is: { code: { contains: setCode } } } },
-                  { pack: { is: { name: { contains: setCode } } } },
-                  { id: { contains: setPrefix } },
-                  { printedSetCode: { contains: setPrefix } },
-                  { yuyuteiSet: { contains: setPrefix } },
+                  { displaySet: dashSet },
+                  { displaySet: compactSet },
+                  { pack: { is: { code: dashSet } } },
+                  { pack: { is: { code: compactSet } } },
+                  { pack: { is: { name: { contains: `[${dashSet}]` } } } },
+                  { id: { startsWith: dashSet } },
+                  { id: { startsWith: compactSet } },
+                  { printedSetCode: dashSet },
+                  { printedSetCode: compactSet },
                 ]
               },
               {
