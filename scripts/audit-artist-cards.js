@@ -19,41 +19,51 @@ const ARTIST_PROFILES = {
 
 const EXACT_CARD_ARTISTS = {
   // === Eiichiro Oda (Manga Rares & Signed Special Rares) ===
-  'OP01-120_p1': 'Eiichiro Oda', // Manga Shanks
-  'OP02-013_p1': 'Eiichiro Oda', // Manga Ace
-  'OP03-122_p1': 'Eiichiro Oda', // Manga Sogeking
-  'OP04-083_p1': 'Eiichiro Oda', // Manga Sabo
+  'OP01-120_p4': 'Eiichiro Oda', // Manga Shanks
+  'OP01-120_p6': 'Eiichiro Oda', // Manga Shanks (Stamp)
+  'OP02-013_p2': 'Eiichiro Oda', // Manga Ace
+  'OP02-013_p6': 'Eiichiro Oda', // Manga Ace (Stamp)
+  'OP03-122_p2': 'Eiichiro Oda', // Manga Sogeking
+  'OP03-122_p3': 'Eiichiro Oda', // Manga Sogeking (Stamp)
+  'OP04-083_p2': 'Eiichiro Oda', // Manga Sabo
+  'OP04-083_p6': 'Eiichiro Oda', // Manga Sabo (Stamp)
   'OP05-060_p1': 'Eiichiro Oda', // Oda Anniversary Signed Luffy
-  'OP05-119_p1': 'Eiichiro Oda', // Manga Gear 5 Luffy
-  'OP06-118_p1': 'Eiichiro Oda', // Manga Zoro
-  'OP07-051_p3': 'Eiichiro Oda', // Manga Boa Hancock
+  'OP05-119_p2': 'Eiichiro Oda', // Manga Gear 5 Luffy
+  'OP06-118_p2': 'Eiichiro Oda', // Manga Zoro
+  'OP07-051_p2': 'Eiichiro Oda', // Manga Boa Hancock
   'OP07-119_p2': 'Eiichiro Oda', // Manga Ace (OP-07)
-  'OP08-118_p1': 'Eiichiro Oda', // Manga Silvers Rayleigh
-  'OP09-118_p3': 'Eiichiro Oda', // Manga Gol.D.Roger
-  'OP09-119_p4': 'Eiichiro Oda', // Manga Luffy (OP-09)
-  'OP10-119_p1': 'Eiichiro Oda', // Manga Trafalgar Law
+  'OP08-118_p2': 'Eiichiro Oda', // Manga Silvers Rayleigh
+  'OP09-118_p2': 'Eiichiro Oda', // Manga Gol.D.Roger
+  'OP10-119_p2': 'Eiichiro Oda', // Manga Trafalgar Law
   'ST01-012_p1': 'Eiichiro Oda', // Oda Signed Luffy Special
 
   // === Sunohara ===
   'OP01-016_p1': 'Sunohara',
-  'OP01-078_p1': 'Sunohara',
-  'OP01-121_p1': 'Sunohara',
-  'OP02-120_p1': 'Sunohara',
-  'OP05-034_p1': 'Sunohara',
+  'OP01-078_p2': 'Sunohara',
   'OP06-022_p1': 'Sunohara',
-  'OP06-093_p1': 'Sunohara',
   'OP07-019_p1': 'Sunohara',
-  'OP08-106_p1': 'Sunohara',
 
   // === Akira Egawa ===
-  'OP01-120_p2': 'Akira Egawa',
-  'OP02-013_p2': 'Akira Egawa',
-  'OP03-099_p1': 'Akira Egawa',
-  'OP04-083_p2': 'Akira Egawa',
-  'OP05-041_p1': 'Akira Egawa',
-  'OP05-060_p2': 'Akira Egawa',
+  'OP01-025_p1': 'Akira Egawa',
+  'OP01-070_p1': 'Akira Egawa',
+  'OP02-013_p1': 'Akira Egawa',
+  'OP02-062_p1': 'Akira Egawa',
+  'OP03-092_p1': 'Akira Egawa',
+  'OP04-015': 'Akira Egawa',
+  'OP04-083_p1': 'Akira Egawa',
   'OP05-069_p1': 'Akira Egawa',
-  'OP07-001_p1': 'Akira Egawa',
+  'OP06-007_p1': 'Akira Egawa',
+  'OP07-015_p1': 'Akira Egawa',
+  'OP08-118': 'Akira Egawa',
+  'OP09-046_p1': 'Akira Egawa',
+  'OP10-072_p1': 'Akira Egawa',
+  'OP11-095_p1': 'Akira Egawa',
+  'OP12-043_p1': 'Akira Egawa',
+  'OP13-064_p1': 'Akira Egawa',
+  'OP14-119_p1': 'Akira Egawa',
+  'OP15-118': 'Akira Egawa',
+  'OP16-119_p1': 'Akira Egawa',
+  'OP17-119_p1': 'Akira Egawa',
 
   // === Makitoshi ===
   'OP01-120': 'Makitoshi',
