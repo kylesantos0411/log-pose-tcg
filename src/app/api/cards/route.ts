@@ -125,10 +125,8 @@ export async function GET(req: NextRequest) {
       const matchedArtists = allArtists
         .filter((a) => {
           if (!a.artistName) return false;
-          const lower = a.artistName.toLowerCase();
-          if (lower === targetLower) return true;
-          const words = lower.split(/[\s.\-]+/);
-          return words.some((w) => w === targetLower);
+          const lower = a.artistName.toLowerCase().trim();
+          return lower === targetLower;
         })
         .map((a) => a.artistName as string);
 
@@ -278,10 +276,8 @@ export async function GET(req: NextRequest) {
         const matchedArtistsForTerm = allArtists
           .filter((a) => {
             if (!a.artistName) return false;
-            const lower = a.artistName.toLowerCase();
-            if (lower === sLower) return true;
-            const words = lower.split(/[\s.\-]+/);
-            return words.some((w) => w === sLower);
+            const lower = a.artistName.toLowerCase().trim();
+            return lower === sLower;
           })
           .map((a) => a.artistName as string);
 

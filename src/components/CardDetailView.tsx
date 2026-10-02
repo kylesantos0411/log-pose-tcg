@@ -2723,8 +2723,19 @@ export function CardDetailView({
                   {loadingArtistCards ? 'Loading...' : `${(artistCards.length > 0 ? artistCards : (artist.featuredCards || [])).length} Cards`}
                 </span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[360px] overflow-y-auto pr-1">
-                {(artistCards.length > 0 ? artistCards : (artist.featuredCards || [])).map((feat: any) => {
+              {loadingArtistCards ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[360px] overflow-y-auto pr-1">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="p-2 rounded-xl bg-[#1e212c] border border-[#32384a] flex flex-col justify-between">
+                      <div className="aspect-[7/10] bg-[#14161f] rounded-lg animate-pulse mb-2" />
+                      <div className="h-4 bg-[#14161f] rounded animate-pulse w-3/4 mb-1" />
+                      <div className="h-3 bg-[#14161f] rounded animate-pulse w-1/2" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[360px] overflow-y-auto pr-1">
+                  {(artistCards.length > 0 ? artistCards : (artist.featuredCards || [])).map((feat: any) => {
                   const featImg = getEditionCardImageUrl(feat.id, selectedLang, feat.imageUrl);
                   const displayName = feat.name;
                   const rarity = feat.rarity || 'Special';
@@ -2780,6 +2791,7 @@ export function CardDetailView({
                   );
                 })}
               </div>
+              )}
             </div>
 
             {/* Filter in Database Button -> Navigates to /cards?artist=... with Full Images */}
