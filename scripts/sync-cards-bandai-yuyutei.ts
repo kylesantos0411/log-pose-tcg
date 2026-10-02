@@ -15,11 +15,9 @@
  *    - Official authority for card printing illustrator attribution
  */
 
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../src/lib/prisma';
 import { fetchBandaiAsiaCards, BandaiAsiaCard, resolveSeriesId } from '../src/lib/bandai-asia-scraper';
 import { fetchIllustratorFromBinderPirates } from '../src/lib/illustrator-service';
-
-const prisma = new PrismaClient();
 
 interface ScrapedYuyuItem {
   code: string;
@@ -186,9 +184,6 @@ export async function syncCardsForSet(setOrSeries: string, fetchArtists = true) 
       }
     }
 
-    const yuyuPrice = matchedYuyu ? matchedYuyu.priceYen : existingCard?.yuyuPrice || null;
-    const marketPriceUsd = yuyuPrice ? Math.round((yuyuPrice / 140) * 100) / 100 : existingCard?.marketPrice || null;
-
     // Check if card exists in DB (by id or by packId + cardNumber + isAltArt)
     let existingCard = await prisma.card.findUnique({
       where: { id: bCard.id },
@@ -203,6 +198,9 @@ export async function syncCardsForSet(setOrSeries: string, fetchArtists = true) 
         },
       });
     }
+
+    const yuyuPrice = matchedYuyu ? matchedYuyu.priceYen : existingCard?.yuyuPrice || null;
+    const marketPriceUsd = yuyuPrice ? Math.round((yuyuPrice / 140) * 100) / 100 : existingCard?.marketPrice || null;
 
     // Artist lookup if missing
     let artistName = existingCard?.artistName || null;
