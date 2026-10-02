@@ -1,0 +1,25 @@
+{
+  "name": "log-pose-tcg-card-pipeline",
+  "version": "1.0.0",
+  "description": "Deterministic card ingestion, canonical identity matching, and pricing pipeline for Japanese One Piece TCG",
+  "type": "module",
+  "scripts": {
+    "test": "node src/test_suite.js",
+    "run-pipeline": "node src/pipeline_runner.js",
+    "scheduled-sync": "node src/scheduled_job.js"
+  },
+  "keywords": [
+    "tcg",
+    "onepiece",
+    "yuyutei",
+    "limitless",
+    "scraper",
+    "pricing"
+  ],
+  "author": "LOG POSE TCG",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
+    "dotenv": "^18.0.4"
+  }
+}

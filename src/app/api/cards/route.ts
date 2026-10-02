@@ -290,9 +290,25 @@ export async function GET(req: NextRequest) {
           { name: { contains: searchTerm } },
           { promoSource: { contains: searchTerm } },
           { displaySet: { contains: searchTerm } },
+          { printedSetCode: { contains: searchTerm } },
+          { originalSet: { contains: searchTerm } },
+          { yuyuteiSet: { contains: searchTerm } },
+          { pack: { is: { code: { contains: searchTerm } } } },
+          { pack: { is: { name: { contains: searchTerm } } } },
           { vintageSeries: { contains: searchTerm } },
           { vintagePart: { contains: searchTerm } },
         ];
+
+        // Set Code & PRB Alias expansion (e.g. PRB, THE BEST, PRB01 -> PRB-01)
+        const cleanUpperTerm = searchTerm.trim().toUpperCase();
+        if (cleanUpperTerm === 'PRB' || cleanUpperTerm === 'THE BEST' || cleanUpperTerm === 'PRB01' || cleanUpperTerm === 'PRB-1') {
+          orFilters.push(
+            { id: { contains: 'PRB' } },
+            { displaySet: { contains: 'PRB-01' } },
+            { pack: { is: { code: { contains: 'PRB-01' } } } },
+            { pack: { is: { name: { contains: 'THE BEST' } } } }
+          );
+        }
 
         // Prevent substring bleed: don't match types on 'don'
         if (!/^(don|don!|don!!)$/i.test(searchTerm.trim())) {
