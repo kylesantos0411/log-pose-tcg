@@ -777,12 +777,12 @@ function CardsContent() {
         {(() => {
           if (loading) {
             return (
-              <div className={`grid ${gridCols === 3 ? 'grid-cols-3' : 'grid-cols-2'} sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2 sm:gap-3`}>
+              <div className={`grid ${gridCols === 3 ? 'grid-cols-3' : 'grid-cols-2'} sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2.5 sm:gap-3`}>
                 {Array.from({ length: 12 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="aspect-[2.5/3.5] rounded-xl sm:rounded-2xl bg-[#141620] animate-pulse border border-[#202432]"
-                  />
+                  <div key={i} className="flex flex-col space-y-1.5 sm:space-y-2">
+                    <div className="aspect-[2.5/3.5] rounded-xl sm:rounded-2xl bg-[#141620] animate-pulse border border-[#202432]" />
+                    <div className="h-8 rounded-xl sm:rounded-2xl bg-[#141620] animate-pulse border border-[#202432]" />
+                  </div>
                 ))}
               </div>
             );
@@ -806,61 +806,57 @@ function CardsContent() {
           }
 
           return (
-            <div className={`grid ${gridCols === 3 ? 'grid-cols-3' : 'grid-cols-2'} sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2 sm:gap-2.5`}>
+            <div className={`grid ${gridCols === 3 ? 'grid-cols-3' : 'grid-cols-2'} sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2.5 sm:gap-3`}>
               {cards.map((card) => {
                 const ownedQty = (card.userCards || []).reduce((sum, u) => sum + u.quantity, 0);
+                const displayNum = (card.cardNumber && card.cardNumber !== '-')
+                  ? card.cardNumber
+                  : (card.card_number && card.card_number !== '-')
+                  ? card.card_number
+                  : card.id.split('_')[0];
+                const flag = card.hasJpPrint === false ? '🇺🇸' : '🇯🇵';
 
                 return (
                   <div
                     key={card.id}
                     onClick={() => setActiveCard(card)}
-                    className="group relative aspect-[2.5/3.5] rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98] bg-[#12141c] border border-[#1f2330] hover:border-[#343b50]"
+                    className="group flex flex-col cursor-pointer transition-all duration-200 active:scale-[0.98]"
                   >
-                    {/* Pure Edge-to-Edge Card Artwork */}
-                    <img
-                      src={getSafeCardImageUrl(card.imageUrl, card.id || card.cardNumber)}
-                      alt={card.name}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
-                      onError={(e) => handleCardImageError(e, card.id || card.cardNumber)}
-                    />
+                    {/* Pure Edge-to-Edge Card Artwork Container */}
+                    <div className="relative aspect-[2.5/3.5] rounded-xl sm:rounded-2xl overflow-hidden bg-[#12141c] border border-[#1f2330] group-hover:border-[#384158] transition-all shadow-sm group-hover:shadow-md">
+                      <img
+                        src={getSafeCardImageUrl(card.imageUrl, card.id || card.cardNumber)}
+                        alt={card.name}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                        onError={(e) => handleCardImageError(e, card.id || card.cardNumber)}
+                      />
 
-                    {/* Top-Left Release Set Badge */}
-                    <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 px-1.5 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[8px] sm:text-[9px] font-bold text-amber-300 border border-white/10 shadow pointer-events-none">
-                      {card.displaySet || card.display_set || card.pack?.code || card.id.split('-')[0]}
-                    </div>
-
-                    {/* Subtle Floating Price Badge on Bottom-Left */}
-                    <div className="absolute bottom-1.5 left-1.5 sm:bottom-2 sm:left-2 px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-md text-[9px] sm:text-[10px] font-semibold text-amber-300 border border-white/10 shadow-sm pointer-events-none">
-                      {card.isVintage ? (
-                        card.ebayPrice && card.ebayPrice > 0 ? (
-                          formatUsdPrice(card.ebayPrice).full
+                      {/* Circular Emblem on Bottom-Right (Matching media_1790912717518.png) */}
+                      <div
+                        className={`absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2 w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 backdrop-blur-sm flex items-center justify-center shadow-md transition-transform ${
+                          ownedQty > 0
+                            ? 'border-emerald-400 bg-emerald-500/85 text-white'
+                            : 'border-white/80 bg-black/40'
+                        }`}
+                      >
+                        {ownedQty > 0 ? (
+                          <span className="text-[10px] font-black leading-none">
+                            {ownedQty > 1 ? `x${ownedQty}` : '✓'}
+                          </span>
                         ) : (
-                          <span className="text-gray-300">eBay</span>
-                        )
-                      ) : card.yuyuPrice && card.yuyuPrice > 0 ? (
-                        formatYuyuPrice(card.yuyuPrice).full
-                      ) : (
-                        <span className="text-gray-400 font-semibold text-[10.5px]">Not Available</span>
-                      )}
+                          <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full border border-white/50"></div>
+                        )}
+                      </div>
                     </div>
 
-                    {/* Circular Emblem on Bottom-Right (Matching media_1790063450672.jpg) */}
-                    <div
-                      className={`absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2 w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 backdrop-blur-sm flex items-center justify-center shadow-md transition-transform ${
-                        ownedQty > 0
-                          ? 'border-emerald-400 bg-emerald-500/85 text-white'
-                          : 'border-white/80 bg-black/40'
-                      }`}
-                    >
-                      {ownedQty > 0 ? (
-                        <span className="text-[10px] font-black leading-none">
-                          {ownedQty > 1 ? `x${ownedQty}` : '✓'}
-                        </span>
-                      ) : (
-                        <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full border border-white/50"></div>
-                      )}
+                    {/* Bottom Pill matching media_1790912717518.png */}
+                    <div className="mt-1.5 sm:mt-2 py-1.5 sm:py-2 px-2.5 rounded-xl sm:rounded-2xl bg-[#1c202d] border border-[#272d3f] group-hover:border-[#3d465f] flex items-center justify-center gap-1.5 sm:gap-2 shadow-sm transition-colors">
+                      <span className="text-xs sm:text-sm font-semibold text-slate-200 tracking-wide truncate">
+                        {displayNum}
+                      </span>
+                      <span className="text-xs sm:text-sm leading-none flex-shrink-0">{flag}</span>
                     </div>
                   </div>
                 );

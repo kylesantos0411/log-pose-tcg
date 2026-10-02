@@ -29,6 +29,9 @@ interface CardItem {
   imageUrl: string | null;
   marketPrice: number | null;
   yuyuPrice?: number | null;
+  cardNumber?: string | null;
+  card_number?: string | null;
+  hasJpPrint?: boolean;
   pack?: {
     code: string;
     name: string;
@@ -295,45 +298,47 @@ export default function FavoritesPage() {
           /* Grid of Favorited Cards */
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3">
             {filteredCards.map((card) => {
+              const displayNum = (card.cardNumber && card.cardNumber !== '-')
+                ? card.cardNumber
+                : (card.card_number && card.card_number !== '-')
+                ? card.card_number
+                : card.id.split('_')[0];
+              const flag = card.hasJpPrint === false ? '🇺🇸' : '🇯🇵';
+
               return (
                 <div
                   key={card.id}
                   onClick={() => setActiveCard(card)}
-                  className="group relative aspect-[2.5/3.5] rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer shadow-md hover:shadow-xl transition-all duration-200 active:scale-[0.97] bg-[#1a1c25] border border-[#343a4c]/50 hover:border-[#c084fc]"
+                  className="group flex flex-col cursor-pointer transition-all duration-200 active:scale-[0.98]"
                 >
                   {/* Card Artwork */}
-                  <img
-                    src={getSafeCardImageUrl(card.imageUrl, card.id)}
-                    alt={card.name}
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    loading="lazy"
-                    onError={(e) => handleCardImageError(e, card.id)}
-                  />
+                  <div className="relative aspect-[2.5/3.5] rounded-xl sm:rounded-2xl overflow-hidden bg-[#1a1c25] border border-[#343a4c]/50 group-hover:border-[#c084fc] transition-all shadow-md">
+                    <img
+                      src={getSafeCardImageUrl(card.imageUrl, card.id)}
+                      alt={card.name}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                      onError={(e) => handleCardImageError(e, card.id)}
+                    />
 
-                  {/* Top-Left Release Set Badge */}
-                  <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 px-1.5 py-0.5 rounded-md bg-black/80 backdrop-blur-md text-[8px] sm:text-[9px] font-black text-amber-300 border border-white/10 shadow pointer-events-none">
-                    {card.pack?.code || card.id.split('-')[0]}
+                    {/* Top-Right Favorite Unstar Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => handleToggleFavorite(e, card.id)}
+                      title="Remove from Favorites"
+                      className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 w-7 h-7 rounded-full bg-black/70 hover:bg-black/90 backdrop-blur-md border border-white/15 flex items-center justify-center text-[#c084fc] shadow-md transition-all active:scale-80 cursor-pointer"
+                    >
+                      <Star className="w-3.5 h-3.5 fill-current" />
+                    </button>
                   </div>
 
-                  {/* Top-Right Favorite Unstar Button */}
-                  <button
-                    type="button"
-                    onClick={(e) => handleToggleFavorite(e, card.id)}
-                    title="Remove from Favorites"
-                    className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 w-7 h-7 rounded-full bg-black/70 hover:bg-black/90 backdrop-blur-md border border-white/15 flex items-center justify-center text-[#c084fc] shadow-md transition-all active:scale-80 cursor-pointer"
-                  >
-                    <Star className="w-3.5 h-3.5 fill-current" />
-                  </button>
-
-                  {/* Bottom-Left Price Badge */}
-                  <div className="absolute bottom-1.5 left-1.5 sm:bottom-2 sm:left-2 px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-md text-[9px] sm:text-[10px] font-bold text-amber-300 border border-white/10 shadow-sm pointer-events-none">
-                    {formatYuyuPrice(card.yuyuPrice || Math.round((card.marketPrice || 1) * 140)).full}
-                  </div>
-
-                  {/* Bottom-Right Card Code */}
-                  <div className="absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2 px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-md text-[8px] sm:text-[9px] font-bold text-gray-300 border border-white/10 shadow-sm pointer-events-none">
-                    {card.id}
+                  {/* Bottom Pill matching media_1790912717518.png */}
+                  <div className="mt-1.5 sm:mt-2 py-1.5 sm:py-2 px-2.5 rounded-xl sm:rounded-2xl bg-[#1c202d] border border-[#272d3f] group-hover:border-[#c084fc]/50 flex items-center justify-center gap-1.5 sm:gap-2 shadow-sm transition-colors">
+                    <span className="text-xs sm:text-sm font-semibold text-slate-200 tracking-wide truncate">
+                      {displayNum}
+                    </span>
+                    <span className="text-xs sm:text-sm leading-none flex-shrink-0">{flag}</span>
                   </div>
                 </div>
               );
