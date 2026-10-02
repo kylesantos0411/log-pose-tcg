@@ -54,10 +54,10 @@ class CardRepository {
         // Prefer cards_with_pricing view, fallback to cards table
         var query = client.from('cards_with_pricing').select();
 
-        // Multi-column search: match name, card_number, or name_ja
+        // Multi-column search: match name, card_number, name_ja, or set_code
         if (searchQuery != null && searchQuery.trim().isNotEmpty) {
           final cleanQuery = searchQuery.trim();
-          query = query.or('name.ilike.%$cleanQuery%,card_number.ilike.%$cleanQuery%,name_ja.ilike.%$cleanQuery%');
+          query = query.or('name.ilike.%$cleanQuery%,card_number.ilike.%$cleanQuery%,name_ja.ilike.%$cleanQuery%,set_code.ilike.%$cleanQuery%');
         }
 
         // Apply rarity filter
@@ -105,7 +105,9 @@ class CardRepository {
         final matchName = c.name.toLowerCase().contains(q);
         final matchNum = c.cardNumber.toLowerCase().contains(q);
         final matchJa = c.nameJa?.toLowerCase().contains(q) ?? false;
-        if (!matchName && !matchNum && !matchJa) return false;
+        final matchSet = (c.setCode?.toLowerCase().contains(q) ?? false) ||
+            (c.setName?.toLowerCase().contains(q) ?? false);
+        if (!matchName && !matchNum && !matchJa && !matchSet) return false;
       }
 
       // Rarity matching
@@ -318,6 +320,29 @@ class CardRepository {
       priceJpy: null,
       pricePhp: null,
       priceStatus: 'UNAVAILABLE',
+    ),
+    CardModel(
+      id: 'c-prb01-001',
+      canonicalId: 'OPT_PRB01_PRB01-001_BASE_JP',
+      cardNumber: 'PRB01-001',
+      name: 'Sanji',
+      nameJa: 'サンジ',
+      rarity: 'L',
+      color: 'Red',
+      type: 'Leader',
+      power: 5000,
+      attribute: 'Strike',
+      effect: '[Activate: Main] [Once Per Turn] Up to 1 of your Characters with a cost of 8 or less gains [Rush] during this turn.',
+      illustrator: 'Eiichiro Oda',
+      imageUrl: 'https://asia-en.onepiece-cardgame.com/images/cardlist/card/PRB01-001.png',
+      variantType: 'BASE',
+      language: 'JP',
+      isAlternateArt: false,
+      setCode: 'PRB-01',
+      setName: 'The Best Premium Booster',
+      priceJpy: 200,
+      pricePhp: 79.5,
+      priceStatus: 'AVAILABLE',
     ),
   ];
 }

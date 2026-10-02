@@ -23,7 +23,7 @@ const SEED_CATALOG = [
   { setCode: 'OP-02', cardNumber: 'OP02-013', name: 'Portgas.D.Ace (Manga Super Parallel)', nameJa: 'ポートガス・D・エース (スーパーパラレル)', rarity: 'SR', color: 'Red', type: 'Character', cost: 7, power: 7000, illustrator: 'Eiichiro Oda', imageUrl: 'https://en.onepiece-cardgame.com/images/cardlist/card/OP02-013_p2.png?20221104', isAlternateArt: true, variantType: VariantType.MANGA },
   { setCode: 'OP-03', cardNumber: 'OP03-122', name: 'Sogeking (Manga Super Parallel)', nameJa: 'そげキング (スーパーパラレル)', rarity: 'SEC', color: 'Yellow', type: 'Character', cost: 7, power: 7000, illustrator: 'Eiichiro Oda', imageUrl: 'https://en.onepiece-cardgame.com/images/cardlist/card/OP03-122_p2.png?20230211', isAlternateArt: true, variantType: VariantType.MANGA },
   { setCode: 'EB-01', cardNumber: 'EB01-006', name: 'Tony Tony.Chopper (Manga Super Parallel)', nameJa: 'トニートニー・チョッパー (スーパーパラレル)', rarity: 'SEC', color: 'Red', type: 'Character', cost: 5, power: 6000, illustrator: 'Eiichiro Oda', imageUrl: 'https://en.onepiece-cardgame.com/images/cardlist/card/EB01-006_p2.png?20240127', isAlternateArt: true, variantType: VariantType.MANGA },
-  { setCode: 'PRB-01', cardNumber: 'PRB01-001', name: 'Monkey.D.Luffy (The Best)', nameJa: 'モンキー・D・ルフィ', rarity: 'P-L', color: 'Red', type: 'Leader', cost: null, power: 5000, illustrator: 'Eiichiro Oda', imageUrl: 'https://en.onepiece-cardgame.com/images/cardlist/card/PRB01-001.png?20240727', isAlternateArt: false, variantType: VariantType.BASE },
+  { setCode: 'PRB-01', cardNumber: 'PRB01-001', name: 'Sanji', nameJa: 'サンジ', rarity: 'L', color: 'Red', type: 'Leader', cost: null, power: 5000, illustrator: 'Eiichiro Oda', imageUrl: 'https://asia-en.onepiece-cardgame.com/images/cardlist/card/PRB01-001.png?20240727', isAlternateArt: false, variantType: VariantType.BASE },
   { setCode: 'ST-01', cardNumber: 'ST01-012', name: 'Pacifista', nameJa: 'パシフィスタ', rarity: 'C', color: 'Red', type: 'Character', cost: 4, power: 6000, illustrator: 'Bandai', imageUrl: 'https://en.onepiece-cardgame.com/images/cardlist/card/ST01-012.png?20220708', isAlternateArt: false, variantType: VariantType.BASE },
   { setCode: 'PROMO', cardNumber: 'P-001', name: 'Monkey.D.Luffy (Promotion)', nameJa: 'モンキー・D・ルフィ (プロモ)', rarity: 'P', color: 'Red', type: 'Character', cost: 6, power: 7000, illustrator: 'Eiichiro Oda', imageUrl: 'https://en.onepiece-cardgame.com/images/cardlist/card/P-001.png?20220701', isAlternateArt: false, variantType: VariantType.PROMO }
 ];
@@ -40,7 +40,7 @@ const YUYUTEI_LISTINGS = [
   { cardCode: 'OP02-013', name: 'ポートガス・D・エース (スーパーパラレル)', rarity: 'SR', price: 168000, variant: 'MANGA', url: 'https://yuyu-tei.jp/sell/opc/card/op02/10014' },
   { cardCode: 'OP03-122', name: 'そげキング (スーパーパラレル)', rarity: 'SEC', price: 79800, variant: 'MANGA', url: 'https://yuyu-tei.jp/sell/opc/card/op03/10123' },
   { cardCode: 'EB01-006', name: 'トニートニー・チョッパー (スーパーパラレル)', rarity: 'SEC', price: 88000, variant: 'MANGA', url: 'https://yuyu-tei.jp/sell/opc/card/eb01/10007' },
-  { cardCode: 'PRB01-001', name: 'モンキー・D・ルフィ', rarity: 'P-L', price: 200, variant: 'BASE', url: 'https://yuyu-tei.jp/sell/opc/card/prb01/10001' },
+  { cardCode: 'PRB01-001', name: 'サンジ', rarity: 'L', price: 200, variant: 'BASE', url: 'https://yuyu-tei.jp/sell/opc/card/prb01/10001' },
   { cardCode: 'ST01-012', name: 'パシフィスタ', rarity: 'C', price: 30, variant: 'BASE', url: 'https://yuyu-tei.jp/sell/opc/card/st01/10012' },
   { cardCode: 'P-001', name: 'モンキー・D・ルフィ', rarity: 'P', price: 1500, variant: 'PROMO', url: 'https://yuyu-tei.jp/sell/opc/card/promo/10001' }
 ];
@@ -84,6 +84,12 @@ async function main() {
     }
   } else {
     console.log('[ScheduledJob] Supabase not connected. Set SUPABASE_URL and SUPABASE_ANON_KEY in .env to enable direct database write.');
+    const fs = await import('fs');
+    const path = await import('path');
+    const outPath = path.resolve(process.cwd(), 'supabase/latest_sync.sql');
+    const generatedSql = supabaseService.generateSyncSql(runner.cardCatalog, runner.priceRecords);
+    fs.writeFileSync(outPath, generatedSql, 'utf-8');
+    console.log(`[ScheduledJob] Updated ready-to-run sync SQL file: supabase/latest_sync.sql`);
   }
 
   const durationMs = Date.now() - startTime;

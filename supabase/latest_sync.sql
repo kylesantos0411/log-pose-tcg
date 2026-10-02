@@ -1,5 +1,5 @@
 -- LOG POSE TCG - Canonical Data Sync Script
--- Generated at: 2026-09-30T04:04:17.750Z
+-- Generated at: 2026-10-02T02:41:48.724Z
 BEGIN;
 
 -- 1. Upsert Game
@@ -174,7 +174,7 @@ ON CONFLICT (canonical_id) DO UPDATE SET
 INSERT INTO cards (
   canonical_id, set_id, card_number, name, name_ja, rarity, color, type, cost, power, image_url, variant_type, language, is_alternate_art
 ) SELECT
-  'OPT_PRB01_PRB01-001_BASE_JP', id, 'PRB01-001', 'Monkey.D.Luffy (The Best)', 'モンキー・D・ルフィ', 'P-L', 'Red', 'Leader', NULL, 5000, 'https://en.onepiece-cardgame.com/images/cardlist/card/PRB01-001.png?20240727', 'BASE', 'JP', false
+  'OPT_PRB01_PRB01-001_BASE_JP', id, 'PRB01-001', 'Sanji', 'サンジ', 'L', 'Red', 'Leader', NULL, 5000, 'https://asia-en.onepiece-cardgame.com/images/cardlist/card/PRB01-001.png?20240727', 'BASE', 'JP', false
 FROM sets WHERE set_code = 'PRB-01'
 ON CONFLICT (canonical_id) DO UPDATE SET
   image_url = EXCLUDED.image_url,
@@ -203,7 +203,7 @@ ON CONFLICT (canonical_id) DO UPDATE SET
 INSERT INTO card_prices (
   card_id, canonical_id, source, price_raw, currency, price_php, status, condition, is_graded, grading_company, grade, external_url, last_checked_at
 ) SELECT
-  id, 'OPT_OP01_OP01-001_BASE_JP', 'yuyutei', 280, 'JPY', 111.3, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/op01/10001', now()
+  id, 'OPT_OP01_OP01-001_BASE_JP', 'yuyutei', 280, 'JPY', 111.22, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/op01/10001', now()
 FROM cards WHERE canonical_id = 'OPT_OP01_OP01-001_BASE_JP'
 ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
   price_raw = EXCLUDED.price_raw,
@@ -214,7 +214,7 @@ ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
 INSERT INTO card_prices (
   card_id, canonical_id, source, price_raw, currency, price_php, status, condition, is_graded, grading_company, grade, external_url, last_checked_at
 ) SELECT
-  id, 'OPT_OP01_OP01-001_PARALLEL_JP', 'yuyutei', 4800, 'JPY', 1907.93, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/op01/10002', now()
+  id, 'OPT_OP01_OP01-001_PARALLEL_JP', 'yuyutei', 4800, 'JPY', 1906.56, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/op01/10002', now()
 FROM cards WHERE canonical_id = 'OPT_OP01_OP01-001_PARALLEL_JP'
 ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
   price_raw = EXCLUDED.price_raw,
@@ -225,7 +225,7 @@ ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
 INSERT INTO card_prices (
   card_id, canonical_id, source, price_raw, currency, price_php, status, condition, is_graded, grading_company, grade, external_url, last_checked_at
 ) SELECT
-  id, 'OPT_OP01_OP01-016_BASE_JP', 'yuyutei', 680, 'JPY', 270.29, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/op01/10016', now()
+  id, 'OPT_OP01_OP01-016_BASE_JP', 'yuyutei', 680, 'JPY', 270.1, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/op01/10016', now()
 FROM cards WHERE canonical_id = 'OPT_OP01_OP01-016_BASE_JP'
 ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
   price_raw = EXCLUDED.price_raw,
@@ -236,7 +236,7 @@ ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
 INSERT INTO card_prices (
   card_id, canonical_id, source, price_raw, currency, price_php, status, condition, is_graded, grading_company, grade, external_url, last_checked_at
 ) SELECT
-  id, 'OPT_OP01_OP01-016_PARALLEL_JP', 'yuyutei', 14800, 'JPY', 5882.78, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/op01/10017', now()
+  id, 'OPT_OP01_OP01-016_PARALLEL_JP', 'yuyutei', 14800, 'JPY', 5878.55, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/op01/10017', now()
 FROM cards WHERE canonical_id = 'OPT_OP01_OP01-016_PARALLEL_JP'
 ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
   price_raw = EXCLUDED.price_raw,
@@ -247,7 +247,7 @@ ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
 INSERT INTO card_prices (
   card_id, canonical_id, source, price_raw, currency, price_php, status, condition, is_graded, grading_company, grade, external_url, last_checked_at
 ) SELECT
-  id, 'OPT_OP01_OP01-120_BASE_JP', 'yuyutei', 1200, 'JPY', 476.98, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/op01/10120', now()
+  id, 'OPT_OP01_OP01-120_BASE_JP', 'yuyutei', 1200, 'JPY', 476.64, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/op01/10120', now()
 FROM cards WHERE canonical_id = 'OPT_OP01_OP01-120_BASE_JP'
 ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
   price_raw = EXCLUDED.price_raw,
@@ -258,7 +258,7 @@ ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
 INSERT INTO card_prices (
   card_id, canonical_id, source, price_raw, currency, price_php, status, condition, is_graded, grading_company, grade, external_url, last_checked_at
 ) SELECT
-  id, 'OPT_OP01_OP01-120_MANGA_JP', 'yuyutei', 198000, 'JPY', 78702.03, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/op01/10121', now()
+  id, 'OPT_OP01_OP01-120_MANGA_JP', 'yuyutei', 198000, 'JPY', 78645.4, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/op01/10121', now()
 FROM cards WHERE canonical_id = 'OPT_OP01_OP01-120_MANGA_JP'
 ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
   price_raw = EXCLUDED.price_raw,
@@ -269,7 +269,7 @@ ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
 INSERT INTO card_prices (
   card_id, canonical_id, source, price_raw, currency, price_php, status, condition, is_graded, grading_company, grade, external_url, last_checked_at
 ) SELECT
-  id, 'OPT_OP02_OP02-001_BASE_JP', 'yuyutei', 180, 'JPY', 71.55, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/op02/10001', now()
+  id, 'OPT_OP02_OP02-001_BASE_JP', 'yuyutei', 180, 'JPY', 71.5, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/op02/10001', now()
 FROM cards WHERE canonical_id = 'OPT_OP02_OP02-001_BASE_JP'
 ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
   price_raw = EXCLUDED.price_raw,
@@ -280,7 +280,7 @@ ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
 INSERT INTO card_prices (
   card_id, canonical_id, source, price_raw, currency, price_php, status, condition, is_graded, grading_company, grade, external_url, last_checked_at
 ) SELECT
-  id, 'OPT_OP02_OP02-013_BASE_JP', 'yuyutei', 380, 'JPY', 151.04, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/op02/10013', now()
+  id, 'OPT_OP02_OP02-013_BASE_JP', 'yuyutei', 380, 'JPY', 150.94, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/op02/10013', now()
 FROM cards WHERE canonical_id = 'OPT_OP02_OP02-013_BASE_JP'
 ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
   price_raw = EXCLUDED.price_raw,
@@ -291,7 +291,7 @@ ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
 INSERT INTO card_prices (
   card_id, canonical_id, source, price_raw, currency, price_php, status, condition, is_graded, grading_company, grade, external_url, last_checked_at
 ) SELECT
-  id, 'OPT_OP02_OP02-013_MANGA_JP', 'yuyutei', 168000, 'JPY', 66777.48, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/op02/10014', now()
+  id, 'OPT_OP02_OP02-013_MANGA_JP', 'yuyutei', 168000, 'JPY', 66729.43, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/op02/10014', now()
 FROM cards WHERE canonical_id = 'OPT_OP02_OP02-013_MANGA_JP'
 ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
   price_raw = EXCLUDED.price_raw,
@@ -302,7 +302,7 @@ ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
 INSERT INTO card_prices (
   card_id, canonical_id, source, price_raw, currency, price_php, status, condition, is_graded, grading_company, grade, external_url, last_checked_at
 ) SELECT
-  id, 'OPT_OP03_OP03-122_MANGA_JP', 'yuyutei', 79800, 'JPY', 31719.3, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/op03/10123', now()
+  id, 'OPT_OP03_OP03-122_MANGA_JP', 'yuyutei', 79800, 'JPY', 31696.48, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/op03/10123', now()
 FROM cards WHERE canonical_id = 'OPT_OP03_OP03-122_MANGA_JP'
 ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
   price_raw = EXCLUDED.price_raw,
@@ -313,7 +313,7 @@ ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
 INSERT INTO card_prices (
   card_id, canonical_id, source, price_raw, currency, price_php, status, condition, is_graded, grading_company, grade, external_url, last_checked_at
 ) SELECT
-  id, 'OPT_EB01_EB01-006_MANGA_JP', 'yuyutei', 88000, 'JPY', 34978.68, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/eb01/10007', now()
+  id, 'OPT_EB01_EB01-006_MANGA_JP', 'yuyutei', 88000, 'JPY', 34953.51, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/eb01/10007', now()
 FROM cards WHERE canonical_id = 'OPT_EB01_EB01-006_MANGA_JP'
 ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
   price_raw = EXCLUDED.price_raw,
@@ -324,7 +324,7 @@ ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
 INSERT INTO card_prices (
   card_id, canonical_id, source, price_raw, currency, price_php, status, condition, is_graded, grading_company, grade, external_url, last_checked_at
 ) SELECT
-  id, 'OPT_PRB01_PRB01-001_BASE_JP', 'yuyutei', 200, 'JPY', 79.5, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/prb01/10001', now()
+  id, 'OPT_PRB01_PRB01-001_BASE_JP', 'yuyutei', 200, 'JPY', 79.44, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/prb01/10001', now()
 FROM cards WHERE canonical_id = 'OPT_PRB01_PRB01-001_BASE_JP'
 ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
   price_raw = EXCLUDED.price_raw,
@@ -346,7 +346,7 @@ ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
 INSERT INTO card_prices (
   card_id, canonical_id, source, price_raw, currency, price_php, status, condition, is_graded, grading_company, grade, external_url, last_checked_at
 ) SELECT
-  id, 'OPT_PROMO_P-001_PROMO_JP', 'yuyutei', 1500, 'JPY', 596.23, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/promo/10001', now()
+  id, 'OPT_PROMO_P-001_PROMO_JP', 'yuyutei', 1500, 'JPY', 595.8, 'AVAILABLE', 'A', false, NULL, NULL, 'https://yuyu-tei.jp/sell/opc/card/promo/10001', now()
 FROM cards WHERE canonical_id = 'OPT_PROMO_P-001_PROMO_JP'
 ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET
   price_raw = EXCLUDED.price_raw,

@@ -18,6 +18,8 @@ class CardModel {
   final String variantType;
   final String language;
   final bool isAlternateArt;
+  final String? setCode;
+  final String? setName;
   final double? priceJpy;
   final double? pricePhp;
   final String priceStatus;
@@ -42,6 +44,8 @@ class CardModel {
     this.variantType = 'BASE',
     this.language = 'JP',
     this.isAlternateArt = false,
+    this.setCode,
+    this.setName,
     this.priceJpy,
     this.pricePhp,
     this.priceStatus = 'NOT_CHECKED',
@@ -78,6 +82,8 @@ class CardModel {
       variantType: json['variant_type'] ?? 'BASE',
       language: json['language'] ?? 'JP',
       isAlternateArt: json['is_alternate_art'] ?? false,
+      setCode: json['set_code'],
+      setName: json['set_name'],
       priceJpy: json['yuyutei_price_jpy'] != null
           ? (json['yuyutei_price_jpy'] as num).toDouble()
           : (json['price_raw'] != null ? (json['price_raw'] as num).toDouble() : null),

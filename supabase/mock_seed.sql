@@ -156,4 +156,14 @@ BEGIN
     VALUES (v_card_id, 'OPT_OP02_OP02-005_BASE_JP', 'yuyutei', NULL, 'JPY', NULL, 'UNAVAILABLE', 'A', false, 'Not currently listed on Yuyutei stock')
     ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET price_raw = EXCLUDED.price_raw, price_php = EXCLUDED.price_php, status = EXCLUDED.status, last_checked_at = now();
 
+    -- PRB01-001 Sanji (Leader - Base)
+    INSERT INTO cards (canonical_id, set_id, card_number, name, name_ja, rarity, color, type, cost, power, counter, attribute, effect, illustrator, image_url, variant_type, language, is_alternate_art)
+    VALUES ('OPT_PRB01_PRB01-001_BASE_JP', v_set_prb01_id, 'PRB01-001', 'Sanji', 'サンジ', 'L', 'Red', 'Leader', NULL, 5000, NULL, 'Strike', '[Activate: Main] [Once Per Turn] Up to 1 of your Characters with a cost of 8 or less gains [Rush] during this turn.', 'Eiichiro Oda', 'https://asia-en.onepiece-cardgame.com/images/cardlist/card/PRB01-001.png', 'BASE', 'JP', false)
+    ON CONFLICT (set_id, card_number, variant_type, language) DO UPDATE SET name = EXCLUDED.name, name_ja = EXCLUDED.name_ja, image_url = EXCLUDED.image_url
+    RETURNING id INTO v_card_id;
+
+    INSERT INTO card_prices (card_id, canonical_id, source, price_raw, currency, price_php, status, condition, is_graded)
+    VALUES (v_card_id, 'OPT_PRB01_PRB01-001_BASE_JP', 'yuyutei', 200, 'JPY', 75.00, 'AVAILABLE', 'A', false)
+    ON CONFLICT (card_id, source, condition, is_graded, grade) DO UPDATE SET price_raw = EXCLUDED.price_raw, price_php = EXCLUDED.price_php, status = EXCLUDED.status, last_checked_at = now();
+
 END $$;

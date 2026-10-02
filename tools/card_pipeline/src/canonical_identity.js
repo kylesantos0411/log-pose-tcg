@@ -20,6 +20,11 @@ export class CanonicalIdentityService {
     // Check direct match
     if (SupportedSets[cleaned]) return SupportedSets[cleaned].setCode;
 
+    // Check aliases: PRB / THE BEST -> PRB-01
+    if (cleaned === 'PRB' || cleaned === 'THE BEST' || cleaned === 'ONE PIECE CARD THE BEST') {
+      return 'PRB-01';
+    }
+
     // Check without hyphen (e.g. OP01 -> OP-01, EB01 -> EB-01, PRB01 -> PRB-01, ST01 -> ST-01)
     for (const info of Object.values(SupportedSets)) {
       if (info.normalizedCode === cleaned || info.setCode === cleaned) {
@@ -27,7 +32,7 @@ export class CanonicalIdentityService {
       }
     }
 
-    // Pattern matching: OP01 -> OP-01
+    // Pattern matching: OP01 -> OP-01, PRB1 -> PRB-01
     const match = cleaned.match(/^([A-Z]+)[-_]?0*([0-9]+)$/);
     if (match) {
       const prefix = match[1];
@@ -43,16 +48,31 @@ export class CanonicalIdentityService {
   }
 
   /**
-   * Normalizes card numbers (e.g. "op01-001" -> "OP01-001", "p-001" -> "P-001").
+   * Normalizes card numbers (e.g. "op01-001" -> "OP01-001", "PRB-01-001" -> "PRB01-001", "PRB01001" -> "PRB01-001").
    */
   static normalizeCardNumber(raw) {
     if (!raw) throw new Error('Card number cannot be empty');
     const cleaned = String(raw).trim().toUpperCase();
 
-    // Standard card number regex (OP01-001, ST01-001, EB01-001, P-001, PRB01-001)
+    // 1. Handle multi-hyphen/multi-part formats: PRB-01-001, OP-01-025, EB-01-006, ST-01-012
+    const multiHyphenMatch = cleaned.match(/^([A-Z]+)[-_]([0-9]{1,2})[-_]([0-9]{3,4})$/);
+    if (multiHyphenMatch) {
+      const prefix = multiHyphenMatch[1];
+      const setNum = multiHyphenMatch[2].padStart(2, '0');
+      const cardNum = multiHyphenMatch[3];
+      return `${prefix}${setNum}-${cardNum}`;
+    }
+
+    // 2. Standard hyphenated card number regex (OP01-001, ST01-001, EB01-001, P-001, PRB01-001)
     const match = cleaned.match(/^([A-Z0-9]+)[-_]([0-9]{3,4})$/);
     if (match) {
       return `${match[1]}-${match[2]}`;
+    }
+
+    // 3. Unhyphenated card number regex (e.g. PRB01001 -> PRB01-001, OP01025 -> OP01-025)
+    const unhyphenMatch = cleaned.match(/^([A-Z]+[0-9]{2})([0-9]{3,4})$/);
+    if (unhyphenMatch) {
+      return `${unhyphenMatch[1]}-${unhyphenMatch[2]}`;
     }
 
     return cleaned;
@@ -66,11 +86,25 @@ export class CanonicalIdentityService {
     const rarity = String(metadata.rarity || '').toUpperCase();
     const variantTag = String(metadata.variant || metadata.variant_type || '').toUpperCase();
     const flags = String(metadata.flags || '').toLowerCase();
+    const cardNumber = String(metadata.cardNumber || metadata.card_number || metadata.number || '').toUpperCase();
 
     if (variantTag.includes('MANGA') || name.includes('manga') || flags.includes('manga') || flags.includes('comic')) {
       return VariantType.MANGA;
     }
-    if (variantTag.includes('PARALLEL') || name.includes('parallel') || flags.includes('parallel') || variantTag === 'AA' || flags.includes('alt art')) {
+    if (
+      variantTag.includes('PARALLEL') ||
+      name.includes('parallel') ||
+      flags.includes('parallel') ||
+      variantTag === 'AA' ||
+      flags.includes('alt art')
+    ) {
+      return VariantType.PARALLEL;
+    }
+    // PRB parallel rarity prefixes: P-L, P-SR, P-SEC, P-R, P-UC, P-C (not standalone P which is Promo)
+    if (
+      (rarity.startsWith('P-') && !cardNumber.startsWith('P-') && rarity.length > 2) ||
+      rarity.endsWith('-P')
+    ) {
       return VariantType.PARALLEL;
     }
     if (variantTag.includes('SP') || rarity === 'SP' || flags.includes('special rare')) {
@@ -79,7 +113,7 @@ export class CanonicalIdentityService {
     if (variantTag.includes('BOX_TOPPER') || flags.includes('box topper')) {
       return VariantType.BOX_TOPPER;
     }
-    if (variantTag.includes('PROMO') || rarity === 'P' || (metadata.cardNumber && metadata.cardNumber.startsWith('P-'))) {
+    if (variantTag.includes('PROMO') || rarity === 'P' || cardNumber.startsWith('P-')) {
       return VariantType.PROMO;
     }
 
@@ -134,12 +168,20 @@ export class CanonicalIdentityService {
       return cardA.canonicalId === cardB.canonicalId;
     }
 
-    const numA = this.normalizeCardNumber(cardA.cardNumber || cardA.card_number);
-    const numB = this.normalizeCardNumber(cardB.cardNumber || cardB.card_number);
+    const numARaw = cardA.cardNumber || cardA.card_number || (cardA.canonicalId ? this.parseCanonicalId(cardA.canonicalId).cardNumber : null);
+    const numBRaw = cardB.cardNumber || cardB.card_number || (cardB.canonicalId ? this.parseCanonicalId(cardB.canonicalId).cardNumber : null);
+    if (!numARaw || !numBRaw) return false;
+
+    const numA = this.normalizeCardNumber(numARaw);
+    const numB = this.normalizeCardNumber(numBRaw);
     if (numA !== numB) return false;
 
-    const setA = this.normalizeSetCode(cardA.setCode || cardA.set_code || cardA.set);
-    const setB = this.normalizeSetCode(cardB.setCode || cardB.set_code || cardB.set);
+    const setARaw = cardA.setCode || cardA.set_code || cardA.set || (cardA.canonicalId ? this.parseCanonicalId(cardA.canonicalId).normalizedSetCode : null);
+    const setBRaw = cardB.setCode || cardB.set_code || cardB.set || (cardB.canonicalId ? this.parseCanonicalId(cardB.canonicalId).normalizedSetCode : null);
+    if (!setARaw || !setBRaw) return false;
+
+    const setA = this.normalizeSetCode(setARaw);
+    const setB = this.normalizeSetCode(setBRaw);
     if (setA !== setB) return false;
 
     const varA = cardA.variantType || this.detectVariantType(cardA);

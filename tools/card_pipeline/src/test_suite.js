@@ -328,6 +328,129 @@ console.log('====================================================\n');
   );
 }
 
+// 21. PRB Set Code Normalization Aliases
+{
+  const aliasPrb = CanonicalIdentityService.normalizeSetCode('PRB');
+  const aliasTheBest = CanonicalIdentityService.normalizeSetCode('THE BEST');
+  const aliasPrb01 = CanonicalIdentityService.normalizeSetCode('PRB01');
+  const aliasPrbDash1 = CanonicalIdentityService.normalizeSetCode('PRB-1');
+  assert(
+    aliasPrb === 'PRB-01' &&
+    aliasTheBest === 'PRB-01' &&
+    aliasPrb01 === 'PRB-01' &&
+    aliasPrbDash1 === 'PRB-01',
+    'Test 21: PRB set aliases (PRB, THE BEST, PRB01, PRB-1) normalize cleanly to PRB-01'
+  );
+}
+
+// 22. PRB Card Number Normalization (multi-hyphen and unhyphenated)
+{
+  const multiHyphen = CanonicalIdentityService.normalizeCardNumber('PRB-01-001');
+  const unhyphenated = CanonicalIdentityService.normalizeCardNumber('PRB01001');
+  const standard = CanonicalIdentityService.normalizeCardNumber('PRB01-001');
+  assert(
+    multiHyphen === 'PRB01-001' &&
+    unhyphenated === 'PRB01-001' &&
+    standard === 'PRB01-001',
+    'Test 22: PRB card numbers (PRB-01-001, PRB01001) normalize to PRB01-001'
+  );
+}
+
+// 23. PRB Parallel Rarity Prefix Detection
+{
+  const parallelLeader = CanonicalIdentityService.detectVariantType({
+    cardNumber: 'PRB01-001',
+    rarity: 'P-L',
+    name: 'Sanji (Parallel)'
+  });
+  const parallelSr = CanonicalIdentityService.detectVariantType({
+    cardNumber: 'OP01-025',
+    rarity: 'P-SR',
+    name: 'Roronoa Zoro'
+  });
+  const promoCard = CanonicalIdentityService.detectVariantType({
+    cardNumber: 'P-001',
+    rarity: 'P',
+    name: 'Monkey.D.Luffy'
+  });
+  assert(
+    parallelLeader === VariantType.PARALLEL &&
+    parallelSr === VariantType.PARALLEL &&
+    promoCard === VariantType.PROMO,
+    'Test 23: PRB parallel prefixes (P-L, P-SR) correctly identified as PARALLEL, preserving P as PROMO'
+  );
+}
+
+// 24. PRB Reprint Yuyutei Price Isolation (Never cross-match original with reprint)
+{
+  const prbReprintCard = {
+    canonicalId: 'OPT_PRB01_OP01-001_BASE_JP',
+    cardNumber: 'OP01-001',
+    setCode: 'PRB-01',
+    variantType: VariantType.BASE,
+    rarity: 'L'
+  };
+
+  const op01OriginalListing = {
+    cardNumber: 'OP01-001',
+    name: 'ロロノア・ゾロ',
+    rarity: 'L',
+    price: 280,
+    url: 'https://yuyu-tei.jp/sell/opc/card/op01/10001'
+  };
+
+  const prbReprintListing = {
+    cardNumber: 'OP01-001',
+    name: 'ロロノア・ゾロ',
+    rarity: 'L',
+    price: 150,
+    url: 'https://yuyu-tei.jp/sell/opc/card/prb01/10001'
+  };
+
+  const matchOp01 = YuyuteiMatcher.isExactYuyuteiMatch(prbReprintCard, op01OriginalListing);
+  const matchPrb = YuyuteiMatcher.isExactYuyuteiMatch(prbReprintCard, prbReprintListing);
+
+  assert(
+    matchOp01 === false && matchPrb === true,
+    'Test 24: PRB-01 reprint card strictly rejects OP-01 listing and matches only PRB-01 listing'
+  );
+}
+
+// 25. PRB01-001 Canonical Sanji Identity
+{
+  const sanjiCard = LimitlessImporter.normalizeRawCard({
+    cardNumber: 'PRB01-001',
+    setCode: 'PRB-01',
+    name: 'Sanji',
+    nameJa: 'サンジ',
+    rarity: 'L',
+    type: 'Leader',
+    color: 'Red'
+  });
+  assert(
+    sanjiCard.canonicalId === 'OPT_PRB01_PRB01-001_BASE_JP' &&
+    sanjiCard.name === 'Sanji' &&
+    sanjiCard.nameJa === 'サンジ',
+    'Test 25: PRB01-001 correctly identified as Sanji (サンジ), preventing false Luffy assignment'
+  );
+}
+
+// 26. isExactMatch with canonicalId fallback
+{
+  const cardWithIdOnly = { canonicalId: 'OPT_PRB01_PRB01-001_BASE_JP' };
+  const cardWithFields = {
+    cardNumber: 'PRB01-001',
+    setCode: 'PRB-01',
+    variantType: VariantType.BASE,
+    language: Language.JP
+  };
+  const isMatch = CanonicalIdentityService.isExactMatch(cardWithIdOnly, cardWithFields);
+  assert(
+    isMatch === true,
+    'Test 26: isExactMatch parses canonicalId when card properties are not pre-populated'
+  );
+}
+
 console.log('\n====================================================');
 console.log(`TEST RESULTS: ${passed} PASSED, ${failed} FAILED`);
 console.log('====================================================');

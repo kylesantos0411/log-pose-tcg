@@ -35,22 +35,51 @@ export class YuyuteiMatcher {
       return false; // Instant rejection: Different card numbers must never match!
     }
 
-    // 2. Set Check
+    // 2. Set Check & Extraction from setCode, URL, or Title
+    const targetSet = CanonicalIdentityService.normalizeSetCode(canonicalCard.setCode);
+    let candidateSet = null;
+
     if (yuyuteiProduct.setCode) {
-      const targetSet = CanonicalIdentityService.normalizeSetCode(canonicalCard.setCode);
-      const candidateSet = CanonicalIdentityService.normalizeSetCode(yuyuteiProduct.setCode);
+      candidateSet = CanonicalIdentityService.normalizeSetCode(yuyuteiProduct.setCode);
+    } else if (yuyuteiProduct.url) {
+      const urlMatch = yuyuteiProduct.url.match(/\/card\/([a-z0-9]+)\//i) || yuyuteiProduct.url.match(/\/s\/([a-z0-9]+)/i);
+      if (urlMatch) {
+        candidateSet = CanonicalIdentityService.normalizeSetCode(urlMatch[1]);
+      }
+    }
+
+    const candidateTitle = String(yuyuteiProduct.name || yuyuteiProduct.title || '');
+    if (!candidateSet) {
+      if (candidateTitle.includes('(PRB)') || candidateTitle.includes('PRB01') || candidateTitle.includes('THE BEST')) {
+        candidateSet = 'PRB-01';
+      }
+    }
+
+    if (candidateSet) {
       if (targetSet !== candidateSet) {
+        return false;
+      }
+    } else {
+      // If candidateSet cannot be inferred, verify reprint cards:
+      // If canonical card is a reprint in PRB-01 (or other set) with a card number prefix
+      // differing from its setCode (e.g. OP01-001 in PRB-01), do not falsely match an unverified listing.
+      const targetCardSetPrefix = targetNum.split('-')[0];
+      const targetSetClean = targetSet.replace(/[^A-Z0-9]/g, '');
+      const isReprintCard = targetCardSetPrefix !== targetSetClean;
+
+      if (isReprintCard) {
         return false;
       }
     }
 
-    // 3. Variant & Parallel Suffix Check
-    // Yuyutei designates Parallels as "SR-P", "L-P", "SEC-P", "SP", or mentions パラレル / コミック
+    // 3. Variant & Parallel Suffix/Prefix Check
+    // Yuyutei designates Parallels as "SR-P", "L-P", "SEC-P", "SP",
+    // or PRB prefix rarities "P-L", "P-SR", "P-SEC", "P-R", "P-UC", "P-C", or mentions パラレル / コミック
     const candidateRarity = String(yuyuteiProduct.rarity || '').toUpperCase();
-    const candidateTitle = String(yuyuteiProduct.name || yuyuteiProduct.title || '');
 
     const isCandidateParallel = 
       candidateRarity.endsWith('-P') || 
+      (candidateRarity.startsWith('P-') && candidateRarity !== 'P' && candidateRarity.length > 2) ||
       candidateRarity.includes('PARALLEL') ||
       candidateTitle.includes('パラレル') ||
       candidateTitle.includes('Parallel') ||
@@ -80,8 +109,8 @@ export class YuyuteiMatcher {
       }
       // Rarity comparison
       if (canonicalCard.rarity && yuyuteiProduct.rarity) {
-        const cleanTargetRarity = canonicalCard.rarity.replace(/[^A-Z]/g, '');
-        const cleanCandidateRarity = yuyuteiProduct.rarity.replace(/[^A-Z]/g, '');
+        const cleanTargetRarity = canonicalCard.rarity.replace(/^P-/, '').replace(/-P$/, '').replace(/[^A-Z]/g, '');
+        const cleanCandidateRarity = yuyuteiProduct.rarity.replace(/^P-/, '').replace(/-P$/, '').replace(/[^A-Z]/g, '');
         if (cleanTargetRarity !== cleanCandidateRarity) {
           return false;
         }

@@ -128,6 +128,8 @@ class CardsScreen extends ConsumerWidget {
                         spacing: 8,
                         runSpacing: 8,
                         children: [
+                          if (card.setCode != null)
+                            _buildDetailPill('Set', '${card.setCode!}${card.setName != null ? ' (${card.setName!})' : ''}'),
                           _buildDetailPill('Number', card.cardNumber),
                           _buildDetailPill('Type', card.type ?? '-'),
                           _buildDetailPill('Color', card.color ?? '-'),
