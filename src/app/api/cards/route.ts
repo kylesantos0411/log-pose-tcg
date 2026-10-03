@@ -3,6 +3,98 @@ import { prisma } from '@/lib/prisma';
 import { getCardArtist, getCardIdsByArtist, ARTIST_PROFILES, isGuestArtist } from '@/lib/artist-data';
 import { sanitizeIdentifier, sanitizeSearchQuery, sanitizeString } from '@/lib/sanitizer';
 
+const CHARACTER_ALIASES: Record<string, string[]> = {
+  'oden': ['Kouzuki Oden', 'Kozuki Oden', 'Oden'],
+  'kozuki oden': ['Kouzuki Oden', 'Kozuki Oden'],
+  'kouzuki oden': ['Kouzuki Oden'],
+  'kozuki': ['Kouzuki', 'Kozuki'],
+  'kouzuki': ['Kouzuki', 'Kozuki'],
+  'ace': ['Portgas.D.Ace'],
+  'portgas d ace': ['Portgas.D.Ace'],
+  'portgas d. ace': ['Portgas.D.Ace'],
+  'portgas ace': ['Portgas.D.Ace'],
+  'luffy': ['Monkey.D.Luffy', 'Luffy'],
+  'monkey d luffy': ['Monkey.D.Luffy'],
+  'monkey d. luffy': ['Monkey.D.Luffy'],
+  'zoro': ['Roronoa Zoro', 'Zoro'],
+  'whitebeard': ['Edward.Newgate', 'Whitebeard'],
+  'blackbeard': ['Marshall.D.Teach', 'Blackbeard'],
+  'teach': ['Marshall.D.Teach', 'Teach'],
+  'marshall d teach': ['Marshall.D.Teach'],
+  'marshall d. teach': ['Marshall.D.Teach'],
+  'big mom': ['Charlotte Linlin', 'Big Mom'],
+  'bigmom': ['Charlotte Linlin'],
+  'linlin': ['Charlotte Linlin'],
+  'charlotte linlin': ['Charlotte Linlin'],
+  'roger': ['Gol.D.Roger', 'Roger'],
+  'gol d roger': ['Gol.D.Roger'],
+  'gol d. roger': ['Gol.D.Roger'],
+  'law': ['Trafalgar Law', 'Trafalgar.D.Water Law', 'Law'],
+  'trafalgar d water law': ['Trafalgar.D.Water Law'],
+  'trafalgar law': ['Trafalgar Law'],
+  'kid': ['Eustass"Captain"Kid', 'Eustass.Kid', 'Kid'],
+  'kidd': ['Eustass"Captain"Kid', 'Eustass.Kid'],
+  'eustass captain kid': ['Eustass"Captain"Kid'],
+  'eustass kid': ['Eustass"Captain"Kid', 'Eustass.Kid'],
+  'chopper': ['Tony Tony.Chopper', 'Tony Tony Chopper', 'Chopper'],
+  'tony tony chopper': ['Tony Tony.Chopper', 'Tony Tony Chopper'],
+  'mihawk': ['Dracule Mihawk', 'Mihawk'],
+  'dracule mihawk': ['Dracule Mihawk'],
+  'hancock': ['Boa Hancock', 'Hancock'],
+  'boa hancock': ['Boa Hancock'],
+  'bonney': ['Jewelry Bonney', 'Bonney'],
+  'jewelry bonney': ['Jewelry Bonney'],
+  'kuma': ['Bartholomew Kuma', 'Kuma'],
+  'bartholomew kuma': ['Bartholomew Kuma'],
+  'rayleigh': ['Silvers Rayleigh', 'Rayleigh'],
+  'silvers rayleigh': ['Silvers Rayleigh'],
+  'garp': ['Monkey.D.Garp', 'Garp'],
+  'monkey d garp': ['Monkey.D.Garp'],
+  'dragon': ['Monkey.D.Dragon', 'Dragon'],
+  'monkey d dragon': ['Monkey.D.Dragon'],
+  'doflamingo': ['Donquixote Doflamingo', 'Doflamingo'],
+  'donquixote doflamingo': ['Donquixote Doflamingo'],
+  'katakuri': ['Charlotte Katakuri', 'Katakuri'],
+  'charlotte katakuri': ['Charlotte Katakuri'],
+  'momonosuke': ['Kouzuki Momonosuke', 'Kozuki Momonosuke', 'Momonosuke'],
+  'kozuki momonosuke': ['Kouzuki Momonosuke'],
+  'kouzuki momonosuke': ['Kouzuki Momonosuke'],
+  'hiyori': ['Kouzuki Hiyori', 'Kozuki Hiyori', 'Hiyori'],
+  'kozuki hiyori': ['Kouzuki Hiyori'],
+  'kouzuki hiyori': ['Kouzuki Hiyori'],
+  'toki': ['Kouzuki Toki', 'Kozuki Toki', 'Toki'],
+  'kozuki toki': ['Kouzuki Toki'],
+  'kouzuki toki': ['Kouzuki Toki'],
+  'sukiyaki': ['Kouzuki Sukiyaki', 'Kozuki Sukiyaki', 'Sukiyaki'],
+  'aokiji': ['Kuzan', 'Aokiji'],
+  'kuzan': ['Kuzan'],
+  'akainu': ['Sakazuki', 'Akainu'],
+  'sakazuki': ['Sakazuki'],
+  'kizaru': ['Borsalino', 'Kizaru'],
+  'borsalino': ['Borsalino'],
+  'fujitora': ['Issho', 'Fujitora'],
+  'issho': ['Issho'],
+  'ryokugyu': ['Aramaki', 'Ryokugyu'],
+  'aramaki': ['Aramaki'],
+  'greenbull': ['Aramaki'],
+  'coby': ['Koby', 'Coby'],
+  'koby': ['Koby'],
+  'kaido': ['Kaido', 'Kaidou'],
+  'kaidou': ['Kaidou', 'Kaido'],
+  'corazon': ['Donquixote Rosinante', 'Corazon', 'Rosinante'],
+  'rosinante': ['Donquixote Rosinante', 'Rosinante'],
+  'bon clay': ['Mr.2.Bon.Kurei(Bentham)', 'Bon Clay', 'Bentham'],
+  'mr 2': ['Mr.2.Bon.Kurei(Bentham)'],
+  'mr. 2': ['Mr.2.Bon.Kurei(Bentham)'],
+  'bentham': ['Mr.2.Bon.Kurei(Bentham)'],
+  'reiju': ['Vinsmoke Reiju', 'Reiju'],
+  'vinsmoke reiju': ['Vinsmoke Reiju'],
+  'lucci': ['Rob Lucci', 'Lucci'],
+  'rob lucci': ['Rob Lucci'],
+  'newgate': ['Edward.Newgate'],
+  'edward newgate': ['Edward.Newgate'],
+};
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -100,16 +192,6 @@ export async function GET(req: NextRequest) {
         if (matched) {
           targetArtist = matched;
           isArtistQuery = true;
-        } else {
-          // Check if query exactly or closely matches an artist in the database
-          const dbArtist = await prisma.card.findFirst({
-            where: { artistName: { contains: q.trim() } },
-            select: { artistName: true },
-          });
-          if (dbArtist?.artistName && dbArtist.artistName.toLowerCase() === lowerQ) {
-            targetArtist = dbArtist.artistName;
-            isArtistQuery = true;
-          }
         }
       }
     }
@@ -264,7 +346,7 @@ export async function GET(req: NextRequest) {
         });
       } else {
         const searchTerm = cleanQ || q;
-        const sLower = searchTerm.toLowerCase();
+        const sLower = searchTerm.toLowerCase().trim();
 
         // Exact word match for artist names to prevent substring bleed (e.g. nakamaru vs nakama)
         const allArtists = await prisma.card.findMany({
@@ -281,19 +363,82 @@ export async function GET(req: NextRequest) {
           })
           .map((a) => a.artistName as string);
 
-        const orFilters: any[] = [
-          { id: { contains: searchTerm } },
-          { name: { contains: searchTerm } },
+        const nameVariants = new Set<string>();
+        nameVariants.add(searchTerm);
+
+        // Check character aliases
+        if (CHARACTER_ALIASES[sLower]) {
+          for (const v of CHARACTER_ALIASES[sLower]) {
+            nameVariants.add(v);
+          }
+        }
+
+        // Handle space to dot variations and "D." formatting (e.g. "Portgas D Ace" -> "Portgas.D.Ace", "Edward Newgate" -> "Edward.Newgate")
+        const dMatch = searchTerm.match(/^([A-Za-z]+)\s+D\.?\s+([A-Za-z]+)$/i);
+        if (dMatch) {
+          nameVariants.add(`${dMatch[1]}.D.${dMatch[2]}`);
+        }
+        if (/\b[Dd]\b/.test(searchTerm)) {
+          nameVariants.add(searchTerm.replace(/\s+([Dd])\.?\s+/g, '.$1.'));
+        }
+        if (searchTerm.includes(' ')) {
+          nameVariants.add(searchTerm.replace(/\s+/g, '.'));
+        }
+
+        // Handle transliteration variations (e.g. Kozuki <-> Kouzuki, Kaido <-> Kaidou)
+        if (/kozuki/i.test(searchTerm)) {
+          nameVariants.add(searchTerm.replace(/kozuki/gi, 'Kouzuki'));
+        }
+        if (/kouzuki/i.test(searchTerm)) {
+          nameVariants.add(searchTerm.replace(/kouzuki/gi, 'Kozuki'));
+        }
+        if (/kaido/i.test(searchTerm)) {
+          nameVariants.add(searchTerm.replace(/kaido/gi, 'Kaidou'));
+        }
+        if (/kaidou/i.test(searchTerm)) {
+          nameVariants.add(searchTerm.replace(/kaidou/gi, 'Kaido'));
+        }
+
+        const isExactAce = sLower === 'ace';
+        const orFilters: any[] = [];
+
+        if (isExactAce) {
+          orFilters.push(
+            { name: { contains: 'Portgas.D.Ace' } },
+            { name: { startsWith: 'Ace ' } },
+            { name: { equals: 'Ace' } },
+            { name: { contains: ' Ace ' } },
+            { name: { contains: ' Ace,' } },
+            { name: { contains: ' Ace!' } },
+            { name: { contains: ' Ace?' } },
+            { name: { contains: '& Ace' } },
+            { name: { contains: 'Ace &' } },
+            { id: { startsWith: 'Ace' } }
+          );
+        } else {
+          for (const v of nameVariants) {
+            orFilters.push({ name: { contains: v } });
+            orFilters.push({ id: { contains: v } });
+          }
+        }
+
+        orFilters.push(
           { promoSource: { contains: searchTerm } },
           { displaySet: { contains: searchTerm } },
           { printedSetCode: { contains: searchTerm } },
           { originalSet: { contains: searchTerm } },
           { yuyuteiSet: { contains: searchTerm } },
-          { pack: { is: { code: { contains: searchTerm } } } },
-          { pack: { is: { name: { contains: searchTerm } } } },
           { vintageSeries: { contains: searchTerm } },
           { vintagePart: { contains: searchTerm } },
-        ];
+        );
+
+        const isCharacterQuery = Boolean(CHARACTER_ALIASES[sLower] || dMatch || isExactAce);
+
+        // Only match pack.name if it's not a character query and length >= 5 to prevent deck names like "Luffy & Ace" matching all cards for Ace
+        if (!isCharacterQuery && searchTerm.length >= 5) {
+          orFilters.push({ pack: { is: { name: { contains: searchTerm } } } });
+        }
+        orFilters.push({ pack: { is: { code: { contains: searchTerm } } } });
 
         // Set Code & PRB Alias expansion (e.g. PRB01, PRB-01, OP01, PRB, THE BEST)
         const cleanUpperTerm = searchTerm.trim().toUpperCase();
@@ -388,12 +533,12 @@ export async function GET(req: NextRequest) {
           });
         }
 
-        // Prevent substring bleed: don't match types on 'don'
-        if (!/^(don|don!|don!!)$/i.test(searchTerm.trim())) {
+        // Prevent substring bleed: don't match types on 'don' or for character queries
+        if (!isCharacterQuery && !/^(don|don!|don!!)$/i.test(searchTerm.trim())) {
           orFilters.push({ types: { contains: searchTerm } });
         }
 
-        if (matchedArtistsForTerm.length > 0) {
+        if (!isCharacterQuery && matchedArtistsForTerm.length > 0) {
           orFilters.push({ artistName: { in: matchedArtistsForTerm } });
         }
 
