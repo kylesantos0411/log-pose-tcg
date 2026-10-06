@@ -174,6 +174,27 @@ function CardsContent() {
   const [savingCollection, setSavingCollection] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  // Multi-card selection state (Additive feature per NewFeatureCardSelect.md)
+  const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(new Set());
+  const [isBulkAdding, setIsBulkAdding] = useState(false);
+  const [bulkAddToast, setBulkAddToast] = useState<string | null>(null);
+
+  const toggleCardSelection = (cardId: string) => {
+    setSelectedCardIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(cardId)) {
+        next.delete(cardId);
+      } else {
+        next.add(cardId);
+      }
+      return next;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedCardIds(new Set());
+  };
+
   // Debounce user typing in search bar (250ms)
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -314,6 +335,56 @@ function CardsContent() {
       console.error(e);
     } finally {
       setSavingCollection(false);
+    }
+  }
+
+  async function handleBulkAddToCollection() {
+    if (selectedCardIds.size === 0 || isBulkAdding) return;
+    setIsBulkAdding(true);
+    try {
+      const selectedCards = cards.filter((c) => selectedCardIds.has(c.id));
+      const count = selectedCards.length;
+
+      for (const card of selectedCards) {
+        let purchasePriceUSD = card.marketPrice;
+        if (card.yuyuPrice) {
+          const jpyRate = exchangeRates?.JPY || 157.30;
+          purchasePriceUSD = card.yuyuPrice / jpyRate;
+        }
+
+        addCardToLocalBinder({
+          cardId: card.id,
+          card: {
+            id: card.id,
+            name: card.name,
+            category: card.category,
+            colors: card.colors,
+            cost: card.cost,
+            power: card.power,
+            rarity: card.rarity,
+            imageUrl: card.imageUrl,
+            marketPrice: card.marketPrice,
+            yuyuPrice: card.yuyuPrice,
+            pack: card.pack ? { code: card.pack.code, name: card.pack.name } : undefined,
+          },
+          quantity: 1,
+          condition: 'NM',
+          isFoil: false,
+          language: 'jp',
+          purchasePrice: purchasePriceUSD,
+        }, user?.tag || null);
+      }
+
+      await fetchCards();
+      clearSelection();
+      setBulkAddToast(`${count} ${count === 1 ? 'card' : 'cards'} added to Collection`);
+      setTimeout(() => {
+        setBulkAddToast(null);
+      }, 3500);
+    } catch (err) {
+      console.error('Failed to bulk add cards to collection:', err);
+    } finally {
+      setIsBulkAdding(false);
     }
   }
 
@@ -816,12 +887,20 @@ function CardsContent() {
                   ? card.card_number
                   : card.id.split('_')[0];
                 const flag = card.hasJpPrint === false ? '🇺🇸' : '🇯🇵';
+                const isSelected = selectedCardIds.has(card.id);
+                const hasSelection = selectedCardIds.size > 0;
 
                 return (
                   <div
                     key={card.id}
                     onClick={() => setActiveCard(card)}
-                    className="group flex flex-col cursor-pointer transition-all duration-200 active:scale-[0.98]"
+                    className={`group flex flex-col cursor-pointer transition-all duration-200 active:scale-[0.98] ${
+                      hasSelection
+                        ? isSelected
+                          ? 'ring-2 ring-[#e05d68] rounded-xl sm:rounded-2xl shadow-lg shadow-[#e05d68]/20 scale-[1.02] z-10 opacity-100'
+                          : 'opacity-40 hover:opacity-75 transition-opacity'
+                        : ''
+                    }`}
                   >
                     {/* Pure Edge-to-Edge Card Artwork Container */}
                     <div className="relative aspect-[2.5/3.5] rounded-xl sm:rounded-2xl overflow-hidden bg-[#12141c] border border-[#1f2330] group-hover:border-[#384158] transition-all shadow-sm group-hover:shadow-md">
@@ -833,6 +912,25 @@ function CardsContent() {
                         loading="lazy"
                         onError={(e) => handleCardImageError(e, card.id || card.cardNumber, card.imageUrl)}
                       />
+
+                      {/* Selection Checkbox Control (Top-Left) */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleCardSelection(card.id);
+                        }}
+                        className={`absolute top-1.5 left-1.5 sm:top-2 sm:left-2 w-5 h-5 sm:w-6 sm:h-6 rounded-md sm:rounded-lg border flex items-center justify-center transition-all z-20 cursor-pointer shadow-sm ${
+                          isSelected
+                            ? 'bg-[#e05d68] border-[#e05d68] text-white scale-105 shadow-md'
+                            : hasSelection
+                            ? 'bg-black/60 border-white/60 text-transparent hover:border-white'
+                            : 'bg-black/45 border-white/40 text-transparent opacity-75 sm:opacity-0 sm:group-hover:opacity-100 hover:border-white transition-opacity'
+                        }`}
+                        title={isSelected ? 'Deselect card' : 'Select card'}
+                      >
+                        <Check className={`w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3] ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
+                      </button>
 
                       {/* Circular Emblem on Bottom-Right (Matching media_1790912717518.png) */}
                       <div
@@ -888,6 +986,68 @@ function CardsContent() {
             >
               <ChevronRight className="w-4 h-4" />
             </button>
+          </div>
+        )}
+
+        {/* Floating Multi-Select Action Bar */}
+        {selectedCardIds.size > 0 && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-md w-[calc(100%-2rem)] sm:w-auto animate-in fade-in slide-in-from-bottom-4 duration-200">
+            <div className="flex items-center justify-between sm:justify-start gap-3 px-4 py-2.5 rounded-2xl bg-[#181a24]/95 backdrop-blur-md border border-[#2d3244] shadow-2xl text-white">
+              <div className="flex items-center gap-2">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#e05d68] text-white text-xs font-black shadow-sm">
+                  {selectedCardIds.size}
+                </span>
+                <span className="text-xs sm:text-sm font-semibold text-slate-200 whitespace-nowrap">
+                  {selectedCardIds.size === 1 ? 'card selected' : 'cards selected'}
+                </span>
+              </div>
+
+              <div className="h-5 w-px bg-white/10 hidden sm:block" />
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={clearSelection}
+                  className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isBulkAdding}
+                  onClick={handleBulkAddToCollection}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#e05d68] hover:bg-[#d04e59] text-white text-xs sm:text-sm font-bold shadow-md shadow-[#e05d68]/25 transition cursor-pointer disabled:opacity-50 whitespace-nowrap"
+                >
+                  {isBulkAdding ? (
+                    <span>Adding...</span>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4 stroke-[2.5]" />
+                      <span>Add to Collection</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Success Feedback Toast */}
+        {bulkAddToast && (
+          <div className="fixed bottom-20 sm:bottom-6 right-1/2 translate-x-1/2 sm:translate-x-0 sm:right-6 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-[#141620] border border-emerald-500/40 text-emerald-300 shadow-2xl backdrop-blur-md text-xs sm:text-sm font-semibold">
+              <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0">
+                <Check className="w-3.5 h-3.5 stroke-[3]" />
+              </div>
+              <span>{bulkAddToast}</span>
+              <Link
+                href="/collection"
+                className="ml-2 text-xs text-white underline hover:text-emerald-200 font-bold"
+              >
+                View Collection
+              </Link>
+            </div>
           </div>
         )}
       </main>
