@@ -176,7 +176,7 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
               alt={deck.name}
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
-              onError={(e) => handleCardImageError(e, deck.leaderId)}
+              onError={(e) => handleCardImageError(e, deck.leaderId, deck.leaderImage)}
             />
             {/* SAMPLE watermark badge if desired */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
@@ -359,7 +359,7 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
                       alt={cardItem.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       referrerPolicy="no-referrer"
-                      onError={(e) => handleCardImageError(e, cardItem.cardId)}
+                      onError={(e) => handleCardImageError(e, cardItem.cardId, cardItem.imageUrl)}
                     />
 
                     {/* Top Left: Cost */}

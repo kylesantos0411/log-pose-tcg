@@ -327,7 +327,7 @@ export default function RecommendedDecksPage() {
                         alt={deck.name}
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
-                        onError={(e) => handleCardImageError(e, deck.leaderId)}
+                        onError={(e) => handleCardImageError(e, deck.leaderId, deck.leaderImage)}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
                       {/* Floating Meta Tag on thumbnail */}

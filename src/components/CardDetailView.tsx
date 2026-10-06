@@ -899,7 +899,7 @@ export function CardDetailView({
                 src={getSafeCardImageUrl(card.imageUrl, card.id || card.cardNumber) || jpImageUrl}
                 alt={`${card.name} (Japanese)`}
                 referrerPolicy="no-referrer"
-                onError={(e) => handleCardImageError(e, card.id || card.cardNumber)}
+                onError={(e) => handleCardImageError(e, card.id || card.cardNumber, card.imageUrl)}
                 className="w-full h-full object-contain"
               />
             ) : (
@@ -2634,7 +2634,7 @@ export function CardDetailView({
                               className="w-full h-full object-contain"
                               loading="lazy"
                               referrerPolicy="no-referrer"
-                              onError={(e) => handleCardImageError(e, v.id)}
+                              onError={(e) => handleCardImageError(e, v.id, v.imageUrl)}
                             />
                           </div>
                           <div className="min-w-0 flex-1">
@@ -2763,7 +2763,7 @@ export function CardDetailView({
                           referrerPolicy="no-referrer"
                           className="w-full h-full object-contain group-hover:scale-105 transition duration-300"
                           loading="lazy"
-                          onError={(e) => handleCardImageError(e, feat.id)}
+                          onError={(e) => handleCardImageError(e, feat.id, feat.imageUrl)}
                         />
                         <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-black/85 text-[9px] font-bold text-white backdrop-blur flex items-center gap-1 border border-white/10">
                           <span>{feat.id}</span>
@@ -2946,7 +2946,7 @@ export function CardDetailView({
                           className="w-full h-full object-contain"
                           loading="lazy"
                           referrerPolicy="no-referrer"
-                          onError={(e) => handleCardImageError(e, v.id)}
+                          onError={(e) => handleCardImageError(e, v.id, v.imageUrl)}
                         />
                       </div>
                       <div className="min-w-0 flex-1 space-y-1">

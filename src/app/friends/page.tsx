@@ -686,7 +686,7 @@ export default function FriendsPage() {
                               className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                               loading="lazy"
                               referrerPolicy="no-referrer"
-                              onError={(e) => handleCardImageError(e, c.cardId)}
+                              onError={(e) => handleCardImageError(e, c.cardId, c.card?.imageUrl)}
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-500 text-xs">

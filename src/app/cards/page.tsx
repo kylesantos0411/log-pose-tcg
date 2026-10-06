@@ -831,7 +831,7 @@ function CardsContent() {
                         referrerPolicy="no-referrer"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         loading="lazy"
-                        onError={(e) => handleCardImageError(e, card.id || card.cardNumber)}
+                        onError={(e) => handleCardImageError(e, card.id || card.cardNumber, card.imageUrl)}
                       />
 
                       {/* Circular Emblem on Bottom-Right (Matching media_1790912717518.png) */}

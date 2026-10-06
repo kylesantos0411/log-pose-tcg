@@ -816,7 +816,7 @@ export default function CollectionPage() {
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                     loading="lazy"
-                    onError={(e) => handleCardImageError(e, card.id)}
+                    onError={(e) => handleCardImageError(e, card.id, card.imageUrl)}
                   />
                   {item.quantity > 1 && (
                     <span className="absolute bottom-1 right-1 px-1.5 py-0.2 rounded-md bg-black/85 backdrop-blur-sm text-[9px] font-black text-white border border-white/20">
@@ -980,7 +980,7 @@ export default function CollectionPage() {
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   loading="lazy"
-                  onError={(e) => handleCardImageError(e, card.id)}
+                  onError={(e) => handleCardImageError(e, card.id, card.imageUrl)}
                 />
 
                 {/* Top Badge: SOLD / Quantity */}
@@ -1041,7 +1041,7 @@ export default function CollectionPage() {
                   src={getSafeCardImageUrl(sellingItem.card.imageUrl, sellingItem.card.id)}
                   alt={sellingItem.card.name}
                   className="w-full h-full object-cover"
-                  onError={(e) => handleCardImageError(e, sellingItem.card.id)}
+                  onError={(e) => handleCardImageError(e, sellingItem.card.id, sellingItem.card.imageUrl)}
                 />
               </div>
               <div className="min-w-0 flex-1">

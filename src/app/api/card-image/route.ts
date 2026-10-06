@@ -52,9 +52,11 @@ function isHostAllowed(hostname: string): boolean {
 
 function fetchUrlBuffer(
   targetUrl: string,
-  timeoutMs = 4500
+  timeoutMs = 4500,
+  redirectCount = 0
 ): Promise<{ buffer: Buffer; contentType: string } | null> {
   return new Promise((resolve) => {
+    if (redirectCount > 3) return resolve(null);
     try {
       const parsed = new URL(targetUrl);
       if (!isHostAllowed(parsed.hostname)) {
@@ -77,6 +79,11 @@ function fetchUrlBuffer(
           },
         },
         (res) => {
+          if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            const redirectUrl = new URL(res.headers.location, targetUrl).toString();
+            return fetchUrlBuffer(redirectUrl, timeoutMs, redirectCount + 1).then(resolve);
+          }
+
           if (!res.statusCode || res.statusCode < 200 || res.statusCode >= 300) {
             return resolve(null);
           }
@@ -189,6 +196,36 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // If url was not provided, look up the card in the DB to find its authentic stored imageUrl
+  if (!url && cleanId) {
+    try {
+      const dbCard = await prisma.card.findUnique({
+        where: { id: cleanId },
+        select: { imageUrl: true, cardNumber: true },
+      });
+      if (dbCard?.imageUrl) {
+        url = dbCard.imageUrl;
+      }
+      if (dbCard?.cardNumber && !baseId) {
+        baseId = dbCard.cardNumber;
+      }
+    } catch {}
+  }
+
+  // Also query base card's stored imageUrl as an additional high-fidelity fallback
+  let baseDbUrl: string | null = null;
+  if (baseId && baseId !== cleanId) {
+    try {
+      const baseCard = await prisma.card.findUnique({
+        where: { id: baseId },
+        select: { imageUrl: true },
+      });
+      if (baseCard?.imageUrl) {
+        baseDbUrl = baseCard.imageUrl;
+      }
+    } catch {}
+  }
+
   const SPECIAL_CARD_OVERRIDES: Record<string, string> = {
     'EB04-061_P2': 'https://asia-en.onepiece-cardgame.com/images/cardlist/card/EB04-061_p3.png',
     'EB04-061_P3': 'https://asia-en.onepiece-cardgame.com/images/cardlist/card/EB04-061_p3.png',
@@ -247,16 +284,20 @@ export async function GET(req: NextRequest) {
 
   // Construct candidates in priority order:
   // 1. Explicit override if registered
-  // 2. Primary url (e.g. Yuyu-tei store scan)
-  // 3. Official Bandai Asia-EN card scan
-  // 4. Official Bandai Japan card scan
-  // 5. Base card Japanese / Asia-EN Bandai scan
+  // 2. Primary url (e.g. Yuyu-tei or onepiececollection store scan)
+  // 3. Base card authentic stored DB scan
+  // 4. Official Bandai Asia-EN card scan
+  // 5. Official Bandai Japan card scan
+  // 6. Base card Japanese / Asia-EN Bandai scan
   const candidates: string[] = [];
   if (isSpecialOverridden) {
     candidates.push(SPECIAL_CARD_OVERRIDES[upperCleanId]);
   }
   if (url && !isSpecialOverridden) {
     candidates.push(url);
+  }
+  if (baseDbUrl && !isSpecialOverridden) {
+    candidates.push(baseDbUrl);
   }
   if (cleanId) {
     candidates.push(`https://asia-en.onepiece-cardgame.com/images/cardlist/card/${cleanId}.png`);

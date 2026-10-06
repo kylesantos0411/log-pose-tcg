@@ -565,7 +565,7 @@ export default function SetsPage() {
                             alt={c.name}
                             referrerPolicy="no-referrer"
                             className="w-full h-full object-cover"
-                            onError={(e) => handleCardImageError(e, c.id)}
+                            onError={(e) => handleCardImageError(e, c.id, c.imageUrl)}
                           />
                         </div>
                       ))}

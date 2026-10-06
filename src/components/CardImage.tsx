@@ -26,7 +26,7 @@ export function CardImage({
       loading="lazy"
       referrerPolicy="no-referrer"
       className={className}
-      onError={(e) => handleCardImageError(e, cardId)}
+      onError={(e) => handleCardImageError(e, cardId, imageUrl)}
       {...props}
     />
   );

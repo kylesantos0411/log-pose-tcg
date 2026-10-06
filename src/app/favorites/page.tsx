@@ -319,7 +319,7 @@ export default function FavoritesPage() {
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       loading="lazy"
-                      onError={(e) => handleCardImageError(e, card.id)}
+                      onError={(e) => handleCardImageError(e, card.id, card.imageUrl)}
                     />
 
                     {/* Top-Right Favorite Unstar Button */}

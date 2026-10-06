@@ -28,16 +28,29 @@ export function getSafeCardImageUrl(url?: string | null, cardId?: string | null)
   if (!url && !cardId) return '';
   if (url && url.startsWith('/')) return url;
 
-  // Direct remote URLs: load directly to eliminate Vercel Serverless proxy bandwidth!
-  if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
-    return url.replace('https://en.onepiece-cardgame.com/', 'https://onepiece-cardgame.com/');
-  }
-
   const cleanId = (cardId || '').trim();
+
+  // 1. Explicit Japanese override mapping takes highest priority
   if (cleanId && JP_CARD_IMAGE_MAP[cleanId]) {
     return JP_CARD_IMAGE_MAP[cleanId];
   }
 
+  // 2. Insecure HTTP or hosts that fail mixed-content/browser hotlink checks (like onepiececollection.fr):
+  // MUST be proxied through /api/card-image to prevent browser mixed-content (HTTP on HTTPS) blocking!
+  if (url && (url.startsWith('http://') || url.includes('onepiececollection.fr'))) {
+    const params = new URLSearchParams();
+    params.set('url', url);
+    if (cleanId) params.set('id', cleanId);
+    return `/api/card-image?${params.toString()}`;
+  }
+
+  // 3. Direct high-speed HTTPS URLs (Bandai Asia-EN, Bandai JP, Yuyu-tei CDN):
+  // Load directly in the browser with 0 Vercel serverless proxy load!
+  if (url && url.startsWith('https://')) {
+    return url.replace('https://en.onepiece-cardgame.com/', 'https://onepiece-cardgame.com/');
+  }
+
+  // 4. Fallback to official Bandai Asia-EN scan by card ID
   if (cleanId) {
     return `https://asia-en.onepiece-cardgame.com/images/cardlist/card/${cleanId}.png`;
   }
@@ -50,7 +63,8 @@ export function getSafeCardImageUrl(url?: string | null, cardId?: string | null)
  */
 export function handleCardImageError(
   e: React.SyntheticEvent<HTMLImageElement, Event>,
-  cardId?: string | null
+  cardId?: string | null,
+  fallbackUrl?: string | null
 ) {
   const target = e.currentTarget;
   const currentSrc = target.src || '';
@@ -77,7 +91,10 @@ export function handleCardImageError(
 
   // Stage 4: Try server-side proxy fallback (only if direct CDNs were blocked)
   if (!currentSrc.includes('/api/card-image')) {
-    target.src = `/api/card-image?id=${encodeURIComponent(cleanId || baseId || 'OPTCG')}`;
+    const params = new URLSearchParams();
+    params.set('id', cleanId || baseId || 'OPTCG');
+    if (fallbackUrl) params.set('url', fallbackUrl);
+    target.src = `/api/card-image?${params.toString()}`;
     return;
   }
 
@@ -125,15 +142,18 @@ export function getEditionCardImageUrl(cardId: string, lang: 'en' | 'jp' = 'jp',
     return getSafeCardImageUrl(JP_CARD_IMAGE_MAP[cardId], cardId);
   }
 
-  // If fallbackUrl is a direct high-resolution Bandai Asia-EN, Yuyu-tei, onepiececollection or asset image, use it!
-  if (fallbackUrl && (fallbackUrl.includes('asia-en.onepiece-cardgame.com') || fallbackUrl.includes('yuyu-tei.jp') || fallbackUrl.includes('/cards/') || fallbackUrl.includes('onepiececollection.fr'))) {
-    return getSafeCardImageUrl(fallbackUrl, cardId);
-  }
-
-  // Prefer official Bandai card image
-  if (fallbackUrl && fallbackUrl.includes('onepiece-cardgame.com')) {
-    const cleanUrl = fallbackUrl.replace('https://en.onepiece-cardgame.com/', 'https://onepiece-cardgame.com/');
-    return getSafeCardImageUrl(cleanUrl, cardId);
+  // If fallbackUrl is provided and is a known good host, use it via getSafeCardImageUrl
+  if (fallbackUrl) {
+    if (fallbackUrl.includes('onepiececollection.fr') || fallbackUrl.startsWith('http://')) {
+      return getSafeCardImageUrl(fallbackUrl, cardId);
+    }
+    if (fallbackUrl.includes('asia-en.onepiece-cardgame.com') || fallbackUrl.includes('yuyu-tei.jp') || fallbackUrl.includes('/cards/')) {
+      return getSafeCardImageUrl(fallbackUrl, cardId);
+    }
+    if (fallbackUrl.includes('onepiece-cardgame.com')) {
+      const cleanUrl = fallbackUrl.replace('https://en.onepiece-cardgame.com/', 'https://onepiece-cardgame.com/');
+      return getSafeCardImageUrl(cleanUrl, cardId);
+    }
   }
 
   const defaultUrl = `https://asia-en.onepiece-cardgame.com/images/cardlist/card/${cardId}.png`;
