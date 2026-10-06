@@ -57,6 +57,78 @@ import {
   isUserRecentlyActive,
 } from '@/lib/supabase-sync';
 
+function getUserStatusBadge(u: AdminUserRecord) {
+  if (u.isBanned) {
+    return {
+      label: 'Banned',
+      pillClass: 'bg-rose-500/10 text-rose-300 border-rose-500/20',
+      dotClass: 'bg-rose-400',
+      reason: u.banReason || undefined,
+    };
+  }
+  if (u.role === 'admin') {
+    return {
+      label: 'Admin',
+      pillClass: 'bg-purple-500/10 text-purple-300 border-purple-500/20',
+      dotClass: 'bg-purple-400',
+    };
+  }
+
+  const now = Date.now();
+  const lastActiveTime = u.lastActive ? new Date(u.lastActive).getTime() : (u.createdAt ? new Date(u.createdAt).getTime() : 0);
+  const createdTime = u.createdAt ? new Date(u.createdAt).getTime() : 0;
+  
+  const diffDaysActive = (now - lastActiveTime) / (1000 * 60 * 60 * 24);
+  const diffDaysCreated = (now - createdTime) / (1000 * 60 * 60 * 24);
+
+  // 1. Inactive by 14 days rule (>14 days without using the app)
+  if (diffDaysActive >= 14) {
+    return {
+      label: 'Inactive (>14d)',
+      pillClass: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+      dotClass: 'bg-amber-400',
+      subtext: `${Math.floor(diffDaysActive)}d inactive`,
+    };
+  }
+
+  // 2. Ghost accounts: Registered >3 days ago with 0 cards and 0 sales
+  if ((u.cardCount || 0) === 0 && (u.salesCount || 0) === 0 && diffDaysCreated >= 3) {
+    return {
+      label: 'Ghost (0 Cards)',
+      pillClass: 'bg-orange-500/15 text-orange-300 border-orange-500/30',
+      dotClass: 'bg-orange-400',
+      subtext: `Joined ${Math.floor(diffDaysCreated)}d ago`,
+    };
+  }
+
+  // 3. New account with zero cards (<3 days old)
+  if ((u.cardCount || 0) === 0 && (u.salesCount || 0) === 0) {
+    return {
+      label: 'New (0 Cards)',
+      pillClass: 'bg-slate-500/15 text-slate-300 border-slate-500/20',
+      dotClass: 'bg-slate-400',
+      subtext: 'No cards yet',
+    };
+  }
+
+  // 4. Dormant accounts (>7 days without activity)
+  if (diffDaysActive >= 7) {
+    return {
+      label: 'Dormant (>7d)',
+      pillClass: 'bg-yellow-500/10 text-yellow-300 border-yellow-500/20',
+      dotClass: 'bg-yellow-400',
+      subtext: `${Math.floor(diffDaysActive)}d since use`,
+    };
+  }
+
+  // 5. Active
+  return {
+    label: 'Active',
+    pillClass: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
+    dotClass: 'bg-emerald-400',
+  };
+}
+
 export default function AdminPage() {
   const { user } = useSettings();
   const isChiefAdmin = checkIsChiefAdmin(user);
@@ -84,7 +156,7 @@ export default function AdminPage() {
   // Users Management state
   const [usersList, setUsersList] = useState<AdminUserRecord[]>([]);
   const [userSearch, setUserSearch] = useState('');
-  const [userFilter, setUserFilter] = useState<'all' | 'online' | 'banned' | 'admins' | 'inactive' | 'ghosts'>('all');
+  const [userFilter, setUserFilter] = useState<'all' | 'online' | 'banned' | 'admins' | 'inactive' | 'ghosts' | 'dormant'>('all');
   const [userSort, setUserSort] = useState<'recent_active' | 'last_login' | 'newest' | 'cards' | 'sales'>('recent_active');
   const [loadingUsers, setLoadingUsers] = useState(false);
 
@@ -508,7 +580,12 @@ export default function AdminPage() {
       if (userFilter === 'ghosts') {
         const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
         const createdTime = u.createdAt ? new Date(u.createdAt).getTime() : 0;
-        return createdTime < threeDaysAgo && u.cardCount === 0 && u.role !== 'admin';
+        return createdTime < threeDaysAgo && (u.cardCount || 0) === 0 && u.role !== 'admin';
+      }
+      if (userFilter === 'dormant') {
+        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        const lastActiveTime = u.lastActive ? new Date(u.lastActive).getTime() : new Date(u.createdAt).getTime();
+        return lastActiveTime < sevenDaysAgo && u.role !== 'admin';
       }
       return true;
     })
@@ -1141,7 +1218,15 @@ export default function AdminPage() {
                     label: `Ghosts (${usersList.filter((u) => {
                       const cut = Date.now() - 3 * 24 * 3600 * 1000;
                       const cr = u.createdAt ? new Date(u.createdAt).getTime() : 0;
-                      return cr < cut && u.cardCount === 0 && u.role !== 'admin';
+                      return cr < cut && (u.cardCount || 0) === 0 && u.role !== 'admin';
+                    }).length})`,
+                  },
+                  {
+                    id: 'dormant',
+                    label: `Dormant >7d (${usersList.filter((u) => {
+                      const cut = Date.now() - 7 * 24 * 3600 * 1000;
+                      const act = u.lastActive ? new Date(u.lastActive).getTime() : new Date(u.createdAt).getTime();
+                      return act < cut && u.role !== 'admin';
                     }).length})`,
                   },
                   { id: 'banned', label: `Banned (${usersList.filter((u) => u.isBanned).length})` },
@@ -1326,24 +1411,27 @@ export default function AdminPage() {
                               </td>
 
                               <td className="py-3.5 px-3">
-                                {u.isBanned ? (
-                                  <div className="space-y-0.5">
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-rose-500/10 text-rose-300 border border-rose-500/20">
-                                      <ShieldAlert className="w-3 h-3 text-rose-400" />
-                                      <span>Banned</span>
-                                    </span>
-                                    {u.banReason && (
-                                      <span className="block text-[10px] text-slate-400 truncate max-w-xs italic">
-                                        "{u.banReason}"
+                                {(() => {
+                                  const status = getUserStatusBadge(u);
+                                  return (
+                                    <div className="space-y-0.5">
+                                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider border ${status.pillClass}`}>
+                                        <span className={`w-1.5 h-1.5 rounded-full ${status.dotClass}`} />
+                                        <span>{status.label}</span>
                                       </span>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                    <span>Active</span>
-                                  </span>
-                                )}
+                                      {status.subtext && (
+                                        <span className="block text-[10px] text-slate-400 font-medium">
+                                          {status.subtext}
+                                        </span>
+                                      )}
+                                      {status.reason && (
+                                        <span className="block text-[10px] text-slate-400 truncate max-w-xs italic">
+                                          "{status.reason}"
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
                               </td>
 
                               {/* Last Active / App Usage & Login */}
