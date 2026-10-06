@@ -104,7 +104,7 @@ async function syncRedeemedCodesFromCloud() {
   if (!sbUrl || !sbKey) return;
 
   try {
-    const res = await fetch(`${sbUrl}/rest/v1/profiles?select=id,username,email,tag,crew,created_at`, {
+    const res = await fetch(`${sbUrl}/rest/v1/profiles?select=id,username,email,tag,crew,created_at,ban_reason`, {
       headers: {
         apikey: sbKey,
         Authorization: `Bearer ${sbKey}`,
@@ -117,6 +117,7 @@ async function syncRedeemedCodesFromCloud() {
     if (!Array.isArray(profiles)) return;
 
     for (const p of profiles) {
+      if (p.ban_reason === 'RECYCLED_ACCOUNT' || p.crew === 'RECYCLED') continue;
       if (p.crew && typeof p.crew === 'string' && p.crew.startsWith('CODE:')) {
         const rawCode = p.crew.replace('CODE:', '').trim().toUpperCase();
         if (rawCode) {

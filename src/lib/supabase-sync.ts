@@ -2036,7 +2036,14 @@ export async function fetchAllUsersForAdmin(): Promise<AdminUserRecord[]> {
       saleMap[s.user_id] = (saleMap[s.user_id] || 0) + 1;
     });
 
-    return profiles.map((p) => {
+    const activeProfiles = profiles.filter((p) => {
+      if (p.ban_reason === 'RECYCLED_ACCOUNT' || p.crew === 'RECYCLED' || p.rank === 'RECYCLED') {
+        return false;
+      }
+      return true;
+    });
+
+    return activeProfiles.map((p) => {
       const isChiefAdmin = checkIsChiefAdmin(p);
       const lastActive = p.last_active_at || p.auth_last_sign_in_at || p.last_login || p.updated_at || p.created_at;
       const lastLogin = p.last_login || p.auth_last_sign_in_at || p.updated_at || p.created_at;
@@ -2108,6 +2115,36 @@ export async function adminSetUserBan(
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || 'Failed to update ban status' };
+  }
+}
+
+/**
+ * Permanently recycle an inactive tester account (Admin only).
+ * Invokes admin_recycle_user RPC if present, and falls back to ban/recycle flagging.
+ */
+export async function adminRecycleUser(
+  targetUserId: string
+): Promise<{ success: boolean; error?: string }> {
+  const client = getSupabaseBrowserClient();
+  if (!client || !isSupabaseConfigured() || !isValidUuid(targetUserId)) {
+    return { success: false, error: 'Database client unavailable or invalid user ID' };
+  }
+
+  try {
+    // 1. Try full cascade recycle RPC (requires 20261006_admin_recycle_user.sql migration)
+    const { error: rpcError } = await client.rpc('admin_recycle_user', {
+      target_user_id: targetUserId,
+    });
+
+    if (!rpcError) {
+      return { success: true };
+    }
+
+    // 2. Fallback: ban and mark as recycled using existing admin_set_user_ban RPC
+    const banRes = await adminSetUserBan(targetUserId, true, 'RECYCLED_ACCOUNT');
+    return banRes;
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to recycle user' };
   }
 }
 

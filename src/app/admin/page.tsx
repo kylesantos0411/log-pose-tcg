@@ -43,6 +43,7 @@ import {
   updateSystemSetting,
   fetchAllUsersForAdmin,
   adminSetUserBan,
+  adminRecycleUser,
   fetchReportedSalesForAdmin,
   adminDeleteSale,
   adminDismissFlags,
@@ -259,6 +260,14 @@ export default function AdminPage() {
     }
     setPruningExecuting(true);
     try {
+      // 1. Recycle directly in cloud database
+      for (const uid of targetIds) {
+        try {
+          await adminRecycleUser(uid);
+        } catch {}
+      }
+
+      // 2. Call backend prune to release invite codes and sync database
       const res = await fetch('/api/admin/prune-inactive', {
         method: 'POST',
         headers: {
@@ -299,6 +308,10 @@ export default function AdminPage() {
     }
     setRecyclingUserId(targetUser.id);
     try {
+      // 1. Recycle directly in cloud database
+      await adminRecycleUser(targetUser.id);
+
+      // 2. Call backend prune to release invite codes and sync database
       const res = await fetch('/api/admin/prune-inactive', {
         method: 'POST',
         headers: {
@@ -333,6 +346,14 @@ export default function AdminPage() {
     }
     setPruningExecuting(true);
     try {
+      // 1. Recycle directly in cloud database
+      for (const uid of selectedUserIds) {
+        try {
+          await adminRecycleUser(uid);
+        } catch {}
+      }
+
+      // 2. Call backend prune to release invite codes and sync database
       const res = await fetch('/api/admin/prune-inactive', {
         method: 'POST',
         headers: {
