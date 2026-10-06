@@ -80,35 +80,100 @@ export function getBinderStorageKey(targetTag?: string | null): string {
   if (!tag) {
     return 'logpose_binder_guest';
   }
-  return `logpose_binder_${tag.toUpperCase()}`;
+  const cleanTag = tag.trim().replace(/^@+/, '').toUpperCase();
+  return `logpose_binder_${cleanTag}`;
+}
+
+export function queuePendingOfflineSync(
+  userTag: string | null | undefined,
+  action: { type: 'UPSERT' | 'DELETE'; card: LocalUserCard }
+): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const rawTag = userTag || getActiveUserTag() || 'guest';
+    const cleanTag = rawTag.trim().replace(/^@+/, '').toUpperCase();
+    const key = `logpose_offline_queue_${cleanTag}`;
+    const raw = localStorage.getItem(key);
+    const queue: Array<{ type: 'UPSERT' | 'DELETE'; card: LocalUserCard }> = raw ? JSON.parse(raw) : [];
+
+    if (action.type === 'DELETE') {
+      const filtered = queue.filter(
+        (q) =>
+          !(
+            q.card.cardId === action.card.cardId &&
+            q.card.condition === action.card.condition &&
+            q.card.isFoil === action.card.isFoil &&
+            q.card.language === action.card.language
+          )
+      );
+      filtered.push(action);
+      localStorage.setItem(key, JSON.stringify(filtered));
+    } else {
+      const idx = queue.findIndex(
+        (q) =>
+          q.type === 'UPSERT' &&
+          q.card.cardId === action.card.cardId &&
+          q.card.condition === action.card.condition &&
+          q.card.isFoil === action.card.isFoil &&
+          q.card.language === action.card.language
+      );
+      if (idx >= 0) {
+        queue[idx] = action;
+      } else {
+        queue.push(action);
+      }
+      localStorage.setItem(key, JSON.stringify(queue));
+    }
+  } catch {}
+}
+
+export function getPendingOfflineSync(
+  userTag: string | null | undefined
+): Array<{ type: 'UPSERT' | 'DELETE'; card: LocalUserCard }> {
+  if (typeof window === 'undefined') return [];
+  try {
+    const rawTag = userTag || getActiveUserTag() || 'guest';
+    const cleanTag = rawTag.trim().replace(/^@+/, '').toUpperCase();
+    const key = `logpose_offline_queue_${cleanTag}`;
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function clearPendingOfflineSync(userTag: string | null | undefined): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const rawTag = userTag || getActiveUserTag() || 'guest';
+    const cleanTag = rawTag.trim().replace(/^@+/, '').toUpperCase();
+    const key = `logpose_offline_queue_${cleanTag}`;
+    localStorage.removeItem(key);
+  } catch {}
 }
 
 export function getLocalBinder(userTag?: string | null): LocalUserCard[] {
   if (typeof window === 'undefined') return [];
   try {
     const key = getBinderStorageKey(userTag);
-    const raw = localStorage.getItem(key);
+    let raw = localStorage.getItem(key);
+
+    // If not found, check legacy key with leading '@' if applicable
+    if (!raw && userTag) {
+      const legacyTagKey = `logpose_binder_${userTag.trim().toUpperCase()}`;
+      if (legacyTagKey !== key) {
+        const legacyRaw = localStorage.getItem(legacyTagKey);
+        if (legacyRaw) {
+          localStorage.setItem(key, legacyRaw);
+          localStorage.removeItem(legacyTagKey);
+          raw = legacyRaw;
+        }
+      }
+    }
 
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) return parsed;
-    }
-
-    // Graceful migration from legacy single-key binder if user binder is empty
-    const legacyRaw = localStorage.getItem('logpose_user_binder');
-    if (legacyRaw) {
-      try {
-        const legacyParsed = JSON.parse(legacyRaw);
-        if (Array.isArray(legacyParsed) && legacyParsed.length > 0) {
-          // Migrate to this account/guest
-          localStorage.setItem(key, JSON.stringify(legacyParsed));
-          // Clean up legacy key so it doesn't leak into subsequent accounts
-          localStorage.removeItem('logpose_user_binder');
-          return legacyParsed;
-        }
-      } catch {
-        // Ignore parse error
-      }
     }
 
     return [];
@@ -248,9 +313,10 @@ export function addCardToLocalBinder(
   try {
     const session = getActiveSession();
     if (session?.id) {
-      syncCardToCloud(session.id, affectedCard).catch((e) =>
-        console.warn('Background card sync failed:', e)
-      );
+      syncCardToCloud(session.id, affectedCard).catch((e) => {
+        console.warn('Background card sync failed:', e);
+        queuePendingOfflineSync(userTag, { type: 'UPSERT', card: affectedCard });
+      });
     }
   } catch (err) {
     console.warn('Could not trigger background card sync:', err);
@@ -271,13 +337,51 @@ export function removeCardFromLocalBinder(recordId: string, userTag?: string | n
     try {
       const session = getActiveSession();
       if (session?.id) {
-        removeCardFromCloud(session.id, target.cardId, target.condition, target.isFoil, target.language).catch((e) =>
-          console.warn('Background card remove failed:', e)
-        );
+        removeCardFromCloud(session.id, target.cardId, target.condition, target.isFoil, target.language).catch((e) => {
+          console.warn('Background card remove failed:', e);
+          queuePendingOfflineSync(userTag, { type: 'DELETE', card: target });
+        });
       }
     } catch (err) {
       console.warn('Could not trigger background card removal:', err);
     }
+  }
+
+  return updated;
+}
+
+export function updateCardQuantityInLocalBinder(
+  recordId: string,
+  newQuantity: number,
+  userTag?: string | null
+): LocalUserCard[] {
+  const current = getLocalBinder(userTag);
+  const targetIdx = current.findIndex((c) => c.id === recordId);
+  if (targetIdx < 0) return current;
+
+  if (newQuantity <= 0) {
+    return removeCardFromLocalBinder(recordId, userTag);
+  }
+
+  const updated = [...current];
+  updated[targetIdx] = {
+    ...updated[targetIdx],
+    quantity: Math.max(1, Math.floor(newQuantity)),
+  };
+
+  saveLocalBinder(updated, userTag);
+
+  // Auto-sync with Supabase cloud if user is authenticated
+  try {
+    const session = getActiveSession();
+    if (session?.id) {
+      syncCardToCloud(session.id, updated[targetIdx]).catch((e) => {
+        console.warn('Background card quantity sync failed:', e);
+        queuePendingOfflineSync(userTag, { type: 'UPSERT', card: updated[targetIdx] });
+      });
+    }
+  } catch (err) {
+    console.warn('Could not trigger background card quantity sync:', err);
   }
 
   return updated;

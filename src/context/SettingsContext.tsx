@@ -917,7 +917,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           setUserState(userProfile);
           setActiveSession(userProfile);
           saveStoredAccountFromSession(userProfile);
-          transferGuestCardsToAccount(userProfile.tag);
           setAccountsState(getStoredAccounts());
           await syncUserCloudData(userProfile.id, userProfile.tag);
           touchUserActivity(userProfile.id, true).catch(() => {});
@@ -964,7 +963,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           setUserState(userProfile);
           setActiveSession(userProfile);
           saveStoredAccountFromSession(userProfile);
-          transferGuestCardsToAccount(userProfile.tag);
           setAccountsState(getStoredAccounts());
           await syncUserCloudData(userProfile.id, userProfile.tag);
           touchUserActivity(userProfile.id, true).catch(() => {});
@@ -997,7 +995,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
           if (localAuth.success && localAuth.user) {
             setUserState(localAuth.user);
             setActiveSession(localAuth.user);
-            transferGuestCardsToAccount(localAuth.user.tag);
             setAccountsState(getStoredAccounts());
             return localAuth;
           }
@@ -1012,7 +1009,6 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         setUserState(result.user);
         setActiveSession(result.user);
         saveStoredAccountFromSession(result.user);
-        transferGuestCardsToAccount(result.user.tag);
         setAccountsState(getStoredAccounts());
         await syncUserCloudData(result.user.id, result.user.tag);
       }

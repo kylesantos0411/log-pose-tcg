@@ -33,6 +33,7 @@ import {
   ShieldCheck,
   AlertTriangle,
   ShieldAlert,
+  Layers,
 } from 'lucide-react';
 import { getSafeCardImageUrl, handleCardImageError } from '@/lib/card-image';
 import { useSettings } from '@/context/SettingsContext';
@@ -52,6 +53,7 @@ import {
 import { 
   getLocalBinder, 
   removeCardFromLocalBinder, 
+  updateCardQuantityInLocalBinder,
   getLocalBinderStats, 
   getSoldStats,
   markCardAsSold,
@@ -139,6 +141,10 @@ export default function CollectionPage() {
   const [editDate, setEditDate] = useState<string>('');
   const [editPublic, setEditPublic] = useState<boolean>(true);
   const [editNotes, setEditNotes] = useState<string>('');
+
+  // Edit Quantity Modal state
+  const [editingQtyItem, setEditingQtyItem] = useState<UserCardRecord | null>(null);
+  const [targetQtyInput, setTargetQtyInput] = useState<string>('1');
 
   useEffect(() => {
     loadCollection();
@@ -237,6 +243,59 @@ export default function CollectionPage() {
     removeCardFromLocalBinder(id, user?.tag || null);
     loadCollection();
     showToast(`Removed ${cardName} from binder.`);
+  }
+
+  function handleOpenQtyModal(item: UserCardRecord) {
+    setEditingQtyItem(item);
+    setTargetQtyInput(String(item.quantity || 1));
+  }
+
+  function handleUpdateQuantity(item: UserCardRecord, deltaOrNewQty: 'increment' | 'decrement' | number) {
+    let nextQty = item.quantity;
+    if (deltaOrNewQty === 'increment') {
+      nextQty = item.quantity + 1;
+    } else if (deltaOrNewQty === 'decrement') {
+      nextQty = item.quantity - 1;
+    } else {
+      nextQty = deltaOrNewQty;
+    }
+
+    if (nextQty <= 0) {
+      if (confirm(`Remove ${item.card.name} from your collection?`)) {
+        removeCardFromLocalBinder(item.id, user?.tag || null);
+        loadCollection();
+        showToast(`Removed ${item.card.name} from binder.`);
+      }
+      return;
+    }
+
+    if (nextQty === item.quantity) return;
+
+    updateCardQuantityInLocalBinder(item.id, nextQty, user?.tag || null);
+    loadCollection();
+    showToast(`Updated ${item.card.name} quantity to ${nextQty}.`);
+  }
+
+  function handleSaveQtyModal() {
+    if (!editingQtyItem) return;
+    const parsed = parseInt(targetQtyInput, 10);
+    if (isNaN(parsed) || parsed < 0) {
+      alert('Please enter a valid quantity.');
+      return;
+    }
+    if (parsed === 0) {
+      if (confirm(`Remove ${editingQtyItem.card.name} from your collection?`)) {
+        removeCardFromLocalBinder(editingQtyItem.id, user?.tag || null);
+        setEditingQtyItem(null);
+        loadCollection();
+        showToast(`Removed ${editingQtyItem.card.name} from binder.`);
+      }
+      return;
+    }
+    updateCardQuantityInLocalBinder(editingQtyItem.id, parsed, user?.tag || null);
+    setEditingQtyItem(null);
+    loadCollection();
+    showToast(`Updated ${editingQtyItem.card.name} quantity to ${parsed}.`);
   }
 
   // Open "Mark as Sold" modal
@@ -818,10 +877,18 @@ export default function CollectionPage() {
                     loading="lazy"
                     onError={(e) => handleCardImageError(e, card.id, card.imageUrl)}
                   />
-                  {item.quantity > 1 && (
-                    <span className="absolute bottom-1 right-1 px-1.5 py-0.2 rounded-md bg-black/85 backdrop-blur-sm text-[9px] font-black text-white border border-white/20">
+                  {!isSold && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenQtyModal(item);
+                      }}
+                      className="absolute bottom-1 right-1 px-1.5 py-0.2 rounded-md bg-black/85 hover:bg-amber-500 hover:text-black backdrop-blur-sm text-[9px] font-black text-white border border-white/20 transition cursor-pointer shadow-sm"
+                      title="Click to edit quantity"
+                    >
                       x{item.quantity}
-                    </span>
+                    </button>
                   )}
                 </div>
 
@@ -925,6 +992,43 @@ export default function CollectionPage() {
                       </>
                     ) : (
                       <>
+                        {/* Quantity Stepper */}
+                        <div className="flex items-center bg-[#1a1c25] border border-[#3b4159] rounded-xl p-0.5 mr-0.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleUpdateQuantity(item, 'decrement');
+                            }}
+                            className="w-6 h-6 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/15 text-gray-300 hover:text-white transition cursor-pointer active:scale-95"
+                            title="Decrease quantity"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenQtyModal(item);
+                            }}
+                            className="min-w-[28px] px-1 text-center font-mono font-black text-xs text-amber-300 hover:text-white transition cursor-pointer"
+                            title="Click to set exact quantity"
+                          >
+                            x{item.quantity}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleUpdateQuantity(item, 'increment');
+                            }}
+                            className="w-6 h-6 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/15 text-gray-300 hover:text-white transition cursor-pointer active:scale-95"
+                            title="Increase quantity"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+
                         <button
                           type="button"
                           onClick={(e) => {
@@ -983,17 +1087,52 @@ export default function CollectionPage() {
                   onError={(e) => handleCardImageError(e, card.id, card.imageUrl)}
                 />
 
-                {/* Top Badge: SOLD / Quantity */}
-                <div className="absolute top-1.5 left-1.5 flex items-center gap-1">
+                {/* Top Badge: SOLD / Quantity Stepper */}
+                <div className="absolute top-1.5 left-1.5 flex items-center gap-1 z-10">
                   {isSold ? (
                     <span className="px-1.5 py-0.5 rounded-md bg-emerald-600/90 text-white font-black text-[8px] uppercase tracking-wider shadow">
                       SOLD
                     </span>
-                  ) : item.quantity > 1 ? (
-                    <span className="px-1.5 py-0.5 rounded-full bg-black/80 backdrop-blur-sm text-white font-black text-[9px] border border-white/20">
-                      x{item.quantity}
-                    </span>
-                  ) : null}
+                  ) : (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center bg-black/85 backdrop-blur-md rounded-lg border border-white/20 p-0.5 shadow-md"
+                    >
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUpdateQuantity(item, 'decrement');
+                        }}
+                        className="w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-gray-300 hover:text-white hover:bg-white/20 rounded transition cursor-pointer active:scale-90"
+                        title="Decrease quantity"
+                      >
+                        <Minus className="w-2.5 h-2.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenQtyModal(item);
+                        }}
+                        className="px-1 text-[9px] sm:text-[10px] font-black text-amber-300 hover:text-white transition cursor-pointer"
+                        title="Click to edit quantity"
+                      >
+                        x{item.quantity}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUpdateQuantity(item, 'increment');
+                        }}
+                        className="w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-gray-300 hover:text-white hover:bg-white/20 rounded transition cursor-pointer active:scale-90"
+                        title="Increase quantity"
+                      >
+                        <Plus className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Bottom Price Tag */}
@@ -1515,6 +1654,134 @@ export default function CollectionPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Quantity Modal */}
+      {editingQtyItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="fixed inset-0" onClick={() => setEditingQtyItem(null)} />
+          <div className="relative w-full max-w-sm bg-[#242836] border border-[#3b4156] rounded-3xl p-5 shadow-2xl z-10 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#343a4c] pb-3">
+              <div className="flex items-center gap-2">
+                <Layers className="w-5 h-5 text-amber-400" />
+                <h3 className="text-base font-black text-white">Edit Card Quantity</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingQtyItem(null)}
+                className="p-1 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Card Preview */}
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#1a1c25] border border-white/5">
+              <div className="w-12 h-16 rounded-lg overflow-hidden border border-white/10 flex-shrink-0 bg-black/40">
+                <img
+                  src={getSafeCardImageUrl(editingQtyItem.card.imageUrl, editingQtyItem.card.id)}
+                  alt={editingQtyItem.card.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="font-mono text-xs font-black text-[#3b82f6]">
+                  {editingQtyItem.cardId}
+                </div>
+                <div className="text-sm font-black text-white truncate">
+                  {editingQtyItem.card.name}
+                </div>
+                <div className="text-[11px] text-gray-400 flex items-center gap-1.5 mt-0.5">
+                  <span className="text-amber-400 font-bold">{editingQtyItem.card.rarity}</span>
+                  <span>&bull;</span>
+                  <span>{editingQtyItem.condition}</span>
+                  {editingQtyItem.isFoil && <span className="text-amber-300 font-bold">FOIL</span>}
+                </div>
+              </div>
+            </div>
+
+            {/* Quantity Stepper & Direct Input */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-400 block uppercase tracking-wider text-center">
+                Quantity Owned
+              </label>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const current = parseInt(targetQtyInput, 10) || 1;
+                    if (current > 1) setTargetQtyInput(String(current - 1));
+                  }}
+                  className="w-12 h-12 rounded-2xl bg-[#1a1c25] hover:bg-[#2d3244] border border-[#3b4159] text-white flex items-center justify-center text-lg font-bold transition active:scale-95 cursor-pointer"
+                >
+                  <Minus className="w-5 h-5" />
+                </button>
+                <input
+                  type="number"
+                  min="1"
+                  max="999"
+                  value={targetQtyInput}
+                  onChange={(e) => setTargetQtyInput(e.target.value)}
+                  className="w-24 h-12 text-center text-2xl font-black text-white bg-[#1a1c25] border border-[#3b82f6] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const current = parseInt(targetQtyInput, 10) || 0;
+                    setTargetQtyInput(String(current + 1));
+                  }}
+                  className="w-12 h-12 rounded-2xl bg-[#1a1c25] hover:bg-[#2d3244] border border-[#3b4159] text-white flex items-center justify-center text-lg font-bold transition active:scale-95 cursor-pointer"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Quick Presets */}
+              <div className="flex items-center justify-center gap-2 pt-2">
+                {[1, 2, 4, 8].map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => setTargetQtyInput(String(q))}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer ${
+                      parseInt(targetQtyInput, 10) === q
+                        ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/30'
+                        : 'bg-[#1a1c25] hover:bg-[#2d3244] text-gray-300 border border-white/10'
+                    }`}
+                  >
+                    {q === 4 ? '4 (Playset)' : `${q}x`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="pt-2 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm(`Remove ${editingQtyItem.card.name} from your collection?`)) {
+                    removeCardFromLocalBinder(editingQtyItem.id, user?.tag || null);
+                    setEditingQtyItem(null);
+                    loadCollection();
+                    showToast(`Removed ${editingQtyItem.card.name} from binder.`);
+                  }
+                }}
+                className="px-3.5 py-3 rounded-2xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Remove</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveQtyModal}
+                className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-sm shadow-lg shadow-amber-500/20 transition active:scale-[0.98] cursor-pointer"
+              >
+                Save Quantity
+              </button>
+            </div>
           </div>
         </div>
       )}

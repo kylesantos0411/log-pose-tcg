@@ -1,5 +1,13 @@
 import { getSupabaseBrowserClient, isSupabaseConfigured } from './supabase/client';
-import { getLocalSoldCards, getDeletedCards, type LocalUserCard } from './user-collection';
+import { 
+  getLocalSoldCards, 
+  getDeletedCards, 
+  getBinderStorageKey, 
+  getPendingOfflineSync, 
+  clearPendingOfflineSync, 
+  getLocalBinder, 
+  type LocalUserCard 
+} from './user-collection';
 import { getDeletedFavoriteIds } from './favorites';
 
 export interface CloudProfile {
@@ -1220,178 +1228,54 @@ export async function syncFavoritesWithCloud(userId: string): Promise<string[]> 
 }
 
 /**
- * Central synchronizer: fully reconciles user collection and favorites between cloud and local
+ * Central synchronizer: fully reconciles user collection and favorites between cloud and local.
+ * Supabase cloud is the authoritative single source of truth for authenticated users.
  */
 export async function syncUserCloudData(userId: string, userTag: string): Promise<void> {
   if (!userId || typeof window === 'undefined' || !isValidUuid(userId)) return;
 
   try {
-    // 1. Sync favorites (pulls cloud favorites & uploads offline local favorites)
+    // 1. Sync favorites with Supabase cloud
     await syncFavoritesWithCloud(userId);
 
-    // 2. Migrate guest cards if user was browsing anonymously before login
-    const guestKey = 'logpose_binder_guest';
-    const guestRaw = localStorage.getItem(guestKey);
-    if (guestRaw) {
-      try {
-        const guestCards: LocalUserCard[] = JSON.parse(guestRaw);
-        if (Array.isArray(guestCards) && guestCards.length > 0) {
-          await migrateLocalBinderToCloud(userId, guestCards);
-          localStorage.removeItem(guestKey);
+    // 2. Replay any pending offline operations for this user before fetching latest state
+    const pendingOffline = getPendingOfflineSync(userTag);
+    if (pendingOffline.length > 0) {
+      for (const item of pendingOffline) {
+        if (item.type === 'DELETE') {
+          await removeCardFromCloud(
+            userId,
+            item.card.cardId,
+            item.card.condition,
+            item.card.isFoil,
+            item.card.language
+          ).catch(() => {});
+        } else if (item.type === 'UPSERT') {
+          await syncCardToCloud(userId, item.card).catch(() => {});
         }
-      } catch {}
+      }
+      clearPendingOfflineSync(userTag);
     }
 
-    // 3. Fetch cards stored in Supabase cloud
+    // 3. Fetch canonical cards stored in Supabase cloud
     const cloudCards = await fetchCloudCards(userId);
+    const userKey = getBinderStorageKey(userTag);
 
-    // 4. Fetch local cards for this user's tag
-    const tag = (userTag || 'guest').toUpperCase();
-    const userKey = `logpose_binder_${tag}`;
-    let localCards: LocalUserCard[] = [];
-    try {
-      const raw = localStorage.getItem(userKey);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) localCards = parsed;
+    // 4. If cloud has zero cards, check if this is an initial local binder (e.g. newly registered account)
+    if (cloudCards.length === 0) {
+      const localCards = getLocalBinder(userTag);
+      if (localCards.length > 0) {
+        // Upload initial local cards to cloud once
+        await migrateLocalBinderToCloud(userId, localCards);
       }
-    } catch {}
-
-    // Tombstone filtering: check for locally deleted cards
-    const deletedCards = getDeletedCards(userTag);
-    if (deletedCards.length > 0) {
-      localCards = localCards.filter((lc) => {
-        return !deletedCards.some(
-          (d) => d.cardId === lc.cardId && (d.status || 'OWNED') === (lc.status || 'OWNED')
-        );
-      });
-
-      // Dispatch deletion to cloud for any deleted card still reported in cloud
-      for (const del of deletedCards) {
-        const foundInCloud = cloudCards.some(
-          (c) => c.cardId === del.cardId && (c.status || 'OWNED') === (del.status || 'OWNED')
-        );
-        if (foundInCloud) {
-          removeCardFromCloud(userId, del.cardId, del.condition, del.isFoil, del.language).catch(() => {});
-        }
-      }
-    }
-
-    // Filter cloud cards to exclude any tombstoned cards
-    const activeCloudCards = cloudCards.filter((cloud) => {
-      return !deletedCards.some(
-        (d) => d.cardId === cloud.cardId && (d.status || 'OWNED') === (cloud.status || 'OWNED')
-      );
-    });
-
-    // 5. Intelligent Merge:
-    // If logging in on a new device (local binder is empty), populate it directly from active cloud cards!
-    if (localCards.length === 0 && activeCloudCards.length > 0) {
-      localStorage.setItem(userKey, JSON.stringify(activeCloudCards));
-      window.dispatchEvent(new Event('logpose_collection_updated'));
       return;
     }
 
-    // Merge: Start with localCards to preserve user's local sales, statuses, and notes
-    const merged: LocalUserCard[] = [...localCards];
-    const newCardsToUpload: LocalUserCard[] = [];
-
-    for (const cloud of activeCloudCards) {
-      // Match by exact card identity AND status (OWNED vs SOLD)
-      const existingIdx = merged.findIndex(
-        (m) =>
-          m.cardId === cloud.cardId &&
-          m.condition === cloud.condition &&
-          m.isFoil === cloud.isFoil &&
-          m.language === cloud.language &&
-          (m.status || 'OWNED') === (cloud.status || 'OWNED')
-      );
-
-      if (existingIdx >= 0) {
-        const existing = merged[existingIdx];
-        if (cloud.quantity > existing.quantity) {
-          existing.quantity = cloud.quantity;
-        }
-        if (cloud.purchasePrice && !existing.purchasePrice) {
-          existing.purchasePrice = cloud.purchasePrice;
-        }
-        if (cloud.notes && !existing.notes) {
-          existing.notes = cloud.notes;
-        }
-        if (cloud.status === 'SOLD' && existing.status === 'SOLD') {
-          if (!existing.soldPrice && cloud.soldPrice) existing.soldPrice = cloud.soldPrice;
-          if (!existing.soldDate && cloud.soldDate) existing.soldDate = cloud.soldDate;
-          if (!existing.saleId && cloud.saleId) existing.saleId = cloud.saleId;
-        }
-      } else {
-        // Cloud has a card not found in merged with identical status
-        // If cloud card is OWNED, but this card is already SOLD locally, do NOT re-add the owned card!
-        const isSoldLocally = merged.some(
-          (m) =>
-            m.cardId === cloud.cardId &&
-            m.condition === cloud.condition &&
-            m.isFoil === cloud.isFoil &&
-            m.language === cloud.language &&
-            m.status === 'SOLD'
-        );
-
-        if (cloud.status === 'SOLD' || !isSoldLocally) {
-          merged.push(cloud);
-        }
-      }
-    }
-
-    // Ensure any local sold cards are recorded to cloud if not yet synced
-    for (const local of localCards) {
-      if (local.status === 'SOLD') {
-        const inCloud = cloudCards.some(
-          (c) =>
-            c.cardId === local.cardId &&
-            c.condition === local.condition &&
-            c.isFoil === local.isFoil &&
-            c.language === local.language &&
-            c.status === 'SOLD'
-        );
-        if (!inCloud) {
-          recordCloudSale(userId, {
-            userCardId: local.id,
-            cardId: local.cardId,
-            cardName: local.card?.name,
-            condition: local.condition,
-            isFoil: local.isFoil,
-            language: local.language,
-            soldPrice: local.soldPrice || 0,
-            soldCurrency: local.soldCurrency || 'PHP',
-            soldDate: local.soldDate || new Date().toISOString().slice(0, 10),
-            quantity: local.soldQuantity || local.quantity || 1,
-            isPublic: local.isPublicSale !== false,
-            buyerSource: local.buyerSource || undefined,
-            notes: local.buyerNotes || local.notes || undefined,
-          }).catch(() => {});
-        }
-      } else {
-        // Queue upload for new local owned cards not in cloud
-        const inCloud = cloudCards.some(
-          (c) =>
-            c.cardId === local.cardId &&
-            c.condition === local.condition &&
-            c.isFoil === local.isFoil &&
-            c.language === local.language &&
-            (c.status || 'OWNED') === 'OWNED'
-        );
-        if (!inCloud) {
-          newCardsToUpload.push(local);
-        }
-      }
-    }
-
-    localStorage.setItem(userKey, JSON.stringify(merged));
+    // 5. Authoritative sync: Set user's local binder directly from cloud
+    // This ensures all devices (PC, mobile, tablet) display identical collection data
+    // and prevents stale/deleted cards from being resurrected or combined!
+    localStorage.setItem(userKey, JSON.stringify(cloudCards));
     window.dispatchEvent(new Event('logpose_collection_updated'));
-
-    // Upload any cards that were only present on this local device
-    if (newCardsToUpload.length > 0) {
-      await migrateLocalBinderToCloud(userId, newCardsToUpload);
-    }
   } catch (err) {
     console.error('Failed to sync user cloud data:', err);
   }
