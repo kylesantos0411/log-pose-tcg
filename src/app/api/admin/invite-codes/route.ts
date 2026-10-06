@@ -94,6 +94,57 @@ function isAuthorized(req: NextRequest): boolean {
   return false;
 }
 
+const DEFAULT_SUPABASE_URL = 'https://miywbfkbdscnzxbnycme.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_fv6BrsbJZV-hutcDA-pOcA_cR6rxvLE';
+
+async function syncRedeemedCodesFromCloud() {
+  const sbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+  const sbKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || DEFAULT_SUPABASE_ANON_KEY;
+
+  if (!sbUrl || !sbKey) return;
+
+  try {
+    const res = await fetch(`${sbUrl}/rest/v1/profiles?select=id,username,email,tag,crew,created_at`, {
+      headers: {
+        apikey: sbKey,
+        Authorization: `Bearer ${sbKey}`,
+      },
+      cache: 'no-store',
+    });
+
+    if (!res.ok) return;
+    const profiles: any[] = await res.json();
+    if (!Array.isArray(profiles)) return;
+
+    for (const p of profiles) {
+      if (p.crew && typeof p.crew === 'string' && p.crew.startsWith('CODE:')) {
+        const rawCode = p.crew.replace('CODE:', '').trim().toUpperCase();
+        if (rawCode) {
+          const userIdentifier = (p.username || p.tag || p.email || 'Tester') + (p.email ? ` (${p.email})` : '');
+          const usedAtDate = p.created_at ? new Date(p.created_at) : new Date();
+
+          await prisma.betaInviteCode.upsert({
+            where: { code: rawCode },
+            create: {
+              code: rawCode,
+              used: true,
+              usedBy: userIdentifier,
+              usedAt: usedAtDate,
+            },
+            update: {
+              used: true,
+              usedBy: userIdentifier,
+              usedAt: usedAtDate,
+            },
+          });
+        }
+      }
+    }
+  } catch (syncErr) {
+    console.warn('Failed to sync redeemed codes from Supabase cloud:', syncErr);
+  }
+}
+
 /**
  * Ensure the baseline 35 invite codes exist in the database table
  */
@@ -123,7 +174,11 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // 1. Ensure all standard baseline codes exist in the DB
     await ensureStandardCodesExist();
+
+    // 2. Automatically sync any codes redeemed by live testers in Supabase Cloud
+    await syncRedeemedCodesFromCloud();
 
     const allCodes = await prisma.betaInviteCode.findMany({
       orderBy: [
@@ -213,6 +268,26 @@ export async function POST(req: NextRequest) {
       const code = String(body.code || '').trim().toUpperCase();
       if (!code) {
         return NextResponse.json({ error: 'Code is required to reset.' }, { status: 400 });
+      }
+
+      // If registered in Supabase cloud profiles, detach it
+      const sbUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+      const sbKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || DEFAULT_SUPABASE_ANON_KEY;
+      if (sbUrl && sbKey) {
+        try {
+          await fetch(`${sbUrl}/rest/v1/profiles?crew=eq.CODE:${encodeURIComponent(code)}`, {
+            method: 'PATCH',
+            headers: {
+              apikey: sbKey,
+              Authorization: `Bearer ${sbKey}`,
+              'Content-Type': 'application/json',
+              Prefer: 'return=minimal',
+            },
+            body: JSON.stringify({ crew: 'Collector' }),
+          });
+        } catch (patchErr) {
+          console.warn('Failed to clear Supabase profile crew on code reset:', patchErr);
+        }
       }
 
       const updated = await prisma.betaInviteCode.update({
