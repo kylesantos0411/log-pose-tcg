@@ -7,7 +7,6 @@ import {
   Check, 
   Coins, 
   Sparkles,
-  Download, 
   Upload, 
   FileJson, 
   Bug, 
@@ -55,7 +54,6 @@ export function SettingsModal() {
   const [accountModalTab, setAccountModalTab] = useState<'login' | 'register'>('login');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
 
   const isChiefAdmin = checkIsChiefAdmin(user);
   const isAdmin = checkIsAdmin(user);
@@ -481,41 +479,6 @@ export function SettingsModal() {
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-white transition flex-shrink-0" />
               </label>
-
-              {/* Offline Images Caching */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (isDownloading) return;
-                  setIsDownloading(true);
-                  showToast('Caching high-res scans for offline use...');
-                  setTimeout(() => {
-                    setIsDownloading(false);
-                    showToast('Card scans cached offline successfully!');
-                  }, 2200);
-                }}
-                disabled={isDownloading}
-                className="w-full p-3 flex items-center justify-between hover:bg-[#1a1d2b] transition text-left cursor-pointer group disabled:opacity-75"
-              >
-                <div className="flex items-center gap-3 min-w-0 pr-2">
-                  <div className="w-7 h-7 rounded-lg bg-slate-700/40 text-slate-300 flex items-center justify-center flex-shrink-0">
-                    <Download className={`w-3.5 h-3.5 ${isDownloading ? 'animate-bounce text-blue-400' : ''}`} />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-xs font-semibold text-white group-hover:text-blue-400 transition">
-                      {isDownloading ? 'Caching scans...' : 'Preload High-Res Scans'}
-                    </div>
-                    <div className="text-[10px] text-slate-400 truncate">
-                      Store card images locally for faster offline loading
-                    </div>
-                  </div>
-                </div>
-                {isDownloading ? (
-                  <div className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-                ) : (
-                  <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-white transition flex-shrink-0" />
-                )}
-              </button>
             </div>
           </div>
 
