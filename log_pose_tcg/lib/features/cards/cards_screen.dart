@@ -414,9 +414,9 @@ class CardsScreen extends ConsumerWidget {
                   sliver: SliverGrid(
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 3,
-                      mainAxisSpacing: 12.0,
-                      crossAxisSpacing: 12.0,
-                      childAspectRatio: 0.68,
+                      mainAxisSpacing: 10.0,
+                      crossAxisSpacing: 10.0,
+                      childAspectRatio: 0.50,
                     ),
                     delegate: SliverChildBuilderDelegate(
                       (BuildContext context, int index) {
@@ -427,131 +427,166 @@ class CardsScreen extends ConsumerWidget {
                         return AnimatedOpacity(
                           duration: const Duration(milliseconds: 180),
                           opacity: isSelectionActive ? (isSelected ? 1.0 : 0.45) : 1.0,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 180),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              border: isSelected
-                                  ? Border.all(color: AppTheme.accentRed, width: 2)
-                                  : null,
-                              boxShadow: isSelected
-                                  ? [
-                                      BoxShadow(
-                                        color: AppTheme.accentRed.withValues(alpha: 0.4),
-                                        blurRadius: 8,
-                                        spreadRadius: 1,
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                            child: InkWell(
-                              key: ValueKey('card_item_${card.id}'),
-                              onTap: () => _showCardDetailsModal(context, card),
-                              borderRadius: BorderRadius.circular(8),
-                              child: Stack(
-                                children: [
-                                  CardImage(
-                                    imageUrl: card.imageUrl ?? 'https://via.placeholder.com/200x280.png?text=No+Image',
+                          child: InkWell(
+                            key: ValueKey('card_item_${card.id}'),
+                            onTap: () => _showCardDetailsModal(context, card),
+                            borderRadius: BorderRadius.circular(10),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Card Artwork Container
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 180),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: isSelected
+                                        ? Border.all(color: AppTheme.accentRed, width: 2)
+                                        : Border.all(color: AppTheme.dividerColor.withValues(alpha: 0.4), width: 1),
+                                    boxShadow: isSelected
+                                        ? [
+                                            BoxShadow(
+                                              color: AppTheme.accentRed.withValues(alpha: 0.45),
+                                              blurRadius: 8,
+                                              spreadRadius: 1,
+                                            ),
+                                          ]
+                                        : null,
                                   ),
-                                  // Top variant badge (Parallel, Manga, SP)
-                                  if (isSpecial)
-                                    Positioned(
-                                      top: 4,
-                                      left: 4,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: card.variantType == 'MANGA'
-                                              ? Colors.purple.withValues(alpha: 0.9)
-                                              : AppTheme.mutedGold.withValues(alpha: 0.9),
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          card.variantType == 'MANGA' ? 'MANGA' : 'AA',
-                                          style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.black),
-                                        ),
-                                      ),
-                                    ),
-                                  // Selection toggle control (Top-Right)
-                                  Positioned(
-                                    top: 4,
-                                    right: 4,
-                                    child: GestureDetector(
-                                      key: ValueKey('card_select_${card.id}'),
-                                      behavior: HitTestBehavior.opaque,
-                                      onTap: () {
-                                        final current = Set<String>.from(selectedIds);
-                                        if (current.contains(card.id)) {
-                                          current.remove(card.id);
-                                        } else {
-                                          current.add(card.id);
-                                        }
-                                        ref.read(selectedCardIdsProvider.notifier).state = current;
-                                      },
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(4.0),
-                                        child: Container(
-                                          width: 24,
-                                          height: 24,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: isSelected
-                                                ? AppTheme.accentRed
-                                                : Colors.black.withValues(alpha: 0.5),
-                                            border: Border.all(
-                                              color: isSelected
-                                                  ? Colors.white
-                                                  : Colors.white.withValues(alpha: isSelectionActive ? 0.6 : 0.85),
-                                              width: 2,
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(9),
+                                    child: AspectRatio(
+                                      aspectRatio: 2.5 / 3.5,
+                                      child: Stack(
+                                        children: [
+                                          Positioned.fill(
+                                            child: CardImage(
+                                              imageUrl: card.imageUrl ?? 'https://via.placeholder.com/200x280.png?text=No+Image',
                                             ),
                                           ),
-                                          child: isSelected
-                                              ? const Icon(
-                                                  Icons.check,
-                                                  size: 14,
-                                                  color: Colors.white,
-                                                )
-                                              : null,
-                                        ),
+                                          // Top variant badge (Parallel, Manga, SP)
+                                          if (isSpecial)
+                                            Positioned(
+                                              top: 4,
+                                              left: 4,
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: card.variantType == 'MANGA'
+                                                      ? Colors.purple.withValues(alpha: 0.9)
+                                                      : AppTheme.mutedGold.withValues(alpha: 0.9),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  card.variantType == 'MANGA' ? 'MANGA' : 'AA',
+                                                  style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.black),
+                                                ),
+                                              ),
+                                            ),
+                                          // Selection toggle control (Lower-Right corner matching reference)
+                                          Positioned(
+                                            bottom: 5,
+                                            right: 5,
+                                            child: GestureDetector(
+                                              key: ValueKey('card_select_${card.id}'),
+                                              behavior: HitTestBehavior.opaque,
+                                              onTap: () {
+                                                final current = Set<String>.from(selectedIds);
+                                                if (current.contains(card.id)) {
+                                                  current.remove(card.id);
+                                                } else {
+                                                  current.add(card.id);
+                                                }
+                                                ref.read(selectedCardIdsProvider.notifier).state = current;
+                                              },
+                                              child: Container(
+                                                width: 26,
+                                                height: 26,
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: isSelected
+                                                      ? AppTheme.accentRed
+                                                      : Colors.black.withValues(alpha: 0.6),
+                                                  border: Border.all(
+                                                    color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.9),
+                                                    width: 2,
+                                                  ),
+                                                  boxShadow: const [
+                                                    BoxShadow(
+                                                      color: Colors.black45,
+                                                      blurRadius: 4,
+                                                      offset: Offset(0, 1),
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: isSelected
+                                                    ? const Icon(
+                                                        Icons.check,
+                                                        size: 16,
+                                                        color: Colors.white,
+                                                      )
+                                                    : Center(
+                                                        child: Container(
+                                                          width: 8,
+                                                          height: 8,
+                                                          decoration: BoxDecoration(
+                                                            shape: BoxShape.circle,
+                                                            border: Border.all(
+                                                              color: Colors.white.withValues(alpha: 0.8),
+                                                              width: 1.5,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ),
-                                  // Bottom rarity badge
-                                  if (card.rarity != null)
-                                    Positioned(
-                                      bottom: 4,
-                                      right: 4,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: Colors.black.withValues(alpha: 0.75),
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: Text(card.rarity!, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold)),
-                                      ),
+                                ),
+                                const SizedBox(height: 5),
+                                // Bottom Pill: Card Code on top, Price below (Exact Reference media_1791289416807.png)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1E212D),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: const Color(0xFF2C3144),
+                                      width: 1,
                                     ),
-                                  // Bottom price pill
-                                  Positioned(
-                                    bottom: 4,
-                                    left: 4,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withValues(alpha: 0.75),
-                                        borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        card.cardNumber,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF94A3B8),
+                                          letterSpacing: 0.5,
+                                        ),
                                       ),
-                                      child: Text(
+                                      const SizedBox(height: 1),
+                                      Text(
                                         card.displayPrice,
-                                        style: TextStyle(
-                                          fontSize: 9,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 12,
                                           fontWeight: FontWeight.bold,
-                                          color: card.pricePhp != null ? AppTheme.mutedGold : AppTheme.textMuted,
+                                          color: Colors.white,
                                         ),
                                       ),
-                                    ),
+                                    ],
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         );
