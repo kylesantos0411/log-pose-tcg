@@ -4,7 +4,6 @@ import { fetchSnkrdunkPricing } from '@/lib/snkrdunk';
 import { sanitizeIdentifier, sanitizeString } from '@/lib/sanitizer';
 
 export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
@@ -34,11 +33,19 @@ export async function GET(req: NextRequest) {
         },
       };
       const pricing = await fetchSnkrdunkPricing(fallbackCard);
-      return NextResponse.json({ success: true, pricing });
+      const res = NextResponse.json({ success: true, pricing });
+      res.headers.set('Cache-Control', 'public, s-maxage=7200, stale-while-revalidate=86400');
+      res.headers.set('CDN-Cache-Control', 'public, s-maxage=7200');
+      res.headers.set('Vercel-CDN-Cache-Control', 'public, s-maxage=7200');
+      return res;
     }
 
     const pricing = await fetchSnkrdunkPricing(card);
-    return NextResponse.json({ success: true, pricing });
+    const res = NextResponse.json({ success: true, pricing });
+    res.headers.set('Cache-Control', 'public, s-maxage=7200, stale-while-revalidate=86400');
+    res.headers.set('CDN-Cache-Control', 'public, s-maxage=7200');
+    res.headers.set('Vercel-CDN-Cache-Control', 'public, s-maxage=7200');
+    return res;
   } catch (error: any) {
     console.error('Error fetching SNKRDUNK pricing:', error);
     return NextResponse.json(

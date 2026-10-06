@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
       card.ebayUrl ||
       generateEbaySoldSearchUrl(card.cardNumber, card.name, card.vintageSeries || 'Hyper Battle');
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       id: card.id,
       name: card.name,
       cardNumber: card.cardNumber,
@@ -47,6 +47,10 @@ export async function GET(req: NextRequest) {
       ebaySearchUrl,
       lastUpdated: card.ebayLastUpdated,
     });
+    res.headers.set('Cache-Control', 'public, s-maxage=7200, stale-while-revalidate=86400');
+    res.headers.set('CDN-Cache-Control', 'public, s-maxage=7200');
+    res.headers.set('Vercel-CDN-Cache-Control', 'public, s-maxage=7200');
+    return res;
   } catch (error: any) {
     console.error('eBay pricing lookup error:', error);
     return NextResponse.json({ error: 'Failed to retrieve eBay pricing data' }, { status: 500 });

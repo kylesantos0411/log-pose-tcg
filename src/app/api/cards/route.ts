@@ -746,7 +746,7 @@ export async function GET(req: NextRequest) {
       artist_verification_status: c.artistVerificationStatus,
     }));
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       cards: formattedCards,
       pagination: {
         page,
@@ -755,6 +755,10 @@ export async function GET(req: NextRequest) {
         totalPages: Math.ceil(total / limit),
       },
     });
+    res.headers.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+    res.headers.set('CDN-Cache-Control', 'public, s-maxage=3600');
+    res.headers.set('Vercel-CDN-Cache-Control', 'public, s-maxage=3600');
+    return res;
   } catch (error: any) {
     console.error('Error in /api/cards route:', error);
     return NextResponse.json({ error: 'Failed to retrieve card data' }, { status: 500 });

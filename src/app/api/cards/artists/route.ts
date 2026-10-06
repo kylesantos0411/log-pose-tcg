@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
@@ -25,11 +24,15 @@ export async function GET() {
         count: g._count.id,
       }));
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       success: true,
       count: artists.length,
       artists,
     });
+    res.headers.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+    res.headers.set('CDN-Cache-Control', 'public, s-maxage=86400');
+    res.headers.set('Vercel-CDN-Cache-Control', 'public, s-maxage=86400');
+    return res;
   } catch (error: any) {
     console.error('Error fetching artists list:', error);
     return NextResponse.json(

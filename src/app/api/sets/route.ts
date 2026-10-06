@@ -116,10 +116,14 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       sets: formattedPacks,
       total: formattedPacks.length,
     });
+    res.headers.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+    res.headers.set('CDN-Cache-Control', 'public, s-maxage=86400');
+    res.headers.set('Vercel-CDN-Cache-Control', 'public, s-maxage=86400');
+    return res;
   } catch (error: any) {
     console.error('Error fetching sets:', error);
     return NextResponse.json({ error: 'Failed to retrieve set data' }, { status: 500 });
