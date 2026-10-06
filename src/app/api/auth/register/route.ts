@@ -57,17 +57,19 @@ export async function POST(req: NextRequest) {
       'POSE-S7EV-WNKT', 'POSE-C2MH-FLRZ', 'POSE-F6YB-TPGJ', 'POSE-L9QD-8VXC',
     ];
 
-    if (!VALID_CODES.includes(cleanInviteCode)) {
+    let invite = null;
+    try {
+      invite = await prisma.betaInviteCode.findUnique({ where: { code: cleanInviteCode } });
+    } catch (e) {
+      console.warn('Prisma invite code check fallback:', e);
+    }
+
+    if (!invite && !VALID_CODES.includes(cleanInviteCode)) {
       return NextResponse.json({ error: 'Invalid invite code. Please check your code and try again.' }, { status: 403 });
     }
 
-    try {
-      const invite = await prisma.betaInviteCode.findUnique({ where: { code: cleanInviteCode } });
-      if (invite && invite.used) {
-        return NextResponse.json({ error: 'This invite code has already been used.' }, { status: 403 });
-      }
-    } catch (e) {
-      console.warn('Prisma invite code check fallback:', e);
+    if (invite && invite.used) {
+      return NextResponse.json({ error: 'This invite code has already been used.' }, { status: 403 });
     }
 
     // 2. Optional 6-digit code verification (if provided)

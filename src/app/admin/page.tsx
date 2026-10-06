@@ -32,7 +32,10 @@ import {
   Star,
   Sparkles,
   PenTool,
-  RotateCw
+  RotateCw,
+  Ticket,
+  Copy,
+  Plus
 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import {
@@ -135,7 +138,23 @@ export default function AdminPage() {
   const isAdmin = checkIsAdmin(user);
 
   // Active Admin Tab
-  const [activeTab, setActiveTab] = useState<'system' | 'features' | 'users' | 'sales' | 'overview'>('system');
+  const [activeTab, setActiveTab] = useState<'system' | 'features' | 'users' | 'invites' | 'sales' | 'overview'>('system');
+
+  // Beta Invite Codes state
+  const [inviteCodes, setInviteCodes] = useState<Array<{
+    id: string;
+    code: string;
+    used: boolean;
+    usedBy?: string | null;
+    usedAt?: string | null;
+    createdAt?: string;
+  }>>([]);
+  const [loadingInvites, setLoadingInvites] = useState(false);
+  const [generatingInvites, setGeneratingInvites] = useState(false);
+  const [customCodeInput, setCustomCodeInput] = useState('');
+  const [inviteSearch, setInviteSearch] = useState('');
+  const [inviteFilter, setInviteFilter] = useState<'all' | 'available' | 'used'>('available');
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   // System Settings state
   const [systemSettings, setSystemSettings] = useState<SystemSettingsState>(DEFAULT_SYSTEM_SETTINGS);
@@ -329,6 +348,124 @@ export default function AdminPage() {
     }
   }
 
+  async function loadInviteCodes() {
+    setLoadingInvites(true);
+    try {
+      const res = await fetch('/api/admin/invite-codes', {
+        headers: {
+          'x-admin-email': user?.email || '',
+          'x-admin-tag': user?.tag || '',
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        const combined = (data.availableCodes || []).concat(data.usedCodes || []);
+        setInviteCodes(combined);
+      }
+    } catch (err: any) {
+      console.warn('Failed to load invite codes:', err);
+    } finally {
+      setLoadingInvites(false);
+    }
+  }
+
+  async function handleGenerateCodes(count: number) {
+    setGeneratingInvites(true);
+    try {
+      const res = await fetch('/api/admin/invite-codes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-email': user?.email || '',
+          'x-admin-tag': user?.tag || '',
+        },
+        body: JSON.stringify({ action: 'generate', count }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message || `Generated ${count} new invite codes!`);
+        loadInviteCodes();
+      } else {
+        alert(`Failed to generate codes: ${data.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error generating codes: ${err.message}`);
+    } finally {
+      setGeneratingInvites(false);
+    }
+  }
+
+  async function handleCreateCustomCode() {
+    const code = customCodeInput.trim().toUpperCase();
+    if (!code) return;
+    try {
+      const res = await fetch('/api/admin/invite-codes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-email': user?.email || '',
+          'x-admin-tag': user?.tag || '',
+        },
+        body: JSON.stringify({ action: 'create', code }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Created custom code: ${code}`);
+        setCustomCodeInput('');
+        loadInviteCodes();
+      } else {
+        alert(data.error || 'Failed to create code');
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    }
+  }
+
+  async function handleResetCode(code: string) {
+    if (!confirm(`Reset invite code "${code}"?\n\nThis will mark it as unused and available for a new tester.`)) return;
+    try {
+      const res = await fetch('/api/admin/invite-codes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-email': user?.email || '',
+          'x-admin-tag': user?.tag || '',
+        },
+        body: JSON.stringify({ action: 'reset', code }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Reset code ${code}!`);
+        loadInviteCodes();
+      } else {
+        alert(data.error || 'Failed to reset code');
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    }
+  }
+
+  function handleCopyCode(code: string) {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(code);
+      setCopiedCode(code);
+      showToast(`Copied ${code} to clipboard!`);
+      setTimeout(() => setCopiedCode(null), 2000);
+    }
+  }
+
+  function handleCopyAllAvailable() {
+    const available = inviteCodes.filter((c) => !c.used).map((c) => c.code);
+    if (available.length === 0) {
+      alert('No available codes to copy.');
+      return;
+    }
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(available.join('\n'));
+      showToast(`Copied ${available.length} available invite codes to clipboard!`);
+    }
+  }
+
   // Load initial settings
   useEffect(() => {
     fetchSystemSettings().then((s) => {
@@ -392,11 +529,12 @@ export default function AdminPage() {
     await handleSaveFeatureLocks(unlocked);
   };
 
-  // Load users and reported sales when switching tabs or on initial admin load
+  // Load users, reported sales, and invite codes when switching tabs or on initial admin load
   useEffect(() => {
     if (isAdmin) {
       loadUsers();
       loadReportedSales();
+      loadInviteCodes();
     }
   }, [isAdmin]);
 
@@ -404,6 +542,9 @@ export default function AdminPage() {
     if (isAdmin) {
       if (activeTab === 'users' || activeTab === 'overview') {
         loadUsers();
+      }
+      if (activeTab === 'invites' || activeTab === 'overview') {
+        loadInviteCodes();
       }
       if (activeTab === 'sales' || activeTab === 'overview') {
         loadReportedSales();
@@ -614,6 +755,26 @@ export default function AdminPage() {
       return 0;
     });
 
+  const availableInviteCodes = inviteCodes.filter((c) => !c.used);
+  const usedInviteCodes = inviteCodes.filter((c) => c.used);
+
+  const filteredCodes = inviteCodes
+    .filter((c) => {
+      if (inviteFilter === 'available' && c.used) return false;
+      if (inviteFilter === 'used' && !c.used) return false;
+      if (inviteSearch) {
+        const q = inviteSearch.toLowerCase();
+        const matchCode = c.code.toLowerCase().includes(q);
+        const matchUser = (c.usedBy || '').toLowerCase().includes(q);
+        return matchCode || matchUser;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (a.used !== b.used) return a.used ? 1 : -1;
+      return a.code.localeCompare(b.code);
+    });
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12">
       {/* Toast Notification */}
@@ -671,6 +832,7 @@ export default function AdminPage() {
               icon: SlidersHorizontal 
             },
             { id: 'users', label: `👥 User Moderation (${usersList.length})`, icon: Users },
+            { id: 'invites', label: `🎟️ Beta Invites (${availableInviteCodes.length} Avail)`, icon: Ticket },
             { id: 'sales', label: `🚩 Reported Sales (${reportedSales.length})`, icon: AlertTriangle },
             { id: 'overview', label: '📊 System Telemetry', icon: Layers },
           ].map((tab) => {
@@ -1164,7 +1326,16 @@ export default function AdminPage() {
               <h2 className="text-lg font-bold text-white">Registered Collectors &amp; Users</h2>
               <p className="text-xs text-slate-400">Search, manage roles, and suspend malicious accounts</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab('invites')}
+                className="py-2 px-3 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-xs font-semibold text-purple-300 border border-purple-500/30 flex items-center gap-1.5 transition cursor-pointer"
+                title="View all available and recycled beta invite codes"
+              >
+                <Ticket className="w-3.5 h-3.5 text-purple-400" />
+                <span>Invite Codes ({availableInviteCodes.length} Avail)</span>
+              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -1528,6 +1699,238 @@ export default function AdminPage() {
               </>
             );
           })()}
+        </div>
+      )}
+
+      {/* ────────────────────────────────────────────────────────────── */}
+      {/* TAB: BETA INVITE CODES REGISTRY                                */}
+      {/* ────────────────────────────────────────────────────────────── */}
+      {activeTab === 'invites' && (
+        <div className="space-y-6">
+          {/* Header & Stats Banner */}
+          <div className="rounded-2xl bg-[#141620] border border-[#222533] p-6 shadow-sm">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1c202d] border border-[#2c3345] text-slate-300 text-xs font-semibold uppercase tracking-wider">
+                  <Ticket className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Beta Gatekeeper</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold text-white">
+                  Beta Invite Codes Registry
+                </h2>
+                <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
+                  Manage tester access slots. Available codes can be handed out to waiting community testers. When an inactive tester account is pruned or recycled, their code returns here automatically.
+                </p>
+              </div>
+
+              {/* Stats badges */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs font-semibold text-emerald-300">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span>{availableInviteCodes.length} Available</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-purple-500/10 border border-purple-500/30 text-xs font-semibold text-purple-300">
+                  <span className="w-2 h-2 rounded-full bg-purple-400" />
+                  <span>{usedInviteCodes.length} Claimed</span>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#10121a] border border-[#1f2330] text-xs font-semibold text-slate-300">
+                  <span>{inviteCodes.length} Total Pool</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Controls: Search, Filter, Quick Actions */}
+          <div className="rounded-2xl bg-[#141620] border border-[#222533] p-5 space-y-4 shadow-sm">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+              {/* Filter pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+                {[
+                  { id: 'available', label: `🟢 Available (${availableInviteCodes.length})` },
+                  { id: 'used', label: `🔴 Claimed (${usedInviteCodes.length})` },
+                  { id: 'all', label: `All (${inviteCodes.length})` },
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setInviteFilter(f.id as any)}
+                    className={`py-2 px-3 rounded-xl text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
+                      inviteFilter === f.id
+                        ? 'bg-[#222738] text-white border border-[#343b52] shadow-sm'
+                        : 'bg-[#10121a] border border-[#1f2330] text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopyAllAvailable}
+                  disabled={availableInviteCodes.length === 0}
+                  className="py-2 px-3.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 hover:text-white font-bold text-xs flex items-center gap-1.5 transition cursor-pointer disabled:opacity-40"
+                  title="Copy all currently available codes to clipboard separated by newlines"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Copy All Available</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleGenerateCodes(5)}
+                  disabled={generatingInvites}
+                  className="py-2 px-3 rounded-xl bg-[#1c202d] hover:bg-[#252b3d] border border-[#2c3345] text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                  title="Generate 5 new random POSE- codes"
+                >
+                  <Plus className="w-3.5 h-3.5 text-purple-400" />
+                  <span>+5 Codes</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleGenerateCodes(10)}
+                  disabled={generatingInvites}
+                  className="py-2 px-3 rounded-xl bg-[#1c202d] hover:bg-[#252b3d] border border-[#2c3345] text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                  title="Generate 10 new random POSE- codes"
+                >
+                  <Plus className="w-3.5 h-3.5 text-purple-400" />
+                  <span>+10 Codes</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={loadInviteCodes}
+                  className="p-2 rounded-xl bg-[#10121a] hover:bg-[#1a1e2b] border border-[#1f2330] text-slate-400 hover:text-white transition cursor-pointer"
+                  title="Refresh codes"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Custom Code Input & Search */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-[#1c202d]">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                <input
+                  type="text"
+                  value={inviteSearch}
+                  onChange={(e) => setInviteSearch(e.target.value)}
+                  placeholder="Search code or tester username/email..."
+                  className="w-full pl-10 pr-4 py-2 rounded-xl bg-[#0e1017] border border-[#222533] text-white text-xs placeholder-slate-500 focus:outline-none focus:border-[#3b82f6]/60"
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={customCodeInput}
+                  onChange={(e) => setCustomCodeInput(e.target.value.toUpperCase())}
+                  placeholder="Custom code (e.g. POSE-VIP-LUFFY)..."
+                  className="flex-1 px-3 py-2 rounded-xl bg-[#0e1017] border border-[#222533] text-white font-mono text-xs placeholder-slate-500 focus:outline-none focus:border-[#3b82f6]/60 uppercase"
+                />
+                <button
+                  type="button"
+                  onClick={handleCreateCustomCode}
+                  disabled={!customCodeInput.trim()}
+                  className="py-2 px-3.5 rounded-xl bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-bold text-xs uppercase tracking-wider transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  Add Custom
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Codes Grid / List */}
+          {loadingInvites ? (
+            <div className="py-16 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
+              <RotateCw className="w-4 h-4 animate-spin text-purple-400" />
+              <span>Loading invite codes...</span>
+            </div>
+          ) : filteredCodes.length === 0 ? (
+            <div className="py-16 text-center space-y-2 rounded-2xl bg-[#141620] border border-[#222533]">
+              <Ticket className="w-8 h-8 text-slate-600 mx-auto" />
+              <p className="text-xs text-slate-400 font-semibold">No invite codes match your filter or search.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {filteredCodes.map((item) => {
+                const isAvailable = !item.used;
+                const isJustCopied = copiedCode === item.code;
+                return (
+                  <div
+                    key={item.id || item.code}
+                    className={`p-3.5 rounded-2xl border transition-all ${
+                      isAvailable
+                        ? 'bg-[#141620] border-[#222533] hover:border-emerald-500/40'
+                        : 'bg-[#12141c] border-[#1d202c] opacity-80'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                        isAvailable
+                          ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
+                          : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isAvailable ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+                        <span>{isAvailable ? 'Available' : 'Claimed'}</span>
+                      </span>
+
+                      <div className="flex items-center gap-1">
+                        {isAvailable ? (
+                          <button
+                            type="button"
+                            onClick={() => handleCopyCode(item.code)}
+                            className={`py-1 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer ${
+                              isJustCopied
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-[#1c202d] hover:bg-[#252b3d] text-slate-200 border border-[#2c3345]'
+                            }`}
+                            title="Copy code to clipboard"
+                          >
+                            {isJustCopied ? <Check className="w-3 h-3 text-white" /> : <Copy className="w-3 h-3 text-slate-400" />}
+                            <span>{isJustCopied ? 'Copied!' : 'Copy'}</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleResetCode(item.code)}
+                            className="py-1 px-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-semibold transition cursor-pointer"
+                            title="Reset code so it can be used again"
+                          >
+                            Reset Code
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="font-mono text-sm font-bold text-white tracking-wide truncate">
+                      {item.code}
+                    </div>
+
+                    <div className="mt-2 pt-2 border-t border-[#1c202d] text-[11px] text-slate-400">
+                      {isAvailable ? (
+                        <span className="text-emerald-400/90 font-medium">Ready for next tester</span>
+                      ) : (
+                        <div className="truncate">
+                          <span className="text-slate-500">Claimed by: </span>
+                          <strong className="text-slate-300">{item.usedBy || 'Tester'}</strong>
+                          {item.usedAt && (
+                            <span className="text-slate-500 block text-[10px]">
+                              {new Date(item.usedAt).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

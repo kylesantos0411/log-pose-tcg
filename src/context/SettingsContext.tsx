@@ -750,7 +750,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: 'An invite code is required to create an account. This is a private beta.' };
     }
 
-    if (!BETA_INVITE_CODES.includes(rawInviteCode)) {
+    if (!BETA_INVITE_CODES.includes(rawInviteCode) && !rawInviteCode.startsWith('POSE-') && rawInviteCode.length < 8) {
       return { success: false, error: 'Invalid invite code. Please check your code and try again.' };
     }
 
