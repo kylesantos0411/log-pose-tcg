@@ -908,7 +908,13 @@ function CardsContent() {
                 return (
                   <div
                     key={card.id}
-                    onClick={() => setActiveCard(card)}
+                    onClick={() => {
+                      if (hasSelection) {
+                        toggleCardSelection(card.id);
+                      } else {
+                        setActiveCard(card);
+                      }
+                    }}
                     className={`group flex flex-col cursor-pointer transition-all duration-200 active:scale-[0.98] ${
                       hasSelection
                         ? isSelected
