@@ -164,6 +164,7 @@ model User {
   rank              String             @default("Cabin Boy")
   rankBadge         String             @default("⚓")
   isVerified        Boolean            @default(false)
+  lastActiveAt      DateTime           @default(now())
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   userCards         UserCard[]
@@ -172,6 +173,7 @@ model User {
   @@index([email])
   @@index([tag])
   @@index([username])
+  @@index([lastActiveAt])
 }
 
 model VerificationCode {

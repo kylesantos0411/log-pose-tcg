@@ -59,6 +59,14 @@ export async function POST(req: NextRequest) {
         }, { status: 400 });
       }
 
+      // Update last active timestamp
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastActiveAt: new Date() },
+        });
+      } catch {}
+
       const userSession = {
         id: user.id,
         name: user.username,
@@ -111,6 +119,14 @@ export async function POST(req: NextRequest) {
           error: 'Invalid identifier or password. Please verify your credentials.',
         }, { status: 401 });
       }
+
+      // Update last active timestamp
+      try {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastActiveAt: new Date() },
+        });
+      } catch {}
 
       const userSession = {
         id: user.id,

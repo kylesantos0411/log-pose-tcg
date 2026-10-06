@@ -84,9 +84,19 @@ export default function AdminPage() {
   // Users Management state
   const [usersList, setUsersList] = useState<AdminUserRecord[]>([]);
   const [userSearch, setUserSearch] = useState('');
-  const [userFilter, setUserFilter] = useState<'all' | 'online' | 'banned' | 'admins'>('all');
+  const [userFilter, setUserFilter] = useState<'all' | 'online' | 'banned' | 'admins' | 'inactive' | 'ghosts'>('all');
   const [userSort, setUserSort] = useState<'recent_active' | 'last_login' | 'newest' | 'cards' | 'sales'>('recent_active');
   const [loadingUsers, setLoadingUsers] = useState(false);
+
+  // Prune Inactive Users Modal state
+  const [showPruneModal, setShowPruneModal] = useState(false);
+  const [pruneDaysInput, setPruneDaysInput] = useState(14);
+  const [pruneIncludeGhosts, setPruneIncludeGhosts] = useState(true);
+  const [prunePreviewLoading, setPrunePreviewLoading] = useState(false);
+  const [pruningExecuting, setPruningExecuting] = useState(false);
+  const [pruneCandidates, setPruneCandidates] = useState<any[]>([]);
+  const [reclaimableCodesCount, setReclaimableCodesCount] = useState(0);
+  const [pruneResultSummary, setPruneResultSummary] = useState<string | null>(null);
 
   // Ban Modal state
   const [banningUser, setBanningUser] = useState<AdminUserRecord | null>(null);
@@ -123,6 +133,54 @@ export default function AdminPage() {
   function showToast(msg: string) {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
+  }
+
+  async function loadPrunePreview(days = pruneDaysInput, ghosts = pruneIncludeGhosts) {
+    setPrunePreviewLoading(true);
+    setPruneResultSummary(null);
+    try {
+      const res = await fetch(`/api/admin/prune-inactive?days=${days}&includeGhosts=${ghosts}`);
+      const data = await res.json();
+      if (data.success) {
+        setPruneCandidates(data.candidates || []);
+        setReclaimableCodesCount(data.reclaimableInviteCodesCount || 0);
+      }
+    } catch (err: any) {
+      console.warn('Failed to load prune preview:', err);
+    } finally {
+      setPrunePreviewLoading(false);
+    }
+  }
+
+  async function handleExecutePrune() {
+    if (!confirm(`Are you sure you want to permanently recycle ${pruneCandidates.length} inactive account(s) and free their beta slots? This cannot be undone.`)) {
+      return;
+    }
+    setPruningExecuting(true);
+    try {
+      const res = await fetch('/api/admin/prune-inactive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          daysInactive: pruneDaysInput,
+          includeGhosts: pruneIncludeGhosts,
+          dryRun: false,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPruneResultSummary(data.message);
+        showToast(data.message);
+        loadUsers();
+        setPruneCandidates([]);
+      } else {
+        alert(`Prune failed: ${data.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error pruning accounts: ${err.message}`);
+    } finally {
+      setPruningExecuting(false);
+    }
   }
 
   // Load initial settings
@@ -368,6 +426,16 @@ export default function AdminPage() {
       if (userFilter === 'online') return isUserRecentlyActive(u.lastActive);
       if (userFilter === 'banned') return u.isBanned;
       if (userFilter === 'admins') return u.role === 'admin';
+      if (userFilter === 'inactive') {
+        const fourteenDaysAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
+        const lastActiveTime = u.lastActive ? new Date(u.lastActive).getTime() : new Date(u.createdAt).getTime();
+        return lastActiveTime < fourteenDaysAgo && u.role !== 'admin';
+      }
+      if (userFilter === 'ghosts') {
+        const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
+        const createdTime = u.createdAt ? new Date(u.createdAt).getTime() : 0;
+        return createdTime < threeDaysAgo && u.cardCount === 0 && u.role !== 'admin';
+      }
       return true;
     })
     .sort((a, b) => {
@@ -945,14 +1013,27 @@ export default function AdminPage() {
               <h2 className="text-lg font-bold text-white">Registered Collectors &amp; Users</h2>
               <p className="text-xs text-slate-400">Search, manage roles, and suspend malicious accounts</p>
             </div>
-            <button
-              type="button"
-              onClick={loadUsers}
-              className="self-start sm:self-auto py-2 px-3 rounded-xl bg-[#1c202d] hover:bg-[#252b3d] text-xs font-semibold text-slate-300 hover:text-white border border-[#2c3345] flex items-center gap-1.5 transition"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Refresh List</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowPruneModal(true);
+                  loadPrunePreview(pruneDaysInput, pruneIncludeGhosts);
+                }}
+                className="py-2 px-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-xs font-semibold text-amber-300 border border-amber-500/30 flex items-center gap-1.5 transition cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-amber-400" />
+                <span>Recycle Inactive Testers</span>
+              </button>
+              <button
+                type="button"
+                onClick={loadUsers}
+                className="self-start sm:self-auto py-2 px-3 rounded-xl bg-[#1c202d] hover:bg-[#252b3d] text-xs font-semibold text-slate-300 hover:text-white border border-[#2c3345] flex items-center gap-1.5 transition"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Refresh List</span>
+              </button>
+            </div>
           </div>
 
           {/* Search & Filter bar */}
@@ -973,6 +1054,22 @@ export default function AdminPage() {
                 {[
                   { id: 'all', label: `All (${usersList.length})` },
                   { id: 'online', label: `Online (${usersList.filter((u) => isUserRecentlyActive(u.lastActive)).length})`, isOnline: true },
+                  {
+                    id: 'inactive',
+                    label: `Inactive >14d (${usersList.filter((u) => {
+                      const cut = Date.now() - 14 * 24 * 3600 * 1000;
+                      const act = u.lastActive ? new Date(u.lastActive).getTime() : new Date(u.createdAt).getTime();
+                      return act < cut && u.role !== 'admin';
+                    }).length})`,
+                  },
+                  {
+                    id: 'ghosts',
+                    label: `Ghosts (${usersList.filter((u) => {
+                      const cut = Date.now() - 3 * 24 * 3600 * 1000;
+                      const cr = u.createdAt ? new Date(u.createdAt).getTime() : 0;
+                      return cr < cut && u.cardCount === 0 && u.role !== 'admin';
+                    }).length})`,
+                  },
                   { id: 'banned', label: `Banned (${usersList.filter((u) => u.isBanned).length})` },
                   { id: 'admins', label: `Admins (${usersList.filter((u) => u.role === 'admin').length})` },
                 ].map((f) => (
@@ -1353,6 +1450,144 @@ export default function AdminPage() {
                 className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-xs uppercase tracking-wider transition shadow flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 {submittingBan ? 'Suspending...' : 'Confirm Suspension'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ────────────────────────────────────────────────────────────── */}
+      {/* INACTIVE TESTERS PRUNING MODAL                                 */}
+      {/* ────────────────────────────────────────────────────────────── */}
+      {showPruneModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="fixed inset-0" onClick={() => setShowPruneModal(false)} />
+          <div className="relative w-full max-w-xl bg-[#1e2230] border border-amber-500/40 rounded-3xl p-6 shadow-2xl z-10 space-y-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between pb-2 border-b border-[#2d3242]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0">
+                  <Trash2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">
+                    Recycle Inactive Tester Accounts
+                  </h3>
+                  <p className="text-xs text-gray-400">
+                    Free up beta slots and reclaim invite codes for waiting testers
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPruneModal(false)}
+                className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-white/10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Threshold controls */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-[#141620] p-3.5 rounded-2xl border border-[#2d3242]">
+              <div>
+                <label className="text-xs font-bold text-gray-300 block mb-1">
+                  Inactivity Cutoff (Days)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    max={90}
+                    value={pruneDaysInput}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value, 10) || 14;
+                      setPruneDaysInput(v);
+                      loadPrunePreview(v, pruneIncludeGhosts);
+                    }}
+                    className="w-20 px-3 py-1.5 rounded-xl bg-[#0e1017] border border-[#2c3345] text-white font-mono font-bold text-xs"
+                  />
+                  <span className="text-xs text-gray-400">days without activity</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col justify-center">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={pruneIncludeGhosts}
+                    onChange={(e) => {
+                      setPruneIncludeGhosts(e.target.checked);
+                      loadPrunePreview(pruneDaysInput, e.target.checked);
+                    }}
+                    className="rounded bg-[#0e1017] border-gray-600 text-amber-500 focus:ring-0 w-4 h-4"
+                  />
+                  <span className="text-xs font-semibold text-gray-300">
+                    Include Ghost Accounts (&gt;3d, 0 cards)
+                  </span>
+                </label>
+                <span className="text-[10px] text-gray-500 ml-6">Reclaims codes from users who never added cards</span>
+              </div>
+            </div>
+
+            {/* Preview Summary */}
+            <div className="flex-1 overflow-y-auto no-scrollbar space-y-2 min-h-[140px] max-h-[300px]">
+              {prunePreviewLoading ? (
+                <div className="py-12 text-center text-xs text-gray-400 flex items-center justify-center gap-2">
+                  <RotateCw className="w-4 h-4 animate-spin text-amber-400" />
+                  <span>Scanning tester accounts...</span>
+                </div>
+              ) : pruneCandidates.length === 0 ? (
+                <div className="py-10 text-center text-xs text-emerald-400 font-semibold bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
+                  ✅ No inactive or ghost accounts found matching these criteria! All testers are active.
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <div className="text-xs font-bold text-gray-300 flex items-center justify-between px-1">
+                    <span>Found {pruneCandidates.length} eligible account(s):</span>
+                    <span className="text-amber-400 font-mono text-[11px]">
+                      {reclaimableCodesCount} invite code(s) will be recycled
+                    </span>
+                  </div>
+                  {pruneCandidates.map((c) => (
+                    <div
+                      key={c.id}
+                      className="p-2.5 rounded-xl bg-[#141620] border border-[#2a3040] flex items-center justify-between text-xs"
+                    >
+                      <div className="min-w-0">
+                        <span className="font-bold text-white block truncate">{c.username} ({c.email})</span>
+                        <span className="text-[10px] text-gray-400 font-mono">
+                          {c.tag} • {c.collectionSize} cards • {c.reason}
+                        </span>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 whitespace-nowrap">
+                        Last Active: {c.lastActiveAt ? new Date(c.lastActiveAt).toISOString().slice(0, 10) : 'Never'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Notice / Warning */}
+            <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-200/90 leading-relaxed">
+              ⚠️ <strong>Recycling Impact:</strong> Account data and collections will be deleted, and their beta invite codes will be reset to unused status so they can be immediately redistributed to users on your waiting list. Admin accounts are permanently protected.
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-1 border-t border-[#2d3242]">
+              <button
+                type="button"
+                onClick={() => setShowPruneModal(false)}
+                className="flex-1 py-2.5 rounded-xl bg-[#141620] hover:bg-[#1c202d] border border-[#343a4c] text-gray-300 font-bold text-xs cursor-pointer"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={handleExecutePrune}
+                disabled={pruningExecuting || pruneCandidates.length === 0}
+                className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-black font-black text-xs uppercase tracking-wider transition shadow flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {pruningExecuting ? 'Recycling Accounts...' : `Prune & Free ${reclaimableCodesCount || pruneCandidates.length} Slots`}
               </button>
             </div>
           </div>
