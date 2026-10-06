@@ -30,32 +30,29 @@ export function getSafeCardImageUrl(url?: string | null, cardId?: string | null)
 
   const cleanId = (cardId || '').trim();
 
-  // 1. Explicit Japanese override mapping takes highest priority
+  // If this card is in JP_CARD_IMAGE_MAP, pass its mapped URL
+  let targetUrl = url || '';
   if (cleanId && JP_CARD_IMAGE_MAP[cleanId]) {
-    return JP_CARD_IMAGE_MAP[cleanId];
+    targetUrl = JP_CARD_IMAGE_MAP[cleanId];
   }
 
-  // 2. Insecure HTTP or hosts that fail mixed-content/browser hotlink checks (like onepiececollection.fr):
-  // MUST be proxied through /api/card-image to prevent browser mixed-content (HTTP on HTTPS) blocking!
-  if (url && (url.startsWith('http://') || url.includes('onepiececollection.fr'))) {
-    const params = new URLSearchParams();
-    params.set('url', url);
-    if (cleanId) params.set('id', cleanId);
-    return `/api/card-image?${params.toString()}`;
+  // 1. Direct high-speed BunnyCDN / Yuyu-tei URLs:
+  // Can be loaded directly in the browser over HTTPS with 0 Vercel serverless proxy load
+  if (targetUrl && targetUrl.startsWith('https://card.yuyu-tei.jp/')) {
+    return targetUrl;
   }
 
-  // 3. Direct high-speed HTTPS URLs (Bandai Asia-EN, Bandai JP, Yuyu-tei CDN):
-  // Load directly in the browser with 0 Vercel serverless proxy load!
-  if (url && url.startsWith('https://')) {
-    return url.replace('https://en.onepiece-cardgame.com/', 'https://onepiece-cardgame.com/');
+  // 2. All other URLs (Bandai Asia-EN series 556117, Bandai JP, onepiececollection.fr HTTP, etc.)
+  // MUST be routed through /api/card-image because Bandai sends 'Cross-Origin-Resource-Policy: same-site'
+  // and HTTP gets blocked by browser mixed-content!
+  const params = new URLSearchParams();
+  if (cleanId) params.set('id', cleanId);
+  if (targetUrl) {
+    const cleanTargetUrl = targetUrl.replace('https://en.onepiece-cardgame.com/', 'https://onepiece-cardgame.com/');
+    params.set('url', cleanTargetUrl);
   }
 
-  // 4. Fallback to official Bandai Asia-EN scan by card ID
-  if (cleanId) {
-    return `https://asia-en.onepiece-cardgame.com/images/cardlist/card/${cleanId}.png`;
-  }
-
-  return '';
+  return `/api/card-image?${params.toString()}`;
 }
 
 /**
@@ -71,39 +68,22 @@ export function handleCardImageError(
   const cleanId = (cardId || '').trim();
   const baseId = cleanId.split('_')[0];
 
-  // Stage 1: Try direct Bandai Japan scan
-  if (cleanId && !currentSrc.includes(`onepiece-cardgame.com/images/cardlist/card/${cleanId}.png`)) {
-    target.src = `https://onepiece-cardgame.com/images/cardlist/card/${cleanId}.png`;
-    return;
-  }
-
-  // Stage 2: Try direct Bandai Asia-EN scan
-  if (cleanId && !currentSrc.includes(`asia-en.onepiece-cardgame.com/images/cardlist/card/${cleanId}.png`)) {
-    target.src = `https://asia-en.onepiece-cardgame.com/images/cardlist/card/${cleanId}.png`;
-    return;
-  }
-
-  // Stage 3: Try base card scan if it was a variant/parallel
-  if (baseId && baseId !== cleanId && !currentSrc.includes(`/${baseId}.png`)) {
-    target.src = `https://onepiece-cardgame.com/images/cardlist/card/${baseId}.png`;
-    return;
-  }
-
-  // Stage 4: Try server-side proxy fallback (only if direct CDNs were blocked)
+  // Stage 1: Route through /api/card-image to execute server-side multi-tier cascade
+  // (Bandai Asia-EN series 556117 -> DB scan -> Bandai Japan -> Base card)
   if (!currentSrc.includes('/api/card-image')) {
     const params = new URLSearchParams();
-    params.set('id', cleanId || baseId || 'OPTCG');
+    if (cleanId) params.set('id', cleanId);
     if (fallbackUrl) params.set('url', fallbackUrl);
     target.src = `/api/card-image?${params.toString()}`;
     return;
   }
 
-  // Stage 5: High-fidelity Vector SVG Placeholder (guaranteed 100% success, zero network cost)
+  // Stage 2: High-fidelity Vector SVG Placeholder (guaranteed 100% success, zero network cost)
   target.src = getSvgPlaceholderDataUrl(cleanId || baseId || 'OPTCG');
 }
 
 // Explicit Japanese card image map when Bandai Japan index differs from Bandai English
-const JP_CARD_IMAGE_MAP: Record<string, string> = {
+export const JP_CARD_IMAGE_MAP: Record<string, string> = {
   // OP01-120 Shanks exact Japanese variations from Yuyu-tei & Bandai Japan
   'OP01-120':    'https://card.yuyu-tei.jp/opc/front/op01/10150.jpg',    // Base SEC (Makitoshi - ¥500)
   'OP01-120_p1': 'https://card.yuyu-tei.jp/opc/front/op01/10151.jpg',    // OP-01 Secret Parallel (¥3,980)
@@ -137,27 +117,32 @@ const JP_CARD_IMAGE_MAP: Record<string, string> = {
  * Returns the official Bandai card image URL for Japanese edition.
  */
 export function getEditionCardImageUrl(cardId: string, lang: 'en' | 'jp' = 'jp', fallbackUrl?: string | null): string {
+  const cleanId = (cardId || '').trim();
+
   // Check explicit Japanese map first to prevent index shifts between EN and JP Bandai
-  if (JP_CARD_IMAGE_MAP[cardId]) {
-    return getSafeCardImageUrl(JP_CARD_IMAGE_MAP[cardId], cardId);
+  if (cleanId && JP_CARD_IMAGE_MAP[cleanId]) {
+    return getSafeCardImageUrl(JP_CARD_IMAGE_MAP[cleanId], cleanId);
   }
 
   // If fallbackUrl is provided and is a known good host, use it via getSafeCardImageUrl
   if (fallbackUrl) {
-    if (fallbackUrl.includes('onepiececollection.fr') || fallbackUrl.startsWith('http://')) {
-      return getSafeCardImageUrl(fallbackUrl, cardId);
+    if (fallbackUrl.startsWith('https://card.yuyu-tei.jp/')) {
+      return getSafeCardImageUrl(fallbackUrl, cleanId);
     }
-    if (fallbackUrl.includes('asia-en.onepiece-cardgame.com') || fallbackUrl.includes('yuyu-tei.jp') || fallbackUrl.includes('/cards/')) {
-      return getSafeCardImageUrl(fallbackUrl, cardId);
+    if (fallbackUrl.includes('onepiececollection.fr') || fallbackUrl.startsWith('http://')) {
+      return getSafeCardImageUrl(fallbackUrl, cleanId);
+    }
+    if (fallbackUrl.includes('asia-en.onepiece-cardgame.com') || fallbackUrl.includes('/cards/')) {
+      return getSafeCardImageUrl(fallbackUrl, cleanId);
     }
     if (fallbackUrl.includes('onepiece-cardgame.com')) {
       const cleanUrl = fallbackUrl.replace('https://en.onepiece-cardgame.com/', 'https://onepiece-cardgame.com/');
-      return getSafeCardImageUrl(cleanUrl, cardId);
+      return getSafeCardImageUrl(cleanUrl, cleanId);
     }
   }
 
-  const defaultUrl = `https://asia-en.onepiece-cardgame.com/images/cardlist/card/${cardId}.png`;
-  return getSafeCardImageUrl(defaultUrl, cardId);
+  const defaultUrl = `https://asia-en.onepiece-cardgame.com/images/cardlist/card/${cleanId}.png`;
+  return getSafeCardImageUrl(defaultUrl, cleanId);
 }
 
 // Popular Japanese character name lookups for authentic display

@@ -6,6 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { prisma } from '@/lib/prisma';
 import { sanitizeIdentifier } from '@/lib/sanitizer';
+import { JP_CARD_IMAGE_MAP } from '@/lib/card-image';
 
 const CACHE_DIR = path.join(process.cwd(), 'public', 'cards');
 if (!fs.existsSync(CACHE_DIR)) {
@@ -227,6 +228,9 @@ export async function GET(req: NextRequest) {
   }
 
   const SPECIAL_CARD_OVERRIDES: Record<string, string> = {
+    ...Object.fromEntries(
+      Object.entries(JP_CARD_IMAGE_MAP).map(([k, v]) => [k.toUpperCase(), v])
+    ),
     'EB04-061_P2': 'https://asia-en.onepiece-cardgame.com/images/cardlist/card/EB04-061_p3.png',
     'EB04-061_P3': 'https://asia-en.onepiece-cardgame.com/images/cardlist/card/EB04-061_p3.png',
   };
@@ -296,11 +300,13 @@ export async function GET(req: NextRequest) {
   if (url && !isSpecialOverridden) {
     candidates.push(url);
   }
+  if (cleanId) {
+    candidates.push(`https://asia-en.onepiece-cardgame.com/images/cardlist/card/${cleanId}.png`);
+  }
   if (baseDbUrl && !isSpecialOverridden) {
     candidates.push(baseDbUrl);
   }
   if (cleanId) {
-    candidates.push(`https://asia-en.onepiece-cardgame.com/images/cardlist/card/${cleanId}.png`);
     candidates.push(`https://onepiece-cardgame.com/images/cardlist/card/${cleanId}.png`);
   }
   if (baseId && baseId !== cleanId) {
