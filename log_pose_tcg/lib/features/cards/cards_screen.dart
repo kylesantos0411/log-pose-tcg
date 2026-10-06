@@ -429,7 +429,19 @@ class CardsScreen extends ConsumerWidget {
                           opacity: isSelectionActive ? (isSelected ? 1.0 : 0.45) : 1.0,
                           child: InkWell(
                             key: ValueKey('card_item_${card.id}'),
-                            onTap: () => _showCardDetailsModal(context, card),
+                            onTap: () {
+                              if (isSelectionActive) {
+                                final current = Set<String>.from(selectedIds);
+                                if (current.contains(card.id)) {
+                                  current.remove(card.id);
+                                } else {
+                                  current.add(card.id);
+                                }
+                                ref.read(selectedCardIdsProvider.notifier).state = current;
+                              } else {
+                                _showCardDetailsModal(context, card);
+                              }
+                            },
                             borderRadius: BorderRadius.circular(10),
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
