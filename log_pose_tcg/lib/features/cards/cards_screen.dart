@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme.dart';
 import '../../shared/custom_search_bar.dart';
 import '../../shared/card_image.dart';
+import '../collection/data/collection_repository.dart';
 import 'filter_bottom_sheet.dart';
 import 'data/card_repository.dart';
 import 'data/card_model.dart';
+
+// Provider for tracking selected card IDs for quick multi-select
+final selectedCardIdsProvider = StateProvider<Set<String>>((ref) => <String>{});
 
 class CardsScreen extends ConsumerWidget {
   const CardsScreen({super.key});
@@ -76,7 +81,7 @@ class CardsScreen extends ConsumerWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: AppTheme.accentRed.withOpacity(0.15),
+                              color: AppTheme.accentRed.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(color: AppTheme.accentRed),
                             ),
@@ -210,14 +215,150 @@ class CardsScreen extends ConsumerWidget {
     );
   }
 
+  Future<void> _addSelectedToCollection(
+    BuildContext context,
+    WidgetRef ref,
+    List<CardModel> allCards,
+    Set<String> selectedIds,
+  ) async {
+    final cardsToAdd = allCards.where((c) => selectedIds.contains(c.id)).toList();
+    if (cardsToAdd.isEmpty) return;
+
+    try {
+      await ref.read(collectionNotifierProvider.notifier).addCards(cardsToAdd);
+
+      if (!context.mounted) return;
+
+      final count = cardsToAdd.length;
+      ref.read(selectedCardIdsProvider.notifier).state = {};
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppTheme.charcoal,
+          content: Text(
+            '$count ${count == 1 ? "card" : "cards"} added to Collection',
+            style: const TextStyle(color: AppTheme.textWhite, fontWeight: FontWeight.w600),
+          ),
+          action: SnackBarAction(
+            label: 'View Collection',
+            textColor: AppTheme.accentRed,
+            onPressed: () {
+              context.go('/collection');
+            },
+          ),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: const BorderSide(color: AppTheme.dividerColor),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppTheme.charcoal,
+          content: Text(
+            'Failed to add cards: $e',
+            style: const TextStyle(color: Colors.redAccent),
+          ),
+          action: SnackBarAction(
+            label: 'Retry',
+            textColor: AppTheme.accentRed,
+            onPressed: () {
+              _addSelectedToCollection(context, ref, allCards, selectedIds);
+            },
+          ),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: const BorderSide(color: AppTheme.dividerColor),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cardsAsyncValue = ref.watch(cardsProvider);
     final rarityFilters = ref.watch(rarityFilterProvider);
     final colorFilters = ref.watch(colorFilterProvider);
     final hasActiveFilters = rarityFilters.isNotEmpty || colorFilters.isNotEmpty;
+    final selectedIds = ref.watch(selectedCardIdsProvider);
+    final isSelectionActive = selectedIds.isNotEmpty;
 
     return Scaffold(
+      bottomNavigationBar: isSelectionActive
+          ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+              decoration: BoxDecoration(
+                color: AppTheme.charcoal,
+                border: const Border(
+                  top: BorderSide(color: AppTheme.dividerColor, width: 1.0),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                top: false,
+                child: Row(
+                  children: [
+                    Text(
+                      '${selectedIds.length} ${selectedIds.length == 1 ? "card" : "cards"} selected',
+                      style: const TextStyle(
+                        color: AppTheme.textWhite,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () {
+                        ref.read(selectedCardIdsProvider.notifier).state = {};
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: const Text(
+                        'Clear',
+                        style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                      ),
+                    ),
+                    const Spacer(),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        final cards = cardsAsyncValue.value ?? [];
+                        _addSelectedToCollection(context, ref, cards, selectedIds);
+                      },
+                      icon: const Icon(Icons.bookmark_add_outlined, size: 18),
+                      label: const Text(
+                        'Add to Collection',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.accentRed,
+                        foregroundColor: AppTheme.textWhite,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : null,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -269,7 +410,7 @@ class CardsScreen extends ConsumerWidget {
                   );
                 }
                 return SliverPadding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: EdgeInsets.fromLTRB(16.0, 16.0, 16.0, isSelectionActive ? 80.0 : 16.0),
                   sliver: SliverGrid(
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 3,
@@ -281,67 +422,137 @@ class CardsScreen extends ConsumerWidget {
                       (BuildContext context, int index) {
                         final card = cards[index];
                         final isSpecial = card.variantType != 'BASE';
+                        final isSelected = selectedIds.contains(card.id);
 
-                        return InkWell(
-                          onTap: () => _showCardDetailsModal(context, card),
-                          borderRadius: BorderRadius.circular(8),
-                          child: Stack(
-                            children: [
-                              CardImage(
-                                imageUrl: card.imageUrl ?? 'https://via.placeholder.com/200x280.png?text=No+Image',
+                        return AnimatedOpacity(
+                          duration: const Duration(milliseconds: 180),
+                          opacity: isSelectionActive ? (isSelected ? 1.0 : 0.45) : 1.0,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              border: isSelected
+                                  ? Border.all(color: AppTheme.accentRed, width: 2)
+                                  : null,
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: AppTheme.accentRed.withValues(alpha: 0.4),
+                                        blurRadius: 8,
+                                        spreadRadius: 1,
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: InkWell(
+                              key: ValueKey('card_item_${card.id}'),
+                              onTap: () => _showCardDetailsModal(context, card),
+                              borderRadius: BorderRadius.circular(8),
+                              child: Stack(
+                                children: [
+                                  CardImage(
+                                    imageUrl: card.imageUrl ?? 'https://via.placeholder.com/200x280.png?text=No+Image',
+                                  ),
+                                  // Top variant badge (Parallel, Manga, SP)
+                                  if (isSpecial)
+                                    Positioned(
+                                      top: 4,
+                                      left: 4,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: card.variantType == 'MANGA'
+                                              ? Colors.purple.withValues(alpha: 0.9)
+                                              : AppTheme.mutedGold.withValues(alpha: 0.9),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          card.variantType == 'MANGA' ? 'MANGA' : 'AA',
+                                          style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.black),
+                                        ),
+                                      ),
+                                    ),
+                                  // Selection toggle control (Top-Right)
+                                  Positioned(
+                                    top: 4,
+                                    right: 4,
+                                    child: GestureDetector(
+                                      key: ValueKey('card_select_${card.id}'),
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: () {
+                                        final current = Set<String>.from(selectedIds);
+                                        if (current.contains(card.id)) {
+                                          current.remove(card.id);
+                                        } else {
+                                          current.add(card.id);
+                                        }
+                                        ref.read(selectedCardIdsProvider.notifier).state = current;
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(4.0),
+                                        child: Container(
+                                          width: 24,
+                                          height: 24,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: isSelected
+                                                ? AppTheme.accentRed
+                                                : Colors.black.withValues(alpha: 0.5),
+                                            border: Border.all(
+                                              color: isSelected
+                                                  ? Colors.white
+                                                  : Colors.white.withValues(alpha: isSelectionActive ? 0.6 : 0.85),
+                                              width: 2,
+                                            ),
+                                          ),
+                                          child: isSelected
+                                              ? const Icon(
+                                                  Icons.check,
+                                                  size: 14,
+                                                  color: Colors.white,
+                                                )
+                                              : null,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  // Bottom rarity badge
+                                  if (card.rarity != null)
+                                    Positioned(
+                                      bottom: 4,
+                                      right: 4,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withValues(alpha: 0.75),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(card.rarity!, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold)),
+                                      ),
+                                    ),
+                                  // Bottom price pill
+                                  Positioned(
+                                    bottom: 4,
+                                    left: 4,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withValues(alpha: 0.75),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        card.displayPrice,
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                          color: card.pricePhp != null ? AppTheme.mutedGold : AppTheme.textMuted,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              // Top variant badge (Parallel, Manga, SP)
-                              if (isSpecial)
-                                Positioned(
-                                  top: 4,
-                                  left: 4,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: card.variantType == 'MANGA' ? Colors.purple.withOpacity(0.9) : AppTheme.mutedGold.withOpacity(0.9),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      card.variantType == 'MANGA' ? 'MANGA' : 'AA',
-                                      style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.black),
-                                    ),
-                                  ),
-                                ),
-                              // Bottom rarity badge
-                              if (card.rarity != null)
-                                Positioned(
-                                  bottom: 4,
-                                  right: 4,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.75),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(card.rarity!, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold)),
-                                  ),
-                                ),
-                              // Bottom price pill
-                              Positioned(
-                                bottom: 4,
-                                left: 4,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.75),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    card.displayPrice,
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.bold,
-                                      color: card.pricePhp != null ? AppTheme.mutedGold : AppTheme.textMuted,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         );
                       },
@@ -363,3 +574,4 @@ class CardsScreen extends ConsumerWidget {
     );
   }
 }
+
