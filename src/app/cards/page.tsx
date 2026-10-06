@@ -122,7 +122,7 @@ export default function CardsPage() {
 function CardsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { currency, formatYuyuPrice, formatUsdPrice, openSettings, formatCard, user, exchangeRates } = useSettings();
+  const { currency, formatYuyuPrice, formatUsdPrice, formatPrice, openSettings, formatCard, user, exchangeRates } = useSettings();
   
   const sortParam = searchParams.get('sort') || '';
   const initialQuery = searchParams.get('q') || '';
@@ -387,6 +387,21 @@ function CardsContent() {
       setIsBulkAdding(false);
     }
   }
+
+  const getCardDisplayPrice = (card: CardItem) => {
+    const rawJPY = card.yuyuPrice ?? (card.marketPrice ? Math.round(card.marketPrice * (exchangeRates?.JPY || 157.30)) : undefined);
+    const usdVal = card.marketPrice ?? (card.yuyuPrice ? card.yuyuPrice / (exchangeRates?.JPY || 157.30) : null);
+    
+    if (usdVal !== null && usdVal !== undefined && !isNaN(usdVal) && usdVal > 0) {
+      const res = formatPrice(usdVal, {
+        source: 'yuyutei',
+        lang: card.hasJpPrint === false ? 'en' : 'jp',
+        rawJPY,
+      });
+      return res.full;
+    }
+    return '—';
+  };
 
   const activeDetailedFilterCount = 
     (selectedColor !== 'All' ? 1 : 0) +
@@ -913,49 +928,45 @@ function CardsContent() {
                         onError={(e) => handleCardImageError(e, card.id || card.cardNumber, card.imageUrl)}
                       />
 
-                      {/* Selection Checkbox Control (Top-Left) */}
+                      {/* Selection / Emblem Circle on Lower Right Corner (Exact Reference media_1791289416807.png) */}
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleCardSelection(card.id);
                         }}
-                        className={`absolute top-1.5 left-1.5 sm:top-2 sm:left-2 w-5 h-5 sm:w-6 sm:h-6 rounded-md sm:rounded-lg border flex items-center justify-center transition-all z-20 cursor-pointer shadow-sm ${
+                        className={`absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2 w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 backdrop-blur-sm flex items-center justify-center transition-all z-20 cursor-pointer shadow-md ${
                           isSelected
-                            ? 'bg-[#e05d68] border-[#e05d68] text-white scale-105 shadow-md'
+                            ? 'border-[#e05d68] bg-[#e05d68] text-white scale-110 shadow-lg shadow-[#e05d68]/40'
                             : hasSelection
-                            ? 'bg-black/60 border-white/60 text-transparent hover:border-white'
-                            : 'bg-black/45 border-white/40 text-transparent opacity-75 sm:opacity-0 sm:group-hover:opacity-100 hover:border-white transition-opacity'
+                            ? 'border-white/90 bg-black/70 text-transparent hover:scale-105'
+                            : 'border-white/85 bg-black/50 hover:border-white hover:scale-105'
                         }`}
                         title={isSelected ? 'Deselect card' : 'Select card'}
                       >
-                        <Check className={`w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3] ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
+                        {isSelected ? (
+                          <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3] text-white" />
+                        ) : (
+                          <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border-2 border-white/80" />
+                        )}
                       </button>
 
-                      {/* Circular Emblem on Bottom-Right (Matching media_1790912717518.png) */}
-                      <div
-                        className={`absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2 w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 backdrop-blur-sm flex items-center justify-center shadow-md transition-transform ${
-                          ownedQty > 0
-                            ? 'border-emerald-400 bg-emerald-500/85 text-white'
-                            : 'border-white/80 bg-black/40'
-                        }`}
-                      >
-                        {ownedQty > 0 ? (
-                          <span className="text-[10px] font-black leading-none">
-                            {ownedQty > 1 ? `x${ownedQty}` : '✓'}
-                          </span>
-                        ) : (
-                          <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full border border-white/50"></div>
-                        )}
-                      </div>
+                      {/* Owned badge on Top-Left if owned */}
+                      {ownedQty > 0 && !isSelected && (
+                        <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 px-1.5 py-0.5 rounded-md bg-emerald-500/90 text-white text-[9px] font-black shadow-sm z-10 flex items-center gap-0.5">
+                          <span>{ownedQty > 1 ? `x${ownedQty}` : '✓'}</span>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Bottom Pill matching media_1790912717518.png */}
-                    <div className="mt-1.5 sm:mt-2 py-1.5 sm:py-2 px-2.5 rounded-xl sm:rounded-2xl bg-[#1c202d] border border-[#272d3f] group-hover:border-[#3d465f] flex items-center justify-center gap-1.5 sm:gap-2 shadow-sm transition-colors">
-                      <span className="text-xs sm:text-sm font-semibold text-slate-200 tracking-wide truncate">
+                    {/* Bottom Pill: Card Code on top, Price below (Exact Reference media_1791289416807.png) */}
+                    <div className="mt-1.5 sm:mt-2 py-1.5 px-2 rounded-xl sm:rounded-2xl bg-[#1c202d] border border-[#272d3f] group-hover:border-[#3d465f] flex flex-col items-center justify-center shadow-sm transition-colors">
+                      <span className="text-[11px] sm:text-xs font-semibold text-slate-300 tracking-wider uppercase truncate w-full text-center">
                         {displayNum}
                       </span>
-                      <span className="text-xs sm:text-sm leading-none flex-shrink-0">{flag}</span>
+                      <span className="text-xs sm:text-sm font-bold text-white tracking-tight">
+                        {getCardDisplayPrice(card)}
+                      </span>
                     </div>
                   </div>
                 );
