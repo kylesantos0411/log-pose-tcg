@@ -261,7 +261,11 @@ export default function AdminPage() {
     try {
       const res = await fetch('/api/admin/prune-inactive', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-email': user?.email || '',
+          'x-admin-tag': user?.tag || '',
+        },
         body: JSON.stringify({
           userIds: targetIds,
           dryRun: false,
@@ -297,7 +301,11 @@ export default function AdminPage() {
     try {
       const res = await fetch('/api/admin/prune-inactive', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-email': user?.email || '',
+          'x-admin-tag': user?.tag || '',
+        },
         body: JSON.stringify({
           userIds: [targetUser.id],
           dryRun: false,
@@ -327,7 +335,11 @@ export default function AdminPage() {
     try {
       const res = await fetch('/api/admin/prune-inactive', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-email': user?.email || '',
+          'x-admin-tag': user?.tag || '',
+        },
         body: JSON.stringify({
           userIds: selectedUserIds,
           dryRun: false,
