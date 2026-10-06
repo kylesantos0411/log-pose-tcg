@@ -1,18 +1,48 @@
+export function getSvgPlaceholderDataUrl(cardCode: string): string {
+  const displayCode = (cardCode || 'OPTCG').toUpperCase();
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 490" width="100%" height="100%">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141724"/>
+      <stop offset="50%" stop-color="#1b2030"/>
+      <stop offset="100%" stop-color="#11131c"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <rect x="3" y="3" width="344" height="484" rx="20" fill="url(#g1)" stroke="url(#gold)" stroke-width="2.5"/>
+  <rect x="15" y="15" width="320" height="460" rx="14" fill="none" stroke="#2e354a" stroke-width="1.5" stroke-dasharray="5 3"/>
+  <circle cx="175" cy="210" r="46" fill="#202536" stroke="#fbbf24" stroke-width="2"/>
+  <polygon points="175,178 185,210 175,242 165,210" fill="#fbbf24"/>
+  <circle cx="175" cy="210" r="6" fill="#141724"/>
+  <text x="175" y="285" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-weight="900" font-size="20" text-anchor="middle" letter-spacing="1">${displayCode}</text>
+  <text x="175" y="310" fill="#9ca3af" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-weight="600" font-size="11" text-anchor="middle" letter-spacing="2">ONE PIECE TCG</text>
+  <text x="175" y="445" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-weight="800" font-size="9" text-anchor="middle" letter-spacing="2">LOG POSE TCG</text>
+</svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
 export function getSafeCardImageUrl(url?: string | null, cardId?: string | null): string {
   if (!url && !cardId) return '';
   if (url && url.startsWith('/')) return url;
 
-  const params = new URLSearchParams();
-  if (url) {
-    // Always rewrite English Bandai URLs to official Japanese Bandai scans
-    const cleanUrl = url.replace('https://en.onepiece-cardgame.com/', 'https://onepiece-cardgame.com/');
-    params.set('url', cleanUrl);
-  }
-  if (cardId) {
-    params.set('id', cardId);
+  // Direct remote URLs: load directly to eliminate Vercel Serverless proxy bandwidth!
+  if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+    return url.replace('https://en.onepiece-cardgame.com/', 'https://onepiece-cardgame.com/');
   }
 
-  return `/api/card-image?${params.toString()}`;
+  const cleanId = (cardId || '').trim();
+  if (cleanId && JP_CARD_IMAGE_MAP[cleanId]) {
+    return JP_CARD_IMAGE_MAP[cleanId];
+  }
+
+  if (cleanId) {
+    return `https://asia-en.onepiece-cardgame.com/images/cardlist/card/${cleanId}.png`;
+  }
+
+  return '';
 }
 
 /**
@@ -45,8 +75,14 @@ export function handleCardImageError(
     return;
   }
 
-  // Stage 4: High-fidelity Vector SVG Placeholder (guaranteed 100% success)
-  target.src = `/api/card-image?id=${encodeURIComponent(cleanId || baseId || 'OPTCG')}&placeholder=1`;
+  // Stage 4: Try server-side proxy fallback (only if direct CDNs were blocked)
+  if (!currentSrc.includes('/api/card-image')) {
+    target.src = `/api/card-image?id=${encodeURIComponent(cleanId || baseId || 'OPTCG')}`;
+    return;
+  }
+
+  // Stage 5: High-fidelity Vector SVG Placeholder (guaranteed 100% success, zero network cost)
+  target.src = getSvgPlaceholderDataUrl(cleanId || baseId || 'OPTCG');
 }
 
 // Explicit Japanese card image map when Bandai Japan index differs from Bandai English

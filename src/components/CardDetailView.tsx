@@ -2633,6 +2633,7 @@ export function CardDetailView({
                               alt={v.id}
                               className="w-full h-full object-contain"
                               loading="lazy"
+                              referrerPolicy="no-referrer"
                               onError={(e) => handleCardImageError(e, v.id)}
                             />
                           </div>
@@ -2944,6 +2945,7 @@ export function CardDetailView({
                           alt={v.id}
                           className="w-full h-full object-contain"
                           loading="lazy"
+                          referrerPolicy="no-referrer"
                           onError={(e) => handleCardImageError(e, v.id)}
                         />
                       </div>

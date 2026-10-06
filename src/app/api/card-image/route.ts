@@ -148,7 +148,9 @@ export async function GET(req: NextRequest) {
       status: 200,
       headers: {
         'Content-Type': 'image/svg+xml',
-        'Cache-Control': 'public, max-age=86400',
+        'Cache-Control': 'public, max-age=31536000, s-maxage=31536000, immutable',
+        'CDN-Cache-Control': 'public, s-maxage=31536000',
+        'Vercel-CDN-Cache-Control': 'public, s-maxage=31536000',
       },
     });
   }
@@ -208,7 +210,9 @@ export async function GET(req: NextRequest) {
           status: 200,
           headers: {
             'Content-Type': 'image/png',
-            'Cache-Control': 'public, max-age=2592000, immutable',
+            'Cache-Control': 'public, max-age=31536000, s-maxage=31536000, stale-while-revalidate=86400, immutable',
+            'CDN-Cache-Control': 'public, s-maxage=31536000, stale-while-revalidate=86400',
+            'Vercel-CDN-Cache-Control': 'public, s-maxage=31536000, stale-while-revalidate=86400',
           },
         });
       }
@@ -232,7 +236,9 @@ export async function GET(req: NextRequest) {
           status: 200,
           headers: {
             'Content-Type': meta.contentType || 'image/png',
-            'Cache-Control': 'public, max-age=2592000, immutable',
+            'Cache-Control': 'public, max-age=31536000, s-maxage=31536000, stale-while-revalidate=86400, immutable',
+            'CDN-Cache-Control': 'public, s-maxage=31536000, stale-while-revalidate=86400',
+            'Vercel-CDN-Cache-Control': 'public, s-maxage=31536000, stale-while-revalidate=86400',
           },
         });
       }
@@ -278,7 +284,9 @@ export async function GET(req: NextRequest) {
         status: 200,
         headers: {
           'Content-Type': result.contentType,
-          'Cache-Control': 'public, max-age=2592000, immutable',
+          'Cache-Control': 'public, max-age=31536000, s-maxage=31536000, stale-while-revalidate=86400, immutable',
+          'CDN-Cache-Control': 'public, s-maxage=31536000, stale-while-revalidate=86400',
+          'Vercel-CDN-Cache-Control': 'public, s-maxage=31536000, stale-while-revalidate=86400',
         },
       });
     }
@@ -290,7 +298,9 @@ export async function GET(req: NextRequest) {
     status: 200,
     headers: {
       'Content-Type': 'image/svg+xml',
-      'Cache-Control': 'public, max-age=86400',
+      'Cache-Control': 'public, max-age=31536000, s-maxage=31536000, immutable',
+      'CDN-Cache-Control': 'public, s-maxage=31536000',
+      'Vercel-CDN-Cache-Control': 'public, s-maxage=31536000',
     },
   });
 }
