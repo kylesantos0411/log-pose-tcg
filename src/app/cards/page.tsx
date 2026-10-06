@@ -8,6 +8,7 @@ import {
   Search, 
   Layers, 
   Plus, 
+  Minus, 
   Check, 
   X, 
   ChevronLeft, 
@@ -166,7 +167,7 @@ function CardsContent() {
 
   // Add to collection state
   const [addModalCard, setAddModalCard] = useState<CardItem | null>(null);
-  const [addQuantity, setAddQuantity] = useState(1);
+  const [addQuantity, setAddQuantity] = useState<string | number>('1');
   const [addCondition, setAddCondition] = useState('NM');
   const [addIsFoil, setAddIsFoil] = useState(false);
   const [addPrice, setAddPrice] = useState('');
@@ -296,7 +297,7 @@ function CardsContent() {
           yuyuPrice: addModalCard.yuyuPrice,
           pack: addModalCard.pack ? { code: addModalCard.pack.code, name: addModalCard.pack.name } : undefined,
         },
-        quantity: addQuantity,
+        quantity: Math.max(1, parseInt(String(addQuantity), 10) || 1),
         condition: addCondition,
         isFoil: addIsFoil,
         language: 'jp',
@@ -902,6 +903,7 @@ function CardsContent() {
               onSelectCard={(selected) => setActiveCard(selected as CardItem)}
               onAddToCollection={(c) => {
                 setAddModalCard(c as CardItem);
+                setAddQuantity('1');
                 setAddPrice(c.yuyuPrice ? c.yuyuPrice.toString() : (c.marketPrice ? Math.round(c.marketPrice * 140).toString() : ''));
               }}
             />
@@ -959,13 +961,43 @@ function CardsContent() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs text-gray-400 block mb-1">Quantity</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={addQuantity}
-                      onChange={(e) => setAddQuantity(parseInt(e.target.value) || 1)}
-                      className="w-full bg-[#1e212c] border border-[#32384a] rounded-xl px-3 py-2 text-sm text-white focus:outline-none"
-                    />
+                    <div className="flex items-center rounded-xl bg-[#1e212c] border border-[#32384a] focus-within:border-[#e76d78] overflow-hidden transition">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentVal = parseInt(String(addQuantity), 10) || 1;
+                          setAddQuantity(Math.max(1, currentVal - 1));
+                        }}
+                        className="px-2.5 py-2 text-gray-400 hover:text-white hover:bg-white/5 active:scale-95 transition"
+                        title="Decrease"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <input
+                        type="number"
+                        min="1"
+                        value={addQuantity}
+                        onChange={(e) => setAddQuantity(e.target.value)}
+                        onBlur={() => {
+                          const parsed = parseInt(String(addQuantity), 10);
+                          if (!parsed || parsed < 1) {
+                            setAddQuantity('1');
+                          }
+                        }}
+                        className="w-full bg-transparent px-2 py-2 text-sm text-center text-white focus:outline-none font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentVal = parseInt(String(addQuantity), 10) || 1;
+                          setAddQuantity(currentVal + 1);
+                        }}
+                        className="px-2.5 py-2 text-gray-400 hover:text-white hover:bg-white/5 active:scale-95 transition"
+                        title="Increase"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   <div>

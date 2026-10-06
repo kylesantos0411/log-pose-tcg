@@ -7,6 +7,7 @@ import {
   FolderHeart, 
   Trash2, 
   Plus, 
+  Minus, 
   Search,
   Coins,
   Settings as SettingsIcon,
@@ -116,7 +117,7 @@ export default function CollectionPage() {
   const [soldPrice, setSoldPrice] = useState<string>('');
   const [soldCurrency, setSoldCurrency] = useState<'PHP' | 'USD' | 'JPY'>('PHP');
   const [soldDate, setSoldDate] = useState<string>(new Date().toISOString().slice(0, 10));
-  const [soldQuantity, setSoldQuantity] = useState<number>(1);
+  const [soldQuantity, setSoldQuantity] = useState<string | number>('1');
   const [buyerSource, setBuyerSource] = useState<string>('');
   const [soldNotes, setSoldNotes] = useState<string>('');
   const [isPublicSale, setIsPublicSale] = useState<boolean>(true);
@@ -253,7 +254,7 @@ export default function CollectionPage() {
       ? Math.round(item.card.marketPrice * (soldCurrency === 'PHP' ? phpRate : soldCurrency === 'JPY' ? jpyRate : 1)).toString()
       : '';
     setSoldPrice(initialPrice);
-    setSoldQuantity(1);
+    setSoldQuantity('1');
     setSoldDate(new Date().toISOString().slice(0, 10));
     setBuyerSource('');
     setIsFriendSale(false);
@@ -295,7 +296,7 @@ export default function CollectionPage() {
         soldPrice: priceNum,
         soldCurrency,
         soldDate,
-        quantity: soldQuantity,
+        quantity: Math.max(1, parseInt(String(soldQuantity), 10) || 1),
         isPublic: isPublicSale,
         buyerSource: isFriendSale ? 'Sold to Friend' : (buyerSource.trim() || undefined),
         buyerUserTag: isFriendSale && selectedFriendTag ? selectedFriendTag : undefined,
@@ -1126,14 +1127,49 @@ export default function CollectionPage() {
                     <label className="text-xs font-bold text-gray-300 block mb-1">
                       Quantity Sold (You own {sellingItem.quantity})
                     </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max={sellingItem.quantity}
-                      value={soldQuantity}
-                      onChange={(e) => setSoldQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="w-full px-3 py-2.5 rounded-xl bg-[#1b1e2a] border border-[#343a4c] text-white text-xs focus:outline-none focus:border-emerald-500"
-                    />
+                    <div className="flex items-center rounded-xl bg-[#1b1e2a] border border-[#343a4c] focus-within:border-emerald-500 overflow-hidden transition">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentVal = parseInt(String(soldQuantity), 10) || 1;
+                          setSoldQuantity(Math.max(1, currentVal - 1));
+                        }}
+                        className="px-3 py-2 text-gray-400 hover:text-white hover:bg-white/5 active:scale-95 transition"
+                        title="Decrease"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <input
+                        type="number"
+                        min="1"
+                        max={sellingItem.quantity}
+                        value={soldQuantity}
+                        onChange={(e) => setSoldQuantity(e.target.value)}
+                        onBlur={() => {
+                          const parsed = parseInt(String(soldQuantity), 10);
+                          if (!parsed || parsed < 1) {
+                            setSoldQuantity('1');
+                          } else if (parsed > sellingItem.quantity) {
+                            setSoldQuantity(String(sellingItem.quantity));
+                          }
+                        }}
+                        className="w-full bg-transparent px-2 py-2 text-xs text-center text-white focus:outline-none font-bold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentVal = parseInt(String(soldQuantity), 10) || 1;
+                          if (currentVal < sellingItem.quantity) {
+                            setSoldQuantity(currentVal + 1);
+                          }
+                        }}
+                        className="px-3 py-2 text-gray-400 hover:text-white hover:bg-white/5 active:scale-95 transition disabled:opacity-30"
+                        title="Increase"
+                        disabled={(parseInt(String(soldQuantity), 10) || 1) >= sellingItem.quantity}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 )}
 
