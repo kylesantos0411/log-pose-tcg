@@ -88,13 +88,16 @@ export default function AdminPage() {
   const [userSort, setUserSort] = useState<'recent_active' | 'last_login' | 'newest' | 'cards' | 'sales'>('recent_active');
   const [loadingUsers, setLoadingUsers] = useState(false);
 
-  // Prune Inactive Users Modal state
+  // Prune Inactive Users Modal & Manual Selection state
   const [showPruneModal, setShowPruneModal] = useState(false);
   const [pruneDaysInput, setPruneDaysInput] = useState(14);
   const [pruneIncludeGhosts, setPruneIncludeGhosts] = useState(true);
   const [prunePreviewLoading, setPrunePreviewLoading] = useState(false);
   const [pruningExecuting, setPruningExecuting] = useState(false);
   const [pruneCandidates, setPruneCandidates] = useState<any[]>([]);
+  const [selectedCandidateIds, setSelectedCandidateIds] = useState<Set<string>>(new Set());
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [recyclingUserId, setRecyclingUserId] = useState<string | null>(null);
   const [reclaimableCodesCount, setReclaimableCodesCount] = useState(0);
   const [pruneResultSummary, setPruneResultSummary] = useState<string | null>(null);
 
@@ -142,7 +145,9 @@ export default function AdminPage() {
       const res = await fetch(`/api/admin/prune-inactive?days=${days}&includeGhosts=${ghosts}`);
       const data = await res.json();
       if (data.success) {
-        setPruneCandidates(data.candidates || []);
+        const list = data.candidates || [];
+        setPruneCandidates(list);
+        setSelectedCandidateIds(new Set(list.map((c: any) => c.id)));
         setReclaimableCodesCount(data.reclaimableInviteCodesCount || 0);
       }
     } catch (err: any) {
@@ -153,7 +158,12 @@ export default function AdminPage() {
   }
 
   async function handleExecutePrune() {
-    if (!confirm(`Are you sure you want to permanently recycle ${pruneCandidates.length} inactive account(s) and free their beta slots? This cannot be undone.`)) {
+    const targetIds = Array.from(selectedCandidateIds);
+    if (targetIds.length === 0) {
+      alert('Please select at least one account to recycle.');
+      return;
+    }
+    if (!confirm(`Are you sure you want to permanently recycle ${targetIds.length} inactive account(s) and free their beta slots? This cannot be undone.`)) {
       return;
     }
     setPruningExecuting(true);
@@ -162,8 +172,7 @@ export default function AdminPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          daysInactive: pruneDaysInput,
-          includeGhosts: pruneIncludeGhosts,
+          userIds: targetIds,
           dryRun: false,
         }),
       });
@@ -173,11 +182,76 @@ export default function AdminPage() {
         showToast(data.message);
         loadUsers();
         setPruneCandidates([]);
+        setSelectedCandidateIds(new Set());
       } else {
         alert(`Prune failed: ${data.error}`);
       }
     } catch (err: any) {
       alert(`Error pruning accounts: ${err.message}`);
+    } finally {
+      setPruningExecuting(false);
+    }
+  }
+
+  async function handleRecycleUser(targetUser: AdminUserRecord) {
+    if (targetUser.role === 'admin') {
+      alert('Cannot recycle administrator accounts.');
+      return;
+    }
+    const name = targetUser.username || targetUser.tag;
+    if (!confirm(`Recycle account for "${name}"?\n\nThis will permanently delete this account, remove their cards, and reset their Beta Invite Code so it can be given to a waiting tester.\n\nProceed?`)) {
+      return;
+    }
+    setRecyclingUserId(targetUser.id);
+    try {
+      const res = await fetch('/api/admin/prune-inactive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userIds: [targetUser.id],
+          dryRun: false,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Recycled account for ${name} & released beta slot!`);
+        setSelectedUserIds((prev) => prev.filter((id) => id !== targetUser.id));
+        loadUsers();
+      } else {
+        alert(`Failed to recycle account: ${data.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setRecyclingUserId(null);
+    }
+  }
+
+  async function handleRecycleSelectedUsers() {
+    if (selectedUserIds.length === 0) return;
+    if (!confirm(`Are you sure you want to permanently recycle the ${selectedUserIds.length} selected account(s)?\n\nTheir collections will be deleted and their Beta Invite Codes will be reset so waiting testers can use them.\n\nProceed?`)) {
+      return;
+    }
+    setPruningExecuting(true);
+    try {
+      const res = await fetch('/api/admin/prune-inactive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userIds: selectedUserIds,
+          dryRun: false,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message || `Successfully recycled ${selectedUserIds.length} accounts!`);
+        setSelectedUserIds([]);
+        loadUsers();
+      } else {
+        alert(`Failed to recycle selected accounts: ${data.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
     } finally {
       setPruningExecuting(false);
     }
@@ -1112,148 +1186,260 @@ export default function AdminPage() {
           </div>
 
           {/* Users Table */}
-          {loadingUsers ? (
-            <div className="py-12 text-center text-slate-400 text-xs">Loading user registry...</div>
-          ) : filteredUsers.length === 0 ? (
-            <div className="py-12 text-center text-slate-500 text-xs">No users matching search criteria.</div>
-          ) : (
-            <div className="overflow-x-auto no-scrollbar">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="border-b border-[#222533] text-slate-400 text-[11px] uppercase tracking-wider font-semibold">
-                    <th className="py-3 px-3">Collector</th>
-                    <th className="py-3 px-3">Role</th>
-                    <th className="py-3 px-3">Status</th>
-                    <th className="py-3 px-3">Last Active / App Use</th>
-                    <th className="py-3 px-3 text-center">Collection</th>
-                    <th className="py-3 px-3 text-center">Sales</th>
-                    <th className="py-3 px-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#1c1f2b]">
-                  {filteredUsers.map((u) => {
-                    const online = isUserRecentlyActive(u.lastActive);
-                    return (
-                      <tr key={u.id} className="hover:bg-white/[0.02] transition">
-                        <td className="py-3.5 px-3">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-full bg-[#1c202d] border border-[#2c3345] flex items-center justify-center font-bold text-xs text-slate-200 flex-shrink-0">
-                              {u.username.slice(0, 2).toUpperCase()}
-                            </div>
-                            <div className="min-w-0">
-                              <span className="font-semibold text-white block truncate">
-                                {u.username}
-                              </span>
-                              <span className="text-[11px] text-slate-400 font-mono">
-                                @{u.tag.replace(/^@/, '')} {u.email ? `• ${u.email}` : ''}
-                              </span>
-                            </div>
-                          </div>
-                        </td>
+          {(() => {
+            const selectableVisibleUsers = filteredUsers.filter((u) => u.role !== 'admin');
+            const allVisibleSelected = selectableVisibleUsers.length > 0 && selectableVisibleUsers.every((u) => selectedUserIds.includes(u.id));
+            const someVisibleSelected = selectableVisibleUsers.some((u) => selectedUserIds.includes(u.id));
 
-                        <td className="py-3.5 px-3">
-                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${
-                            u.role === 'admin'
-                              ? 'bg-red-500/10 text-red-300 border border-red-500/20'
-                              : 'bg-slate-500/10 text-slate-300 border border-slate-500/20'
-                          }`}>
-                            {u.role}
-                          </span>
-                        </td>
+            const toggleSelectAllVisible = () => {
+              if (allVisibleSelected) {
+                const visibleIds = new Set(selectableVisibleUsers.map((u) => u.id));
+                setSelectedUserIds((prev) => prev.filter((id) => !visibleIds.has(id)));
+              } else {
+                const newIds = new Set([...selectedUserIds, ...selectableVisibleUsers.map((u) => u.id)]);
+                setSelectedUserIds(Array.from(newIds));
+              }
+            };
 
-                        <td className="py-3.5 px-3">
-                          {u.isBanned ? (
-                            <div className="space-y-0.5">
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-rose-500/10 text-rose-300 border border-rose-500/20">
-                                <ShieldAlert className="w-3 h-3 text-rose-400" />
-                                <span>Banned</span>
-                              </span>
-                              {u.banReason && (
-                                <span className="block text-[10px] text-slate-400 truncate max-w-xs italic">
-                                  "{u.banReason}"
+            return (
+              <>
+                {/* Batch Actions Bar for Manual Selection */}
+                {selectedUserIds.length > 0 && (
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs shadow-md animate-in fade-in duration-150">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0 font-bold">
+                        {selectedUserIds.length}
+                      </div>
+                      <div>
+                        <span className="font-bold text-white block">
+                          {selectedUserIds.length} account{selectedUserIds.length > 1 ? 's' : ''} manually selected
+                        </span>
+                        <span className="text-[11px] text-amber-200/80">
+                          Recycling will delete accounts &amp; reset their Beta Invite Codes so they can be redistributed to new testers.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedUserIds([])}
+                        className="py-1.5 px-3 rounded-xl bg-[#1c202d] hover:bg-[#252b3d] text-slate-300 hover:text-white border border-[#2c3345] text-xs font-semibold transition cursor-pointer"
+                      >
+                        Clear Selection
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleRecycleSelectedUsers}
+                        disabled={pruningExecuting}
+                        className="py-1.5 px-4 rounded-xl bg-red-600 hover:bg-red-500 active:scale-95 text-white font-bold text-xs uppercase tracking-wider shadow transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>{pruningExecuting ? 'Recycling...' : `Recycle Selected (${selectedUserIds.length})`}</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {loadingUsers ? (
+                  <div className="py-12 text-center text-slate-400 text-xs">Loading user registry...</div>
+                ) : filteredUsers.length === 0 ? (
+                  <div className="py-12 text-center text-slate-500 text-xs">No users matching search criteria.</div>
+                ) : (
+                  <div className="overflow-x-auto no-scrollbar">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-[#222533] text-slate-400 text-[11px] uppercase tracking-wider font-semibold">
+                          <th className="py-3 px-3 w-10 text-center">
+                            <input
+                              type="checkbox"
+                              checked={allVisibleSelected}
+                              ref={(el) => {
+                                if (el) el.indeterminate = someVisibleSelected && !allVisibleSelected;
+                              }}
+                              onChange={toggleSelectAllVisible}
+                              disabled={selectableVisibleUsers.length === 0}
+                              className="rounded bg-[#0e1017] border-gray-600 text-amber-500 focus:ring-0 w-4 h-4 cursor-pointer disabled:opacity-30"
+                              title={allVisibleSelected ? "Deselect all visible" : "Select all visible non-admin accounts"}
+                            />
+                          </th>
+                          <th className="py-3 px-3">Collector</th>
+                          <th className="py-3 px-3">Role</th>
+                          <th className="py-3 px-3">Status</th>
+                          <th className="py-3 px-3">Last Active / App Use</th>
+                          <th className="py-3 px-3 text-center">Collection</th>
+                          <th className="py-3 px-3 text-center">Sales</th>
+                          <th className="py-3 px-3 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#1c1f2b]">
+                        {filteredUsers.map((u) => {
+                          const online = isUserRecentlyActive(u.lastActive);
+                          const isSelected = selectedUserIds.includes(u.id);
+                          return (
+                            <tr key={u.id} className={`hover:bg-white/[0.02] transition ${isSelected ? 'bg-amber-500/[0.04]' : ''}`}>
+                              <td className="py-3.5 px-3 text-center">
+                                {u.role === 'admin' ? (
+                                  <span title="Administrator accounts cannot be pruned or recycled">
+                                    <Lock className="w-3.5 h-3.5 text-slate-600 mx-auto" />
+                                  </span>
+                                ) : (
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedUserIds((prev) => [...prev, u.id]);
+                                      } else {
+                                        setSelectedUserIds((prev) => prev.filter((id) => id !== u.id));
+                                      }
+                                    }}
+                                    className="rounded bg-[#0e1017] border-gray-600 text-amber-500 focus:ring-0 w-4 h-4 cursor-pointer"
+                                  />
+                                )}
+                              </td>
+
+                              <td className="py-3.5 px-3">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="w-8 h-8 rounded-full bg-[#1c202d] border border-[#2c3345] flex items-center justify-center font-bold text-xs text-slate-200 flex-shrink-0">
+                                    {u.username.slice(0, 2).toUpperCase()}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <span className="font-semibold text-white block truncate">
+                                      {u.username}
+                                    </span>
+                                    <span className="text-[11px] text-slate-400 font-mono">
+                                      @{u.tag.replace(/^@/, '')} {u.email ? `• ${u.email}` : ''}
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
+
+                              <td className="py-3.5 px-3">
+                                <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider ${
+                                  u.role === 'admin'
+                                    ? 'bg-red-500/10 text-red-300 border border-red-500/20'
+                                    : 'bg-slate-500/10 text-slate-300 border border-slate-500/20'
+                                }`}>
+                                  {u.role}
                                 </span>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                              <span>Active</span>
-                            </span>
-                          )}
-                        </td>
+                              </td>
 
-                        {/* Last Active / App Usage & Login */}
-                        <td className="py-3.5 px-3">
-                          <div className="space-y-1">
-                            <div 
-                              className="flex items-center gap-1.5"
-                              title={u.lastActive ? `Last Active: ${new Date(u.lastActive).toLocaleString()}` : 'No activity logged yet'}
-                            >
-                              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                                online ? 'bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400/50' : 'bg-gray-500'
-                              }`} />
-                              <span className="font-bold text-white text-xs whitespace-nowrap">
-                                {formatActivityRelativeTime(u.lastActive)}
-                              </span>
-                              {online && (
-                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold uppercase tracking-wider">
-                                  Online
-                                </span>
-                              )}
-                            </div>
-                            <div 
-                              className="text-[10px] text-gray-400 flex items-center gap-1"
-                              title={u.lastLogin ? `Last Login: ${new Date(u.lastLogin).toLocaleString()}` : 'Registered date used as baseline'}
-                            >
-                              <Clock className="w-2.5 h-2.5 text-gray-500 flex-shrink-0" />
-                              <span className="truncate">
-                                Login: {u.lastLogin ? formatActivityRelativeTime(u.lastLogin) : 'On signup'}
-                              </span>
-                            </div>
-                          </div>
-                        </td>
+                              <td className="py-3.5 px-3">
+                                {u.isBanned ? (
+                                  <div className="space-y-0.5">
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-rose-500/10 text-rose-300 border border-rose-500/20">
+                                      <ShieldAlert className="w-3 h-3 text-rose-400" />
+                                      <span>Banned</span>
+                                    </span>
+                                    {u.banReason && (
+                                      <span className="block text-[10px] text-slate-400 truncate max-w-xs italic">
+                                        "{u.banReason}"
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                    <span>Active</span>
+                                  </span>
+                                )}
+                              </td>
 
-                        <td className="py-3.5 px-3 text-center font-mono font-bold text-gray-300">
-                          {u.cardCount} cards
-                        </td>
+                              {/* Last Active / App Usage & Login */}
+                              <td className="py-3.5 px-3">
+                                <div className="space-y-1">
+                                  <div 
+                                    className="flex items-center gap-1.5"
+                                    title={u.lastActive ? `Last Active: ${new Date(u.lastActive).toLocaleString()}` : 'No activity logged yet'}
+                                  >
+                                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                      online ? 'bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400/50' : 'bg-gray-500'
+                                    }`} />
+                                    <span className="font-bold text-white text-xs whitespace-nowrap">
+                                      {formatActivityRelativeTime(u.lastActive)}
+                                    </span>
+                                    {online && (
+                                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold uppercase tracking-wider">
+                                        Online
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div 
+                                    className="text-[10px] text-gray-400 flex items-center gap-1"
+                                    title={u.lastLogin ? `Last Login: ${new Date(u.lastLogin).toLocaleString()}` : 'Registered date used as baseline'}
+                                  >
+                                    <Clock className="w-2.5 h-2.5 text-gray-500 flex-shrink-0" />
+                                    <span className="truncate">
+                                      Login: {u.lastLogin ? formatActivityRelativeTime(u.lastLogin) : 'On signup'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
 
-                        <td className="py-3.5 px-3 text-center font-mono font-bold text-gray-300">
-                          {u.salesCount} sold
-                        </td>
+                              <td className="py-3.5 px-3 text-center font-mono font-bold text-gray-300">
+                                {u.cardCount} cards
+                              </td>
 
-                        <td className="py-3.5 px-3 text-right">
-                        {u.role === 'admin' ? (
-                          <span className="text-[11px] text-gray-500 font-bold">Admin Protected</span>
-                        ) : u.isBanned ? (
-                          <button
-                            type="button"
-                            onClick={() => handleUnban(u)}
-                            className="py-1 px-2.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold transition flex items-center gap-1 ml-auto cursor-pointer"
-                          >
-                            <Unlock className="w-3 h-3" />
-                            <span>Unban</span>
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setBanningUser(u);
-                              setBanReasonInput('Market manipulation and fraudulent pricing');
-                            }}
-                            className="py-1 px-2.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 text-[11px] font-bold transition flex items-center gap-1 ml-auto cursor-pointer"
-                          >
-                            <Lock className="w-3 h-3" />
-                            <span>Ban User</span>
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-              </table>
-            </div>
-          )}
+                              <td className="py-3.5 px-3 text-center font-mono font-bold text-gray-300">
+                                {u.salesCount} sold
+                              </td>
+
+                              <td className="py-3.5 px-3 text-right">
+                                {u.role === 'admin' ? (
+                                  <span className="text-[11px] text-gray-500 font-bold">Admin Protected</span>
+                                ) : (
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    {u.isBanned ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleUnban(u)}
+                                        className="py-1 px-2.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold transition flex items-center gap-1 cursor-pointer"
+                                      >
+                                        <Unlock className="w-3 h-3" />
+                                        <span>Unban</span>
+                                      </button>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setBanningUser(u);
+                                          setBanReasonInput('Market manipulation and fraudulent pricing');
+                                        }}
+                                        className="py-1 px-2.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer"
+                                      >
+                                        <Lock className="w-3 h-3" />
+                                        <span>Ban</span>
+                                      </button>
+                                    )}
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRecycleUser(u)}
+                                      disabled={recyclingUserId === u.id}
+                                      className="py-1 px-2.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                                      title="Delete account, free up database storage, and reset Beta Invite Code"
+                                    >
+                                      {recyclingUserId === u.id ? (
+                                        <RotateCw className="w-3 h-3 animate-spin text-amber-400" />
+                                      ) : (
+                                        <Trash2 className="w-3 h-3 text-amber-400" />
+                                      )}
+                                      <span>Recycle</span>
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
 
@@ -1542,27 +1728,77 @@ export default function AdminPage() {
               ) : (
                 <div className="space-y-1.5">
                   <div className="text-xs font-bold text-gray-300 flex items-center justify-between px-1">
-                    <span>Found {pruneCandidates.length} eligible account(s):</span>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={pruneCandidates.length > 0 && selectedCandidateIds.size === pruneCandidates.length}
+                        ref={(el) => {
+                          if (el) {
+                            el.indeterminate = selectedCandidateIds.size > 0 && selectedCandidateIds.size < pruneCandidates.length;
+                          }
+                        }}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedCandidateIds(new Set(pruneCandidates.map((c) => c.id)));
+                          } else {
+                            setSelectedCandidateIds(new Set());
+                          }
+                        }}
+                        className="rounded bg-[#0e1017] border-gray-600 text-amber-500 focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                      />
+                      <span>Eligible Accounts ({selectedCandidateIds.size}/{pruneCandidates.length} selected):</span>
+                    </div>
                     <span className="text-amber-400 font-mono text-[11px]">
-                      {reclaimableCodesCount} invite code(s) will be recycled
+                      {reclaimableCodesCount} invite code(s) available to recycle
                     </span>
                   </div>
-                  {pruneCandidates.map((c) => (
-                    <div
-                      key={c.id}
-                      className="p-2.5 rounded-xl bg-[#141620] border border-[#2a3040] flex items-center justify-between text-xs"
-                    >
-                      <div className="min-w-0">
-                        <span className="font-bold text-white block truncate">{c.username} ({c.email})</span>
-                        <span className="text-[10px] text-gray-400 font-mono">
-                          {c.tag} • {c.collectionSize} cards • {c.reason}
+                  {pruneCandidates.map((c) => {
+                    const isChecked = selectedCandidateIds.has(c.id);
+                    return (
+                      <div
+                        key={c.id}
+                        onClick={() => {
+                          setSelectedCandidateIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(c.id)) next.delete(c.id);
+                            else next.add(c.id);
+                            return next;
+                          });
+                        }}
+                        className={`p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-pointer transition select-none ${
+                          isChecked 
+                            ? 'bg-[#181a26] border-amber-500/40' 
+                            : 'bg-[#141620] border-[#2a3040] opacity-60 hover:opacity-100'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              setSelectedCandidateIds((prev) => {
+                                const next = new Set(prev);
+                                if (e.target.checked) next.add(c.id);
+                                else next.delete(c.id);
+                                return next;
+                              });
+                            }}
+                            className="rounded bg-[#0e1017] border-gray-600 text-amber-500 focus:ring-0 w-3.5 h-3.5 cursor-pointer flex-shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <span className="font-bold text-white block truncate">{c.username} ({c.email})</span>
+                            <span className="text-[10px] text-gray-400 font-mono">
+                              {c.tag} • {c.collectionSize} cards • {c.reason}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 whitespace-nowrap ml-2 flex-shrink-0">
+                          Last Active: {c.lastActiveAt ? new Date(c.lastActiveAt).toISOString().slice(0, 10) : 'Never'}
                         </span>
                       </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 whitespace-nowrap">
-                        Last Active: {c.lastActiveAt ? new Date(c.lastActiveAt).toISOString().slice(0, 10) : 'Never'}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1584,10 +1820,10 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={handleExecutePrune}
-                disabled={pruningExecuting || pruneCandidates.length === 0}
+                disabled={pruningExecuting || selectedCandidateIds.size === 0}
                 className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-black font-black text-xs uppercase tracking-wider transition shadow flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {pruningExecuting ? 'Recycling Accounts...' : `Prune & Free ${reclaimableCodesCount || pruneCandidates.length} Slots`}
+                {pruningExecuting ? 'Recycling Accounts...' : `Prune & Free ${selectedCandidateIds.size} Selected Slot${selectedCandidateIds.size !== 1 ? 's' : ''}`}
               </button>
             </div>
           </div>
