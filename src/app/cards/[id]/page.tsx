@@ -26,19 +26,6 @@ export default async function CardPage({ params, searchParams }: Props) {
     },
   });
 
-  if (!card && id === 'OP01-120_p2') {
-    card = await prisma.card.findUnique({
-      where: { id: 'OP01-120_p4' },
-      include: {
-        pack: {
-          select: {
-            code: true,
-            name: true,
-          },
-        },
-      },
-    });
-  }
 
   if (!card) {
     notFound();

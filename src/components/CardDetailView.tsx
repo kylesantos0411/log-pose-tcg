@@ -79,6 +79,12 @@ export interface CardDetailData {
   original_set?: string | null;
   yuyuteiSet?: string | null;
   yuyutei_set?: string | null;
+  yuyuteiProductId?: string | null;
+  yuyutei_product_id?: string | null;
+  yuyuteiUrl?: string | null;
+  yuyutei_url?: string | null;
+  yuyuteiTitle?: string | null;
+  yuyutei_title?: string | null;
   displaySet?: string | null;
   display_set?: string | null;
   printingType?: string | null;
@@ -96,6 +102,7 @@ export interface CardDetailData {
   artist_source_url?: string | null;
   artistVerificationStatus?: string | null;
   artist_verification_status?: string | null;
+  packId?: string | null;
   pack?: {
     code?: string | null;
     name?: string | null;
@@ -172,6 +179,35 @@ export function CardDetailView({
   const [card, setCard] = useState<CardDetailData>(initialCard);
   const [allVariants, setAllVariants] = useState<CardDetailData[]>(initialVariants || []);
   const [snkrdunkPricing, setSnkrdunkPricing] = useState<any>(null);
+
+  // Filter and deduplicate variants to ensure clean, accurate version lists
+  const visibleVariants = useMemo(() => {
+    let list = selectedLang === 'jp' ? allVariants.filter((v) => v.hasJpPrint !== false) : allVariants;
+    if (selectedLang === 'jp') {
+      list = list.filter((v) => {
+        // Exclude English Bandai _r* clone stubs that have no Japanese product metadata
+        if (v.id.includes('_r') && !v.yuyuteiProductId && !v.yuyuteiUrl) {
+          return false;
+        }
+        return true;
+      });
+    }
+
+    // Deduplicate identical cards by resolved image URL, pack, and price
+    const seen = new Set<string>();
+    const unique: CardDetailData[] = [];
+    for (const v of list) {
+      const img = getEditionCardImageUrl(v.id, selectedLang, v.imageUrl);
+      const price = Math.round(selectedLang === 'jp' ? (v.yuyuPrice || 0) : (v.marketPrice || 0));
+      const packCode = v.pack?.code || v.packId || '';
+      const key = `${img}::${packCode}::${v.printingType || ''}::${price}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(v);
+      }
+    }
+    return unique;
+  }, [allVariants, selectedLang]);
 
   useEffect(() => {
     setCard(initialCard);
@@ -2572,10 +2608,7 @@ export function CardDetailView({
         )}
 
         {/* Clickable Variations / Edition Banner */}
-        {(() => {
-          const visibleVariants = selectedLang === 'jp' ? allVariants.filter((v) => v.hasJpPrint !== false) : allVariants;
-          return (
-            <div className="space-y-2.5">
+        <div className="space-y-2.5">
               <button
                 type="button"
                 onClick={() => setShowEditionModal(true)}
@@ -2668,8 +2701,6 @@ export function CardDetailView({
                 </div>
               )}
             </div>
-          );
-        })()}
           </div>
         </div>
       </div>
@@ -2895,7 +2926,7 @@ export function CardDetailView({
 
       {/* ================= MODAL 3: EDITIONS & VARIATIONS MODAL ================= */}
       {showEditionModal && (() => {
-        const modalVariants = selectedLang === 'jp' ? allVariants.filter((v) => v.hasJpPrint !== false) : allVariants;
+        const modalVariants = visibleVariants;
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
             <div className="bg-[#242836] border border-[#34384c] rounded-3xl max-w-lg w-full p-6 relative shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">

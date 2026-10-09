@@ -80,7 +80,7 @@ export function matchCardToApparel(card: any, apparels: SnkrdunkApparel[]): Snkr
   const isManga = Boolean(
     (card.yuyuteiTitle && (card.yuyuteiTitle.includes('スーパーパラレル') || card.yuyuteiTitle.includes('コミパラ') || card.yuyuteiTitle.toLowerCase().includes('manga'))) ||
     (card.name && card.name.toLowerCase().includes('manga')) ||
-    ['OP05-119_p2', 'OP01-120_p2', 'OP02-013_p2', 'OP04-083_p2', 'OP06-118_p2', 'OP07-109_p2', 'OP08-118_p2', 'OP09-119_p2', 'EB01-006_p2'].includes(card.id)
+    ['OP05-119_p2', 'OP01-120_p4', 'OP01-120_p6', 'OP02-013_p2', 'OP04-083_p2', 'OP06-118_p2', 'OP07-109_p2', 'OP08-118_p2', 'OP09-119_p2', 'EB01-006_p2'].includes(card.id)
   );
 
   // Parallel identification

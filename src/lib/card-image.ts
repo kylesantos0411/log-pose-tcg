@@ -85,9 +85,9 @@ export function handleCardImageError(
 // Explicit Japanese card image map when Bandai Japan index differs from Bandai English
 export const JP_CARD_IMAGE_MAP: Record<string, string> = {
   // OP01-120 Shanks exact Japanese variations from Yuyu-tei & Bandai Japan
-  'OP01-120':    'https://card.yuyu-tei.jp/opc/front/op01/10150.jpg',    // Base SEC (Makitoshi - ¥500)
+  'OP01-120':    'https://card.yuyu-tei.jp/opc/front/op01/10150.jpg',    // Base SEC (Makitoshi - ¥320)
   'OP01-120_p1': 'https://card.yuyu-tei.jp/opc/front/op01/10151.jpg',    // OP-01 Secret Parallel (¥3,980)
-  'OP01-120_p2': 'https://card.yuyu-tei.jp/opc/front/op01/10152.jpg',    // OP-01 Manga Super Parallel (刻印なし - ¥128,000)
+  'OP01-120_p2': 'https://card.yuyu-tei.jp/opc/front/prb01/10022.jpg',   // PRB-01 Stamped Reprint (Makitoshi - ¥220)
   'OP01-120_p4': 'https://card.yuyu-tei.jp/opc/front/op01/10152.jpg',    // OP-01 Manga Super Parallel (刻印なし - ¥128,000)
   'OP01-120_p5': 'https://card.yuyu-tei.jp/opc/front/prb01/10023.jpg',   // PRB-01 Parallel by lack (¥500)
   'OP01-120_p6': 'https://onepiece-cardgame.com/images/cardlist/card/OP01-120_p6.png', // PRB-01 Manga Super Parallel (刻印あり - ¥198,000)
