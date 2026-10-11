@@ -15,7 +15,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Install dependencies
@@ -23,12 +23,12 @@ jobs:
 
       - name: Generate Prisma client
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL != '' && secrets.DATABASE_URL || 'file:./prisma/dev.db' }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL != '' && secrets.DATABASE_URL || 'file:./dev.db' }}
         run: npx prisma generate
 
       - name: Execute Sync
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL != '' && secrets.DATABASE_URL || 'file:./prisma/dev.db' }}
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL != '' && secrets.DATABASE_URL || 'file:./dev.db' }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL != '' && secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://miywbfkbdscnzxbnycme.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY != '' && secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_fv6BrsbJZV-hutcDA-pOcA_cR6rxvLE' }}
         run: npm run ingest

@@ -188,27 +188,6 @@ async function main() {
     }
   }
 
-  // Seed sample starter user collection so collection manager works immediately
-  console.log('📦 Seeding sample user collection & favorites...');
-  const sampleCards = await prisma.card.findMany({
-    take: 8,
-    where: {
-      category: { in: ['Leader', 'Character', 'Event'] },
-    },
-  });
-
-  for (const c of sampleCards) {
-    await prisma.userCard.create({
-      data: {
-        cardId: c.id,
-        quantity: Math.floor(Math.random() * 3) + 1,
-        condition: 'NM',
-        isFoil: c.rarity.includes('Super') || c.rarity.includes('Secret'),
-        purchasePrice: c.marketPrice ? c.marketPrice * 0.9 : 5.0,
-        notes: 'Starter pack pull',
-      },
-    });
-  }
 
   console.log(`\n🎉 Ingestion complete!`);
   console.log(`- Total sets ingested: ${ingestedSets}`);
