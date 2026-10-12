@@ -451,7 +451,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
         </div>
 
         {/* =======================================================================
-            3. INTERACTIVE TUTORIAL BANNER (Clean, non-neon pill banner)
+            3. INTERACTIVE TUTORIAL FLOATING OVERLAY
            ======================================================================= */}
         {gameState.tutorialMode && (
           <SimTutorialBanner
@@ -459,6 +459,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
             onSetStep={(idx) => setGameState((prev) => setTutorialStep(prev, idx))}
             onCloseTutorial={() => setGameState((prev) => toggleTutorialMode(prev, false))}
             onOpenSettings={() => setShowSettingsModal(true)}
+            targetHighlight={highlightTarget}
           />
         )}
 
