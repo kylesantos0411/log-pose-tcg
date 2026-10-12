@@ -59,20 +59,25 @@ export interface SimOpponent {
   handCards?: SimCard[];
 }
 
+export type CombatStep = 'BLOCK_STEP' | 'COUNTER_STEP' | 'DAMAGE_STEP';
+
 export interface PendingCombat {
   attackerInstanceId: string;
   attackerName: string;
+  attackerImageUrl?: string;
   attackerPower: number;
   attackerIsPlayer: boolean;
   targetType: 'leader' | 'character';
   targetInstanceId?: string;
   targetName: string;
+  targetImageUrl?: string;
   targetPower: number;
   currentBoost: number;
+  step: CombatStep;
   canBlock: boolean;
   canCounter: boolean;
-  blockerCards?: SimCard[];
-  counterCards?: SimCard[];
+  blockedBy?: SimCard;
+  usedCounters?: SimCard[];
 }
 
 export interface SimGameState {

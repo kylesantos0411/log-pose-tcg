@@ -14,6 +14,10 @@ import {
   drawManualCard,
   attackOpponentLeader,
   attackOpponentCharacter,
+  activateBlocker,
+  passBlockerStep,
+  applyCounterFromHand,
+  resolvePendingCombat,
   switchOpponent,
   performMulligan,
   keepInitialHand,
@@ -45,6 +49,8 @@ import {
   SlidersHorizontal,
   Bug,
   ShieldAlert,
+  Shield,
+  Zap,
 } from 'lucide-react';
 import { RECOMMENDED_DECKS, RecommendedDeck } from '@/lib/recommended-decks';
 import { handleCardImageError } from '@/lib/card-image';
@@ -259,6 +265,23 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
     setGameState((prev) => attackOpponentCharacter(prev, attackerInstanceId, oppCharId));
     setSelectedFieldCard(null);
     setSelectedAttacker(null);
+  };
+
+  // Phase 4: Blocker & Counter Defend actions
+  const handleActivateBlocker = (blockerInstanceId: string) => {
+    setGameState((prev) => activateBlocker(prev, blockerInstanceId));
+  };
+
+  const handlePassBlocker = () => {
+    setGameState((prev) => passBlockerStep(prev));
+  };
+
+  const handleApplyCounter = (cardInstanceId: string) => {
+    setGameState((prev) => applyCounterFromHand(prev, cardInstanceId));
+  };
+
+  const handleResolveCombat = () => {
+    setGameState((prev) => resolvePendingCombat(prev));
   };
 
   // Switch opponent deck
@@ -1388,6 +1411,170 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
           onOpenSettings={() => setShowSettingsModal(true)}
           targetHighlight={highlightTarget}
         />
+      )}
+
+      {/* =======================================================================
+          PHASE 4: INTERACTIVE BLOCKER & COUNTER DEFENSE BANNER (Floating Mobile Bar)
+         ======================================================================= */}
+      {gameState.pendingCombat && !gameState.pendingCombat.attackerIsPlayer && (
+        <div className="fixed bottom-3 inset-x-2 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-50 max-w-md w-full bg-[#0d1527]/95 border-2 border-amber-500/80 rounded-2xl p-3 shadow-2xl backdrop-blur-md animate-slideUp text-white flex flex-col gap-2.5">
+          {/* Header Bar */}
+          <div className="flex items-center justify-between border-b border-white/10 pb-2">
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-rose-500/20 text-rose-400">
+                <Swords className="w-4 h-4" />
+              </span>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
+                  {gameState.pendingCombat.step === 'BLOCK_STEP' ? '🛡️ BLOCKER STEP' : '⚡ COUNTER STEP'}
+                </span>
+                <h4 className="text-xs font-bold leading-tight">Incoming Attack from {gameState.pendingCombat.attackerName}!</h4>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-[9px] uppercase font-bold text-gray-400 block">Total Target</span>
+              <span className="text-xs font-extrabold font-mono text-emerald-400">
+                {gameState.pendingCombat.targetPower + gameState.pendingCombat.currentBoost} Power
+              </span>
+            </div>
+          </div>
+
+          {/* VS Matchup Info */}
+          <div className="flex items-center justify-between bg-black/40 rounded-xl p-2 border border-white/5">
+            {/* Attacker Info */}
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              {gameState.pendingCombat.attackerImageUrl && (
+                <div className="w-9 aspect-[2.5/3.5] rounded-xs overflow-hidden border border-rose-500/60 shrink-0">
+                  <img
+                    src={gameState.pendingCombat.attackerImageUrl}
+                    alt={gameState.pendingCombat.attackerName}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <div className="min-w-0">
+                <div className="text-[11px] font-bold text-rose-300 truncate">
+                  {gameState.pendingCombat.attackerName}
+                </div>
+                <div className="text-[10px] font-mono text-gray-400">
+                  ⚔️ {gameState.pendingCombat.attackerPower} Power
+                </div>
+              </div>
+            </div>
+
+            <div className="px-2 text-xs font-black text-gray-500">VS</div>
+
+            {/* Defender Info */}
+            <div className="flex items-center gap-2 min-w-0 flex-1 justify-end text-right">
+              <div className="min-w-0">
+                <div className="text-[11px] font-bold text-cyan-300 truncate">
+                  {gameState.pendingCombat.targetName}
+                </div>
+                <div className="text-[10px] font-mono text-gray-300">
+                  🛡️ {gameState.pendingCombat.targetPower}
+                  {gameState.pendingCombat.currentBoost > 0 && (
+                    <span className="text-emerald-400 font-bold ml-0.5">
+                      (+{gameState.pendingCombat.currentBoost})
+                    </span>
+                  )}
+                </div>
+              </div>
+              {gameState.pendingCombat.targetImageUrl && (
+                <div className="w-9 aspect-[2.5/3.5] rounded-xs overflow-hidden border border-cyan-500/60 shrink-0">
+                  <img
+                    src={gameState.pendingCombat.targetImageUrl}
+                    alt={gameState.pendingCombat.targetName}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* STEP 1: Blocker Options */}
+          {gameState.pendingCombat.step === 'BLOCK_STEP' && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-[10px] font-semibold text-gray-300">
+                <span>Select active Blocker to intercept:</span>
+                <span className="text-gray-400">or pass to Counter step</span>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {gameState.characters
+                  .filter((c) => c.hasBlocker && !c.rested && c.instanceId !== gameState.pendingCombat?.targetInstanceId)
+                  .map((blocker) => (
+                    <button
+                      key={`blocker-${blocker.instanceId}`}
+                      type="button"
+                      onClick={() => handleActivateBlocker(blocker.instanceId)}
+                      className="flex-1 min-w-[120px] py-1.5 px-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-200 font-bold text-xs flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm"
+                    >
+                      <Shield className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Block with {blocker.name} ({(blocker.power || 0) + blocker.attachedDon * 1000})</span>
+                    </button>
+                  ))}
+                <button
+                  type="button"
+                  onClick={handlePassBlocker}
+                  className="py-1.5 px-3 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-gray-300 font-medium text-xs transition active:scale-95 cursor-pointer"
+                >
+                  No Blocker ➔
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2: Counter Options */}
+          {gameState.pendingCombat.step === 'COUNTER_STEP' && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-[10px] font-semibold text-gray-300">
+                <span>Discard cards from hand for Counter boost:</span>
+                <span className="text-emerald-400 font-bold font-mono">
+                  Current Boost: +{gameState.pendingCombat.currentBoost}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                {gameState.hand
+                  .filter((c) => (c.counter || 0) > 0)
+                  .map((card) => (
+                    <button
+                      key={`counter-card-${card.instanceId}`}
+                      type="button"
+                      onClick={() => handleApplyCounter(card.instanceId)}
+                      className="shrink-0 py-1.5 px-2.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/40 text-emerald-200 font-bold text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm"
+                    >
+                      <Zap className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>{card.name}</span>
+                      <span className="px-1 py-0.2 rounded bg-emerald-500/30 text-emerald-300 text-[10px] font-mono">
+                        +{card.counter}
+                      </span>
+                    </button>
+                  ))}
+                {gameState.hand.filter((c) => (c.counter || 0) > 0).length === 0 && (
+                  <div className="text-[11px] text-gray-400 italic py-1">
+                    No counter cards available in hand.
+                  </div>
+                )}
+              </div>
+
+              {/* Resolve Combat Button */}
+              <button
+                type="button"
+                onClick={handleResolveCombat}
+                className={`w-full py-2.5 rounded-xl font-extrabold text-xs flex items-center justify-center gap-2 transition active:scale-95 cursor-pointer shadow-md mt-1 ${
+                  gameState.pendingCombat.targetPower + gameState.pendingCombat.currentBoost > gameState.pendingCombat.attackerPower
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                    : 'bg-rose-600 hover:bg-rose-500 text-white'
+                }`}
+              >
+                <span>
+                  {gameState.pendingCombat.targetPower + gameState.pendingCombat.currentBoost > gameState.pendingCombat.attackerPower
+                    ? `🛡️ Repel Attack (${gameState.pendingCombat.targetPower + gameState.pendingCombat.currentBoost} > ${gameState.pendingCombat.attackerPower})`
+                    : `💥 Take Damage / Resolve Combat (${gameState.pendingCombat.targetPower + gameState.pendingCombat.currentBoost} <= ${gameState.pendingCombat.attackerPower})`}
+                </span>
+              </button>
+            </div>
+          )}
+        </div>
       )}
 
 

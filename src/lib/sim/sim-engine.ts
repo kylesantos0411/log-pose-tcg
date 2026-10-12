@@ -462,15 +462,16 @@ export function advanceNextTurn(state: SimGameState): SimGameState {
   let playerTrash = [...state.trash];
   let gameWinner: 'player' | 'opponent' | null = state.winner;
   let oppLeaderRested = false;
+  let pendingCombatToHandle: PendingCombat | null = null;
 
   if (canAIAttack && !gameWinner) {
     // 1. Character attacks:
+
     for (let i = 0; i < oppChars.length; i++) {
       const attacker = oppChars[i];
-      if (!attacker.canAttackThisTurn || attacker.rested || gameWinner) continue;
+      if (!attacker.canAttackThisTurn || attacker.rested || gameWinner || pendingCombatToHandle) continue;
 
       const attackerPower = (attacker.power || 0) + attacker.attachedDon * 1000;
-      attacker.rested = true;
 
       // Target priority 1: Rested player character with power <= attackerPower
       const restedTargets = playerChars.filter(
@@ -479,19 +480,35 @@ export function advanceNextTurn(state: SimGameState): SimGameState {
 
       if (restedTargets.length > 0) {
         const target = restedTargets[0];
-        // Check Player Blocker
-        const blockerIdx = playerChars.findIndex(
-          (pc) => pc.hasBlocker && !pc.rested && pc.instanceId !== target.instanceId
-        );
-        if (blockerIdx !== -1) {
-          const blocker = playerChars[blockerIdx];
-          playerChars.splice(blockerIdx, 1);
-          playerTrash.push({ ...blocker, rested: false, attachedDon: 0 });
-          totalActiveDon += blocker.attachedDon;
+        const hasBlocker = playerChars.some((pc) => pc.hasBlocker && !pc.rested && pc.instanceId !== target.instanceId);
+        const hasCounterInHand = playerHand.some((c) => (c.counter || 0) > 0);
+
+        attacker.rested = true;
+
+        if (hasBlocker || hasCounterInHand) {
+          // Pause and let player defend!
+          pendingCombatToHandle = {
+            attackerInstanceId: attacker.instanceId,
+            attackerName: attacker.name,
+            attackerImageUrl: attacker.imageUrl,
+            attackerPower,
+            attackerIsPlayer: false,
+            targetType: 'character',
+            targetInstanceId: target.instanceId,
+            targetName: target.name,
+            targetImageUrl: target.imageUrl,
+            targetPower: (target.power || 0) + target.attachedDon * 1000,
+            currentBoost: 0,
+            step: hasBlocker ? 'BLOCK_STEP' : 'COUNTER_STEP',
+            canBlock: hasBlocker,
+            canCounter: hasCounterInHand,
+          };
           aiLogs.push(
-            createLog(`🛡️ Your Blocker ${blocker.name} intercepted ${attacker.name}'s attack and was K.O.'d!`, 'combat')
+            createLog(`⚔️ Opponent's ${attacker.name} (${attackerPower} Power) declared an attack on your ${target.name}!`, 'combat')
           );
+          break;
         } else {
+          // Resolve immediately
           playerChars = playerChars.filter((pc) => pc.instanceId !== target.instanceId);
           playerTrash.push({ ...target, rested: false, attachedDon: 0 });
           totalActiveDon += target.attachedDon;
@@ -503,15 +520,33 @@ export function advanceNextTurn(state: SimGameState): SimGameState {
         // Target priority 2: Attack Player Leader
         const playerLeaderPower = 5000 + (updatedLeader?.attachedDon || 0) * 1000;
         if (attackerPower >= playerLeaderPower) {
-          const blockerIdx = playerChars.findIndex((pc) => pc.hasBlocker && !pc.rested);
-          if (blockerIdx !== -1) {
-            const blocker = playerChars[blockerIdx];
-            playerChars.splice(blockerIdx, 1);
-            playerTrash.push({ ...blocker, rested: false, attachedDon: 0 });
-            totalActiveDon += blocker.attachedDon;
+          const hasBlocker = playerChars.some((pc) => pc.hasBlocker && !pc.rested);
+          const hasCounterInHand = playerHand.some((c) => (c.counter || 0) > 0);
+
+          attacker.rested = true;
+
+          if (hasBlocker || hasCounterInHand) {
+            // Pause and prompt player
+            pendingCombatToHandle = {
+              attackerInstanceId: attacker.instanceId,
+              attackerName: attacker.name,
+              attackerImageUrl: attacker.imageUrl,
+              attackerPower,
+              attackerIsPlayer: false,
+              targetType: 'leader',
+              targetInstanceId: updatedLeader?.instanceId,
+              targetName: updatedLeader?.name || 'Your Leader',
+              targetImageUrl: updatedLeader?.imageUrl,
+              targetPower: playerLeaderPower,
+              currentBoost: 0,
+              step: hasBlocker ? 'BLOCK_STEP' : 'COUNTER_STEP',
+              canBlock: hasBlocker,
+              canCounter: hasCounterInHand,
+            };
             aiLogs.push(
-              createLog(`🛡️ Your Blocker ${blocker.name} guarded your Leader and was K.O.'d!`, 'combat')
+              createLog(`⚔️ Opponent's ${attacker.name} (${attackerPower} Power) launched an attack on your Leader!`, 'combat')
             );
+            break;
           } else if (playerLife.length > 0) {
             const lostLifeCard = playerLife.shift()!;
             playerHand.push(lostLifeCard);
@@ -528,10 +563,9 @@ export function advanceNextTurn(state: SimGameState): SimGameState {
       }
     }
 
-    // 2. Leader attack:
-    if (!gameWinner && !oppLeaderRested) {
+    // 2. Leader attack (if no pending combat triggered yet):
+    if (!gameWinner && !oppLeaderRested && !pendingCombatToHandle) {
       const oppLeaderPower = 5000 + oppLeaderAttachedDon * 1000;
-      oppLeaderRested = true;
 
       const restedTargets = playerChars.filter(
         (pc) => pc.rested && ((pc.power || 0) + pc.attachedDon * 1000) <= oppLeaderPower
@@ -539,16 +573,30 @@ export function advanceNextTurn(state: SimGameState): SimGameState {
 
       if (restedTargets.length > 0) {
         const target = restedTargets[0];
-        const blockerIdx = playerChars.findIndex(
-          (pc) => pc.hasBlocker && !pc.rested && pc.instanceId !== target.instanceId
-        );
-        if (blockerIdx !== -1) {
-          const blocker = playerChars[blockerIdx];
-          playerChars.splice(blockerIdx, 1);
-          playerTrash.push({ ...blocker, rested: false, attachedDon: 0 });
-          totalActiveDon += blocker.attachedDon;
+        const hasBlocker = playerChars.some((pc) => pc.hasBlocker && !pc.rested && pc.instanceId !== target.instanceId);
+        const hasCounterInHand = playerHand.some((c) => (c.counter || 0) > 0);
+
+        oppLeaderRested = true;
+
+        if (hasBlocker || hasCounterInHand) {
+          pendingCombatToHandle = {
+            attackerInstanceId: 'opp-leader',
+            attackerName: `Leader ${state.opponent.leaderName}`,
+            attackerImageUrl: state.opponent.leaderImage,
+            attackerPower: oppLeaderPower,
+            attackerIsPlayer: false,
+            targetType: 'character',
+            targetInstanceId: target.instanceId,
+            targetName: target.name,
+            targetImageUrl: target.imageUrl,
+            targetPower: (target.power || 0) + target.attachedDon * 1000,
+            currentBoost: 0,
+            step: hasBlocker ? 'BLOCK_STEP' : 'COUNTER_STEP',
+            canBlock: hasBlocker,
+            canCounter: hasCounterInHand,
+          };
           aiLogs.push(
-            createLog(`🛡️ Your Blocker ${blocker.name} intercepted Leader ${state.opponent.leaderName}'s attack and was K.O.'d!`, 'combat')
+            createLog(`⚔️ Opponent Leader ${state.opponent.leaderName} (${oppLeaderPower} Power) attacked your ${target.name}!`, 'combat')
           );
         } else {
           playerChars = playerChars.filter((pc) => pc.instanceId !== target.instanceId);
@@ -559,14 +607,30 @@ export function advanceNextTurn(state: SimGameState): SimGameState {
           );
         }
       } else {
-        const blockerIdx = playerChars.findIndex((pc) => pc.hasBlocker && !pc.rested);
-        if (blockerIdx !== -1) {
-          const blocker = playerChars[blockerIdx];
-          playerChars.splice(blockerIdx, 1);
-          playerTrash.push({ ...blocker, rested: false, attachedDon: 0 });
-          totalActiveDon += blocker.attachedDon;
+        const hasBlocker = playerChars.some((pc) => pc.hasBlocker && !pc.rested);
+        const hasCounterInHand = playerHand.some((c) => (c.counter || 0) > 0);
+
+        oppLeaderRested = true;
+
+        if (hasBlocker || hasCounterInHand) {
+          pendingCombatToHandle = {
+            attackerInstanceId: 'opp-leader',
+            attackerName: `Leader ${state.opponent.leaderName}`,
+            attackerImageUrl: state.opponent.leaderImage,
+            attackerPower: oppLeaderPower,
+            attackerIsPlayer: false,
+            targetType: 'leader',
+            targetInstanceId: updatedLeader?.instanceId,
+            targetName: updatedLeader?.name || 'Your Leader',
+            targetImageUrl: updatedLeader?.imageUrl,
+            targetPower: 5000 + (updatedLeader?.attachedDon || 0) * 1000,
+            currentBoost: 0,
+            step: hasBlocker ? 'BLOCK_STEP' : 'COUNTER_STEP',
+            canBlock: hasBlocker,
+            canCounter: hasCounterInHand,
+          };
           aiLogs.push(
-            createLog(`🛡️ Your Blocker ${blocker.name} intercepted Opponent Leader's attack!`, 'combat')
+            createLog(`⚔️ Opponent Leader ${state.opponent.leaderName} (${oppLeaderPower} Power) declared an attack on your Leader!`, 'combat')
           );
         } else if (playerLife.length > 0) {
           const lostLifeCard = playerLife.shift()!;
@@ -619,7 +683,7 @@ export function advanceNextTurn(state: SimGameState): SimGameState {
     mulliganOffered: false,
     opponent: updatedOpponent,
     logs: newLogs,
-    pendingCombat: null,
+    pendingCombat: pendingCombatToHandle,
     winner: gameWinner,
   };
 }
@@ -1306,5 +1370,191 @@ export function toggleTutorialMode(state: SimGameState, enabled?: boolean): SimG
       ...state.logs,
       createLog(nextMode ? '🎓 Interactive Tutorial enabled' : '⚔️ Tutorial disabled — Free Play mode', 'system'),
     ],
+  };
+}
+
+/**
+ * Activate a Blocker in response to an attack:
+ * Rests the blocker card, re-targets attack to the blocker, and transitions to COUNTER_STEP.
+ */
+export function activateBlocker(
+  state: SimGameState,
+  blockerInstanceId: string
+): SimGameState {
+  if (!state.pendingCombat) return state;
+
+  const blockerIdx = state.characters.findIndex(
+    (c) => c.instanceId === blockerInstanceId && c.hasBlocker && !c.rested
+  );
+  if (blockerIdx === -1) return state;
+
+  const blocker = state.characters[blockerIdx];
+  const updatedChars = [...state.characters];
+  updatedChars[blockerIdx] = { ...blocker, rested: true };
+
+  const blockerPower = (blocker.power || 0) + blocker.attachedDon * 1000;
+
+  const updatedCombat: PendingCombat = {
+    ...state.pendingCombat,
+    targetType: 'character',
+    targetInstanceId: blocker.instanceId,
+    targetName: blocker.name,
+    targetImageUrl: blocker.imageUrl,
+    targetPower: blockerPower,
+    blockedBy: blocker,
+    step: 'COUNTER_STEP',
+    canBlock: false,
+  };
+
+  return {
+    ...state,
+    characters: updatedChars,
+    pendingCombat: updatedCombat,
+    logs: [
+      ...state.logs,
+      createLog(`🛡️ [BLOCKER ACTIVATED] ${blocker.name} (${blockerPower} Power) stepped forward and redirected the attack!`, 'combat'),
+    ],
+  };
+}
+
+/**
+ * Skip/Pass Blocker step and proceed directly to Counter step
+ */
+export function passBlockerStep(state: SimGameState): SimGameState {
+  if (!state.pendingCombat) return state;
+  return {
+    ...state,
+    pendingCombat: {
+      ...state.pendingCombat,
+      step: 'COUNTER_STEP',
+      canBlock: false,
+    },
+    logs: [
+      ...state.logs,
+      createLog(`Passed Blocker step. Proceeding to Counter step...`, 'combat'),
+    ],
+  };
+}
+
+/**
+ * Apply Counter from Hand:
+ * Discards a card with Counter value (+1000 / +2000) or Counter Event to boost defender power.
+ */
+export function applyCounterFromHand(
+  state: SimGameState,
+  cardInstanceId: string
+): SimGameState {
+  if (!state.pendingCombat) return state;
+
+  const cardIdx = state.hand.findIndex((c) => c.instanceId === cardInstanceId);
+  if (cardIdx === -1) return state;
+
+  const card = state.hand[cardIdx];
+  const counterVal = card.counter || 0;
+  if (counterVal <= 0) return state;
+
+  const newHand = state.hand.filter((_, idx) => idx !== cardIdx);
+  const newTrash = [...state.trash, card];
+  const newBoost = state.pendingCombat.currentBoost + counterVal;
+  const usedCounters = [...(state.pendingCombat.usedCounters || []), card];
+
+  const updatedCombat: PendingCombat = {
+    ...state.pendingCombat,
+    currentBoost: newBoost,
+    usedCounters,
+  };
+
+  return {
+    ...state,
+    hand: newHand,
+    trash: newTrash,
+    pendingCombat: updatedCombat,
+    logs: [
+      ...state.logs,
+      createLog(`⚡ [COUNTER DISCARD] Played ${card.name} (+${counterVal} Counter). Defender power is now ${updatedCombat.targetPower + newBoost}!`, 'combat'),
+    ],
+  };
+}
+
+/**
+ * Resolve Pending Combat (Damage Step):
+ * Evaluates Attacker Power vs Defender Power (Base + Attached DON + Counter Boost).
+ * If Attacker >= Defender: Deals damage (Life damage or Character KO).
+ * If Defender > Attacker: Attack repelled!
+ */
+export function resolvePendingCombat(state: SimGameState): SimGameState {
+  if (!state.pendingCombat) return state;
+
+  const combat = state.pendingCombat;
+  const totalDefenderPower = combat.targetPower + combat.currentBoost;
+  const isHitSuccessful = combat.attackerPower >= totalDefenderPower;
+
+  let playerChars = [...state.characters];
+  let playerLife = [...state.life];
+  let playerHand = [...state.hand];
+  let playerTrash = [...state.trash];
+  let totalActiveDon = state.activeDon;
+  let winner: 'player' | 'opponent' | null = state.winner;
+
+  const newLogs: GameLogEntry[] = [...state.logs];
+
+  if (!isHitSuccessful) {
+    // Attack repelled!
+    newLogs.push(
+      createLog(
+        `🛡️ [COUNTER SUCCESSFUL] ${combat.targetName} (${totalDefenderPower} Power with +${combat.currentBoost} Counter) repelled ${combat.attackerName}'s (${combat.attackerPower} Power) attack!`,
+        'combat'
+      )
+    );
+  } else {
+    // Hit lands!
+    if (combat.targetType === 'character' && combat.targetInstanceId) {
+      const charIdx = playerChars.findIndex((c) => c.instanceId === combat.targetInstanceId);
+      if (charIdx !== -1) {
+        const koCard = playerChars[charIdx];
+        playerChars.splice(charIdx, 1);
+        playerTrash.push({ ...koCard, rested: false, attachedDon: 0 });
+        totalActiveDon += koCard.attachedDon;
+        newLogs.push(
+          createLog(
+            `💥 [K.O.] ${combat.attackerName} (${combat.attackerPower} Power) overpowered ${combat.targetName} (${totalDefenderPower} Power). ${combat.targetName} was K.O.'d to Trash!`,
+            'combat'
+          )
+        );
+      }
+    } else {
+      // Leader damage
+      if (playerLife.length > 0) {
+        const topLife = playerLife.shift()!;
+        playerHand.push(topLife);
+        const triggerNote = topLife.trigger ? ` [TRIGGER: ${topLife.trigger}]` : '';
+        newLogs.push(
+          createLog(
+            `💔 [DAMAGE TAKEN] ${combat.attackerName} (${combat.attackerPower} Power) struck ${combat.targetName}! Lost 1 Life card (${topLife.name} added to hand, ${playerLife.length} Life left)${triggerNote}.`,
+            'combat'
+          )
+        );
+      } else {
+        winner = 'opponent';
+        newLogs.push(
+          createLog(
+            `💀 [LETHAL DAMAGE] ${combat.attackerName} delivered the finishing blow to your Leader! Opponent wins the match!`,
+            'combat'
+          )
+        );
+      }
+    }
+  }
+
+  return {
+    ...state,
+    characters: playerChars,
+    life: playerLife,
+    hand: playerHand,
+    trash: playerTrash,
+    activeDon: totalActiveDon,
+    pendingCombat: null,
+    winner,
+    logs: newLogs,
   };
 }
