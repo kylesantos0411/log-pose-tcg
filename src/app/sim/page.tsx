@@ -85,8 +85,7 @@ function SimulatorContent() {
       <SimPlaymat
         initialDeck={selectedDeck}
         onExit={() => {
-          setSelectedDeck(null);
-          router.replace('/sim');
+          router.push('/');
         }}
       />
     );

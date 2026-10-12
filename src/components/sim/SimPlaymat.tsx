@@ -33,6 +33,7 @@ import { SimSettingsModal } from './SimSettingsModal';
 import { OPTCG_TUTORIAL_STEPS } from '@/lib/sim/tutorial-data';
 import { ST01_STRAW_HAT_DECK, ST04_ANIMAL_KINGDOM_DECK } from '@/lib/sim/starter-decks';
 import {
+  ArrowLeft,
   RotateCcw,
   Sparkles,
   Swords,
@@ -240,8 +241,31 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
       {/* =======================================================================
           TOP BAR & SIDE HUD CONTROLS (Log Pose Dark Theme)
          ======================================================================= */}
-      {/* Top-Left: Fullscreen, Rotate Landscape, Settings & Logs */}
+      {/* Top-Left: Clean Small Back Button & Minimal Controls (Matching Reference) */}
       <div className="absolute top-2 left-2 z-30 flex items-center gap-1.5">
+        {/* Small Back Button */}
+        {onExit ? (
+          <button
+            type="button"
+            onClick={onExit}
+            className="flex items-center gap-1 px-2.5 h-8 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 text-xs font-semibold shadow-md transition"
+            title="Return to App"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Back</span>
+          </button>
+        ) : (
+          <Link
+            href="/"
+            className="flex items-center gap-1 px-2.5 h-8 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 text-xs font-semibold shadow-md transition"
+            title="Return to Dashboard"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Back</span>
+          </Link>
+        )}
+
+        {/* Fullscreen icon */}
         <button
           type="button"
           onClick={() => {
@@ -251,50 +275,41 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
               document.exitFullscreen().catch(() => {});
             }
           }}
-          className="w-8 h-8 rounded-lg bg-[#1a202c] hover:bg-[#2d3748] text-gray-200 border border-white/10 flex items-center justify-center shadow-md transition"
+          className="w-8 h-8 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 flex items-center justify-center shadow-md transition"
           title="Toggle Fullscreen"
         >
           <Maximize2 className="w-4 h-4" />
         </button>
 
-        {/* Rotate to Landscape Button */}
+        {/* Rotate Landscape */}
         <button
           type="button"
           onClick={handleToggleOrientation}
-          className="px-2.5 h-8 rounded-lg bg-[#1a202c] hover:bg-[#2d3748] text-amber-400 border border-white/10 flex items-center gap-1.5 shadow-md transition text-xs font-bold"
-          title="Rotate to Landscape Mode"
+          className="w-8 h-8 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-amber-400 border border-white/10 flex items-center justify-center shadow-md transition"
+          title="Rotate Landscape"
         >
-          <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
-          <span className="hidden sm:inline">Landscape</span>
+          <RotateCcw className="w-3.5 h-3.5" />
         </button>
 
+        {/* Settings & Tutorial */}
         <button
           type="button"
           onClick={() => setShowSettingsModal(true)}
-          className="w-8 h-8 rounded-lg bg-[#1a202c] hover:bg-[#2d3748] text-gray-200 border border-white/10 flex items-center justify-center shadow-md transition"
+          className="w-8 h-8 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-amber-400 border border-white/10 flex items-center justify-center shadow-md transition"
           title="Tutorial & Settings"
         >
-          <SlidersHorizontal className="w-4 h-4 text-amber-400" />
+          <SlidersHorizontal className="w-4 h-4" />
         </button>
 
+        {/* Battle Log */}
         <button
           type="button"
           onClick={() => setShowLogModal(!showLogModal)}
-          className="w-8 h-8 rounded-lg bg-[#1a202c] hover:bg-[#2d3748] text-gray-200 border border-white/10 flex items-center justify-center shadow-md transition"
+          className="w-8 h-8 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 flex items-center justify-center shadow-md transition"
           title={`Battle Log (${gameState.logs.length})`}
         >
           <ScrollText className="w-4 h-4" />
         </button>
-
-        {onExit && (
-          <button
-            type="button"
-            onClick={onExit}
-            className="px-2.5 py-1.5 rounded-lg bg-[#1a202c] hover:bg-[#2d3748] text-gray-300 border border-white/10 text-[11px] font-semibold shadow-md transition"
-          >
-            Exit
-          </button>
-        )}
       </div>
 
       {/* Left Column Status Badges (Opponent & Guest Turn) */}
