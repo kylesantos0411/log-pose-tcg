@@ -2,12 +2,13 @@
 
 import React, { useState } from 'react';
 import { SimCard } from '@/lib/sim/sim-types';
-import { RotateCcw, Plus, Minus, Trash2, Eye, ShieldAlert, Sparkles } from 'lucide-react';
+import { RotateCcw, Plus, Minus, Trash2, Eye, ShieldAlert, Sparkles, Swords } from 'lucide-react';
 import { handleCardImageError } from '@/lib/card-image';
 
 interface SimCardItemProps {
   card: SimCard;
   isLeader?: boolean;
+  onAttack?: (instanceId: string) => void;
   onToggleRest?: (instanceId: string) => void;
   onAttachDon?: (instanceId: string) => void;
   onDetachDon?: (instanceId: string) => void;
@@ -19,6 +20,7 @@ interface SimCardItemProps {
 export function SimCardItem({
   card,
   isLeader = false,
+  onAttack,
   onToggleRest,
   onAttachDon,
   onDetachDon,
@@ -90,6 +92,22 @@ export function SimCardItem({
       {/* Floating Action Menu on Click/Tap */}
       {showMenu && (
         <div className="absolute -bottom-12 sm:-bottom-14 z-40 bg-[#1e2230] border border-[#383e54] rounded-xl p-1.5 shadow-2xl flex items-center gap-1 animate-fadeIn backdrop-blur-md">
+          {onAttack && !card.rested && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAttack(card.instanceId);
+                setShowMenu(false);
+              }}
+              title="Attack Opponent Leader"
+              className="p-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white transition text-[10px] flex items-center gap-1 font-black shadow-md shadow-red-600/30 active:scale-95"
+            >
+              <Swords className="w-3.5 h-3.5" />
+              <span>Hit</span>
+            </button>
+          )}
+
           {onToggleRest && (
             <button
               type="button"

@@ -3,7 +3,7 @@
  * Core game state manager and action reducers for the One Piece TCG Simulator.
  */
 
-import { SimCard, SimGameState, GameLogEntry } from './sim-types';
+import { SimCard, SimGameState, GameLogEntry, SimOpponent } from './sim-types';
 import { RecommendedDeck, DeckCardItem } from '../recommended-decks';
 import { getEditionCardImageUrl } from '../card-image';
 
@@ -43,11 +43,56 @@ export function getLeaderBaseLife(leaderId: string, colors: string[]): number {
 }
 
 /**
+ * Build an Opponent object from a RecommendedDeck
+ */
+export function createDefaultOpponent(deck?: RecommendedDeck): SimOpponent {
+  if (deck) {
+    const colors = deck.color ? deck.color.split(',').map((s) => s.trim()) : ['Red'];
+    const life = getLeaderBaseLife(deck.leaderId, colors);
+    return {
+      deckId: deck.id,
+      name: deck.name,
+      leaderId: deck.leaderId,
+      leaderName: deck.leaderName,
+      leaderImage: getEditionCardImageUrl(deck.leaderId, 'jp', deck.leaderImage),
+      leaderPower: 5000,
+      life,
+      maxLife: life,
+      attachedDon: 0,
+      rested: false,
+      handCount: 5,
+      deckCount: 45,
+      characters: [],
+      trashCount: 0,
+    };
+  }
+
+  // Straw Hat Luffy practice dummy opponent
+  return {
+    deckId: 'default-luffy',
+    name: '(Red) Monkey.D.Luffy',
+    leaderId: 'ST01-001',
+    leaderName: 'Monkey.D.Luffy',
+    leaderImage: 'https://card.yuyu-tei.jp/opc/front/st01/10001.jpg',
+    leaderPower: 5000,
+    life: 5,
+    maxLife: 5,
+    attachedDon: 0,
+    rested: false,
+    handCount: 5,
+    deckCount: 45,
+    characters: [],
+    trashCount: 0,
+  };
+}
+
+/**
  * Initialize a new game session from a deck
  */
 export function initializeGame(
   deck: RecommendedDeck,
-  goingFirst: boolean = true
+  goingFirst: boolean = true,
+  opponentDeck?: RecommendedDeck
 ): SimGameState {
   let instanceCounter = 1;
 
@@ -116,9 +161,11 @@ export function initializeGame(
   const initialDonGiven = goingFirst ? 1 : 2;
   const initialDonDeckCount = 10 - initialDonGiven;
 
+  const opponent = createDefaultOpponent(opponentDeck);
+
   const logs: GameLogEntry[] = [
-    createLog(`⚓ Game started with ${deck.name} (${deck.leaderName})`, 'system'),
-    createLog(`Going ${goingFirst ? 'First (1 DON!! turn 1)' : 'Second (2 DON!! turn 1)'}`, 'system'),
+    createLog(`⚓ Match started: ${deck.name} vs ${opponent.name}`, 'system'),
+    createLog(`Going ${goingFirst ? 'First (1 DON!! on Turn 1)' : 'Second (2 DON!! on Turn 1)'}`, 'system'),
     createLog(`Placed ${lifeCount} Life cards and drew 5 starting cards`, 'action'),
   ];
 
@@ -138,8 +185,9 @@ export function initializeGame(
     phase: 'MAIN',
     hasMulliganed: false,
     mulliganOffered: true,
-    opponentLife: 5,
-    opponentPower: 5000,
+    opponent,
+    opponentLife: opponent.life,
+    opponentPower: opponent.leaderPower,
     logs,
   };
 }
@@ -609,16 +657,127 @@ export function activateRestedDonManual(state: SimGameState, amount = 1): SimGam
 }
 
 /**
- * Deal damage to Opponent Dummy Target
+ * Deal damage to Opponent Leader
  */
 export function damageOpponent(state: SimGameState, amount = 1): SimGameState {
-  const newLife = Math.max(0, state.opponentLife - amount);
+  const currentLife = state.opponent ? state.opponent.life : state.opponentLife;
+  const newLife = Math.max(0, currentLife - amount);
+  const oppName = state.opponent ? state.opponent.leaderName : 'Opponent';
+
   return {
     ...state,
+    opponent: state.opponent ? { ...state.opponent, life: newLife } : state.opponent,
     opponentLife: newLife,
     logs: [
       ...state.logs,
-      createLog(`⚔️ Dealt ${amount} damage to Opponent Leader! (Opponent Life: ${newLife})`, 'combat'),
+      createLog(
+        newLife === 0
+          ? `💥 Dealt ${amount} damage to ${oppName}! Opponent Life is 0! (Lethal Range!)`
+          : `⚔️ Dealt ${amount} damage to ${oppName}! (Opponent Life: ${newLife})`,
+        'combat'
+      ),
+    ],
+  };
+}
+
+/**
+ * Heal or add 1 Life to Opponent Leader
+ */
+export function healOpponent(state: SimGameState, amount = 1): SimGameState {
+  const currentLife = state.opponent ? state.opponent.life : state.opponentLife;
+  const newLife = Math.min(10, currentLife + amount);
+  return {
+    ...state,
+    opponent: state.opponent ? { ...state.opponent, life: newLife } : state.opponent,
+    opponentLife: newLife,
+    logs: [
+      ...state.logs,
+      createLog(`❤️ Restored ${amount} Life to Opponent Leader! (Opponent Life: ${newLife})`, 'system'),
+    ],
+  };
+}
+
+/**
+ * Declare Attack on Opponent Leader from a card on field
+ */
+export function attackOpponentLeader(
+  state: SimGameState,
+  attackerInstanceId: string
+): SimGameState {
+  const isLeaderAttacking = state.leader?.instanceId === attackerInstanceId;
+  const attacker = isLeaderAttacking
+    ? state.leader
+    : state.characters.find((c) => c.instanceId === attackerInstanceId);
+
+  if (!attacker) return state;
+  if (attacker.rested) {
+    return {
+      ...state,
+      logs: [
+        ...state.logs,
+        createLog(`⚠️ ${attacker.name} is already rested and cannot attack this turn!`, 'combat'),
+      ],
+    };
+  }
+
+  const attackerPower = (attacker.power || 0) + attacker.attachedDon * 1000 + attacker.customPowerModifier;
+  const defenderPower = (state.opponent?.leaderPower ?? 5000) + (state.opponent?.attachedDon ?? 0) * 1000;
+
+  // Rest the attacker card
+  let updatedLeader = state.leader;
+  let updatedCharacters = state.characters;
+
+  if (isLeaderAttacking && updatedLeader) {
+    updatedLeader = { ...updatedLeader, rested: true };
+  } else {
+    updatedCharacters = updatedCharacters.map((c) =>
+      c.instanceId === attackerInstanceId ? { ...c, rested: true } : c
+    );
+  }
+
+  const hitSuccess = attackerPower >= defenderPower;
+  const currentOppLife = state.opponent ? state.opponent.life : state.opponentLife;
+  const newOppLife = hitSuccess ? Math.max(0, currentOppLife - 1) : currentOppLife;
+  const oppLeaderName = state.opponent ? state.opponent.leaderName : 'Opponent Leader';
+
+  const logEntry = hitSuccess
+    ? createLog(
+        newOppLife === 0
+          ? `💥 ${attacker.name} (${attackerPower} Power) attacked ${oppLeaderName} (${defenderPower} Power) — DIRECT HIT! Opponent Life is now 0!`
+          : `⚔️ ${attacker.name} (${attackerPower} Power) attacked ${oppLeaderName} (${defenderPower} Power) — HIT! Opponent takes 1 damage (Life: ${newOppLife}).`,
+        'combat'
+      )
+    : createLog(
+        `🛡️ ${attacker.name} (${attackerPower} Power) attacked ${oppLeaderName} (${defenderPower} Power) — BLOCKED / INSUFFICIENT POWER!`,
+        'combat'
+      );
+
+  return {
+    ...state,
+    leader: updatedLeader,
+    characters: updatedCharacters,
+    opponent: state.opponent ? { ...state.opponent, life: newOppLife } : state.opponent,
+    opponentLife: newOppLife,
+    logs: [...state.logs, logEntry],
+  };
+}
+
+/**
+ * Switch Opponent Leader & Deck
+ */
+export function switchOpponent(
+  state: SimGameState,
+  opponentDeck: RecommendedDeck
+): SimGameState {
+  const newOpponent = createDefaultOpponent(opponentDeck);
+  return {
+    ...state,
+    opponent: newOpponent,
+    opponentLife: newOpponent.life,
+    opponentPower: newOpponent.leaderPower,
+    logs: [
+      ...state.logs,
+      createLog(`⚓ Switched practice opponent to ${newOpponent.name} (${newOpponent.leaderName})`, 'system'),
     ],
   };
 }

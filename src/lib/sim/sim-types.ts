@@ -33,6 +33,23 @@ export interface GameLogEntry {
   type: 'action' | 'phase' | 'combat' | 'system';
 }
 
+export interface SimOpponent {
+  deckId: string;
+  name: string;
+  leaderId: string;
+  leaderName: string;
+  leaderImage: string;
+  leaderPower: number;
+  life: number;
+  maxLife: number;
+  attachedDon: number;
+  rested: boolean;
+  handCount: number;
+  deckCount: number;
+  characters: SimCard[];
+  trashCount: number;
+}
+
 export interface SimGameState {
   leader: SimCard | null;
   deck: SimCard[];
@@ -49,7 +66,8 @@ export interface SimGameState {
   phase: GamePhase;
   hasMulliganed: boolean;
   mulliganOffered: boolean;
-  opponentLife: number; // Dummy practice target
-  opponentPower: number;
+  opponent: SimOpponent;
+  opponentLife: number; // Legacy compatibility
+  opponentPower: number; // Legacy compatibility
   logs: GameLogEntry[];
 }
