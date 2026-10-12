@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { checkIsAdmin } from '@/lib/supabase-sync';
 import { getEditionCardImageUrl, handleCardImageError } from '@/lib/card-image';
+import { ST01_STRAW_HAT_DECK, ST04_ANIMAL_KINGDOM_DECK } from '@/lib/sim/starter-decks';
 
 function SimulatorContent() {
   const router = useRouter();
@@ -31,7 +32,8 @@ function SimulatorContent() {
     if (deckId) {
       return getDeckById(deckId) || null;
     }
-    return null;
+    // Default to authentic Straw Hat Crew starter deck for instant play/tutorial
+    return ST01_STRAW_HAT_DECK;
   });
 
   const [deckSearch, setDeckSearch] = useState('');
@@ -133,6 +135,44 @@ function SimulatorContent() {
           <ArrowLeft className="w-4 h-4" />
           <span>Deck Archive</span>
         </Link>
+      </div>
+
+      {/* Quick Launch Tutorial Banner */}
+      <div
+        onClick={() => setSelectedDeck(ST01_STRAW_HAT_DECK)}
+        className="p-4 rounded-2xl bg-gradient-to-r from-red-950/40 via-amber-950/20 to-purple-950/40 border-2 border-cyan-400/50 hover:border-cyan-400 shadow-xl cursor-pointer flex flex-col sm:flex-row items-center justify-between gap-4 transition group"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-12 aspect-[2.5/3.5] rounded-xl overflow-hidden bg-black/40 border border-white/20 shrink-0 shadow-md">
+            <img
+              src={ST01_STRAW_HAT_DECK.leaderImage}
+              alt="Luffy"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+            />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-black border border-cyan-400/30">
+                RECOMMENDED
+              </span>
+              <span className="text-xs font-bold text-gray-400">Tutorial & Sandbox</span>
+            </div>
+            <h3 className="text-sm font-black text-white mt-0.5">
+              Launch Official Tutorial: ST-01 Straw Hat Crew vs Kaido
+            </h3>
+            <p className="text-[11px] text-gray-300">
+              Interactive 8-step guided walkthrough of turn phases, DON!! attachment, combat, and triggers.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="py-2 px-4 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-black font-black text-xs shrink-0 shadow-lg flex items-center gap-1.5 transition"
+        >
+          <span>START TUTORIAL</span>
+          <ChevronRight className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Search Input */}

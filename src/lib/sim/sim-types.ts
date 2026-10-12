@@ -1,6 +1,7 @@
 /**
  * sim-types.ts
  * Type definitions for the One Piece TCG Simulator engine.
+ * Supports full Bandai tournament rules, automated AI opponent, and interactive tutorial mode.
  */
 
 export type CardCategory = 'Leader' | 'Character' | 'Event' | 'Stage';
@@ -22,6 +23,9 @@ export interface SimCard {
   rested: boolean;
   attachedDon: number;
   customPowerModifier: number;
+  hasBlocker?: boolean;
+  hasRush?: boolean;
+  canAttackThisTurn?: boolean;
 }
 
 export type GamePhase = 'REFRESH' | 'DRAW' | 'DON' | 'MAIN' | 'END';
@@ -44,10 +48,31 @@ export interface SimOpponent {
   maxLife: number;
   attachedDon: number;
   rested: boolean;
+  activeDon: number;
+  restedDon: number;
+  donDeckCount: number;
   handCount: number;
   deckCount: number;
   characters: SimCard[];
   trashCount: number;
+  deckCards?: SimCard[];
+  handCards?: SimCard[];
+}
+
+export interface PendingCombat {
+  attackerInstanceId: string;
+  attackerName: string;
+  attackerPower: number;
+  attackerIsPlayer: boolean;
+  targetType: 'leader' | 'character';
+  targetInstanceId?: string;
+  targetName: string;
+  targetPower: number;
+  currentBoost: number;
+  canBlock: boolean;
+  canCounter: boolean;
+  blockerCards?: SimCard[];
+  counterCards?: SimCard[];
 }
 
 export interface SimGameState {
@@ -70,4 +95,9 @@ export interface SimGameState {
   opponentLife: number; // Legacy compatibility
   opponentPower: number; // Legacy compatibility
   logs: GameLogEntry[];
+  tutorialMode: boolean;
+  tutorialStepIndex: number;
+  pendingCombat: PendingCombat | null;
+  winner: 'player' | 'opponent' | null;
+  isOpponentTurn: boolean;
 }

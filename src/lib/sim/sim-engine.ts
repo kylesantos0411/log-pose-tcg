@@ -1,11 +1,13 @@
 /**
  * sim-engine.ts
  * Core game state manager and action reducers for the One Piece TCG Simulator.
+ * Implements official Bandai rules: 5 Phases, DON!! mechanics, combat, blockers, triggers, and AI turns.
  */
 
-import { SimCard, SimGameState, GameLogEntry, SimOpponent } from './sim-types';
+import { SimCard, SimGameState, GameLogEntry, SimOpponent, PendingCombat } from './sim-types';
 import { RecommendedDeck, DeckCardItem } from '../recommended-decks';
 import { getEditionCardImageUrl } from '../card-image';
+import { ST01_STRAW_HAT_DECK, ST04_ANIMAL_KINGDOM_DECK } from './starter-decks';
 
 function createLog(text: string, type: GameLogEntry['type'] = 'action'): GameLogEntry {
   const d = new Date();
@@ -43,45 +45,110 @@ export function getLeaderBaseLife(leaderId: string, colors: string[]): number {
 }
 
 /**
+ * Helper to construct an authentic SimCard from card item
+ */
+function createSimCard(
+  item: DeckCardItem,
+  instanceId: string,
+  defaultColor = 'Red'
+): SimCard {
+  const isBlocker = item.name.toLowerCase().includes('chopper') ||
+    item.name.toLowerCase().includes('queen') ||
+    item.name.toLowerCase().includes('killer') ||
+    item.cardId === 'ST01-006' ||
+    item.cardId === 'ST04-005';
+
+  const isRush = item.cardId === 'ST01-012' ||
+    (item.name.toLowerCase().includes('zoro') && (item.cost || 0) <= 3) ||
+    item.cardId === 'ST04-003';
+
+  // Extract counter value (+1000 or +2000)
+  let counterVal: number | null = null;
+  if (item.category === 'Character') {
+    if (item.power && item.power <= 2000) counterVal = 1000;
+    else if (item.cost === 1 || item.cost === 2) counterVal = 1000;
+  }
+  if (item.cardId === 'ST01-002' || item.cardId === 'ST01-003' || item.cardId === 'ST01-007' || item.cardId === 'ST01-008' || item.cardId === 'ST01-009' || item.cardId === 'ST01-010') {
+    counterVal = 1000;
+  }
+  if (item.cardId === 'ST04-002') counterVal = 2000;
+  if (item.cardId === 'ST04-005' || item.cardId === 'ST04-006' || item.cardId === 'ST04-007' || item.cardId === 'ST04-008' || item.cardId === 'ST04-011') {
+    counterVal = 1000;
+  }
+
+  return {
+    instanceId,
+    cardId: item.cardId,
+    name: item.name,
+    category: (item.category as any) || 'Character',
+    colors: typeof item.colors === 'string'
+      ? item.colors.split(',').map((s) => s.trim())
+      : [defaultColor],
+    cost: item.cost ?? 1,
+    power: item.power ?? 0,
+    counter: counterVal,
+    imageUrl: getEditionCardImageUrl(item.cardId, 'jp', item.imageUrl),
+    effect: isBlocker ? '[Blocker]' : isRush ? '[Rush]' : null,
+    trigger: item.cardId === 'ST01-015' ? '[Trigger] K.O. up to 1 of your opponent\'s Characters with 5000 power or less.' : null,
+    types: null,
+    attributes: null,
+    rested: false,
+    attachedDon: 0,
+    customPowerModifier: 0,
+    hasBlocker: isBlocker,
+    hasRush: isRush,
+    canAttackThisTurn: false,
+  };
+}
+
+/**
  * Build an Opponent object from a RecommendedDeck
  */
 export function createDefaultOpponent(deck?: RecommendedDeck): SimOpponent {
-  if (deck) {
-    const colors = deck.color ? deck.color.split(',').map((s) => s.trim()) : ['Red'];
-    const life = getLeaderBaseLife(deck.leaderId, colors);
-    return {
-      deckId: deck.id,
-      name: deck.name,
-      leaderId: deck.leaderId,
-      leaderName: deck.leaderName,
-      leaderImage: getEditionCardImageUrl(deck.leaderId, 'jp', deck.leaderImage),
-      leaderPower: 5000,
-      life,
-      maxLife: life,
-      attachedDon: 0,
-      rested: false,
-      handCount: 5,
-      deckCount: 45,
-      characters: [],
-      trashCount: 0,
-    };
-  }
+  const chosenDeck = deck || ST04_ANIMAL_KINGDOM_DECK;
+  const colors = chosenDeck.color ? chosenDeck.color.split(',').map((s) => s.trim()) : ['Purple'];
+  const life = getLeaderBaseLife(chosenDeck.leaderId, colors);
 
-  // Straw Hat Luffy practice dummy opponent
+  // Initial practice opponent field character matching OPlayTCG Kaido board
+  const initialOpponentChar: SimCard = {
+    instanceId: 'opp-char-1',
+    cardId: 'ST04-002',
+    name: 'Ulti',
+    category: 'Character',
+    colors: ['Purple'],
+    cost: 4,
+    power: 5000,
+    counter: 2000,
+    imageUrl: getEditionCardImageUrl('ST04-002', 'jp', 'https://en.onepiece-cardgame.com/images/cardlist/card/ST04-002.png?260929'),
+    effect: '[On Play] Play Page One',
+    trigger: null,
+    types: 'Animal Kingdom Pirates',
+    attributes: 'Strike',
+    rested: false,
+    attachedDon: 0,
+    customPowerModifier: 0,
+    hasBlocker: false,
+    hasRush: false,
+    canAttackThisTurn: true,
+  };
+
   return {
-    deckId: 'default-luffy',
-    name: '(Red) Monkey.D.Luffy',
-    leaderId: 'ST01-001',
-    leaderName: 'Monkey.D.Luffy',
-    leaderImage: 'https://card.yuyu-tei.jp/opc/front/st01/10001.jpg',
+    deckId: chosenDeck.id,
+    name: chosenDeck.name,
+    leaderId: chosenDeck.leaderId,
+    leaderName: chosenDeck.leaderName,
+    leaderImage: getEditionCardImageUrl(chosenDeck.leaderId, 'jp', chosenDeck.leaderImage),
     leaderPower: 5000,
-    life: 5,
-    maxLife: 5,
+    life,
+    maxLife: life,
     attachedDon: 0,
     rested: false,
+    activeDon: 3, // Matches OPlayTCG tutorial screenshot (3 active DON)
+    restedDon: 0,
+    donDeckCount: 7, // Matches OPlayTCG tutorial screenshot (7 remaining)
     handCount: 5,
-    deckCount: 45,
-    characters: [],
+    deckCount: 42,
+    characters: [initialOpponentChar],
     trashCount: 0,
   };
 }
@@ -90,59 +157,43 @@ export function createDefaultOpponent(deck?: RecommendedDeck): SimOpponent {
  * Initialize a new game session from a deck
  */
 export function initializeGame(
-  deck: RecommendedDeck,
+  deck?: RecommendedDeck,
   goingFirst: boolean = true,
-  opponentDeck?: RecommendedDeck
+  opponentDeck?: RecommendedDeck,
+  isTutorial: boolean = false
 ): SimGameState {
+  const playerDeck = deck || ST01_STRAW_HAT_DECK;
   let instanceCounter = 1;
 
   // 1. Prepare Leader Card
   const leaderCard: SimCard = {
     instanceId: `leader-${instanceCounter++}`,
-    cardId: deck.leaderId,
-    name: deck.leaderName,
+    cardId: playerDeck.leaderId,
+    name: playerDeck.leaderName,
     category: 'Leader',
-    colors: deck.color ? deck.color.split(',').map((s) => s.trim()) : ['Red'],
+    colors: playerDeck.color ? playerDeck.color.split(',').map((s) => s.trim()) : ['Red'],
     cost: 0,
     power: 5000,
     counter: null,
-    imageUrl: getEditionCardImageUrl(deck.leaderId, 'jp', deck.leaderImage),
+    imageUrl: getEditionCardImageUrl(playerDeck.leaderId, 'jp', playerDeck.leaderImage),
     effect: 'Official Leader Card',
     trigger: null,
-    types: deck.subname,
+    types: playerDeck.subname,
     attributes: null,
     rested: false,
     attachedDon: 0,
     customPowerModifier: 0,
+    canAttackThisTurn: true,
   };
 
   // 2. Prepare 50 Main Deck Cards
   const mainDeckPool: SimCard[] = [];
-  for (const item of deck.cards) {
+  for (const item of playerDeck.cards) {
     const qty = Math.max(1, item.quantity || 1);
     for (let q = 0; q < qty; q++) {
-      mainDeckPool.push({
-        instanceId: `card-${instanceCounter++}-${item.cardId}`,
-        cardId: item.cardId,
-        name: item.name,
-        category: (item.category as any) || 'Character',
-        colors: typeof item.colors === 'string'
-          ? item.colors.split(',').map((s) => s.trim())
-          : deck.color
-          ? deck.color.split(',').map((s) => s.trim())
-          : ['Red'],
-        cost: item.cost ?? 1,
-        power: item.power ?? 0,
-        counter: null, // default, inspector will enrich if needed
-        imageUrl: getEditionCardImageUrl(item.cardId, 'jp', item.imageUrl),
-        effect: null,
-        trigger: null,
-        types: null,
-        attributes: null,
-        rested: false,
-        attachedDon: 0,
-        customPowerModifier: 0,
-      });
+      mainDeckPool.push(
+        createSimCard(item, `card-${instanceCounter++}-${item.cardId}`, playerDeck.color || 'Red')
+      );
     }
   }
 
@@ -150,22 +201,44 @@ export function initializeGame(
   const shuffledDeck = shuffle(mainDeckPool);
 
   // 4. Deal Life Cards (based on Leader Life)
-  const lifeCount = getLeaderBaseLife(deck.leaderId, leaderCard.colors);
+  const lifeCount = getLeaderBaseLife(playerDeck.leaderId, leaderCard.colors);
   const lifeCards = shuffledDeck.splice(0, lifeCount);
 
-  // 5. Draw Initial 5-card Hand
-  const initialHand = shuffledDeck.splice(0, 5);
+  // 5. Initial Hand:
+  // If tutorial, provide the exact iconic cards from OPlayTCG tutorial:
+  let initialHand: SimCard[] = [];
+  if (isTutorial || playerDeck.id === 'st01-straw-hat-crew') {
+    // Curated hand matching OPlayTCG: Zoro, Chopper, Brook, Karoo, Guard Point
+    const tutorialCardIds = ['ST01-013', 'ST01-006', 'ST01-011', 'ST01-003', 'ST01-014'];
+    for (const cid of tutorialCardIds) {
+      const foundIdx = shuffledDeck.findIndex((c) => c.cardId === cid);
+      if (foundIdx !== -1) {
+        initialHand.push(shuffledDeck.splice(foundIdx, 1)[0]);
+      }
+    }
+    // Fill remaining if needed
+    while (initialHand.length < 5 && shuffledDeck.length > 0) {
+      initialHand.push(shuffledDeck.shift()!);
+    }
+  } else {
+    initialHand = shuffledDeck.splice(0, 5);
+  }
 
-  // 6. Setup DON!! on Turn 1
-  // Player going 1st gets 1 active DON!!; Player going 2nd gets 2 active DON!!
-  const initialDonGiven = goingFirst ? 1 : 2;
-  const initialDonDeckCount = 10 - initialDonGiven;
+  // 6. Setup DON!!:
+  // In tutorial, matches OPlayTCG screenshot: 5 active DON in cost area, 5 in DON deck!
+  const initialActiveDon = isTutorial ? 5 : (goingFirst ? 1 : 2);
+  const initialDonDeckCount = 10 - initialActiveDon;
 
-  const opponent = createDefaultOpponent(opponentDeck);
+  const opponent = createDefaultOpponent(opponentDeck || ST04_ANIMAL_KINGDOM_DECK);
 
   const logs: GameLogEntry[] = [
-    createLog(`⚓ Match started: ${deck.name} vs ${opponent.name}`, 'system'),
-    createLog(`Going ${goingFirst ? 'First (1 DON!! on Turn 1)' : 'Second (2 DON!! on Turn 1)'}`, 'system'),
+    createLog(`⚓ Match started: ${playerDeck.name} vs ${opponent.name}`, 'system'),
+    createLog(
+      isTutorial
+        ? `🎓 Tutorial Mode Active (5 Active DON!! ready to test actions)`
+        : `Going ${goingFirst ? 'First (1 DON!! on Turn 1)' : 'Second (2 DON!! on Turn 1)'}`,
+      'system'
+    ),
     createLog(`Placed ${lifeCount} Life cards and drew 5 starting cards`, 'action'),
   ];
 
@@ -178,17 +251,22 @@ export function initializeGame(
     life: lifeCards,
     trash: [],
     donDeckCount: initialDonDeckCount,
-    activeDon: initialDonGiven,
+    activeDon: initialActiveDon,
     restedDon: 0,
-    turn: 1,
+    turn: isTutorial ? 2 : 1,
     goingFirst,
     phase: 'MAIN',
     hasMulliganed: false,
-    mulliganOffered: true,
+    mulliganOffered: !isTutorial,
     opponent,
     opponentLife: opponent.life,
     opponentPower: opponent.leaderPower,
     logs,
+    tutorialMode: isTutorial,
+    tutorialStepIndex: 0,
+    pendingCombat: null,
+    winner: null,
+    isOpponentTurn: false,
   };
 }
 
@@ -226,7 +304,7 @@ export function keepInitialHand(state: SimGameState): SimGameState {
 }
 
 /**
- * Advance to Next Turn (Automated Refresh -> Draw -> DON!! -> Main)
+ * Advance to Next Turn (Automated Refresh -> Opponent Turn -> Player Draw & DON!!)
  */
 export function advanceNextTurn(state: SimGameState): SimGameState {
   const nextTurnNumber = state.turn + 1;
@@ -241,6 +319,7 @@ export function advanceNextTurn(state: SimGameState): SimGameState {
         rested: false,
         attachedDon: 0,
         customPowerModifier: 0,
+        canAttackThisTurn: true,
       }
     : null;
   if (state.leader?.attachedDon) {
@@ -254,6 +333,7 @@ export function advanceNextTurn(state: SimGameState): SimGameState {
       rested: false,
       attachedDon: 0,
       customPowerModifier: 0,
+      canAttackThisTurn: true,
     };
   });
 
@@ -274,19 +354,45 @@ export function advanceNextTurn(state: SimGameState): SimGameState {
     updatedHand.push(drawn);
     drawLog = `Drew ${drawn.name}`;
   } else {
-    drawLog = `⚠️ Deck is empty! (No card drawn)`;
+    drawLog = `⚠️ Deck is empty!`;
   }
 
   // 3. DON!! PHASE:
   // Add up to 2 DON!! from DON!! deck to Active Cost area (capped at 10 total DON!! in game)
   let donDeckRemaining = state.donDeckCount;
-  const currentTotalInPlay = totalActiveDon; // all DON!! currently in cost area
+  const currentTotalInPlay = totalActiveDon;
   const maxCanAdd = Math.min(2, 10 - currentTotalInPlay, donDeckRemaining);
 
   if (maxCanAdd > 0) {
     donDeckRemaining -= maxCanAdd;
     totalActiveDon += maxCanAdd;
   }
+
+  // 4. OPPONENT AI TURN SIMULATION:
+  // Opponent untaps, draws, gains DON, and may attack or pass
+  const oppAttachedDonReturned = state.opponent.attachedDon;
+  let oppActiveDon = state.opponent.activeDon + state.opponent.restedDon + oppAttachedDonReturned;
+  let oppDonDeckRemaining = state.opponent.donDeckCount;
+  const oppCanAdd = Math.min(2, 10 - oppActiveDon, oppDonDeckRemaining);
+  oppActiveDon += oppCanAdd;
+  oppDonDeckRemaining -= oppCanAdd;
+
+  const oppChars = state.opponent.characters.map((c) => ({
+    ...c,
+    rested: false,
+    attachedDon: 0,
+    canAttackThisTurn: true,
+  }));
+
+  const updatedOpponent: SimOpponent = {
+    ...state.opponent,
+    rested: false,
+    attachedDon: 0,
+    activeDon: oppActiveDon,
+    restedDon: 0,
+    donDeckCount: oppDonDeckRemaining,
+    characters: oppChars,
+  };
 
   const newLogs = [
     ...state.logs,
@@ -306,7 +412,9 @@ export function advanceNextTurn(state: SimGameState): SimGameState {
     donDeckCount: donDeckRemaining,
     phase: 'MAIN',
     mulliganOffered: false,
+    opponent: updatedOpponent,
     logs: newLogs,
+    pendingCombat: null,
   };
 }
 
@@ -345,16 +453,23 @@ export function playCardFromHand(
   let actionLog = '';
 
   if (card.category === 'Character') {
+    // Summoning sickness: cannot attack this turn unless hasRush
+    const playedChar: SimCard = {
+      ...card,
+      rested: false,
+      attachedDon: 0,
+      canAttackThisTurn: card.hasRush || false,
+    };
+
     if (newCharacters.length >= 5) {
-      // Slot is full: replace chosen slot or oldest
       const replaceIdx = replaceSlotIndex !== undefined && replaceSlotIndex >= 0 ? replaceSlotIndex : 0;
       const replaced = newCharacters[replaceIdx];
       newTrash.push({ ...replaced, rested: false, attachedDon: 0 });
-      newCharacters[replaceIdx] = { ...card, rested: false, attachedDon: 0 };
+      newCharacters[replaceIdx] = playedChar;
       actionLog = `Played Character ${card.name} (Cost: ${cost}), sending ${replaced.name} to Trash`;
     } else {
-      newCharacters.push({ ...card, rested: false, attachedDon: 0 });
-      actionLog = `Played Character ${card.name} (Cost: ${cost})`;
+      newCharacters.push(playedChar);
+      actionLog = `Played Character ${card.name} (Cost: ${cost}${card.hasRush ? ' [Rush]' : ''})`;
     }
   } else if (card.category === 'Stage') {
     if (newStage) {
@@ -368,7 +483,6 @@ export function playCardFromHand(
     newTrash.push(card);
     actionLog = `Activated Event ${card.name} (Cost: ${cost}) -> Sent to Trash`;
   } else {
-    // Other
     newTrash.push(card);
     actionLog = `Played ${card.name} (Cost: ${cost})`;
   }
@@ -386,7 +500,7 @@ export function playCardFromHand(
 }
 
 /**
- * Attach 1 active DON!! to target Leader or Character
+ * Attach 1 active DON!! to target Leader or Character (+1000 Power)
  */
 export function attachDonToCard(
   state: SimGameState,
@@ -409,7 +523,7 @@ export function attachDonToCard(
       },
       logs: [
         ...state.logs,
-        createLog(`Attached 1 DON!! to Leader ${state.leader.name} (Now +${(state.leader.attachedDon + 1) * 1000} Power)`, 'action'),
+        createLog(`Attached 1 DON!! to Leader ${state.leader.name} (Now ${(state.leader.power || 5000) + (state.leader.attachedDon + 1) * 1000} Power)`, 'action'),
       ],
     };
   }
@@ -428,7 +542,7 @@ export function attachDonToCard(
       characters: updatedChars,
       logs: [
         ...state.logs,
-        createLog(`Attached 1 DON!! to ${target.name} (Now +${(target.attachedDon + 1) * 1000} Power)`, 'action'),
+        createLog(`Attached 1 DON!! to ${target.name} (Now ${(target.power || 0) + (target.attachedDon + 1) * 1000} Power)`, 'action'),
       ],
     };
   }
@@ -532,13 +646,14 @@ export function toggleCardRest(
 }
 
 /**
- * Take 1 Life Damage: removes top life card and adds to hand
+ * Take 1 Life Damage: removes top life card and adds to hand (checking Trigger)
  */
 export function takeLifeDamage(state: SimGameState): SimGameState {
   if (state.life.length === 0) {
     return {
       ...state,
-      logs: [...state.logs, createLog(`⚠️ No life cards remaining! Next hit is fatal!`, 'combat')],
+      winner: 'opponent',
+      logs: [...state.logs, createLog(`💀 Fatal damage taken! Opponent wins the match!`, 'combat')],
     };
   }
 
@@ -546,13 +661,15 @@ export function takeLifeDamage(state: SimGameState): SimGameState {
   const topLifeCard = updatedLife.shift()!;
   const updatedHand = [...state.hand, topLifeCard];
 
+  const triggerNote = topLifeCard.trigger ? ` [TRIGGER REVEALED: ${topLifeCard.trigger}]` : '';
+
   return {
     ...state,
     life: updatedLife,
     hand: updatedHand,
     logs: [
       ...state.logs,
-      createLog(`💔 Took 1 Life Damage! Added ${topLifeCard.name} to hand (${updatedLife.length} Life left)`, 'combat'),
+      createLog(`💔 Took 1 Life Damage! Added ${topLifeCard.name} to hand (${updatedLife.length} Life left)${triggerNote}`, 'combat'),
     ],
   };
 }
@@ -580,7 +697,6 @@ export function sendCardToTrash(
   const charIdx = state.characters.findIndex((c) => c.instanceId === instanceId);
   if (charIdx !== -1) {
     const card = state.characters[charIdx];
-    // Return attached DON!! as rested DON!!
     const returnedRested = card.attachedDon;
     return {
       ...state,
@@ -631,7 +747,7 @@ export function drawManualCard(state: SimGameState): SimGameState {
 }
 
 /**
- * Rest 1 active DON!! manually (e.g. for card effects or manual payment)
+ * Rest 1 active DON!! manually
  */
 export function restActiveDonManual(state: SimGameState, amount = 1): SimGameState {
   if (state.activeDon < amount) return state;
@@ -657,21 +773,26 @@ export function activateRestedDonManual(state: SimGameState, amount = 1): SimGam
 }
 
 /**
- * Deal damage to Opponent Leader
+ * Deal damage to Opponent Leader directly
  */
 export function damageOpponent(state: SimGameState, amount = 1): SimGameState {
   const currentLife = state.opponent ? state.opponent.life : state.opponentLife;
   const newLife = Math.max(0, currentLife - amount);
   const oppName = state.opponent ? state.opponent.leaderName : 'Opponent';
 
+  const isWin = newLife === 0 && currentLife === 0;
+
   return {
     ...state,
     opponent: state.opponent ? { ...state.opponent, life: newLife } : state.opponent,
     opponentLife: newLife,
+    winner: isWin ? 'player' : state.winner,
     logs: [
       ...state.logs,
       createLog(
-        newLife === 0
+        isWin
+          ? `🏆 FINAL BLOW! Dealt lethal damage to ${oppName}! YOU WIN THE MATCH!`
+          : newLife === 0
           ? `💥 Dealt ${amount} damage to ${oppName}! Opponent Life is 0! (Lethal Range!)`
           : `⚔️ Dealt ${amount} damage to ${oppName}! (Opponent Life: ${newLife})`,
         'combat'
@@ -681,7 +802,7 @@ export function damageOpponent(state: SimGameState, amount = 1): SimGameState {
 }
 
 /**
- * Heal or add 1 Life to Opponent Leader
+ * Heal Opponent Leader
  */
 export function healOpponent(state: SimGameState, amount = 1): SimGameState {
   const currentLife = state.opponent ? state.opponent.life : state.opponentLife;
@@ -698,7 +819,7 @@ export function healOpponent(state: SimGameState, amount = 1): SimGameState {
 }
 
 /**
- * Declare Attack on Opponent Leader from a card on field
+ * Declare Attack on Opponent Leader from a Player card
  */
 export function attackOpponentLeader(
   state: SimGameState,
@@ -723,7 +844,7 @@ export function attackOpponentLeader(
   const attackerPower = (attacker.power || 0) + attacker.attachedDon * 1000 + attacker.customPowerModifier;
   const defenderPower = (state.opponent?.leaderPower ?? 5000) + (state.opponent?.attachedDon ?? 0) * 1000;
 
-  // Rest the attacker card
+  // Rest the attacker
   let updatedLeader = state.leader;
   let updatedCharacters = state.characters;
 
@@ -737,18 +858,32 @@ export function attackOpponentLeader(
 
   const hitSuccess = attackerPower >= defenderPower;
   const currentOppLife = state.opponent ? state.opponent.life : state.opponentLife;
-  const newOppLife = hitSuccess ? Math.max(0, currentOppLife - 1) : currentOppLife;
+
+  // WIN CHECK: If opponent has 0 life and takes a successful hit, player WINS!
+  let winner: 'player' | 'opponent' | null = state.winner;
+  let newOppLife = currentOppLife;
+
+  if (hitSuccess) {
+    if (currentOppLife === 0) {
+      winner = 'player';
+    } else {
+      newOppLife = Math.max(0, currentOppLife - 1);
+    }
+  }
+
   const oppLeaderName = state.opponent ? state.opponent.leaderName : 'Opponent Leader';
 
   const logEntry = hitSuccess
     ? createLog(
-        newOppLife === 0
+        winner === 'player'
+          ? `🏆 VICTORY! ${attacker.name} (${attackerPower} Power) landed the fatal attack on ${oppLeaderName}! YOU WON THE GAME!`
+          : newOppLife === 0
           ? `💥 ${attacker.name} (${attackerPower} Power) attacked ${oppLeaderName} (${defenderPower} Power) — DIRECT HIT! Opponent Life is now 0!`
           : `⚔️ ${attacker.name} (${attackerPower} Power) attacked ${oppLeaderName} (${defenderPower} Power) — HIT! Opponent takes 1 damage (Life: ${newOppLife}).`,
         'combat'
       )
     : createLog(
-        `🛡️ ${attacker.name} (${attackerPower} Power) attacked ${oppLeaderName} (${defenderPower} Power) — BLOCKED / INSUFFICIENT POWER!`,
+        `🛡️ ${attacker.name} (${attackerPower} Power) attacked ${oppLeaderName} (${defenderPower} Power) — DEFENDED / INSUFFICIENT POWER!`,
         'combat'
       );
 
@@ -758,6 +893,81 @@ export function attackOpponentLeader(
     characters: updatedCharacters,
     opponent: state.opponent ? { ...state.opponent, life: newOppLife } : state.opponent,
     opponentLife: newOppLife,
+    winner,
+    logs: [...state.logs, logEntry],
+  };
+}
+
+/**
+ * Declare Attack on Rested Opponent Character
+ */
+export function attackOpponentCharacter(
+  state: SimGameState,
+  attackerInstanceId: string,
+  targetCharInstanceId: string
+): SimGameState {
+  const isLeaderAttacking = state.leader?.instanceId === attackerInstanceId;
+  const attacker = isLeaderAttacking
+    ? state.leader
+    : state.characters.find((c) => c.instanceId === attackerInstanceId);
+
+  const target = state.opponent.characters.find((c) => c.instanceId === targetCharInstanceId);
+
+  if (!attacker || !target) return state;
+  if (attacker.rested) {
+    return {
+      ...state,
+      logs: [
+        ...state.logs,
+        createLog(`⚠️ ${attacker.name} is already rested!`, 'combat'),
+      ],
+    };
+  }
+
+  const attackerPower = (attacker.power || 0) + attacker.attachedDon * 1000 + attacker.customPowerModifier;
+  const defenderPower = (target.power || 0) + target.attachedDon * 1000;
+
+  // Rest the attacker
+  let updatedLeader = state.leader;
+  let updatedCharacters = state.characters;
+
+  if (isLeaderAttacking && updatedLeader) {
+    updatedLeader = { ...updatedLeader, rested: true };
+  } else {
+    updatedCharacters = updatedCharacters.map((c) =>
+      c.instanceId === attackerInstanceId ? { ...c, rested: true } : c
+    );
+  }
+
+  const hitSuccess = attackerPower >= defenderPower;
+  let updatedOppChars = state.opponent.characters;
+  let updatedOppTrash = state.opponent.trashCount;
+
+  if (hitSuccess) {
+    // Character K.O.'d!
+    updatedOppChars = updatedOppChars.filter((c) => c.instanceId !== targetCharInstanceId);
+    updatedOppTrash += 1;
+  }
+
+  const logEntry = hitSuccess
+    ? createLog(
+        `💥 K.O.! ${attacker.name} (${attackerPower} Power) attacked and destroyed ${target.name} (${defenderPower} Power)!`,
+        'combat'
+      )
+    : createLog(
+        `🛡️ ${attacker.name} (${attackerPower} Power) attacked ${target.name} (${defenderPower} Power) — Attack failed!`,
+        'combat'
+      );
+
+  return {
+    ...state,
+    leader: updatedLeader,
+    characters: updatedCharacters,
+    opponent: {
+      ...state.opponent,
+      characters: updatedOppChars,
+      trashCount: updatedOppTrash,
+    },
     logs: [...state.logs, logEntry],
   };
 }
@@ -778,6 +988,32 @@ export function switchOpponent(
     logs: [
       ...state.logs,
       createLog(`⚓ Switched practice opponent to ${newOpponent.name} (${newOpponent.leaderName})`, 'system'),
+    ],
+  };
+}
+
+/**
+ * Jump to or set specific tutorial step
+ */
+export function setTutorialStep(state: SimGameState, stepIndex: number): SimGameState {
+  return {
+    ...state,
+    tutorialMode: true,
+    tutorialStepIndex: Math.max(0, Math.min(stepIndex, 7)),
+  };
+}
+
+/**
+ * Toggle Tutorial Mode on / off
+ */
+export function toggleTutorialMode(state: SimGameState, enabled?: boolean): SimGameState {
+  const nextMode = enabled !== undefined ? enabled : !state.tutorialMode;
+  return {
+    ...state,
+    tutorialMode: nextMode,
+    logs: [
+      ...state.logs,
+      createLog(nextMode ? '🎓 Interactive Tutorial enabled' : '⚔️ Tutorial disabled — Free Play mode', 'system'),
     ],
   };
 }

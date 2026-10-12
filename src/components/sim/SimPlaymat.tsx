@@ -16,15 +16,22 @@ import {
   damageOpponent,
   healOpponent,
   attackOpponentLeader,
+  attackOpponentCharacter,
   switchOpponent,
   performMulligan,
   keepInitialHand,
   initializeGame,
+  setTutorialStep,
+  toggleTutorialMode,
 } from '@/lib/sim/sim-engine';
 import { SimCardItem } from './SimCardItem';
 import { SimMulliganModal } from './SimMulliganModal';
 import { SimCardInspectorModal } from './SimCardInspectorModal';
 import { SimPileViewerModal } from './SimPileViewerModal';
+import { SimTutorialBanner } from './SimTutorialBanner';
+import { SimSettingsModal } from './SimSettingsModal';
+import { OPTCG_TUTORIAL_STEPS } from '@/lib/sim/tutorial-data';
+import { ST01_STRAW_HAT_DECK, ST04_ANIMAL_KINGDOM_DECK } from '@/lib/sim/starter-decks';
 import {
   Coins,
   Heart,
@@ -49,6 +56,7 @@ import {
   Play,
   X,
   Bug,
+  GraduationCap,
 } from 'lucide-react';
 import { RECOMMENDED_DECKS, RecommendedDeck } from '@/lib/recommended-decks';
 import { handleCardImageError } from '@/lib/card-image';
@@ -59,17 +67,20 @@ import {
 } from '@/lib/sim/sim-assets';
 
 interface SimPlaymatProps {
-  initialDeck: RecommendedDeck;
+  initialDeck?: RecommendedDeck;
   onExit?: () => void;
 }
 
 export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
-  // Game state
+  const chosenDeck = initialDeck || ST01_STRAW_HAT_DECK;
+
+  // Game state (starts with authentic ST-01 vs ST-04 matchup)
   const [gameState, setGameState] = useState<SimGameState>(() =>
     initializeGame(
-      initialDeck,
+      chosenDeck,
       true,
-      RECOMMENDED_DECKS[0]?.id !== initialDeck.id ? RECOMMENDED_DECKS[0] : RECOMMENDED_DECKS[1]
+      ST04_ANIMAL_KINGDOM_DECK,
+      true // Default to interactive tutorial matching OPlayTCG
     )
   );
 
@@ -77,21 +88,29 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
   const [showTrashModal, setShowTrashModal] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
   const [showOpponentSelector, setShowOpponentSelector] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [selectedHandCard, setSelectedHandCard] = useState<SimCard | null>(null);
   const [selectedFieldCard, setSelectedFieldCard] = useState<SimCard | null>(null);
 
-  // Restart game
+  // Tutorial highlighting context
+  const currentTutorialStep = gameState.tutorialMode
+    ? OPTCG_TUTORIAL_STEPS[gameState.tutorialStepIndex]
+    : null;
+  const highlightTarget = currentTutorialStep?.targetHighlight || 'none';
+
+  // Restart match
   const handleRestart = (goingFirst: boolean = true) => {
     setGameState(
       initializeGame(
-        initialDeck,
+        chosenDeck,
         goingFirst,
-        RECOMMENDED_DECKS.find((d) => d.id === gameState.opponent.deckId)
+        RECOMMENDED_DECKS.find((d) => d.id === gameState.opponent.deckId) || ST04_ANIMAL_KINGDOM_DECK,
+        gameState.tutorialMode
       )
     );
   };
 
-  // Turn advance
+  // Turn advance (Triggers Refresh -> Opponent Turn -> Player Turn)
   const handleNextTurn = () => {
     setGameState((prev) => advanceNextTurn(prev));
     setSelectedHandCard(null);
@@ -141,6 +160,11 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
     setSelectedFieldCard(null);
   };
 
+  const handleAttackOpponentChar = (attackerInstanceId: string, oppCharId: string) => {
+    setGameState((prev) => attackOpponentCharacter(prev, attackerInstanceId, oppCharId));
+    setSelectedFieldCard(null);
+  };
+
   const handleDirectDamageOpponent = (amount = 1) => {
     setGameState((prev) => damageOpponent(prev, amount));
   };
@@ -167,119 +191,144 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
   return (
     <div className="min-h-screen bg-[#070b12] text-gray-100 flex flex-col font-sans select-none pb-28 px-1 sm:px-3 pt-1">
       {/* =========================================================================
-          TOP APP CONTROLS (Fullscreen trigger & Exit)
+          TOP APP CONTROLS (Fullscreen trigger, Settings & Exit)
          ========================================================================= */}
       <div className="max-w-[700px] mx-auto w-full flex items-center justify-between px-1 py-1 text-gray-400">
-        <button
-          type="button"
-          onClick={() => {
-            if (!document.fullscreenElement) {
-              document.documentElement.requestFullscreen().catch(() => {});
-            } else {
-              document.exitFullscreen().catch(() => {});
-            }
-          }}
-          className="p-1 rounded text-gray-400 hover:text-white transition"
-          title="Toggle Fullscreen"
-        >
-          <Maximize2 className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+              } else {
+                document.exitFullscreen().catch(() => {});
+              }
+            }}
+            className="flex items-center gap-1 text-[11px] hover:text-white transition px-2 py-1 rounded bg-white/5 border border-white/10"
+          >
+            <Maximize2 className="w-3 h-3" />
+            <span className="hidden sm:inline">Fullscreen</span>
+          </button>
 
-        <div className="flex items-center gap-2 text-xs">
+          <button
+            type="button"
+            onClick={() => setShowSettingsModal(true)}
+            className="flex items-center gap-1.5 text-[11px] text-cyan-300 hover:text-white transition px-2.5 py-1 rounded bg-cyan-950/40 border border-cyan-500/40 font-bold"
+          >
+            <GraduationCap className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Tutorial & Settings</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowLogModal(!showLogModal)}
+            className="flex items-center gap-1 text-[11px] hover:text-white transition px-2 py-1 rounded bg-white/5 border border-white/10"
+          >
+            <ScrollText className="w-3 h-3 text-amber-400" />
+            <span>Log ({gameState.logs.length})</span>
+          </button>
+
           {onExit && (
             <button
               type="button"
               onClick={onExit}
-              className="text-gray-400 hover:text-white text-xs font-semibold px-2 py-0.5 rounded bg-white/5"
+              className="text-[11px] text-gray-400 hover:text-white transition px-2 py-1 rounded bg-white/5 border border-white/10"
             >
               Exit
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setShowLogModal(true)}
-            className="text-gray-400 hover:text-white text-xs font-semibold px-2 py-0.5 rounded bg-white/5 flex items-center gap-1"
-          >
-            <ScrollText className="w-3 h-3" />
-            <span>Log</span>
-          </button>
         </div>
       </div>
 
-      <div className="max-w-[700px] mx-auto w-full flex flex-col gap-2.5">
+      {/* Main Tabletop Canvas (Max-width 700px for portrait tablet/mobile feel) */}
+      <div className="max-w-[700px] mx-auto w-full flex-1 flex flex-col gap-2">
         {/* =======================================================================
-            1. OPPONENT HUD BAR
+            1. TOP HUD BAR (Opponent Status Bar)
            ======================================================================= */}
-        <div className="flex items-center gap-2 text-[11px] font-bold px-1 select-none">
-          <button
-            type="button"
-            onClick={() => setShowOpponentSelector(true)}
-            className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#14234b] text-[#60a5fa] border border-[#233876] hover:brightness-125 transition active:scale-95"
-            title="Click to switch practice opponent"
-          >
-            <span className="w-2 h-2 rounded-full bg-[#3b82f6]" />
-            <span className="uppercase tracking-wider">OPPONENT: {gameState.opponent.leaderName}</span>
-          </button>
+        <div className="flex items-center justify-between px-3 py-1 bg-[#0b101d] rounded-xl border border-white/10 text-xs shadow-md">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
+            <span className="font-extrabold tracking-wider text-[11px] text-blue-400">
+              OPPONENT
+            </span>
+          </div>
 
-          <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#0e1424] text-gray-300 border border-[#1e2942]">
-            <Clock className="w-3 h-3 text-gray-400" />
+          <div className="flex items-center gap-1 text-gray-400 font-mono text-[11px]">
+            <Clock className="w-3 h-3 text-gray-500" />
             <span>17:30</span>
           </div>
 
-          <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#0e1424] text-gray-300 border border-[#1e2942]">
+          <div className="flex items-center gap-1 text-gray-300 font-mono text-[11px]">
             <span className="text-[10px]">🎴</span>
             <span>{gameState.opponent.handCount}</span>
           </div>
 
-          <div className="ml-auto text-[10px] text-gray-400 font-medium">
-            ⇅ Original
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowOpponentSelector(true)}
+            className="text-[10px] text-gray-400 hover:text-amber-300 font-medium cursor-pointer"
+          >
+            ⇅ {gameState.opponent.leaderName}
+          </button>
         </div>
 
         {/* =======================================================================
-            2. OPPONENT PLAYMAT (Top Mat - Dark Blue/Navy Theme)
+            2. TOP MAT: OPPONENT BATTLEFIELD (Dark Blue #091122 with Gold Rules)
            ======================================================================= */}
-        <div className="relative rounded-2xl bg-[#091122]/95 border border-[#1c294a] shadow-2xl p-2 sm:p-3 overflow-hidden">
-          <div className="grid grid-cols-12 gap-1.5 sm:gap-2">
-            
-            {/* Main Opponent Field Area (Cols 1 to 10) */}
-            <div className="col-span-10 flex flex-col justify-between gap-1.5">
-              
-              {/* Row 1: Trash | Cost Area (DON cards) */}
-              <div className="grid grid-cols-5 gap-1.5 items-center">
-                {/* Trash */}
-                <div
-                  className="aspect-[2.5/3.5] rounded-lg border border-dashed border-white/10 bg-white/[0.01] flex items-center justify-center text-[9px] font-bold uppercase tracking-wider text-gray-600"
-                >
-                  TRASH
+        <div
+          className={`relative rounded-2xl border-2 border-white/15 bg-[#091122] p-2.5 sm:p-3.5 shadow-2xl overflow-hidden transition-all duration-300 ${
+            highlightTarget === 'opponent' ? 'ring-4 ring-red-500/80 shadow-[0_0_25px_rgba(239,68,68,0.5)]' : ''
+          }`}
+          style={{
+            backgroundImage:
+              'radial-gradient(ellipse at 50% 30%, rgba(20, 35, 65, 0.6) 0%, rgba(9, 17, 34, 0.95) 100%)',
+          }}
+        >
+          {/* Grid Layout: 12 Columns */}
+          <div className="grid grid-cols-12 gap-2 items-stretch">
+            {/* Left Column (Cols 1 to 2): Opponent Trash */}
+            <div className="col-span-2 flex flex-col justify-start items-center">
+              <span className="text-[7px] font-bold uppercase text-gray-500 mb-0.5">TRASH</span>
+              <div
+                className="w-11 sm:w-13 aspect-[2.5/3.5] rounded-lg border border-dashed border-white/15 bg-black/40 flex items-center justify-center text-gray-500 shadow-sm"
+              >
+                <span className="text-[9px] font-mono">{gameState.opponent.trashCount}</span>
+              </div>
+            </div>
+
+            {/* Middle Main Area (Cols 3 to 10): Cost Area, Leader/Deck Row, Characters */}
+            <div className="col-span-8 flex flex-col gap-2">
+              {/* Row 1: Cost Area */}
+              <div
+                className={`rounded-xl border border-white/10 bg-black/30 p-1.5 flex items-center justify-between px-2.5 transition-all ${
+                  highlightTarget === 'costArea' ? 'ring-2 ring-amber-400 animate-pulse' : ''
+                }`}
+              >
+                <span className="text-[8px] font-bold uppercase tracking-wider text-gray-500">
+                  COST AREA
+                </span>
+
+                {/* Opponent miniature DON cards */}
+                <div className="flex items-center justify-center gap-1 my-0.5">
+                  {Array.from({ length: Math.min(5, gameState.opponent.activeDon) }).map((_, idx) => (
+                    <div
+                      key={`opp-don-${idx}`}
+                      className="w-7 sm:w-8 aspect-[2.5/3.5] rounded overflow-hidden border border-black/80 shadow-sm"
+                    >
+                      <img src={OPCG_DON_CARD_DATA_URL} alt="DON" className="w-full h-full object-cover" />
+                    </div>
+                  ))}
                 </div>
 
-                {/* Cost Area (Spans cols 2-5) */}
-                <div className="col-span-4 rounded-xl border border-white/10 bg-white/[0.02] p-1.5 min-h-[64px] flex flex-col justify-between relative">
-                  <span className="text-[8px] font-bold uppercase tracking-wider text-gray-500">
-                    COST AREA
+                <div className="flex items-center gap-2 text-[9px] font-mono text-gray-400">
+                  <span className="flex items-center gap-0.5">
+                    <span>🪙</span> {gameState.opponent.activeDon}
                   </span>
-
-                  {/* Opponent miniature DON cards */}
-                  <div className="flex items-center justify-center gap-1 my-0.5">
-                    {[0, 1, 2].map((idx) => (
-                      <div
-                        key={`opp-don-${idx}`}
-                        className="w-8 sm:w-10 aspect-[2.5/3.5] rounded overflow-hidden border border-black/80 shadow-sm"
-                      >
-                        <img src={OPCG_DON_CARD_DATA_URL} alt="DON" className="w-full h-full object-cover" />
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center gap-2 text-[9px] font-mono text-gray-400">
-                    <span className="flex items-center gap-0.5">
-                      <span>🪙</span> 3
-                    </span>
-                    <span className="flex items-center gap-0.5">
-                      <span>🔄</span> 0
-                    </span>
-                  </div>
+                  <span className="flex items-center gap-0.5">
+                    <span>🔄</span> {gameState.opponent.restedDon}
+                  </span>
                 </div>
               </div>
 
@@ -289,19 +338,21 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                 <div className="aspect-[2.5/3.5] rounded-lg border border-white/15 bg-black/40 overflow-hidden relative shadow-sm">
                   <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Opponent Deck" className="w-full h-full object-cover" />
                   <div className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-black/80 text-white font-mono text-[8px] font-black flex items-center justify-center border border-white/20">
-                    42
+                    {gameState.opponent.deckCount}
                   </div>
                 </div>
 
                 {/* Stage */}
-                <div className="aspect-[2.5/3.5] rounded-lg border border-dashed border-white/10 bg-white/[0.01] flex items-center justify-center text-[9px] font-bold uppercase tracking-wider text-gray-600">
+                <div className="aspect-[2.5/3.5] rounded-lg border border-dashed border-white/10 bg-white/[0.01] flex items-center justify-center text-[8px] font-bold uppercase tracking-wider text-gray-600">
                   STAGE
                 </div>
 
                 {/* Opponent Leader Card */}
                 <div
                   onClick={() => handleDirectDamageOpponent(1)}
-                  className="aspect-[2.5/3.5] rounded-lg border border-red-500/50 overflow-hidden relative shadow-md cursor-pointer hover:scale-105 transition group"
+                  className={`aspect-[2.5/3.5] rounded-lg border border-red-500/50 overflow-hidden relative shadow-md cursor-pointer hover:scale-105 transition group ${
+                    highlightTarget === 'opponent' ? 'ring-4 ring-red-500 animate-pulse' : ''
+                  }`}
                   title="Click to deal 1 damage to Opponent Leader"
                 >
                   <img
@@ -318,23 +369,61 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                   </div>
                 </div>
 
-                {/* Spacer */}
+                {/* Spacer slots */}
                 <div className="aspect-[2.5/3.5] rounded-lg border border-dashed border-transparent" />
                 <div className="aspect-[2.5/3.5] rounded-lg border border-dashed border-transparent" />
               </div>
 
               {/* Row 3: Character Area (5 slots facing player) */}
               <div>
-                <span className="text-[8px] font-bold uppercase tracking-wider text-gray-600 block mb-0.5">
+                <span className="text-[8px] font-bold uppercase tracking-wider text-gray-500 block mb-0.5">
                   CHARACTER AREA
                 </span>
                 <div className="grid grid-cols-5 gap-1.5">
-                  {[0, 1, 2, 3, 4].map((slotIdx) => (
-                    <div
-                      key={`opp-char-slot-${slotIdx}`}
-                      className="aspect-[2.5/3.5] rounded-lg border border-dashed border-white/10 bg-white/[0.01]"
-                    />
-                  ))}
+                  {[0, 1, 2, 3, 4].map((slotIdx) => {
+                    const oppChar = gameState.opponent.characters[slotIdx];
+                    if (oppChar) {
+                      return (
+                        <div
+                          key={`opp-char-${oppChar.instanceId}`}
+                          onClick={() => {
+                            if (selectedFieldCard) {
+                              handleAttackOpponentChar(selectedFieldCard.instanceId, oppChar.instanceId);
+                            } else {
+                              setInspectedCard(oppChar);
+                            }
+                          }}
+                          className={`aspect-[2.5/3.5] rounded-lg border border-purple-500/50 overflow-hidden relative shadow-md cursor-pointer hover:scale-105 transition ${
+                            oppChar.rested ? 'rotate-90 scale-95 opacity-80' : ''
+                          }`}
+                        >
+                          <img
+                            src={oppChar.imageUrl}
+                            alt={oppChar.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => handleCardImageError(e, oppChar.cardId, oppChar.imageUrl)}
+                          />
+                          <div className="absolute top-0.5 right-0.5 px-1 rounded bg-black/80 text-white font-mono text-[7px] font-black">
+                            {oppChar.power} ⏶
+                          </div>
+                          {oppChar.rested && (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                              <span className="text-[7px] font-black uppercase text-amber-300 bg-black/80 px-1 rounded">
+                                RESTED
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={`opp-char-slot-${slotIdx}`}
+                        className="aspect-[2.5/3.5] rounded-lg border border-dashed border-white/10 bg-white/[0.01]"
+                      />
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -347,7 +436,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                 <div className="w-11 sm:w-13 aspect-[2.5/3.5] rounded-lg overflow-hidden border border-white/20 relative shadow-sm bg-white">
                   <img src={OPCG_DON_DECK_DATA_URL} alt="DON Deck" className="w-full h-full object-cover" />
                   <div className="absolute bottom-1 right-1 w-3.5 h-3.5 rounded-full bg-black/80 text-white font-mono text-[7px] font-black flex items-center justify-center">
-                    7
+                    {gameState.opponent.donDeckCount}
                   </div>
                 </div>
               </div>
@@ -370,50 +459,65 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                       <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Life" className="w-full h-full object-cover" />
                     </div>
                   ))}
+                  {gameState.opponent.life === 0 && (
+                    <div className="w-11 sm:w-13 aspect-[2.5/3.5] rounded-lg border border-dashed border-red-500/50 flex items-center justify-center text-[8px] text-red-400 font-bold text-center">
+                      0 LIFE!
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-
-          </div>
-
-          {/* Floating Contextual Helper Banner (Matching screenshot) */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10">
-            <div className="px-4 py-1.5 rounded-full bg-[#161a29]/95 border border-amber-400/80 shadow-2xl text-amber-300 font-bold text-xs sm:text-sm flex items-center gap-1.5 animate-pulse">
-              <span>✦</span>
-              <span>Attach a DON!!</span>
             </div>
           </div>
         </div>
 
         {/* =======================================================================
-            3. PLAYER PLAYMAT (Bottom Mat - Dark Forest Green Theme with Gold Border)
+            3. INTERACTIVE TUTORIAL BANNER (Matches OPlayTCG screenshot prompt)
            ======================================================================= */}
-        <div className="relative rounded-2xl bg-[#091a14]/95 border-2 border-[#d4a017] shadow-2xl p-2 sm:p-3 overflow-hidden">
-          <div className="grid grid-cols-12 gap-1.5 sm:gap-2">
-            
-            {/* Left Column (Cols 1 to 2): Life Stack & DON!! Deck */}
+        {gameState.tutorialMode && (
+          <SimTutorialBanner
+            currentStepIndex={gameState.tutorialStepIndex}
+            onSetStep={(idx) => setGameState((prev) => setTutorialStep(prev, idx))}
+            onCloseTutorial={() => setGameState((prev) => toggleTutorialMode(prev, false))}
+            onOpenSettings={() => setShowSettingsModal(true)}
+          />
+        )}
+
+        {/* =======================================================================
+            4. BOTTOM MAT: PLAYER BATTLEFIELD (Dark Green Felt #091a14 with Gold Border)
+           ======================================================================= */}
+        <div
+          className="relative rounded-2xl border-2 border-[#d4a017] bg-[#091a14] p-2.5 sm:p-3.5 shadow-2xl overflow-hidden"
+          style={{
+            backgroundImage:
+              'radial-gradient(ellipse at 50% 70%, rgba(15, 45, 30, 0.7) 0%, rgba(9, 26, 20, 0.98) 100%)',
+          }}
+        >
+          {/* Grid Layout: 12 Columns */}
+          <div className="grid grid-cols-12 gap-2 items-stretch">
+            {/* Left Column (Cols 1 to 2): Player Life Stack & DON!! Deck */}
             <div className="col-span-2 flex flex-col justify-between items-center gap-2">
-              {/* Player Life Stack (Vertical stack overlapping downwards) */}
+              {/* Player Life Stack */}
               <div
                 onClick={handleTakeLifeDamage}
-                className="flex flex-col items-center cursor-pointer group w-full"
-                title="Click to take 1 Life damage (add card to hand)"
+                className={`flex flex-col items-center cursor-pointer group transition-all ${
+                  highlightTarget === 'life' ? 'ring-2 ring-red-400 animate-pulse' : ''
+                }`}
+                title="Click to take 1 Life damage to hand"
               >
                 <div className="rounded-t bg-rose-600/90 text-white font-mono text-[8px] font-black px-1.5 py-0.5 text-center tracking-wider w-full">
                   LIFE · {gameState.life.length}
                 </div>
                 <div className="relative flex flex-col -space-y-11 sm:-space-y-13 pt-0.5">
-                  {gameState.life.length > 0 ? (
-                    Array.from({ length: Math.min(5, gameState.life.length) }).map((_, idx) => (
-                      <div
-                        key={`player-life-${idx}`}
-                        className="w-11 sm:w-13 aspect-[2.5/3.5] rounded-lg overflow-hidden border border-white/20 shadow-md group-hover:brightness-110 transition"
-                      >
-                        <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Life" className="w-full h-full object-cover" />
-                      </div>
-                    ))
-                  ) : (
-                    <div className="w-11 sm:w-13 aspect-[2.5/3.5] rounded-lg border border-dashed border-rose-500/40 flex items-center justify-center text-[7px] text-rose-400 font-bold">
+                  {gameState.life.map((card, idx) => (
+                    <div
+                      key={`player-life-${card.instanceId}-${idx}`}
+                      className="w-11 sm:w-13 aspect-[2.5/3.5] rounded-lg overflow-hidden border border-white/20 shadow-md group-hover:brightness-110 transition"
+                    >
+                      <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Life" className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                  {gameState.life.length === 0 && (
+                    <div className="w-11 sm:w-13 aspect-[2.5/3.5] rounded-lg border border-dashed border-red-500/50 flex items-center justify-center text-[8px] text-red-400 font-bold text-center">
                       0 LIFE
                     </div>
                   )}
@@ -432,214 +536,228 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
               </div>
             </div>
 
-            {/* Main Player Field Area (Cols 3 to 12) */}
-            <div className="col-span-10 flex flex-col justify-between gap-1.5">
-              
-              {/* Row 1: Character Area (5 slots) */}
+            {/* Middle Main Area (Cols 3 to 10): Characters, Leader, Cost Area */}
+            <div className="col-span-8 flex flex-col gap-2">
+              {/* Row 1: Character Area (5 slots facing opponent) */}
               <div>
-                <span className="text-[8px] font-bold uppercase tracking-wider text-emerald-500/80 block mb-0.5">
+                <span className="text-[8px] font-bold uppercase tracking-wider text-emerald-400/80 block mb-0.5">
                   CHARACTER AREA
                 </span>
                 <div className="grid grid-cols-5 gap-1.5">
                   {[0, 1, 2, 3, 4].map((slotIdx) => {
                     const card = gameState.characters[slotIdx];
+                    if (card) {
+                      return (
+                        <div
+                          key={card.instanceId}
+                          onClick={() => setSelectedFieldCard(card)}
+                          className={`aspect-[2.5/3.5] rounded-lg overflow-hidden relative shadow-lg cursor-pointer ring-2 transition-transform hover:scale-105 ${
+                            card.rested
+                              ? 'rotate-90 scale-95 opacity-80 ring-amber-500/50'
+                              : 'ring-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.5)]'
+                          }`}
+                        >
+                          <img
+                            src={card.imageUrl}
+                            alt={card.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => handleCardImageError(e, card.cardId, card.imageUrl)}
+                          />
+                          {/* Attached DON!! Mini Badge */}
+                          {card.attachedDon > 0 && (
+                            <div className="absolute bottom-0.5 inset-x-0.5 py-0.2 bg-amber-500 text-black text-[7px] font-black rounded text-center shadow border border-amber-300">
+                              DON ×{card.attachedDon}
+                            </div>
+                          )}
+                          {/* Power Badge */}
+                          <div className="absolute top-0.5 right-0.5 px-1 rounded bg-black/85 text-white font-mono text-[7px] font-black">
+                            {(card.power || 0) + card.attachedDon * 1000} ⏶
+                          </div>
+                        </div>
+                      );
+                    }
 
                     return (
                       <div
-                        key={`player-char-${slotIdx}`}
-                        className="aspect-[2.5/3.5] rounded-lg border border-dashed border-emerald-500/20 bg-white/[0.01] flex items-center justify-center relative"
-                      >
-                        {card ? (
-                          <div
-                            onClick={() => setSelectedFieldCard(card)}
-                            className={`w-full h-full rounded-lg overflow-hidden cursor-pointer select-none relative transition duration-200 ${
-                              card.rested ? 'rotate-90 scale-95 opacity-80' : 'hover:scale-105'
-                            } ring-2 ring-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.5)]`}
-                          >
-                            <img
-                              src={card.imageUrl}
-                              alt={card.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => handleCardImageError(e, card.cardId, card.imageUrl)}
-                            />
-                            {/* Cost Pill */}
-                            <div className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-black/80 text-cyan-300 font-mono text-[8px] font-black flex items-center justify-center border border-cyan-400/60">
-                              {card.cost}
-                            </div>
-                            {/* Power Pill */}
-                            {card.power > 0 && (
-                              <div className="absolute top-0.5 right-0.5 px-1 rounded bg-black/80 text-white font-mono text-[7px] font-black">
-                                {card.power + card.attachedDon * 1000} ⏶
-                              </div>
-                            )}
-                            {card.attachedDon > 0 && (
-                              <div className="absolute bottom-0.5 inset-x-0.5 py-0.2 bg-amber-500 text-black text-[7px] font-black rounded text-center">
-                                DON ×{card.attachedDon}
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-[8px] text-emerald-600/40 font-mono">Slot {slotIdx + 1}</span>
-                        )}
-                      </div>
+                        key={`player-char-slot-${slotIdx}`}
+                        className={`aspect-[2.5/3.5] rounded-lg border-2 border-cyan-400/60 bg-cyan-950/20 shadow-[0_0_8px_rgba(34,211,238,0.3)] transition-all ${
+                          highlightTarget === 'characters' ? 'ring-2 ring-cyan-300 animate-pulse' : ''
+                        }`}
+                      />
                     );
                   })}
                 </div>
               </div>
 
-              {/* Row 2: Spacer | Spacer | Leader (Slot 3) | Stage (Slot 4) | Deck (Slot 5) */}
+              {/* Row 2: Leader / Stage / Main Deck */}
               <div className="grid grid-cols-5 gap-1.5 items-center">
+                {/* Spacer */}
                 <div className="aspect-[2.5/3.5] rounded-lg border border-dashed border-transparent" />
                 <div className="aspect-[2.5/3.5] rounded-lg border border-dashed border-transparent" />
 
-                {/* Player Leader Card (Center slot) */}
+                {/* Player Leader Card with Action Pill underneath */}
                 <div className="flex flex-col items-center">
                   {gameState.leader && (
-                    <div className="flex flex-col items-center w-full">
-                      <div
-                        onClick={() => setSelectedFieldCard(gameState.leader)}
-                        className={`w-full aspect-[2.5/3.5] rounded-lg overflow-hidden relative shadow-lg cursor-pointer transition ${
-                          gameState.leader.rested ? 'rotate-90 scale-95 opacity-80' : 'hover:scale-105'
-                        } ring-2 ring-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.5)]`}
-                      >
-                        <img
-                          src={gameState.leader.imageUrl}
-                          alt={gameState.leader.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => handleCardImageError(e, gameState.leader?.cardId, gameState.leader?.imageUrl)}
-                        />
-                        <div className="absolute top-0.5 right-0.5 px-1 rounded bg-black/80 text-white font-mono text-[7px] font-black">
-                          {gameState.leader.power + gameState.leader.attachedDon * 1000} ⏶
-                        </div>
-                        {gameState.leader.attachedDon > 0 && (
-                          <div className="absolute bottom-0.5 inset-x-0.5 py-0.2 bg-amber-500 text-black text-[7px] font-black rounded text-center">
-                            DON ×{gameState.leader.attachedDon}
-                          </div>
-                        )}
+                    <div
+                      onClick={() => setSelectedFieldCard(gameState.leader)}
+                      className={`w-full aspect-[2.5/3.5] rounded-lg border-2 border-amber-400 overflow-hidden relative shadow-xl cursor-pointer hover:scale-105 transition group ${
+                        gameState.leader.rested ? 'rotate-90 scale-95 opacity-80' : ''
+                      } ${highlightTarget === 'leader' ? 'ring-4 ring-cyan-400 animate-pulse' : ''}`}
+                    >
+                      <img
+                        src={gameState.leader.imageUrl}
+                        alt={gameState.leader.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => handleCardImageError(e, gameState.leader?.cardId, gameState.leader?.imageUrl)}
+                      />
+                      <div className="absolute top-0.5 right-0.5 px-1 rounded bg-black/85 text-white font-mono text-[8px] font-black">
+                        {(gameState.leader.power || 5000) + gameState.leader.attachedDon * 1000} ⏶
                       </div>
-
-                      {/* Activate Pill Button beneath Leader (matching reference screenshot) */}
-                      <button
-                        type="button"
-                        onClick={() => handleToggleRest(gameState.leader!.instanceId)}
-                        className="mt-1 px-2.5 py-0.5 rounded-full bg-[#f59e0b] hover:bg-[#fbbf24] text-black font-black text-[8px] sm:text-[9px] flex items-center gap-1 shadow-md active:scale-95 transition"
-                      >
-                        <span>✦</span>
-                        <span>{gameState.leader.rested ? 'Active' : 'Activate'}</span>
-                      </button>
+                      {gameState.leader.attachedDon > 0 && (
+                        <div className="absolute bottom-0.5 inset-x-0.5 py-0.2 bg-amber-500 text-black text-[7px] font-black rounded text-center shadow border border-amber-300">
+                          DON ×{gameState.leader.attachedDon}
+                        </div>
+                      )}
                     </div>
                   )}
+
+                  {/* Leader Action Pill underneath matching screenshot */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (gameState.leader) setSelectedFieldCard(gameState.leader);
+                    }}
+                    className="mt-1 px-2.5 py-0.5 rounded-full bg-cyan-950/90 text-cyan-300 border border-cyan-400/50 text-[9px] font-black tracking-wider flex items-center gap-1 shadow hover:bg-cyan-900 transition active:scale-95"
+                  >
+                    <Sparkles className="w-2.5 h-2.5 text-cyan-400" />
+                    <span>✦ Activate</span>
+                  </button>
                 </div>
 
                 {/* Stage Slot */}
-                <div className="aspect-[2.5/3.5] rounded-lg border border-dashed border-emerald-500/20 bg-white/[0.01] flex items-center justify-center text-[9px] font-bold uppercase tracking-wider text-emerald-600/40">
+                <div
+                  onClick={() => {
+                    if (gameState.stage) setSelectedFieldCard(gameState.stage);
+                  }}
+                  className="aspect-[2.5/3.5] rounded-lg border border-dashed border-white/20 bg-white/[0.02] flex items-center justify-center text-[8px] font-bold uppercase tracking-wider text-gray-400 overflow-hidden relative"
+                >
                   {gameState.stage ? (
-                    <img src={gameState.stage.imageUrl} alt="Stage" className="w-full h-full object-cover rounded" />
+                    <img src={gameState.stage.imageUrl} alt={gameState.stage.name} className="w-full h-full object-cover" />
                   ) : (
-                    'STAGE'
+                    <span>STAGE</span>
                   )}
                 </div>
 
-                {/* Deck Slot */}
+                {/* Main Deck */}
                 <div
                   onClick={handleManualDraw}
-                  className="aspect-[2.5/3.5] rounded-lg border border-white/15 bg-black/40 overflow-hidden relative shadow-sm cursor-pointer hover:scale-105 transition"
+                  className="aspect-[2.5/3.5] rounded-lg border border-white/20 bg-black/40 overflow-hidden relative shadow-md cursor-pointer hover:brightness-110 transition group"
                   title="Click to draw 1 card"
                 >
-                  <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Deck" className="w-full h-full object-cover" />
-                  <div className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-black/80 text-white font-mono text-[8px] font-black flex items-center justify-center border border-white/20">
+                  <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Main Deck" className="w-full h-full object-cover" />
+                  <div className="absolute bottom-1 right-1 w-4 h-4 rounded-full bg-black/85 text-white font-mono text-[8px] font-black flex items-center justify-center border border-white/20">
                     {gameState.deck.length}
                   </div>
                 </div>
               </div>
 
-              {/* Row 3: Cost Area (spans 4 cols) | Trash (slot 5) */}
-              <div className="grid grid-cols-5 gap-1.5 items-center">
-                {/* Cost Area (Wide container with miniature DON cards) */}
-                <div className="col-span-4 rounded-xl border border-amber-400/40 bg-black/30 p-1.5 min-h-[64px] flex flex-col justify-between relative">
-                  <span className="text-[8px] font-bold uppercase tracking-wider text-amber-400/80">
-                    COST AREA
-                  </span>
+              {/* Row 3: Player Cost Area */}
+              <div
+                className={`rounded-xl border border-white/10 bg-black/40 p-1.5 flex items-center justify-between px-2.5 transition-all ${
+                  highlightTarget === 'costArea' ? 'ring-2 ring-amber-400 animate-pulse' : ''
+                }`}
+              >
+                <span className="text-[8px] font-bold uppercase tracking-wider text-emerald-400/80">
+                  COST AREA
+                </span>
 
-                  {/* Player miniature DON cards lined up */}
-                  <div className="flex items-center justify-start gap-1.5 my-0.5 overflow-x-auto pb-0.5">
-                    {Array.from({ length: Math.min(10, gameState.activeDon) }).map((_, idx) => (
-                      <div
-                        key={`player-don-${idx}`}
-                        onClick={() => setGameState((prev) => restActiveDonManual(prev, 1))}
-                        className="w-8 sm:w-10 aspect-[2.5/3.5] rounded overflow-hidden border border-amber-400/80 shadow-md cursor-pointer hover:scale-105 transition shrink-0"
-                        title="Click to rest 1 DON"
-                      >
-                        <img src={OPCG_DON_CARD_DATA_URL} alt="DON" className="w-full h-full object-cover" />
-                      </div>
-                    ))}
-                    {gameState.activeDon === 0 && (
-                      <span className="text-[9px] text-gray-500 italic py-1">No active DON!!</span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2 text-[9px] font-mono text-gray-300">
-                    <span className="flex items-center gap-0.5 text-amber-300 font-bold">
-                      <span>🪙</span> {gameState.activeDon}
-                    </span>
-                    <span className="flex items-center gap-0.5 text-gray-400">
-                      <span>🔄</span> {gameState.restedDon}
-                    </span>
-                  </div>
+                {/* Miniature DON!! Cards */}
+                <div className="flex items-center justify-center gap-1 my-0.5">
+                  {Array.from({ length: Math.min(5, gameState.activeDon) }).map((_, idx) => (
+                    <div
+                      key={`player-don-${idx}`}
+                      className="w-7 sm:w-8 aspect-[2.5/3.5] rounded overflow-hidden border border-black/80 shadow-sm"
+                    >
+                      <img src={OPCG_DON_CARD_DATA_URL} alt="DON" className="w-full h-full object-cover" />
+                    </div>
+                  ))}
                 </div>
 
-                {/* Trash */}
-                <div
-                  onClick={() => setShowTrashModal(true)}
-                  className="aspect-[2.5/3.5] rounded-lg border border-dashed border-emerald-500/20 bg-white/[0.01] flex items-center justify-center text-[9px] font-bold uppercase tracking-wider text-emerald-600/40 cursor-pointer hover:border-white/30 transition"
-                  title="Click to view Trash Pile"
-                >
-                  {gameState.trash.length > 0 ? (
+                <div className="flex items-center gap-2 text-[9px] font-mono text-gray-300">
+                  <span className="flex items-center gap-0.5 text-amber-300 font-bold">
+                    <span>🪙</span> {gameState.activeDon}
+                  </span>
+                  <span className="flex items-center gap-0.5 text-gray-400">
+                    <span>🔄</span> {gameState.restedDon}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column (Cols 11 to 12): Trash Area */}
+            <div className="col-span-2 flex flex-col justify-end items-center">
+              <span className="text-[7px] font-bold uppercase text-gray-400 mb-0.5">TRASH</span>
+              <div
+                onClick={() => setShowTrashModal(true)}
+                className="w-11 sm:w-13 aspect-[2.5/3.5] rounded-lg border border-dashed border-white/20 bg-black/40 flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:border-amber-400/50 transition relative shadow-sm"
+              >
+                {gameState.trash.length > 0 ? (
+                  <>
                     <img
                       src={gameState.trash[gameState.trash.length - 1].imageUrl}
                       alt="Trash"
-                      className="w-full h-full object-cover rounded opacity-80"
+                      className="w-full h-full object-cover rounded-lg opacity-60"
                     />
-                  ) : (
-                    'TRASH'
-                  )}
-                </div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-[9px] font-black text-white bg-black/80 px-1 rounded font-mono">
+                        {gameState.trash.length}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <span className="text-[9px] font-mono">0</span>
+                )}
               </div>
-
             </div>
-
           </div>
         </div>
 
         {/* =======================================================================
-            4. PLAYER HUD BAR
+            5. PLAYER HUD BAR (Turn Status)
            ======================================================================= */}
-        <div className="flex items-center gap-2 text-[11px] font-bold px-1 select-none">
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#b45309]/20 text-amber-300 border border-amber-500/40">
-            <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span className="uppercase tracking-wider">GUEST</span>
-            <span className="text-[9px] px-1 rounded bg-amber-500/30 text-amber-200 uppercase font-mono">TURN</span>
+        <div className="flex items-center justify-between px-3 py-1 bg-[#0b101d] rounded-xl border border-white/10 text-xs shadow-md">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
+            <span className="font-extrabold tracking-wider text-[11px] text-amber-300">
+              GUEST TURN
+            </span>
           </div>
 
-          <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#0e1424] text-gray-300 border border-[#1e2942]">
-            <Clock className="w-3 h-3 text-gray-400" />
+          <div className="flex items-center gap-1 text-gray-400 font-mono text-[11px]">
+            <Clock className="w-3 h-3 text-gray-500" />
             <span>17:30</span>
           </div>
 
-          <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#0e1424] text-gray-300 border border-[#1e2942]">
+          <div className="flex items-center gap-1 text-gray-300 font-mono text-[11px]">
             <span className="text-[10px]">🎴</span>
             <span>{gameState.hand.length}</span>
           </div>
 
-          <div className="ml-auto text-[10px] text-gray-400 font-medium">
-            ⇅ Original
+          <div className="text-[10px] text-gray-400 font-medium">
+            ⇅ {chosenDeck.name}
           </div>
         </div>
 
         {/* =======================================================================
-            5. PLAYER HAND (Row of Cards with Cyan Glow)
+            6. PLAYER HAND (Row of Cards with Cyan Glow)
            ======================================================================= */}
-        <div className="flex items-center justify-center gap-2 overflow-x-auto py-1 px-2">
+        <div
+          className={`flex items-center justify-center gap-2 overflow-x-auto py-1.5 px-2 rounded-2xl transition-all ${
+            highlightTarget === 'hand'
+              ? 'ring-4 ring-cyan-400/90 shadow-[0_0_20px_rgba(34,211,238,0.7)] bg-cyan-950/20'
+              : ''
+          }`}
+        >
           {gameState.hand.map((card) => {
             const canAfford = gameState.activeDon >= (card.cost || 0);
 
@@ -675,10 +793,10 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
         </div>
 
         {/* =======================================================================
-            6. BOTTOM CONTROL BAR (Turn Button & End Turn Button)
+            7. BOTTOM CONTROL BAR (Turn Button & End Turn Button)
            ======================================================================= */}
         <div className="flex items-center justify-between pt-1 px-1">
-          {/* Turn 3 Pill (White background, Black text matching screenshot) */}
+          {/* Turn Indicator Button */}
           <button
             type="button"
             className="px-4 py-2 rounded-xl bg-white text-black font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-lg select-none"
@@ -687,11 +805,13 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
             <span>TURN {gameState.turn}</span>
           </button>
 
-          {/* End Turn Button (Bright Orange/Amber matching screenshot) */}
+          {/* End Turn Button */}
           <button
             type="button"
             onClick={handleNextTurn}
-            className="px-6 py-2.5 rounded-xl bg-[#f59e0b] hover:bg-[#fbbf24] text-black font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-xl active:scale-95 transition cursor-pointer select-none"
+            className={`px-6 py-2.5 rounded-xl bg-[#f59e0b] hover:bg-[#fbbf24] text-black font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-xl active:scale-95 transition cursor-pointer select-none ${
+              highlightTarget === 'endTurn' ? 'ring-4 ring-amber-300 animate-bounce' : ''
+            }`}
           >
             <span>End turn</span>
             <span className="text-sm">▷</span>
@@ -700,7 +820,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
       </div>
 
       {/* =========================================================================
-          7. CONTEXTUAL CARD ACTION DRAWER (Hand Card Tap)
+          8. CONTEXTUAL CARD ACTION DRAWER (Hand Card Tap)
          ========================================================================= */}
       {selectedHandCard && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-3 animate-fadeIn">
@@ -726,6 +846,11 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                 <div className="text-[11px] text-gray-400 font-mono mt-0.5">
                   Cost: {selectedHandCard.cost} &bull; Power: {selectedHandCard.power || 0}
                 </div>
+                {selectedHandCard.counter && (
+                  <span className="inline-block mt-1 px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono text-[9px] font-bold border border-amber-500/30">
+                    +{selectedHandCard.counter} Counter
+                  </span>
+                )}
               </div>
             </div>
 
@@ -758,7 +883,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
       )}
 
       {/* =========================================================================
-          8. CONTEXTUAL CARD ACTION DRAWER (Field Card Tap)
+          9. CONTEXTUAL CARD ACTION DRAWER (Field Card Tap)
          ========================================================================= */}
       {selectedFieldCard && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-3 animate-fadeIn">
@@ -846,7 +971,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
       )}
 
       {/* =========================================================================
-          9. MODALS & POPUPS
+          10. MODALS & POPUPS
          ========================================================================= */}
       {/* Mulligan Modal */}
       {gameState.mulliganOffered && (
@@ -878,6 +1003,21 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
         />
       )}
 
+      {/* Tutorial & Simulator Settings Modal */}
+      <SimSettingsModal
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        tutorialMode={gameState.tutorialMode}
+        onToggleTutorial={(enabled) => setGameState((prev) => toggleTutorialMode(prev, enabled))}
+        currentStepIndex={gameState.tutorialStepIndex}
+        onSelectStep={(idx) => setGameState((prev) => setTutorialStep(prev, idx))}
+        onResetTutorial={() => {
+          setGameState(initializeGame(ST01_STRAW_HAT_DECK, true, ST04_ANIMAL_KINGDOM_DECK, true));
+        }}
+        onSelectOpponentDeck={handleSelectOpponentDeck}
+        currentOpponentDeckId={gameState.opponent.deckId}
+      />
+
       {/* Opponent Selector Modal */}
       {showOpponentSelector && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
@@ -897,7 +1037,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-              {RECOMMENDED_DECKS.slice(0, 15).map((d) => (
+              {[ST04_ANIMAL_KINGDOM_DECK, ...RECOMMENDED_DECKS.slice(0, 15)].map((d) => (
                 <div
                   key={d.id}
                   onClick={() => handleSelectOpponentDeck(d)}
@@ -918,12 +1058,10 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                     </div>
                     <div>
                       <h4 className="font-bold text-sm text-white">{d.name}</h4>
-                      <div className="text-[11px] text-gray-400 flex items-center gap-2 mt-0.5">
-                        <span>{d.leaderName} ({d.color})</span>
-                      </div>
+                      <p className="text-xs text-gray-400">{d.leaderName} &bull; {d.color}</p>
                     </div>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-gray-500" />
+                  <ChevronRight className="w-4 h-4 text-gray-500" />
                 </div>
               ))}
             </div>
@@ -931,14 +1069,14 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
         </div>
       )}
 
-      {/* Combat Log Modal */}
+      {/* Log Modal */}
       {showLogModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 animate-fadeIn">
-          <div className="bg-[#1e2230] border border-[#373e54] rounded-2xl max-w-md w-full p-4 space-y-3 shadow-2xl max-h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between pb-2 border-b border-white/10 shrink-0">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-[#121624] border border-[#232b45] rounded-2xl max-w-lg w-full p-4 sm:p-5 space-y-3 shadow-2xl max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between pb-2 border-b border-white/10">
               <div className="flex items-center gap-2">
-                <ScrollText className="w-4 h-4 text-amber-400" />
-                <h3 className="text-sm font-extrabold text-white">Battle Action Log</h3>
+                <ScrollText className="w-5 h-5 text-amber-400" />
+                <h3 className="text-base font-black text-white">Battle Log</h3>
               </div>
               <button
                 type="button"
@@ -949,22 +1087,92 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 font-mono text-[11px]">
-              {gameState.logs.slice().reverse().map((log) => (
+            <div className="flex-1 overflow-y-auto space-y-1.5 font-mono text-xs pr-1">
+              {gameState.logs.map((log) => (
                 <div
                   key={log.id}
-                  className={`p-2 rounded-lg border ${
+                  className={`p-2 rounded-lg border leading-relaxed ${
                     log.type === 'combat'
-                      ? 'bg-red-500/10 text-red-200 border-red-500/20'
+                      ? 'bg-rose-950/30 border-rose-500/20 text-rose-200'
                       : log.type === 'phase'
-                      ? 'bg-amber-500/10 text-amber-200 border-amber-500/20 font-bold'
-                      : 'bg-white/5 text-gray-300 border-white/5'
+                      ? 'bg-blue-950/30 border-blue-500/20 text-blue-200 font-bold'
+                      : log.type === 'system'
+                      ? 'bg-amber-950/20 border-amber-500/20 text-amber-200'
+                      : 'bg-white/[0.02] border-white/5 text-gray-300'
                   }`}
                 >
-                  <span className="text-gray-500 mr-2">[{log.time}]</span>
+                  <span className="text-[10px] text-gray-500 mr-2">{log.time}</span>
                   <span>{log.text}</span>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          11. VICTORY MODAL (Celebratory Banner when player wins match)
+         ========================================================================= */}
+      {gameState.winner === 'player' && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-[#101926] border-2 border-amber-400 rounded-3xl max-w-sm w-full p-6 text-center shadow-[0_0_50px_rgba(251,191,36,0.3)] space-y-4">
+            <div className="w-16 h-16 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/40 flex items-center justify-center mx-auto text-3xl shadow-lg animate-bounce">
+              🏆
+            </div>
+            <h2 className="text-2xl font-black text-white tracking-wide">VICTORY!</h2>
+            <p className="text-xs text-gray-300">
+              You successfully reduced Emperor Kaido's Life to 0 and landed the final strike!
+            </p>
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => handleRestart(true)}
+                className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs shadow-lg transition"
+              >
+                Play Again
+              </button>
+              {onExit && (
+                <button
+                  type="button"
+                  onClick={onExit}
+                  className="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs transition"
+                >
+                  Exit to Hub
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DEFEAT MODAL */}
+      {gameState.winner === 'opponent' && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-[#191016] border-2 border-red-500 rounded-3xl max-w-sm w-full p-6 text-center shadow-[0_0_50px_rgba(239,68,68,0.3)] space-y-4">
+            <div className="w-16 h-16 rounded-full bg-red-500/20 text-red-400 border border-red-400/40 flex items-center justify-center mx-auto text-3xl shadow-lg">
+              💀
+            </div>
+            <h2 className="text-2xl font-black text-white tracking-wide">DEFEAT</h2>
+            <p className="text-xs text-gray-300">
+              Your Life reached 0 and you sustained fatal damage from Kaido.
+            </p>
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => handleRestart(true)}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs shadow-lg transition"
+              >
+                Rematch
+              </button>
+              {onExit && (
+                <button
+                  type="button"
+                  onClick={onExit}
+                  className="flex-1 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs transition"
+                >
+                  Exit to Hub
+                </button>
+              )}
             </div>
           </div>
         </div>
