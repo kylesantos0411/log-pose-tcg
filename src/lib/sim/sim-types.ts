@@ -18,6 +18,9 @@ export interface SimCard {
   imageUrl: string;
   effect?: string | null;
   trigger?: string | null;
+  englishName?: string | null;
+  englishEffect?: string | null;
+  englishTrigger?: string | null;
   types?: string | null;
   attributes?: string | null;
   rested: boolean;

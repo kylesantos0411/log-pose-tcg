@@ -51,6 +51,9 @@ import {
   ShieldAlert,
   Shield,
   Zap,
+  Eye,
+  Info,
+  Languages,
 } from 'lucide-react';
 import { RECOMMENDED_DECKS, RecommendedDeck } from '@/lib/recommended-decks';
 import { handleCardImageError } from '@/lib/card-image';
@@ -1202,6 +1205,15 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                 )}
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setInspectedCard(selectedHandCard)}
+                  className="px-2 py-1 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-400/40 text-[10px] font-bold flex items-center gap-1 transition active:scale-95 cursor-pointer shadow-xs"
+                  title="View English translation & card details"
+                >
+                  <Languages className="w-3 h-3 text-blue-400" />
+                  <span>Info</span>
+                </button>
                 {selectedHandCard.category === 'Event' && gameState.activeDon >= (selectedHandCard.cost || 0) && (
                   <button
                     type="button"
@@ -1624,6 +1636,16 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                 <div className="text-[10px] text-gray-400 font-mono mt-0.5">
                   Base Power: {liveFieldCard.power || 0} &bull; Attached DON: {liveFieldCard.attachedDon}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInspectedCard(liveFieldCard);
+                  }}
+                  className="mt-1.5 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30 text-blue-300 text-[11px] font-bold transition active:scale-95 cursor-pointer shadow-xs"
+                >
+                  <Languages className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Card Details & English Text ➔</span>
+                </button>
               </div>
             </div>
 
