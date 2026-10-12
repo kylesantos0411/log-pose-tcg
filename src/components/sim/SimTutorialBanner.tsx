@@ -13,6 +13,8 @@ import {
   ArrowUpDown,
   Sparkles,
   Maximize2,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 interface SimTutorialBannerProps {
@@ -31,22 +33,26 @@ export function SimTutorialBanner({
   targetHighlight = 'leader',
 }: SimTutorialBannerProps) {
   const step: TutorialStep = OPTCG_TUTORIAL_STEPS[currentStepIndex] || OPTCG_TUTORIAL_STEPS[0];
-  const [isExpanded, setIsExpanded] = useState(!step.isActionStep);
+  const [isExpanded, setIsExpanded] = useState(true);
   const [manualPosition, setManualPosition] = useState<'top' | 'bottom' | null>(null);
 
   const isFirst = currentStepIndex === 0;
   const isLast = currentStepIndex >= OPTCG_TUTORIAL_STEPS.length - 1;
 
-  // Whenever step changes, default to expanded unless it is specifically an action prompt (like "✦ Attach a DON!!")
+  // Whenever step index changes, automatically reset manual override and keep expanded
+  // so the overlay moves on its own to cover the unnecessary section of the board
   useEffect(() => {
-    setIsExpanded(!step.isActionStep);
+    setIsExpanded(true);
     setManualPosition(null);
-  }, [currentStepIndex, step.isActionStep]);
+  }, [currentStepIndex]);
 
   // Determine smart position:
-  // If target to highlight is on TOP (opponent), dock at BOTTOM.
-  // If target to highlight is on BOTTOM (leader, hand, cost, chars, life), dock at TOP.
-  const autoPosition: 'top' | 'bottom' = targetHighlight === 'opponent' ? 'bottom' : 'top';
+  // If target to emphasize is on TOP (opponent), the overlay moves on its own to the BOTTOM,
+  // covering the player mat so the opponent area stays uncovered without scrolling.
+  // If target to emphasize is on BOTTOM (leader, hand, costArea, characters, life, endTurn),
+  // the overlay moves on its own to the TOP, covering the opponent mat so the player area stays uncovered without scrolling.
+  const isTargetTop = targetHighlight === 'opponent';
+  const autoPosition: 'top' | 'bottom' = isTargetTop ? 'bottom' : 'top';
   const currentPosition = manualPosition || autoPosition;
   const isDockedTop = currentPosition === 'top';
 
@@ -61,11 +67,11 @@ export function SimTutorialBanner({
     const { inspectCard } = step;
 
     return (
-      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex flex-col items-center justify-center p-3 animate-fadeIn select-none pointer-events-auto">
+      <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-md flex flex-col items-center justify-center p-3 animate-fadeIn select-none pointer-events-auto">
         {/* Center Card Zoom Frame with Callouts */}
         <div className="relative flex flex-col items-center justify-center my-auto">
           {/* Main Card Image */}
-          <div className="relative w-52 sm:w-64 aspect-[2.5/3.5] rounded-2xl overflow-hidden shadow-2xl border-2 border-white/25">
+          <div className="relative w-52 sm:w-64 aspect-[2.5/3.5] rounded-2xl overflow-hidden shadow-2xl border-2 border-white/30">
             <img
               src={inspectCard.imageUrl}
               alt={inspectCard.name}
@@ -75,9 +81,7 @@ export function SimTutorialBanner({
 
           {/* Callout Badges with Pointers */}
           {inspectCard.callouts.map((callout, idx) => {
-            // Position mapping matching OPlayTCG Screenshots 2 and 3:
             if (callout.position === 'top-right') {
-              // POWER 5000 Badge
               return (
                 <div
                   key={`callout-${idx}`}
@@ -92,7 +96,6 @@ export function SimTutorialBanner({
             }
 
             if (callout.position === 'top-left') {
-              // COST 3 Badge
               return (
                 <div
                   key={`callout-${idx}`}
@@ -107,7 +110,6 @@ export function SimTutorialBanner({
             }
 
             if (callout.position === 'left') {
-              // COUNTER +1000 Badge
               return (
                 <div
                   key={`callout-${idx}`}
@@ -122,7 +124,6 @@ export function SimTutorialBanner({
             }
 
             if (callout.position === 'bottom-right') {
-              // LIFE 5 Badge
               return (
                 <div
                   key={`callout-${idx}`}
@@ -137,7 +138,6 @@ export function SimTutorialBanner({
             }
 
             if (callout.position === 'bottom-left') {
-              // COLOR Badge
               return (
                 <div
                   key={`callout-${idx}`}
@@ -161,9 +161,8 @@ export function SimTutorialBanner({
           })}
         </div>
 
-        {/* Dialogue Box Docked Below Card (OPlayTCG Screenshots 2 & 3) */}
+        {/* Dialogue Box Docked Below Card */}
         <div className="bg-[#faf7ee] text-slate-800 border border-[#e2d9c2] shadow-2xl rounded-2xl sm:rounded-3xl p-4 sm:p-5 max-w-[620px] w-[95%] animate-fadeIn mt-4">
-          {/* Header */}
           <div className="flex items-start justify-between pb-1.5">
             <div>
               <div className="text-[#b45309] font-black uppercase tracking-wider text-[11px] sm:text-xs flex items-center gap-1.5">
@@ -185,12 +184,10 @@ export function SimTutorialBanner({
             </button>
           </div>
 
-          {/* Description */}
           <p className="text-xs sm:text-sm text-slate-700 leading-relaxed py-2">
             {step.body}
           </p>
 
-          {/* Action Footer */}
           <div className="flex items-center justify-between pt-3 border-t border-[#ede5d0]">
             <button
               type="button"
@@ -230,152 +227,167 @@ export function SimTutorialBanner({
   }
 
   // ===========================================================================
-  // 2. STANDARD TABLETOP DIALOGUE BOX / FLOATING PILL (Screenshots 1, 4, 5)
+  // 2. DYNAMIC OVERLAY THAT COVERS THE UNNECESSARY PART OF THE TABLETOP
   // ===========================================================================
   return (
-    <div
-      className={`fixed left-1/2 -translate-x-1/2 max-w-[620px] w-[95%] z-50 select-none transition-all duration-300 ease-out pointer-events-auto ${
-        isDockedTop ? 'top-10 sm:top-12' : 'bottom-3 sm:bottom-4'
-      }`}
-    >
-      {/* =======================================================================
-          A. FLOATING PILL VIEW (Screenshot 1, 4, 5)
-         ======================================================================= */}
-      {!isExpanded ? (
-        <div className="flex items-center justify-center gap-1.5 animate-fadeIn">
-          <button
-            type="button"
-            onClick={() => setIsExpanded(true)}
-            className="group px-4 py-2 rounded-full bg-[#faf7ee] hover:bg-[#f5f0e3] text-slate-800 text-xs font-bold shadow-xl border border-[#e2d9c2] flex items-center gap-2 transition active:scale-98 cursor-pointer"
-          >
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            <span className="tracking-wide text-slate-900">{step.bannerPrompt}</span>
-            <span className="text-[10px] bg-black/5 px-2 py-0.5 rounded-full font-mono text-gray-500">
-              {step.chapter}/{step.totalChapters || 16}
-            </span>
-            <ChevronDown className="w-3.5 h-3.5 text-gray-500 group-hover:text-slate-900" />
-          </button>
-
-          <button
-            type="button"
-            onClick={togglePosition}
-            title={`Move dialogue to ${isDockedTop ? 'bottom' : 'top'}`}
-            className="w-8 h-8 rounded-full bg-[#faf7ee] hover:bg-[#f5f0e3] border border-[#e2d9c2] text-gray-600 hover:text-slate-900 flex items-center justify-center text-xs shadow-md transition"
-          >
-            <ArrowUpDown className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      ) : (
-        /* =======================================================================
-            B. EXPANDED DIALOGUE BOX (Screenshot 1: The Leader, Chapter 1 of 16)
-           ======================================================================= */
-        <div className="bg-[#faf7ee] text-slate-800 border border-[#e2d9c2] rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl text-left animate-fadeIn">
-          {/* Header */}
-          <div className="flex items-start justify-between pb-1.5">
-            <div>
-              <div className="text-[#b45309] font-black uppercase tracking-wider text-[11px] sm:text-xs flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-[#b45309]" />
-                <span>{step.title}</span>
+    <>
+      {/* If expanded, this container physically covers the inactive half of the board */}
+      {isExpanded ? (
+        <div
+          className={`fixed inset-x-0 z-40 bg-[#ede8df]/92 backdrop-blur-xs transition-all duration-300 ease-in-out flex flex-col items-center justify-center px-3 py-2 sm:px-4 sm:py-3 shadow-2xl pointer-events-auto border-[#d6cfbe] ${
+            isDockedTop
+              ? 'top-0 border-b max-h-[50vh] sm:max-h-[46vh] overflow-y-auto'
+              : 'bottom-0 border-t max-h-[50vh] sm:max-h-[46vh] overflow-y-auto'
+          }`}
+        >
+          {/* Active Dialogue Card */}
+          <div className="bg-[#faf7ee] text-slate-800 border border-[#e2d9c2] rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 shadow-xl max-w-[640px] w-full text-left my-auto">
+            {/* Header */}
+            <div className="flex items-start justify-between pb-1">
+              <div>
+                <div className="text-[#b45309] font-black uppercase tracking-wider text-[11px] sm:text-xs flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-[#b45309]" />
+                  <span>{step.title}</span>
+                  {step.bannerPrompt && (
+                    <span className="ml-1.5 px-2 py-0.5 rounded-full bg-[#f3e8d2] text-[#854d0e] text-[9.5px] font-bold border border-[#e2d9c2]">
+                      {step.bannerPrompt}
+                    </span>
+                  )}
+                </div>
+                <div className="text-[10px] text-gray-500 font-semibold mt-0.5">
+                  Chapter {step.chapter} of {step.totalChapters || 16} &bull; Covered:{' '}
+                  <span className="text-slate-700 font-bold">{isDockedTop ? 'Opponent Side' : 'Player Side'}</span>
+                </div>
               </div>
-              <div className="text-[10px] text-gray-500 font-semibold mt-0.5">
-                Chapter {step.chapter} of {step.totalChapters || 16}
+
+              <div className="flex items-center gap-1">
+                {/* Manual flip position button */}
+                <button
+                  type="button"
+                  onClick={togglePosition}
+                  title={`Flip overlay to cover ${isDockedTop ? 'player side (dock bottom)' : 'opponent side (dock top)'}`}
+                  className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-black/5 transition"
+                >
+                  <ArrowUpDown className="w-3.5 h-3.5" />
+                </button>
+
+                {/* Minimize to peek at entire board */}
+                <button
+                  type="button"
+                  onClick={() => setIsExpanded(false)}
+                  title="Minimize overlay"
+                  className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-black/5 transition"
+                >
+                  <EyeOff className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onCloseTutorial}
+                  title="Exit tutorial"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-black/5 transition"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={togglePosition}
-                title={`Move to ${isDockedTop ? 'bottom' : 'top'}`}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-slate-800 hover:bg-black/5 transition"
-              >
-                <ArrowUpDown className="w-3.5 h-3.5" />
-              </button>
+            {/* Body */}
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed py-1.5 whitespace-pre-line">
+              {step.body}
+            </p>
 
-              <button
-                type="button"
-                onClick={() => setIsExpanded(false)}
-                title="Minimize to floating pill"
-                className="p-1.5 rounded-lg text-gray-400 hover:text-slate-800 hover:bg-black/5 transition"
-              >
-                <ChevronUp className="w-3.5 h-3.5" />
-              </button>
+            {/* Instruction Box */}
+            {step.instruction && (
+              <div className="mb-2 px-3 py-1.5 rounded-xl bg-[#f0ebe0] border border-[#e2d9c2] text-slate-800 text-xs flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" />
+                <span className="text-[11px] font-medium leading-snug">
+                  <strong className="text-slate-900">Task:</strong> {step.instruction}
+                </span>
+              </div>
+            )}
 
+            {/* Action Footer */}
+            <div className="flex items-center justify-between pt-2 border-t border-[#ede5d0]">
               <button
                 type="button"
                 onClick={onCloseTutorial}
-                title="Exit tutorial"
-                className="p-1.5 rounded-lg text-gray-400 hover:text-slate-800 hover:bg-black/5 transition"
+                className="text-xs text-gray-500 hover:text-slate-800 font-semibold px-2 py-1 transition"
               >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Body Content */}
-          <p className="text-xs sm:text-sm text-slate-700 leading-relaxed py-2 whitespace-pre-line">
-            {step.body}
-          </p>
-
-          {/* Instruction Box */}
-          {step.instruction && (
-            <div className="mb-2.5 px-3 py-2 rounded-xl bg-[#f0ebe0] border border-[#e2d9c2] text-slate-800 text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" />
-              <span className="text-[11px] font-medium leading-snug">
-                <strong className="text-slate-900">Instruction:</strong> {step.instruction}
-              </span>
-            </div>
-          )}
-
-          {/* Action Footer */}
-          <div className="flex items-center justify-between pt-3 border-t border-[#ede5d0]">
-            <button
-              type="button"
-              onClick={onCloseTutorial}
-              className="text-xs text-gray-500 hover:text-slate-800 font-semibold px-2 py-1 transition"
-            >
-              Exit
-            </button>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={isFirst}
-                onClick={() => onSetStep(currentStepIndex - 1)}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition ${
-                  isFirst
-                    ? 'text-gray-300 cursor-not-allowed'
-                    : 'bg-black/5 hover:bg-black/10 text-slate-800'
-                }`}
-              >
-                Back
+                Exit
               </button>
 
-              {isLast ? (
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsExpanded(false);
-                    onCloseTutorial();
-                  }}
-                  className="px-5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition active:scale-95 cursor-pointer"
+                  disabled={isFirst}
+                  onClick={() => onSetStep(currentStepIndex - 1)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition ${
+                    isFirst
+                      ? 'text-gray-300 cursor-not-allowed'
+                      : 'bg-black/5 hover:bg-black/10 text-slate-800'
+                  }`}
                 >
-                  Complete
+                  Back
                 </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => onSetStep(currentStepIndex + 1)}
-                  className="px-5 py-1.5 rounded-full bg-[#c27803] hover:bg-[#a66402] text-white text-xs font-bold shadow-md flex items-center gap-1 transition active:scale-95 cursor-pointer"
-                >
-                  <span>Next</span>
-                  <span className="text-[10px]">▷</span>
-                </button>
-              )}
+
+                {isLast ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsExpanded(false);
+                      onCloseTutorial();
+                    }}
+                    className="px-5 py-1.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition active:scale-95 cursor-pointer"
+                  >
+                    Finish
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onSetStep(currentStepIndex + 1)}
+                    className="px-5 py-1.5 rounded-full bg-[#c27803] hover:bg-[#a66402] text-white text-xs font-bold shadow-md flex items-center gap-1 transition active:scale-95 cursor-pointer"
+                  >
+                    <span>Next</span>
+                    <span className="text-[10px]">▷</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
+      ) : (
+        /* Minimized Floating Pill View */
+        <div
+          className={`fixed left-1/2 -translate-x-1/2 z-50 select-none animate-fadeIn pointer-events-auto ${
+            isDockedTop ? 'top-3 sm:top-4' : 'bottom-3 sm:bottom-4'
+          }`}
+        >
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setIsExpanded(true)}
+              className="px-4 py-2 rounded-full bg-[#faf7ee] hover:bg-[#f5f0e3] text-slate-800 text-xs font-bold shadow-xl border border-[#e2d9c2] flex items-center gap-2 transition active:scale-98 cursor-pointer"
+            >
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              <span className="tracking-wide text-slate-900">{step.bannerPrompt}</span>
+              <span className="text-[10px] bg-black/5 px-2 py-0.5 rounded-full font-mono text-gray-500">
+                {step.chapter}/{step.totalChapters || 16}
+              </span>
+              <Eye className="w-3.5 h-3.5 text-gray-500" />
+            </button>
+
+            <button
+              type="button"
+              onClick={togglePosition}
+              title={`Move to ${isDockedTop ? 'bottom' : 'top'}`}
+              className="w-8 h-8 rounded-full bg-[#faf7ee] hover:bg-[#f5f0e3] border border-[#e2d9c2] text-gray-600 hover:text-slate-900 flex items-center justify-center text-xs shadow-md transition"
+            >
+              <ArrowUpDown className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
       )}
-    </div>
+    </>
   );
 }
