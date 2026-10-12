@@ -174,9 +174,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
 
   return (
     <div className="min-h-screen bg-[#0a0e17] text-gray-200 flex flex-col font-sans select-none pb-28 px-1 sm:px-3 pt-1">
-      {/* =========================================================================
-          TOP APP CONTROLS (Clean, subtle minimal buttons)
-         ========================================================================= */}
+      {/* Top App Controls */}
       <div className="max-w-[720px] mx-auto w-full flex items-center justify-between px-1 py-1 text-gray-400">
         <div className="flex items-center gap-1.5">
           <button
@@ -197,10 +195,11 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
           <button
             type="button"
             onClick={() => setShowSettingsModal(true)}
-            className="flex items-center gap-1.5 text-[11px] text-gray-200 hover:text-white transition px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/15 border border-white/15 font-medium"
+            className="flex items-center gap-1.5 text-[11px] text-gray-200 hover:text-white transition px-2 sm:px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/15 border border-white/15 font-medium"
           >
             <SlidersHorizontal className="w-3 h-3 text-amber-400" />
-            <span>Settings & Tutorial</span>
+            <span className="hidden sm:inline">Settings & Tutorial</span>
+            <span className="sm:hidden">Settings</span>
           </button>
         </div>
 
@@ -227,24 +226,24 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
       </div>
 
       {/* Main Tabletop Canvas */}
-      <div className="max-w-[720px] mx-auto w-full flex-1 flex flex-col gap-2">
+      <div className="max-w-[720px] mx-auto w-full flex-1 flex flex-col gap-1.5 sm:gap-2">
         {/* =======================================================================
             1. TOP HUD BAR (Opponent Status Bar)
            ======================================================================= */}
-        <div className="flex items-center justify-between px-3 py-1.5 bg-[#0e1422] rounded-xl border border-white/10 text-xs shadow-sm">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between px-2.5 sm:px-3 py-1 sm:py-1.5 bg-[#0e1422] rounded-xl border border-white/10 text-xs shadow-sm">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <span className="w-2 h-2 rounded-full bg-blue-400" />
-            <span className="font-bold tracking-wider text-[11px] text-gray-200">
+            <span className="font-bold tracking-wider text-[10px] sm:text-[11px] text-gray-200">
               OPPONENT
             </span>
           </div>
 
-          <div className="flex items-center gap-1 text-gray-400 font-mono text-[11px]">
+          <div className="flex items-center gap-1 text-gray-400 font-mono text-[10px] sm:text-[11px]">
             <Clock className="w-3 h-3 text-gray-500" />
             <span>17:30</span>
           </div>
 
-          <div className="flex items-center gap-1 text-gray-300 font-mono text-[11px]">
+          <div className="flex items-center gap-1 text-gray-300 font-mono text-[10px] sm:text-[11px]">
             <span className="text-[10px]">🎴</span>
             <span>{gameState.opponent.handCount}</span>
           </div>
@@ -252,7 +251,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
           <button
             type="button"
             onClick={() => setShowOpponentSelector(true)}
-            className="text-[10px] text-gray-400 hover:text-white font-medium cursor-pointer"
+            className="text-[10px] text-gray-400 hover:text-white font-medium cursor-pointer truncate max-w-[110px] sm:max-w-none"
           >
             ⇅ {gameState.opponent.leaderName}
           </button>
@@ -262,27 +261,27 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
             2. TOP MAT: OPPONENT BATTLEFIELD (Dark Navy Slate #0d1424, clean border)
            ======================================================================= */}
         <div
-          className={`relative rounded-xl border border-white/10 bg-[#0d1424] p-2.5 sm:p-3 shadow-md transition-all ${
+          className={`relative rounded-xl border border-white/10 bg-[#0d1424] p-1.5 sm:p-2.5 shadow-md transition-all ${
             highlightTarget === 'opponent' ? 'ring-2 ring-red-400/80' : ''
           }`}
         >
           {/* Grid Layout: 12 Columns */}
-          <div className="grid grid-cols-12 gap-2 items-stretch">
+          <div className="grid grid-cols-12 gap-1.5 sm:gap-2 items-stretch">
             {/* Left Column (Cols 1 to 2): Opponent Trash */}
             <div className="col-span-2 flex flex-col justify-start items-center">
               <span className="text-[8px] font-bold uppercase text-gray-400 mb-0.5 tracking-wider">TRASH</span>
               <div
-                className="w-11 sm:w-13 aspect-[2.5/3.5] rounded-md border border-white/10 bg-black/30 flex items-center justify-center text-gray-400 shadow-sm"
+                className="w-9 sm:w-13 aspect-[2.5/3.5] rounded-md border border-white/10 bg-black/30 flex items-center justify-center text-gray-400 shadow-sm"
               >
                 <span className="text-[9px] font-mono">{gameState.opponent.trashCount}</span>
               </div>
             </div>
 
             {/* Middle Main Area (Cols 3 to 10): Cost Area, Leader/Deck Row, Characters */}
-            <div className="col-span-8 flex flex-col gap-1.5">
+            <div className="col-span-8 flex flex-col gap-1 sm:gap-1.5">
               {/* Row 1: Cost Area with real DON cards */}
               <div
-                className={`rounded-lg border border-white/10 bg-black/25 px-2.5 py-1 flex items-center justify-between transition-all ${
+                className={`rounded-lg border border-white/10 bg-black/25 px-2 py-0.5 sm:px-2.5 sm:py-1 flex items-center justify-between transition-all ${
                   highlightTarget === 'costArea' ? 'ring-2 ring-white/60' : ''
                 }`}
               >
@@ -295,14 +294,14 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                   {Array.from({ length: Math.min(5, gameState.opponent.activeDon) }).map((_, idx) => (
                     <div
                       key={`opp-don-${idx}`}
-                      className="w-7 sm:w-8 aspect-[2.5/3.5] rounded-sm overflow-hidden border border-black/60 shadow-sm"
+                      className="w-6 sm:w-8 aspect-[2.5/3.5] rounded-sm overflow-hidden border border-black/60 shadow-sm"
                     >
                       <img src={OPCG_DON_CARD_DATA_URL} alt="DON" className="w-full h-full object-cover" />
                     </div>
                   ))}
                 </div>
 
-                <div className="flex items-center gap-2 text-[9px] font-mono text-gray-300">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-[9px] font-mono text-gray-300">
                   <span className="flex items-center gap-0.5">
                     <span>🪙</span> {gameState.opponent.activeDon}
                   </span>
@@ -313,7 +312,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
               </div>
 
               {/* Row 2: Deck | Stage | Leader */}
-              <div className="grid grid-cols-5 gap-1.5 items-center">
+              <div className="grid grid-cols-5 gap-1 sm:gap-1.5 items-center">
                 {/* Deck with real card back */}
                 <div className="aspect-[2.5/3.5] rounded-md border border-white/10 bg-black/30 overflow-hidden relative shadow-sm">
                   <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Opponent Deck" className="w-full h-full object-cover" />
@@ -341,9 +340,6 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                     className="w-full h-full object-cover"
                     onError={(e) => handleCardImageError(e, gameState.opponent.leaderId, gameState.opponent.leaderImage)}
                   />
-                  <div className="absolute top-0.5 right-0.5 px-1 rounded bg-black/80 text-white font-mono text-[8px] font-bold">
-                    {gameState.opponent.leaderPower} ⏶
-                  </div>
                   <div className="absolute inset-0 bg-red-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
                     <span className="text-[8px] font-bold text-white bg-black/80 px-1 rounded uppercase">HIT (-1)</span>
                   </div>
@@ -359,7 +355,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                 <span className="text-[8px] font-bold uppercase tracking-wider text-gray-400 block mb-0.5">
                   CHARACTER AREA
                 </span>
-                <div className="grid grid-cols-5 gap-1.5">
+                <div className="grid grid-cols-5 gap-1 sm:gap-1.5">
                   {[0, 1, 2, 3, 4].map((slotIdx) => {
                     const oppChar = gameState.opponent.characters[slotIdx];
                     if (oppChar) {
@@ -383,11 +379,8 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                             className="w-full h-full object-cover"
                             onError={(e) => handleCardImageError(e, oppChar.cardId, oppChar.imageUrl)}
                           />
-                          <div className="absolute top-0.5 right-0.5 px-1 rounded bg-black/80 text-white font-mono text-[7px] font-bold">
-                            {oppChar.power} ⏶
-                          </div>
                           {oppChar.rested && (
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
                               <span className="text-[7px] font-bold uppercase text-amber-300 bg-black/80 px-1 rounded">
                                 RESTED
                               </span>
@@ -467,10 +460,10 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
             4. BOTTOM MAT: PLAYER BATTLEFIELD (Dark Forest Slate #0b1712, clean muted line)
            ======================================================================= */}
         <div
-          className="relative rounded-xl border border-[#a17a26]/30 bg-[#0b1712] p-2.5 sm:p-3 shadow-md"
+          className="relative rounded-xl border border-[#a17a26]/30 bg-[#0b1712] p-1.5 sm:p-2.5 shadow-md"
         >
           {/* Grid Layout: 12 Columns */}
-          <div className="grid grid-cols-12 gap-2 items-stretch">
+          <div className="grid grid-cols-12 gap-1.5 sm:gap-2 items-stretch">
             {/* Left Column (Cols 1 to 2): Player Life Stack & DON!! Deck */}
             <div className="col-span-2 flex flex-col justify-between items-center gap-2">
               {/* Player Life Stack with real card backs */}
@@ -484,17 +477,17 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                 <div className="rounded bg-rose-700/80 text-white font-mono text-[8px] font-bold px-1.5 py-0.5 text-center tracking-wider w-full">
                   LIFE · {gameState.life.length}
                 </div>
-                <div className="relative flex flex-col -space-y-11 sm:-space-y-13 pt-0.5">
+                <div className="relative flex flex-col -space-y-9 sm:-space-y-13 pt-0.5">
                   {gameState.life.map((card, idx) => (
                     <div
                       key={`player-life-${card.instanceId}-${idx}`}
-                      className="w-11 sm:w-13 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-sm"
+                      className="w-9 sm:w-13 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-sm"
                     >
                       <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Life" className="w-full h-full object-cover" />
                     </div>
                   ))}
                   {gameState.life.length === 0 && (
-                    <div className="w-11 sm:w-13 aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/40 flex items-center justify-center text-[8px] text-red-400 font-bold text-center">
+                    <div className="w-9 sm:w-13 aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/40 flex items-center justify-center text-[8px] text-red-400 font-bold text-center">
                       0 LIFE
                     </div>
                   )}
@@ -504,7 +497,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
               {/* Player real DON!! Deck back */}
               <div className="flex flex-col items-center">
                 <span className="text-[8px] font-bold uppercase text-gray-400 mb-0.5 tracking-wider">DON!! DECK</span>
-                <div className="w-11 sm:w-13 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 relative shadow-sm bg-black/20">
+                <div className="w-9 sm:w-13 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 relative shadow-sm bg-black/20">
                   <img src={OPCG_DON_DECK_DATA_URL} alt="DON Deck" className="w-full h-full object-cover" />
                   <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/85 text-white font-mono text-[7px] font-bold flex items-center justify-center border border-white/20">
                     {gameState.donDeckCount}
@@ -514,13 +507,13 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
             </div>
 
             {/* Middle Main Area (Cols 3 to 10): Characters, Leader, Cost Area */}
-            <div className="col-span-8 flex flex-col gap-1.5">
+            <div className="col-span-8 flex flex-col gap-1 sm:gap-1.5">
               {/* Row 1: Character Area (5 slots facing opponent) */}
               <div>
                 <span className="text-[8px] font-bold uppercase tracking-wider text-emerald-400/80 block mb-0.5">
                   CHARACTER AREA
                 </span>
-                <div className="grid grid-cols-5 gap-1.5">
+                <div className="grid grid-cols-5 gap-1 sm:gap-1.5">
                   {[0, 1, 2, 3, 4].map((slotIdx) => {
                     const card = gameState.characters[slotIdx];
                     if (card) {
@@ -540,16 +533,19 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                             className="w-full h-full object-cover"
                             onError={(e) => handleCardImageError(e, card.cardId, card.imageUrl)}
                           />
-                          {/* Attached DON!! Mini Badge */}
+                          {/* Attached DON!! Mini Badge (power boost) */}
                           {card.attachedDon > 0 && (
                             <div className="absolute bottom-0.5 inset-x-0.5 py-0.2 bg-amber-500 text-black text-[7px] font-bold rounded-sm text-center shadow">
-                              DON ×{card.attachedDon}
+                              DON ×{card.attachedDon} (+{card.attachedDon * 1000})
                             </div>
                           )}
-                          {/* Power Badge */}
-                          <div className="absolute top-0.5 right-0.5 px-1 rounded bg-black/80 text-white font-mono text-[7px] font-bold">
-                            {(card.power || 0) + card.attachedDon * 1000} ⏶
-                          </div>
+                          {card.rested && (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
+                              <span className="text-[7px] font-bold uppercase text-amber-300 bg-black/80 px-1 rounded">
+                                RESTED
+                              </span>
+                            </div>
+                          )}
                         </div>
                       );
                     }
@@ -567,7 +563,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
               </div>
 
               {/* Row 2: Leader / Stage / Main Deck */}
-              <div className="grid grid-cols-5 gap-1.5 items-center">
+              <div className="grid grid-cols-5 gap-1 sm:gap-1.5 items-center">
                 {/* Spacer */}
                 <div className="aspect-[2.5/3.5] rounded-md border border-transparent" />
                 <div className="aspect-[2.5/3.5] rounded-md border border-transparent" />
@@ -587,12 +583,16 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                         className="w-full h-full object-cover"
                         onError={(e) => handleCardImageError(e, gameState.leader?.cardId, gameState.leader?.imageUrl)}
                       />
-                      <div className="absolute top-0.5 right-0.5 px-1 rounded bg-black/80 text-white font-mono text-[8px] font-bold">
-                        {(gameState.leader.power || 5000) + gameState.leader.attachedDon * 1000} ⏶
-                      </div>
                       {gameState.leader.attachedDon > 0 && (
                         <div className="absolute bottom-0.5 inset-x-0.5 py-0.2 bg-amber-500 text-black text-[7px] font-bold rounded-sm text-center shadow">
-                          DON ×{gameState.leader.attachedDon}
+                          DON ×{gameState.leader.attachedDon} (+{gameState.leader.attachedDon * 1000})
+                        </div>
+                      )}
+                      {gameState.leader.rested && (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
+                          <span className="text-[7px] font-bold uppercase text-amber-300 bg-black/80 px-1 rounded">
+                            RESTED
+                          </span>
                         </div>
                       )}
                     </div>
@@ -639,7 +639,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
 
               {/* Row 3: Player Cost Area with real DON cards */}
               <div
-                className={`rounded-lg border border-white/10 bg-black/30 px-2.5 py-1 flex items-center justify-between transition-all ${
+                className={`rounded-lg border border-white/10 bg-black/30 px-2 py-0.5 sm:px-2.5 sm:py-1 flex items-center justify-between transition-all ${
                   highlightTarget === 'costArea' ? 'ring-2 ring-white/60' : ''
                 }`}
               >
@@ -652,14 +652,14 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                   {Array.from({ length: Math.min(5, gameState.activeDon) }).map((_, idx) => (
                     <div
                       key={`player-don-${idx}`}
-                      className="w-7 sm:w-8 aspect-[2.5/3.5] rounded-sm overflow-hidden border border-black/60 shadow-sm"
+                      className="w-6 sm:w-8 aspect-[2.5/3.5] rounded-sm overflow-hidden border border-black/60 shadow-sm"
                     >
                       <img src={OPCG_DON_CARD_DATA_URL} alt="DON" className="w-full h-full object-cover" />
                     </div>
                   ))}
                 </div>
 
-                <div className="flex items-center gap-2 text-[9px] font-mono text-gray-300">
+                <div className="flex items-center gap-1.5 sm:gap-2 text-[9px] font-mono text-gray-300">
                   <span className="flex items-center gap-0.5 text-amber-300 font-bold">
                     <span>🪙</span> {gameState.activeDon}
                   </span>
@@ -675,7 +675,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
               <span className="text-[8px] font-bold uppercase text-gray-400 mb-0.5 tracking-wider">TRASH</span>
               <div
                 onClick={() => setShowTrashModal(true)}
-                className="w-11 sm:w-13 aspect-[2.5/3.5] rounded-md border border-white/10 bg-black/30 flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:border-white/25 transition relative shadow-sm"
+                className="w-9 sm:w-13 aspect-[2.5/3.5] rounded-md border border-white/10 bg-black/30 flex flex-col items-center justify-center text-gray-400 cursor-pointer hover:border-white/25 transition relative shadow-sm"
               >
                 {gameState.trash.length > 0 ? (
                   <>
@@ -701,25 +701,25 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
         {/* =======================================================================
             5. PLAYER HUD BAR (Turn Status)
            ======================================================================= */}
-        <div className="flex items-center justify-between px-3 py-1.5 bg-[#0e1422] rounded-xl border border-white/10 text-xs shadow-sm">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between px-2.5 sm:px-3 py-1 sm:py-1.5 bg-[#0e1422] rounded-xl border border-white/10 text-xs shadow-sm">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <span className="w-2 h-2 rounded-full bg-amber-400" />
-            <span className="font-bold tracking-wider text-[11px] text-gray-200">
+            <span className="font-bold tracking-wider text-[10px] sm:text-[11px] text-gray-200">
               GUEST TURN
             </span>
           </div>
 
-          <div className="flex items-center gap-1 text-gray-400 font-mono text-[11px]">
+          <div className="flex items-center gap-1 text-gray-400 font-mono text-[10px] sm:text-[11px]">
             <Clock className="w-3 h-3 text-gray-500" />
             <span>17:30</span>
           </div>
 
-          <div className="flex items-center gap-1 text-gray-300 font-mono text-[11px]">
+          <div className="flex items-center gap-1 text-gray-300 font-mono text-[10px] sm:text-[11px]">
             <span className="text-[10px]">🎴</span>
             <span>{gameState.hand.length}</span>
           </div>
 
-          <div className="text-[10px] text-gray-400 font-medium">
+          <div className="text-[10px] text-gray-400 font-medium truncate max-w-[110px] sm:max-w-none">
             ⇅ {chosenDeck.name}
           </div>
         </div>
@@ -728,7 +728,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
             6. PLAYER HAND (Row of Cards - Clean, subtle borders, NO neon glow)
            ======================================================================= */}
         <div
-          className={`flex items-center justify-center gap-2 overflow-x-auto py-1 px-1 rounded-xl transition-all ${
+          className={`flex items-center justify-start sm:justify-center gap-1.5 sm:gap-2 overflow-x-auto py-1 px-1 rounded-xl transition-all no-scrollbar ${
             highlightTarget === 'hand' ? 'ring-2 ring-white/60 bg-white/[0.02]' : ''
           }`}
         >
@@ -739,8 +739,8 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
               <div
                 key={card.instanceId}
                 onClick={() => setSelectedHandCard(card)}
-                className={`relative w-16 sm:w-20 aspect-[2.5/3.5] rounded-md overflow-hidden cursor-pointer select-none transition-transform duration-150 hover:-translate-y-1.5 shrink-0 border border-white/15 shadow-md ${
-                  canAfford ? 'opacity-100' : 'opacity-75'
+                className={`relative w-14 sm:w-20 aspect-[2.5/3.5] rounded-md overflow-hidden cursor-pointer select-none transition-transform duration-150 hover:-translate-y-1.5 shrink-0 border border-white/15 shadow-md ${
+                  canAfford ? 'opacity-100' : 'opacity-70'
                 }`}
               >
                 <img
@@ -749,18 +749,6 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                   className="w-full h-full object-cover"
                   onError={(e) => handleCardImageError(e, card.cardId, card.imageUrl)}
                 />
-
-                {/* Cost Top-Left Pill */}
-                <div className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-black/85 text-white font-mono text-[8px] font-bold flex items-center justify-center border border-white/20 shadow">
-                  {card.cost ?? 0}
-                </div>
-
-                {/* Power Top-Right Pill */}
-                {card.power > 0 && (
-                  <div className="absolute top-0.5 right-0.5 px-1 rounded bg-black/80 text-white font-mono text-[7px] font-bold">
-                    {card.power} ⏶
-                  </div>
-                )}
               </div>
             );
           })}

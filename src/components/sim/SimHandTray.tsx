@@ -74,18 +74,6 @@ export function SimHandTray({
                   referrerPolicy="no-referrer"
                   onError={(e) => handleCardImageError(e, card.cardId, card.imageUrl)}
                 />
-
-                {/* Cost Badge Top Left */}
-                <div className="absolute top-1 left-1 w-5 h-5 rounded-full bg-black/85 text-amber-300 border border-amber-400/60 text-[10px] font-black flex items-center justify-center font-mono shadow-md">
-                  {card.cost ?? 0}
-                </div>
-
-                {/* Power Badge Top Right if Character */}
-                {card.power > 0 && (
-                  <div className="absolute top-1 right-1 px-1 rounded bg-black/80 text-white text-[8px] font-black font-mono shadow-md">
-                    {card.power}
-                  </div>
-                )}
               </div>
             );
           })

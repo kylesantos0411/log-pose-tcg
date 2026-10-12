@@ -35,22 +35,14 @@ export function SimCardItem({
 
   return (
     <div className="relative group flex flex-col items-center">
-      {/* Power Badge above card */}
-      {(card.power > 0 || card.attachedDon > 0 || isLeader) && (
-        <div
-          className={`mb-1 px-1.5 py-0.5 rounded-full text-[10px] font-black font-mono shadow-md flex items-center gap-1 border transition-all ${
-            card.attachedDon > 0
-              ? 'bg-amber-500 text-black border-amber-300 shadow-amber-500/30'
-              : 'bg-black/80 text-white border-white/20'
-          }`}
-        >
-          {card.attachedDon > 0 && <Sparkles className="w-2.5 h-2.5 text-black" />}
+      {/* Attached DON!! / Power modifier indicator */}
+      {(card.attachedDon > 0 || card.customPowerModifier !== 0) && (
+        <div className="mb-1 px-1.5 py-0.5 rounded-full text-[10px] font-black font-mono shadow-md flex items-center gap-1 border bg-amber-500 text-black border-amber-300 shadow-amber-500/30">
+          <Sparkles className="w-2.5 h-2.5 text-black" />
           <span>{totalPower}</span>
-          {card.attachedDon > 0 && (
-            <span className="text-[8px] bg-black/20 px-1 rounded font-bold">
-              +{card.attachedDon * 1000}
-            </span>
-          )}
+          <span className="text-[8px] bg-black/20 px-1 rounded font-bold">
+            +{card.attachedDon * 1000 + card.customPowerModifier}
+          </span>
         </div>
       )}
 
