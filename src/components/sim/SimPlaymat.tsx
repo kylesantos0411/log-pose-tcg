@@ -249,59 +249,59 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
   };
 
   // ---------------------------------------------------------------------------
-  // Sub-renderers for clean modular layout in both Landscape & Portrait modes
+  // Sub-renderers matching the exact OPlayTCG reference battlefield layout
   // ---------------------------------------------------------------------------
   const renderOpponentPlaymat = () => (
     <div
-      className={`w-full rounded-xl sm:rounded-2xl border-2 border-[#1e293b] bg-[#0d1424] p-1 sm:p-1.5 shadow-xl relative flex flex-row items-stretch gap-1 sm:gap-1.5 transition-all flex-1 min-h-0 ${
+      className={`w-full rounded-xl sm:rounded-2xl border-2 border-[#1e293b] bg-[#0d1424] p-1.5 sm:p-2 shadow-xl relative flex flex-row items-stretch gap-1.5 sm:gap-2 transition-all flex-1 min-h-0 ${
         highlightTarget === 'opponent' ? spotlightClass : ''
       }`}
     >
       {/* Main Grid Area of Opponent Mat */}
-      <div className="flex-1 min-w-0 flex flex-col justify-between gap-0.5 sm:gap-1">
+      <div className="flex-1 min-w-0 flex flex-col justify-between gap-1">
         {/* Top Row: TRASH | COST AREA | DON!! DECK */}
-        <div className="grid grid-cols-12 gap-1 items-stretch">
+        <div className="grid grid-cols-12 gap-1.5 items-stretch">
           {/* Trash Slot (Cols 1-2) */}
           <div className="col-span-2 flex flex-col items-center justify-center">
-            <span className="text-[7px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">TRASH</span>
-            <div className="h-8 sm:h-9 md:h-11 aspect-[2.5/3.5] rounded-lg border border-dashed border-[#1e293b] bg-[#070b13]/60 flex items-center justify-center text-gray-400">
-              <span className="text-[9px] font-mono font-bold">{gameState.opponent.trashCount}</span>
+            <span className="text-[7.5px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">TRASH</span>
+            <div className="aspect-[2.5/3.5] w-full max-w-[56px] sm:max-w-[68px] md:max-w-[76px] rounded-lg border border-dashed border-[#1e293b] bg-[#070b13]/60 flex items-center justify-center text-gray-400">
+              <span className="text-[10px] sm:text-xs font-mono font-bold">{gameState.opponent.trashCount}</span>
             </div>
           </div>
 
           {/* Cost Area (Cols 3-10) with miniature DON cards & counter */}
-          <div className="col-span-8 rounded-xl border border-[#1e293b] bg-[#070b13]/70 px-1.5 py-0.5 flex flex-col justify-between shadow-inner">
-            <div className="flex items-center justify-between text-[7px] font-bold uppercase tracking-wider text-gray-400">
+          <div className="col-span-8 rounded-xl border border-[#1e293b] bg-[#070b13]/70 px-2 py-0.5 flex flex-col justify-between shadow-inner">
+            <div className="flex items-center justify-between text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider text-gray-400">
               <span>COST AREA</span>
-              <div className="flex items-center gap-1 text-[8px] font-mono text-gray-300 font-bold">
+              <div className="flex items-center gap-1.5 text-[8.5px] sm:text-[9.5px] font-mono text-gray-300 font-bold">
                 <span>🪙 {gameState.opponent.activeDon}</span>
                 <span className="text-gray-500">🔄 {gameState.opponent.restedDon}</span>
               </div>
             </div>
 
             {/* Opponent miniature DON cards standing vertically */}
-            <div className="flex items-center justify-center gap-1 my-0.5">
+            <div className="flex items-center justify-center gap-1.5 my-0.5">
               {Array.from({ length: Math.min(5, gameState.opponent.activeDon) }).map((_, idx) => (
                 <div
                   key={`opp-don-${idx}`}
-                  className="h-5 sm:h-6 md:h-7 aspect-[2.5/3.5] rounded-sm overflow-hidden border border-black/60 shadow-xs"
+                  className="h-6 sm:h-8 md:h-9 aspect-[2.5/3.5] rounded-sm overflow-hidden border border-black/60 shadow-xs"
                 >
                   <img src={OPCG_DON_CARD_DATA_URL} alt="DON" className="w-full h-full object-cover" />
                 </div>
               ))}
             </div>
 
-            <div className="text-[6.5px] text-gray-500 font-mono">
+            <div className="text-[7px] sm:text-[8px] text-gray-500 font-mono text-center">
               🪙 {gameState.opponent.activeDon} | 🔄 {gameState.opponent.restedDon}
             </div>
           </div>
 
           {/* DON!! Deck Slot (Cols 11-12) */}
           <div className="col-span-2 flex flex-col items-center justify-center">
-            <span className="text-[7px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">DON!!</span>
-            <div className="h-8 sm:h-9 md:h-11 aspect-[2.5/3.5] rounded-lg overflow-hidden border border-[#1e293b] relative shadow-xs bg-black/30">
+            <span className="text-[7.5px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">DON!!</span>
+            <div className="aspect-[2.5/3.5] w-full max-w-[56px] sm:max-w-[68px] md:max-w-[76px] rounded-lg overflow-hidden border border-[#1e293b] relative shadow-xs bg-black/30">
               <img src={OPCG_DON_DECK_DATA_URL} alt="DON Deck" className="w-full h-full object-cover" />
-              <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/85 text-white font-mono text-[7px] font-bold flex items-center justify-center border border-white/20">
+              <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-black/85 text-white font-mono text-[7px] sm:text-[8px] font-bold flex items-center justify-center border border-white/20">
                 {gameState.opponent.donDeckCount}
               </div>
             </div>
@@ -309,17 +309,17 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
         </div>
 
         {/* Middle Row: DECK | STAGE | LEADER (Kaido/Crocodile) */}
-        <div className="grid grid-cols-5 gap-1 sm:gap-1.5 items-center justify-items-center">
+        <div className="grid grid-cols-5 gap-1.5 sm:gap-2 items-center justify-items-center">
           {/* Opponent Main Deck */}
-          <div className="h-8 sm:h-9 md:h-11 aspect-[2.5/3.5] rounded-lg border border-[#1e293b] bg-[#070b13]/60 overflow-hidden relative shadow-xs">
+          <div className="aspect-[2.5/3.5] w-full max-w-[56px] sm:max-w-[68px] md:max-w-[76px] rounded-lg border border-[#1e293b] bg-[#070b13]/60 overflow-hidden relative shadow-xs">
             <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Opponent Deck" className="w-full h-full object-cover" />
-            <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/85 text-white font-mono text-[7px] font-bold flex items-center justify-center border border-white/20">
+            <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-black/85 text-white font-mono text-[7px] sm:text-[8px] font-bold flex items-center justify-center border border-white/20">
               {gameState.opponent.deckCount}
             </div>
           </div>
 
           {/* Opponent Stage Slot */}
-          <div className="h-8 sm:h-9 md:h-11 aspect-[2.5/3.5] rounded-lg border border-dashed border-[#1e293b] bg-[#070b13]/40 flex items-center justify-center text-[7px] font-bold uppercase tracking-wider text-gray-500">
+          <div className="aspect-[2.5/3.5] w-full max-w-[56px] sm:max-w-[68px] md:max-w-[76px] rounded-lg border border-dashed border-[#1e293b] bg-[#070b13]/40 flex items-center justify-center text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider text-gray-500">
             STAGE
           </div>
 
@@ -332,7 +332,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                 setSelectedFieldCard(gameState.leader);
               }
             }}
-            className={`h-8 sm:h-9 md:h-11 aspect-[2.5/3.5] rounded-lg border-2 border-red-500/70 overflow-hidden relative shadow-sm cursor-pointer hover:scale-102 transition group ${
+            className={`aspect-[2.5/3.5] w-full max-w-[64px] sm:max-w-[76px] md:max-w-[84px] rounded-lg border-2 border-red-500/70 overflow-hidden relative shadow-md cursor-pointer hover:scale-102 transition group ${
               highlightTarget === 'opponent' ? spotlightClass : ''
             }`}
             title={`${gameState.opponent.leaderName} (${gameState.opponent.leaderPower} Power)`}
@@ -345,22 +345,22 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
             />
             {selectedFieldCard && (
               <div className="absolute inset-0 bg-red-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
-                <span className="text-[6.5px] font-black text-white bg-red-600 px-1 py-0.2 rounded uppercase shadow">ATTACK</span>
+                <span className="text-[7px] sm:text-[8px] font-black text-white bg-red-600 px-1 py-0.5 rounded uppercase shadow">ATTACK</span>
               </div>
             )}
           </div>
 
           {/* Spacers */}
-          <div className="h-8 sm:h-9 md:h-11 aspect-[2.5/3.5] rounded-lg border border-transparent" />
-          <div className="h-8 sm:h-9 md:h-11 aspect-[2.5/3.5] rounded-lg border border-transparent" />
+          <div className="aspect-[2.5/3.5] w-full max-w-[56px] sm:max-w-[68px] border border-transparent" />
+          <div className="aspect-[2.5/3.5] w-full max-w-[56px] sm:max-w-[68px] border border-transparent" />
         </div>
 
         {/* Bottom Row: CHARACTER AREA (5 slots facing center player mat) */}
         <div>
-          <span className="text-[7px] font-bold uppercase tracking-wider text-gray-400 block mb-0.5">
+          <span className="text-[7.5px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-400 block mb-0.5">
             CHARACTER AREA
           </span>
-          <div className="grid grid-cols-5 gap-1 sm:gap-1.5 justify-items-center">
+          <div className="grid grid-cols-5 gap-1.5 sm:gap-2 justify-items-center">
             {[0, 1, 2, 3, 4].map((slotIdx) => {
               const oppChar = gameState.opponent.characters[slotIdx];
               if (oppChar) {
@@ -374,7 +374,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                         setInspectedCard(oppChar);
                       }
                     }}
-                    className={`h-8 sm:h-9 md:h-11 aspect-[2.5/3.5] rounded-lg border border-white/20 overflow-hidden relative shadow-xs cursor-pointer transition ${
+                    className={`aspect-[2.5/3.5] w-full max-w-[56px] sm:max-w-[68px] md:max-w-[76px] rounded-lg border border-white/20 overflow-hidden relative shadow-xs cursor-pointer transition ${
                       oppChar.rested ? 'rotate-90 scale-95 opacity-80 border-amber-500' : ''
                     }`}
                   >
@@ -386,7 +386,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                     />
                     {oppChar.rested && (
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
-                        <span className="text-[6px] font-bold uppercase text-amber-300 bg-black/85 px-0.5 rounded">
+                        <span className="text-[6.5px] font-bold uppercase text-amber-300 bg-black/85 px-1 rounded">
                           RESTED
                         </span>
                       </div>
@@ -398,7 +398,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
               return (
                 <div
                   key={`opp-char-slot-${slotIdx}`}
-                  className="h-8 sm:h-9 md:h-11 aspect-[2.5/3.5] rounded-lg border border-dashed border-[#1e293b] bg-[#070b13]/40"
+                  className="aspect-[2.5/3.5] w-full max-w-[56px] sm:max-w-[68px] md:max-w-[76px] rounded-lg border border-dashed border-[#1e293b] bg-[#070b13]/40"
                 />
               );
             })}
@@ -407,21 +407,21 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
       </div>
 
       {/* Far Right of Opponent Mat: LIFE - 5 Vertical Stack (Crimson accent) */}
-      <div className="w-10 sm:w-14 rounded-xl border border-rose-900/60 bg-rose-950/30 p-1 flex flex-col items-center justify-start select-none shrink-0">
-        <span className="text-[7.5px] font-bold text-rose-400 tracking-wider mb-0.5">
+      <div className="w-12 sm:w-14 md:w-16 rounded-xl border border-rose-900/60 bg-rose-950/30 p-1 flex flex-col items-center justify-start select-none shrink-0">
+        <span className="text-[8px] sm:text-[9px] font-bold text-rose-400 tracking-wider mb-1">
           LIFE · {gameState.opponent.life}
         </span>
-        <div className="relative flex flex-col -space-y-7 sm:-space-y-9 pt-0.5">
+        <div className="relative flex flex-col -space-y-9 sm:-space-y-12 md:-space-y-14 pt-0.5">
           {Array.from({ length: Math.min(5, gameState.opponent.life) }).map((_, idx) => (
             <div
               key={`opp-life-${idx}`}
-              className="w-8 sm:w-11 aspect-[2.5/3.5] rounded-lg overflow-hidden border border-white/10 shadow-xs"
+              className="w-9 sm:w-11 md:w-13 aspect-[2.5/3.5] rounded-lg overflow-hidden border border-white/10 shadow-xs"
             >
               <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Life" className="w-full h-full object-cover" />
             </div>
           ))}
           {gameState.opponent.life === 0 && (
-            <div className="w-8 sm:w-11 aspect-[2.5/3.5] rounded-lg border-2 border-dashed border-red-500/50 flex items-center justify-center text-[6.5px] text-red-400 font-black text-center">
+            <div className="w-9 sm:w-11 md:w-13 aspect-[2.5/3.5] rounded-lg border-2 border-dashed border-red-500/50 flex items-center justify-center text-[7px] text-red-400 font-black text-center">
               0 LIFE
             </div>
           )}
@@ -431,44 +431,59 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
   );
 
   const renderPlayerPlaymat = () => (
-    <div className="w-full rounded-xl sm:rounded-2xl border-2 border-[#16382a] bg-[#0b1a14] p-1 sm:p-1.5 shadow-xl relative flex flex-row items-stretch gap-1 sm:gap-1.5 flex-1 min-h-0">
-      {/* Far Left of Player Mat: LIFE - 5 Vertical Stack (Crimson accent) */}
+    <div className="w-full rounded-xl sm:rounded-2xl border-2 border-[#16382a] bg-[#0b1a14] p-1.5 sm:p-2 shadow-xl relative flex flex-row items-stretch gap-1.5 sm:gap-2 flex-1 min-h-0">
+      {/* Far Left of Player Mat: LIFE - 5 Vertical Stack + DON!! DECK underneath */}
       <div
-        onClick={handleTakeLifeDamage}
-        className={`w-10 sm:w-14 rounded-xl border border-rose-900/60 bg-rose-950/30 p-1 flex flex-col items-center justify-start select-none shrink-0 cursor-pointer transition ${
-          highlightTarget === 'life' ? spotlightClass : ''
-        }`}
-        title="Click to take 1 Life damage to hand"
+        className="w-12 sm:w-14 md:w-16 rounded-xl border border-rose-900/60 bg-rose-950/30 p-1 flex flex-col items-center justify-between select-none shrink-0"
       >
-        <span className="text-[7.5px] font-bold text-rose-400 tracking-wider mb-0.5">
-          LIFE · {gameState.life.length}
-        </span>
-        <div className="relative flex flex-col -space-y-7 sm:-space-y-9 pt-0.5">
-          {gameState.life.map((card, idx) => (
-            <div
-              key={`player-life-${card.instanceId}-${idx}`}
-              className="w-8 sm:w-11 aspect-[2.5/3.5] rounded-lg overflow-hidden border border-white/10 shadow-xs"
-            >
-              <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Life" className="w-full h-full object-cover" />
+        <div
+          onClick={handleTakeLifeDamage}
+          className={`flex flex-col items-center w-full cursor-pointer transition ${
+            highlightTarget === 'life' ? spotlightClass : ''
+          }`}
+          title="Click to take 1 Life damage to hand"
+        >
+          <span className="text-[8px] sm:text-[9px] font-bold text-rose-400 tracking-wider mb-1">
+            LIFE · {gameState.life.length}
+          </span>
+          <div className="relative flex flex-col -space-y-9 sm:-space-y-12 md:-space-y-14 pt-0.5">
+            {gameState.life.map((card, idx) => (
+              <div
+                key={`player-life-${card.instanceId}-${idx}`}
+                className="w-9 sm:w-11 md:w-13 aspect-[2.5/3.5] rounded-lg overflow-hidden border border-white/10 shadow-xs"
+              >
+                <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Life" className="w-full h-full object-cover" />
+              </div>
+            ))}
+            {gameState.life.length === 0 && (
+              <div className="w-9 sm:w-11 md:w-13 aspect-[2.5/3.5] rounded-lg border-2 border-dashed border-red-500/50 flex items-center justify-center text-[7px] text-red-400 font-black text-center">
+                0 LIFE
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Player DON!! Deck Slot positioned underneath Life (Exact Reference Match) */}
+        <div className="flex flex-col items-center w-full pt-1 border-t border-emerald-900/40">
+          <span className="text-[7px] font-bold text-emerald-400/80 mb-0.5">DON!!</span>
+          <div className="w-9 sm:w-11 md:w-13 aspect-[2.5/3.5] rounded-lg overflow-hidden border border-[#16382a] relative shadow-xs bg-black/30">
+            <img src={OPCG_DON_DECK_DATA_URL} alt="DON Deck" className="w-full h-full object-cover" />
+            <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-black/85 text-white font-mono text-[7px] sm:text-[8px] font-bold flex items-center justify-center border border-white/20">
+              {gameState.donDeckCount}
             </div>
-          ))}
-          {gameState.life.length === 0 && (
-            <div className="w-8 sm:w-11 aspect-[2.5/3.5] rounded-lg border-2 border-dashed border-red-500/50 flex items-center justify-center text-[6.5px] text-red-400 font-black text-center">
-              0 LIFE
-            </div>
-          )}
+          </div>
         </div>
       </div>
 
       {/* Main Grid Area of Player Mat */}
-      <div className="flex-1 min-w-0 flex flex-col justify-between gap-0.5 sm:gap-1">
+      <div className="flex-1 min-w-0 flex flex-col justify-between gap-1">
         {/* Top Row: CHARACTER AREA (5 slots facing center opponent mat) */}
         <div>
-          <span className="text-[7px] font-bold uppercase tracking-wider text-emerald-400/80 block mb-0.5">
+          <span className="text-[7.5px] sm:text-[8px] font-bold uppercase tracking-wider text-emerald-400/80 block mb-0.5">
             CHARACTER AREA
           </span>
           <div
-            className={`grid grid-cols-5 gap-1 sm:gap-1.5 justify-items-center rounded-lg p-0.5 transition-all ${
+            className={`grid grid-cols-5 gap-1.5 sm:gap-2 justify-items-center rounded-lg p-0.5 transition-all ${
               highlightTarget === 'characters' ? spotlightClass : ''
             }`}
           >
@@ -479,7 +494,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                   <div
                     key={card.instanceId}
                     onClick={() => setSelectedFieldCard(card)}
-                    className={`h-8 sm:h-9 md:h-11 aspect-[2.5/3.5] rounded-lg overflow-hidden relative shadow-xs cursor-pointer transition ${
+                    className={`aspect-[2.5/3.5] w-full max-w-[56px] sm:max-w-[68px] md:max-w-[76px] rounded-lg overflow-hidden relative shadow-xs cursor-pointer transition ${
                       card.rested
                         ? 'rotate-90 scale-95 opacity-80 border-2 border-amber-500'
                         : 'border border-white/20 hover:border-emerald-400'
@@ -492,13 +507,13 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                       onError={(e) => handleCardImageError(e, card.cardId, card.imageUrl)}
                     />
                     {card.attachedDon > 0 && (
-                      <div className="absolute bottom-0.5 inset-x-0.5 py-0.2 bg-[#d97706] text-white text-[6px] font-bold rounded-sm text-center shadow flex items-center justify-center gap-0.5">
+                      <div className="absolute bottom-0.5 inset-x-0.5 py-0.2 bg-[#d97706] text-white text-[6.5px] font-bold rounded-sm text-center shadow flex items-center justify-center gap-0.5">
                         <span>DON ×{card.attachedDon}</span>
                       </div>
                     )}
                     {card.rested && (
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
-                        <span className="text-[6px] font-bold uppercase text-amber-300 bg-black/85 px-0.5 rounded">
+                        <span className="text-[6.5px] font-bold uppercase text-amber-300 bg-black/85 px-1 rounded">
                           RESTED
                         </span>
                       </div>
@@ -510,32 +525,25 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
               return (
                 <div
                   key={`player-char-slot-${slotIdx}`}
-                  className="h-8 sm:h-9 md:h-11 aspect-[2.5/3.5] rounded-lg border border-dashed border-[#16382a] bg-[#05110d]/40"
+                  className="aspect-[2.5/3.5] w-full max-w-[56px] sm:max-w-[68px] md:max-w-[76px] rounded-lg border border-dashed border-[#16382a] bg-[#05110d]/40"
                 />
               );
             })}
           </div>
         </div>
 
-        {/* Middle Row: DON!! DECK | (Spacer) | LEADER (Luffy/Kid) | STAGE | MAIN DECK */}
-        <div className="grid grid-cols-5 gap-1 sm:gap-1.5 items-center justify-items-center">
-          {/* Player DON!! Deck */}
-          <div className="h-8 sm:h-9 md:h-11 aspect-[2.5/3.5] rounded-lg overflow-hidden border border-[#16382a] relative shadow-xs bg-black/30">
-            <img src={OPCG_DON_DECK_DATA_URL} alt="DON Deck" className="w-full h-full object-cover" />
-            <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/85 text-white font-mono text-[7px] font-bold flex items-center justify-center border border-white/20">
-              {gameState.donDeckCount}
-            </div>
-          </div>
-
-          {/* Spacer */}
-          <div className="h-8 sm:h-9 md:h-11 aspect-[2.5/3.5] rounded-lg border border-transparent" />
+        {/* Middle Row: Spacer | Spacer | LEADER (Luffy) | STAGE | MAIN DECK (Exact Reference Match) */}
+        <div className="grid grid-cols-5 gap-1.5 sm:gap-2 items-center justify-items-center">
+          {/* Spacers */}
+          <div className="aspect-[2.5/3.5] w-full max-w-[56px] sm:max-w-[68px] border border-transparent" />
+          <div className="aspect-[2.5/3.5] w-full max-w-[56px] sm:max-w-[68px] border border-transparent" />
 
           {/* Player Leader Card with Action Pill underneath */}
-          <div className="flex flex-col items-center">
+          <div className="flex flex-col items-center w-full">
             {gameState.leader && (
               <div
                 onClick={() => setSelectedFieldCard(gameState.leader)}
-                className={`h-8 sm:h-9 md:h-11 aspect-[2.5/3.5] rounded-lg border-2 border-amber-500/80 overflow-hidden relative shadow-md cursor-pointer hover:border-amber-400 transition ${
+                className={`aspect-[2.5/3.5] w-full max-w-[64px] sm:max-w-[76px] md:max-w-[84px] rounded-lg border-2 border-amber-500/80 overflow-hidden relative shadow-md cursor-pointer hover:border-amber-400 transition ${
                   gameState.leader.rested ? 'rotate-90 scale-95 opacity-80' : ''
                 } ${highlightTarget === 'leader' ? spotlightClass : ''}`}
               >
@@ -546,13 +554,13 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                   onError={(e) => handleCardImageError(e, gameState.leader?.cardId, gameState.leader?.imageUrl)}
                 />
                 {gameState.leader.attachedDon > 0 && (
-                  <div className="absolute bottom-0.5 inset-x-0.5 py-0.2 bg-[#d97706] text-white text-[6px] font-bold rounded-sm text-center shadow flex items-center justify-center gap-0.5">
+                  <div className="absolute bottom-0.5 inset-x-0.5 py-0.2 bg-[#d97706] text-white text-[6.5px] font-bold rounded-sm text-center shadow flex items-center justify-center gap-0.5">
                     <span>DON ×{gameState.leader.attachedDon}</span>
                   </div>
                 )}
                 {gameState.leader.rested && (
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
-                    <span className="text-[6px] font-bold uppercase text-amber-300 bg-black/85 px-0.5 rounded">
+                    <span className="text-[6.5px] font-bold uppercase text-amber-300 bg-black/85 px-1 rounded">
                       RESTED
                     </span>
                   </div>
@@ -566,7 +574,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
               onClick={() => {
                 if (gameState.leader) setSelectedFieldCard(gameState.leader);
               }}
-              className="mt-0.5 px-1.5 py-0.2 rounded-full bg-[#1b263b] hover:bg-[#253450] text-amber-300 border border-amber-500/40 text-[7px] font-bold tracking-wide flex items-center gap-0.5 shadow-xs transition active:scale-95"
+              className="mt-0.5 px-2 py-0.5 rounded-full bg-[#1b263b] hover:bg-[#253450] text-amber-300 border border-amber-500/40 text-[7.5px] sm:text-[8px] font-bold tracking-wide flex items-center gap-0.5 shadow-xs transition active:scale-95"
             >
               <span>✦ Activate</span>
             </button>
@@ -577,7 +585,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
             onClick={() => {
               if (gameState.stage) setSelectedFieldCard(gameState.stage);
             }}
-            className="h-8 sm:h-9 md:h-11 aspect-[2.5/3.5] rounded-lg border border-dashed border-[#16382a] bg-[#05110d]/40 flex items-center justify-center text-[7px] font-bold uppercase tracking-wider text-gray-500 overflow-hidden relative"
+            className="aspect-[2.5/3.5] w-full max-w-[56px] sm:max-w-[68px] md:max-w-[76px] rounded-lg border border-dashed border-[#16382a] bg-[#05110d]/40 flex items-center justify-center text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider text-gray-500 overflow-hidden relative"
           >
             {gameState.stage ? (
               <img src={gameState.stage.imageUrl} alt={gameState.stage.name} className="w-full h-full object-cover" />
@@ -589,11 +597,11 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
           {/* Main Deck with real card back */}
           <div
             onClick={handleManualDraw}
-            className="h-8 sm:h-9 md:h-11 aspect-[2.5/3.5] rounded-lg border border-[#16382a] bg-[#05110d]/70 overflow-hidden relative shadow-xs cursor-pointer hover:brightness-110 transition group"
+            className="aspect-[2.5/3.5] w-full max-w-[56px] sm:max-w-[68px] md:max-w-[76px] rounded-lg border border-[#16382a] bg-[#05110d]/70 overflow-hidden relative shadow-xs cursor-pointer hover:brightness-110 transition group"
             title="Click to draw 1 card"
           >
             <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Main Deck" className="w-full h-full object-cover" />
-            <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/85 text-white font-mono text-[7px] font-bold flex items-center justify-center border border-white/20">
+            <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-black/85 text-white font-mono text-[7px] sm:text-[8px] font-bold flex items-center justify-center border border-white/20">
               {gameState.deck.length}
             </div>
           </div>
@@ -603,43 +611,43 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
         <div className="grid grid-cols-12 gap-1.5 items-stretch">
           {/* Cost Area (Cols 1-10) with real DON cards */}
           <div
-            className={`col-span-10 rounded-xl border border-[#16382a] bg-[#05110d]/70 px-1.5 py-0.5 flex flex-col justify-between shadow-inner transition-all ${
+            className={`col-span-10 rounded-xl border border-[#16382a] bg-[#05110d]/70 px-2 py-0.5 flex flex-col justify-between shadow-inner transition-all ${
               highlightTarget === 'costArea' ? spotlightClass : ''
             }`}
           >
-            <div className="flex items-center justify-between text-[7px] font-bold uppercase tracking-wider text-emerald-400/80">
+            <div className="flex items-center justify-between text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider text-emerald-400/80">
               <span>COST AREA</span>
-              <div className="flex items-center gap-1 text-[8px] font-mono text-emerald-300 font-bold">
+              <div className="flex items-center gap-1.5 text-[8.5px] sm:text-[9.5px] font-mono text-emerald-300 font-bold">
                 <span className="text-amber-300">🪙 {gameState.activeDon}</span>
                 <span className="text-gray-500">🔄 {gameState.restedDon}</span>
               </div>
             </div>
 
             {/* Miniature real DON!! cards standing vertically side-by-side */}
-            <div className="flex items-center justify-center gap-1 my-0.5">
+            <div className="flex items-center justify-center gap-1.5 my-0.5">
               {Array.from({ length: Math.min(5, gameState.activeDon) }).map((_, idx) => (
                 <div
                   key={`player-don-${idx}`}
-                  className="h-5 sm:h-6 md:h-7 aspect-[2.5/3.5] rounded-sm overflow-hidden border border-black/60 shadow-xs"
+                  className="h-6 sm:h-8 md:h-9 aspect-[2.5/3.5] rounded-sm overflow-hidden border border-black/60 shadow-xs"
                 >
                   <img src={OPCG_DON_CARD_DATA_URL} alt="DON" className="w-full h-full object-cover" />
                 </div>
               ))}
             </div>
 
-            <div className="text-[6.5px] text-gray-500 font-mono">
+            <div className="text-[7px] sm:text-[8px] text-gray-500 font-mono text-center">
               🪙 {gameState.activeDon} | 🔄 {gameState.restedDon}
             </div>
           </div>
 
           {/* Trash Slot (Cols 11-12) */}
           <div className="col-span-2 flex flex-col items-center justify-center">
-            <span className="text-[7px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">TRASH</span>
+            <span className="text-[7.5px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">TRASH</span>
             <div
               onClick={() => setShowTrashModal(true)}
-              className="h-8 sm:h-9 md:h-11 aspect-[2.5/3.5] rounded-lg border border-dashed border-[#16382a] bg-[#05110d]/50 flex items-center justify-center text-gray-400 cursor-pointer hover:border-gray-400 transition"
+              className="aspect-[2.5/3.5] w-full max-w-[56px] sm:max-w-[68px] md:max-w-[76px] rounded-lg border border-dashed border-[#16382a] bg-[#05110d]/50 flex items-center justify-center text-gray-400 cursor-pointer hover:border-gray-400 transition"
             >
-              <span className="text-[9px] font-mono font-bold">{gameState.trash.length}</span>
+              <span className="text-[10px] sm:text-xs font-mono font-bold">{gameState.trash.length}</span>
             </div>
           </div>
         </div>
@@ -654,291 +662,68 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
       }`}
     >
       {/* =======================================================================
-          LAYOUT BRANCH: LANDSCAPE (3 COLUMNS) vs PORTRAIT (VERTICAL STACK)
+          EXACT OPLAYTCG REFERENCE 3-COLUMN BATTLEFIELD ARCHITECTURE
+          Left Flank: Navigation & Status Pills, Player Hand
+          Center Battlefield: Opponent Mat, Dividing Line, Player Mat
+          Right Flank: Opponent Hand, Turn Pill, Action Controls
          ======================================================================= */}
-      {activeLandscape ? (
-        /* -------------------------------------------------------------------
-           1. LANDSCAPE MODE (Matching OPlayTCG Reference Architecture)
-           - Left Flank: Navigation icons, Status Pills, and Player Hand
-           - Center: Opponent Playmat, Divider, Player Playmat
-           - Right Flank: Opponent Hand, Turn Pill, Action Controls
-           ------------------------------------------------------------------- */
-        <div className="w-full h-full flex flex-row items-stretch justify-between gap-1 sm:gap-2 overflow-hidden">
-          {/* LEFT FLANK */}
-          <div className="w-28 sm:w-36 shrink-0 flex flex-col justify-between py-0.5 z-20">
-            {/* Top: Header Controls + Status Badges */}
-            <div className="flex flex-col gap-1.5">
-              {/* Navigation Icons Row */}
-              <div className="flex items-center gap-1">
-                {onExit ? (
-                  <button
-                    type="button"
-                    onClick={onExit}
-                    className="flex items-center gap-1 px-2 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 text-[11px] font-semibold shadow-xs transition"
-                    title="Return to App"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Back</span>
-                  </button>
-                ) : (
-                  <Link
-                    href="/"
-                    className="flex items-center gap-1 px-2 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 text-[11px] font-semibold shadow-xs transition"
-                    title="Return to Dashboard"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Back</span>
-                  </Link>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!document.fullscreenElement) {
-                      document.documentElement.requestFullscreen().catch(() => {});
-                    } else {
-                      document.exitFullscreen().catch(() => {});
-                    }
-                  }}
-                  className="w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 flex items-center justify-center shadow-xs transition"
-                  title="Toggle Fullscreen"
-                >
-                  <Maximize2 className="w-3.5 h-3.5" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleToggleOrientation}
-                  className="w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-amber-400 border border-white/10 flex items-center justify-center shadow-xs transition"
-                  title="Rotate Screen"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowSettingsModal(true)}
-                  className="w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-amber-400 border border-white/10 flex items-center justify-center shadow-xs transition"
-                  title="Settings & Tutorial"
-                >
-                  <SlidersHorizontal className="w-3.5 h-3.5" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowLogModal(!showLogModal)}
-                  className="w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 flex items-center justify-center shadow-xs transition"
-                  title={`Battle Log (${gameState.logs.length})`}
-                >
-                  <ScrollText className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* Opponent Status Badge */}
-              <div className="flex flex-col gap-0.5">
-                <button
-                  type="button"
-                  onClick={() => setShowOpponentSelector(true)}
-                  className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#141a29] border border-white/10 text-white text-[9.5px] font-bold shadow-xs hover:bg-[#1e2638] transition w-fit"
-                >
-                  <span className="w-2 h-2 rounded-full bg-blue-400" />
-                  <span>OPPONENT</span>
-                </button>
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#141a29] border border-white/5 text-gray-400 font-mono text-[9px] w-fit">
-                  <Clock className="w-2.5 h-2.5 text-gray-500" />
-                  <span>17:30</span>
-                </div>
-              </div>
-
-              {/* Player Status Badge */}
-              <div className="flex flex-col gap-0.5">
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#141a29] border border-white/10 text-white text-[9.5px] font-bold shadow-xs w-fit">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                  <span>GUEST</span>
-                  <span className="px-1 py-0.2 rounded bg-amber-600 text-[7px] font-bold text-white uppercase">TURN</span>
-                </div>
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#141a29] border border-white/5 text-gray-400 font-mono text-[9px] w-fit">
-                  <Clock className="w-2.5 h-2.5 text-gray-500" />
-                  <span>17:30</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom: Player Hand */}
-            <div
-              className={`flex flex-col items-start gap-1 rounded-xl p-0.5 transition-all ${
-                highlightTarget === 'hand' ? spotlightClass : ''
-              }`}
-            >
-              <div className="flex items-center gap-1">
-                <div className="px-1.5 py-0.5 rounded-md bg-[#141a29] border border-white/10 text-white font-mono text-[9px] font-bold shadow-xs">
-                  {gameState.hand.length}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setPlayerHandExpanded(!playerHandExpanded)}
-                  className="px-1.5 py-0.5 rounded-md bg-[#1e2638] hover:bg-[#283248] text-gray-200 border border-white/10 text-[9px] font-semibold shadow-xs flex items-center gap-0.5 transition"
-                >
-                  <span>⇅ Original</span>
-                </button>
-              </div>
-
-              {playerHandExpanded && (
-                <div className="flex items-center -space-x-5 sm:-space-x-6 animate-fadeIn">
-                  {gameState.hand.map((card) => {
-                    const canAfford = gameState.activeDon >= (card.cost || 0);
-                    return (
-                      <div
-                        key={card.instanceId}
-                        onClick={() => setSelectedHandCard(card)}
-                        className={`w-12 sm:w-14 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/20 shadow-xl cursor-pointer transform transition duration-150 hover:-translate-y-2 hover:z-20 bg-black/40 ${
-                          canAfford ? 'opacity-100 hover:border-amber-400' : 'opacity-70'
-                        }`}
-                      >
-                        <img
-                          src={card.imageUrl}
-                          alt={card.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => handleCardImageError(e, card.cardId, card.imageUrl)}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* CENTER BATTLEFIELD */}
-          <div className="flex-1 min-w-0 flex flex-col justify-between h-full max-w-[850px] mx-auto py-0.5 px-0.5 sm:px-1 overflow-hidden">
-            {renderOpponentPlaymat()}
-            <div className="h-px w-full bg-white/10 shrink-0 my-0.5" />
-            {renderPlayerPlaymat()}
-          </div>
-
-          {/* RIGHT FLANK */}
-          <div className="w-28 sm:w-36 shrink-0 flex flex-col justify-between items-end py-0.5 z-20">
-            {/* Top: Opponent Hand + Turn Pill */}
-            <div className="flex flex-col items-end gap-1.5">
-              {/* Opponent Hand */}
-              {oppHandExpanded && (
-                <div className="flex items-center -space-x-4 sm:-space-x-5 animate-fadeIn">
-                  {Array.from({ length: gameState.opponent.handCount }).map((_, idx) => (
-                    <div
-                      key={`opp-hand-card-${idx}`}
-                      className="w-11 sm:w-13 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/20 shadow-md transform transition hover:-translate-y-2 hover:z-10 bg-black/40"
-                    >
-                      <img
-                        src={OPCG_PURPLE_BACK_DATA_URL}
-                        alt="Opponent Hand"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="flex items-center gap-1">
-                <div className="px-1.5 py-0.5 rounded-md bg-[#141a29] border border-white/10 text-white font-mono text-[9px] font-bold shadow-xs">
-                  {gameState.opponent.handCount}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setOppHandExpanded(!oppHandExpanded)}
-                  className="px-1.5 py-0.5 rounded-md bg-[#1e2638] hover:bg-[#283248] text-gray-200 border border-white/10 text-[9px] font-semibold shadow-xs flex items-center gap-0.5 transition"
-                >
-                  <span>⇅ Original</span>
-                </button>
-              </div>
-
-              {/* Turn Menu Pill */}
-              <button
-                type="button"
-                className="px-2.5 py-1 rounded-lg bg-[#141a29] border border-white/10 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-xs mt-1"
-              >
-                <Menu className="w-3 h-3 stroke-[2.5]" />
-                <span>TURN {gameState.turn}</span>
-              </button>
-            </div>
-
-            {/* Bottom: Turn Action Controls */}
-            <div className="flex flex-col items-end gap-1">
-              <button
-                type="button"
-                onClick={handleNextTurn}
-                className={`px-4 py-2 rounded-xl bg-[#d97706] hover:bg-[#b45309] text-white font-black text-xs flex items-center gap-1.5 shadow-lg active:scale-95 transition cursor-pointer select-none ${
-                  highlightTarget === 'endTurn' ? spotlightClass : ''
-                }`}
-              >
-                <span>End turn</span>
-                <span className="text-[10px]">▷</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => alert('Bug report submitted. Thank you for testing the simulator!')}
-                className="px-2.5 py-1 rounded-xl bg-[#141a29] text-gray-300 hover:text-white font-semibold text-[9.5px] border border-white/10 shadow-xs flex items-center gap-1 transition"
-              >
-                <Bug className="w-3 h-3 text-amber-500" />
-                <span>Report bug</span>
-              </button>
-
-              {isAdmin && (
-                <Link
-                  href="/admin"
-                  className="flex items-center gap-1 py-1 px-2.5 rounded-full bg-[#1c2230] text-rose-300 font-bold text-[10px] shadow border border-red-500/30 hover:bg-[#262f42] active:scale-95 transition"
-                >
-                  <ShieldAlert className="w-3 h-3 text-rose-400" />
-                  <span>Admin</span>
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* -------------------------------------------------------------------
-           2. PORTRAIT MODE (STACKED VERTICAL LAYOUT FOR PHONES HELD UPRIGHT)
-           - Top Bar: Navigation, Rotate Toggle, Opponent Status
-           - Center: Playmats stacked vertically without overlaps
-           - Bottom Bar: Player Hand scrolling strip + Turn Controls
-           ------------------------------------------------------------------- */
-        <div className="w-full h-full flex flex-col justify-between overflow-hidden select-none">
-          {/* Top Navigation & Status Bar */}
-          <div className="shrink-0 flex items-center justify-between pb-1 border-b border-white/10 px-1">
+      <div className="w-full h-full max-w-[1240px] mx-auto flex flex-row items-stretch justify-between gap-1 sm:gap-2 overflow-hidden">
+        {/* LEFT FLANK */}
+        <div className="w-24 sm:w-28 md:w-32 shrink-0 flex flex-col justify-between py-0.5 z-20">
+          {/* Top: Header Controls + Status Badges */}
+          <div className="flex flex-col gap-1.5">
+            {/* Navigation Icons Row */}
             <div className="flex items-center gap-1">
               {onExit ? (
                 <button
                   type="button"
                   onClick={onExit}
-                  className="flex items-center gap-1 px-2 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 text-[11px] font-semibold transition"
+                  className="flex items-center gap-1 px-2 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 text-[11px] font-semibold shadow-xs transition"
+                  title="Return to App"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Back</span>
+                  <span className="hidden sm:inline">Back</span>
                 </button>
               ) : (
                 <Link
                   href="/"
-                  className="flex items-center gap-1 px-2 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 text-[11px] font-semibold transition"
+                  className="flex items-center gap-1 px-2 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 text-[11px] font-semibold shadow-xs transition"
+                  title="Return to Dashboard"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Back</span>
+                  <span className="hidden sm:inline">Back</span>
                 </Link>
               )}
 
-              {/* Prominent Rotate Button for mobile players */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                  } else {
+                    document.exitFullscreen().catch(() => {});
+                  }
+                }}
+                className="w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 flex items-center justify-center shadow-xs transition"
+                title="Toggle Fullscreen"
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+              </button>
+
               <button
                 type="button"
                 onClick={handleToggleOrientation}
-                className="flex items-center gap-1 px-2 h-7 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-bold shadow-xs transition active:scale-95"
-                title="Switch to Landscape Mode"
+                className="w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-amber-400 border border-white/10 flex items-center justify-center shadow-xs transition"
+                title="Rotate Screen"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Landscape</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setShowSettingsModal(true)}
-                className="w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-amber-400 border border-white/10 flex items-center justify-center transition"
+                className="w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-amber-400 border border-white/10 flex items-center justify-center shadow-xs transition"
+                title="Settings & Tutorial"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" />
               </button>
@@ -946,115 +731,174 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
               <button
                 type="button"
                 onClick={() => setShowLogModal(!showLogModal)}
-                className="w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 flex items-center justify-center transition"
+                className="w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 flex items-center justify-center shadow-xs transition"
+                title={`Battle Log (${gameState.logs.length})`}
               >
                 <ScrollText className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            {/* Opponent Pill & Hand count */}
-            <div className="flex items-center gap-1.5">
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#141a29] border border-white/10 text-white text-[9.5px] font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                <span>OPPONENT</span>
-              </div>
-              <div className="px-1.5 py-0.5 rounded-md bg-[#141a29] border border-white/10 text-gray-300 font-mono text-[9px]">
-                🃏 {gameState.opponent.handCount}
-              </div>
-            </div>
-          </div>
-
-          {/* Center Playmats Container */}
-          <div className="flex-1 min-h-0 flex flex-col justify-between py-1 gap-1 w-full max-w-[480px] mx-auto overflow-hidden">
-            {renderOpponentPlaymat()}
-            <div className="h-px w-full bg-white/10 shrink-0 my-0.5" />
-            {renderPlayerPlaymat()}
-          </div>
-
-          {/* Bottom Bar: Player Hand + Turn Controls */}
-          <div className="shrink-0 flex flex-col gap-1 pt-1 border-t border-white/10 bg-[#0a0e17] px-1">
-            {/* Player Hand Header */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1">
-                <span className="text-[10px] font-bold text-gray-400">HAND</span>
-                <span className="px-1.5 py-0.2 rounded bg-[#141a29] border border-white/10 text-white font-mono text-[9px] font-bold">
-                  {gameState.hand.length}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#141a29] border border-white/10 text-white text-[9.5px] font-bold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span>GUEST</span>
-                  <span className="px-1 py-0.2 rounded bg-amber-600 text-[7px] font-bold text-white uppercase">TURN</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Hand Cards Scrolling Row */}
-            <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 px-0.5">
-              {gameState.hand.map((card) => {
-                const canAfford = gameState.activeDon >= (card.cost || 0);
-                return (
-                  <div
-                    key={card.instanceId}
-                    onClick={() => setSelectedHandCard(card)}
-                    className={`w-12 sm:w-14 aspect-[2.5/3.5] shrink-0 rounded-md overflow-hidden border border-white/20 shadow-md cursor-pointer transition ${
-                      canAfford ? 'opacity-100 border-emerald-500/60' : 'opacity-70'
-                    }`}
-                  >
-                    <img
-                      src={card.imageUrl}
-                      alt={card.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => handleCardImageError(e, card.cardId, card.imageUrl)}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Bottom Actions Row */}
-            <div className="flex items-center justify-between pt-0.5">
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  className="px-2 py-1 rounded-lg bg-[#141a29] border border-white/10 text-white font-bold text-[10px] flex items-center gap-1"
-                >
-                  <Menu className="w-3 h-3 stroke-[2.5]" />
-                  <span>TURN {gameState.turn}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => alert('Bug report submitted. Thank you for testing the simulator!')}
-                  className="p-1 rounded-lg bg-[#141a29] text-gray-400 hover:text-white border border-white/10"
-                >
-                  <Bug className="w-3.5 h-3.5 text-amber-500" />
-                </button>
-                {isAdmin && (
-                  <Link
-                    href="/admin"
-                    className="flex items-center gap-1 py-0.5 px-2 rounded-full bg-[#1c2230] text-rose-300 font-bold text-[9.5px] border border-red-500/30"
-                  >
-                    <ShieldAlert className="w-3 h-3 text-rose-400" />
-                    <span>Admin</span>
-                  </Link>
-                )}
-              </div>
-
+            {/* Opponent Status Badge */}
+            <div className="flex flex-col gap-0.5">
               <button
                 type="button"
-                onClick={handleNextTurn}
-                className={`px-4 py-1.5 rounded-xl bg-[#d97706] hover:bg-[#b45309] text-white font-black text-xs flex items-center gap-1 shadow active:scale-95 transition ${
-                  highlightTarget === 'endTurn' ? spotlightClass : ''
-                }`}
+                onClick={() => setShowOpponentSelector(true)}
+                className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#141a29] border border-white/10 text-white text-[9.5px] font-bold shadow-xs hover:bg-[#1e2638] transition w-fit"
               >
-                <span>End turn</span>
-                <span className="text-[10px]">▷</span>
+                <span className="w-2 h-2 rounded-full bg-blue-400" />
+                <span>OPPONENT</span>
               </button>
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#141a29] border border-white/5 text-gray-400 font-mono text-[9px] w-fit">
+                <Clock className="w-2.5 h-2.5 text-gray-500" />
+                <span>17:30</span>
+              </div>
+            </div>
+
+            {/* Player Status Badge */}
+            <div className="flex flex-col gap-0.5">
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#141a29] border border-white/10 text-white text-[9.5px] font-bold shadow-xs w-fit">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span>GUEST</span>
+                <span className="px-1 py-0.2 rounded bg-amber-600 text-[7px] font-bold text-white uppercase">TURN</span>
+              </div>
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#141a29] border border-white/5 text-gray-400 font-mono text-[9px] w-fit">
+                <Clock className="w-2.5 h-2.5 text-gray-500" />
+                <span>17:30</span>
+              </div>
             </div>
           </div>
+
+          {/* Bottom: Player Hand */}
+          <div
+            className={`flex flex-col items-start gap-1 rounded-xl p-0.5 transition-all ${
+              highlightTarget === 'hand' ? spotlightClass : ''
+            }`}
+          >
+            <div className="flex items-center gap-1">
+              <div className="px-1.5 py-0.5 rounded-md bg-[#141a29] border border-white/10 text-white font-mono text-[9px] font-bold shadow-xs">
+                {gameState.hand.length}
+              </div>
+              <button
+                type="button"
+                onClick={() => setPlayerHandExpanded(!playerHandExpanded)}
+                className="px-1.5 py-0.5 rounded-md bg-[#1e2638] hover:bg-[#283248] text-gray-200 border border-white/10 text-[9px] font-semibold shadow-xs flex items-center gap-0.5 transition"
+              >
+                <span>⇅ Original</span>
+              </button>
+            </div>
+
+            {playerHandExpanded && (
+              <div className="flex items-center -space-x-4 sm:-space-x-5 animate-fadeIn">
+                {gameState.hand.map((card) => {
+                  const canAfford = gameState.activeDon >= (card.cost || 0);
+                  return (
+                    <div
+                      key={card.instanceId}
+                      onClick={() => setSelectedHandCard(card)}
+                      className={`w-13 sm:w-16 md:w-18 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/20 shadow-xl cursor-pointer transform transition duration-150 hover:-translate-y-2 hover:z-20 bg-black/40 ${
+                        canAfford ? 'opacity-100 hover:border-amber-400' : 'opacity-70'
+                      }`}
+                    >
+                      <img
+                        src={card.imageUrl}
+                        alt={card.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => handleCardImageError(e, card.cardId, card.imageUrl)}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
-      )}
+
+        {/* CENTER BATTLEFIELD */}
+        <div className="flex-1 min-w-0 flex flex-col justify-between h-full max-w-[860px] mx-auto py-0.5 px-0.5 sm:px-1 overflow-hidden">
+          {renderOpponentPlaymat()}
+          <div className="h-0.5 w-full bg-white/10 shrink-0 my-0.5" />
+          {renderPlayerPlaymat()}
+        </div>
+
+        {/* RIGHT FLANK */}
+        <div className="w-24 sm:w-28 md:w-32 shrink-0 flex flex-col justify-between items-end py-0.5 z-20">
+          {/* Top: Opponent Hand + Turn Pill */}
+          <div className="flex flex-col items-end gap-1.5">
+            {/* Opponent Hand */}
+            {oppHandExpanded && (
+              <div className="flex items-center -space-x-3 sm:-space-x-4 animate-fadeIn">
+                {Array.from({ length: gameState.opponent.handCount }).map((_, idx) => (
+                  <div
+                    key={`opp-hand-card-${idx}`}
+                    className="w-12 sm:w-14 md:w-16 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/20 shadow-md transform transition hover:-translate-y-2 hover:z-10 bg-black/40"
+                  >
+                    <img
+                      src={OPCG_PURPLE_BACK_DATA_URL}
+                      alt="Opponent Hand"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex items-center gap-1">
+              <div className="px-1.5 py-0.5 rounded-md bg-[#141a29] border border-white/10 text-white font-mono text-[9px] font-bold shadow-xs">
+                {gameState.opponent.handCount}
+              </div>
+              <button
+                type="button"
+                onClick={() => setOppHandExpanded(!oppHandExpanded)}
+                className="px-1.5 py-0.5 rounded-md bg-[#1e2638] hover:bg-[#283248] text-gray-200 border border-white/10 text-[9px] font-semibold shadow-xs flex items-center gap-0.5 transition"
+              >
+                <span>⇅ Original</span>
+              </button>
+            </div>
+
+            {/* Turn Menu Pill */}
+            <button
+              type="button"
+              className="px-2.5 py-1 rounded-lg bg-[#141a29] border border-white/10 text-white font-bold text-[11px] flex items-center gap-1.5 shadow-xs mt-1"
+            >
+              <Menu className="w-3 h-3 stroke-[2.5]" />
+              <span>TURN {gameState.turn}</span>
+            </button>
+          </div>
+
+          {/* Bottom: Turn Action Controls */}
+          <div className="flex flex-col items-end gap-1">
+            <button
+              type="button"
+              onClick={handleNextTurn}
+              className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-[#d97706] hover:bg-[#b45309] text-white font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-lg active:scale-95 transition cursor-pointer select-none ${
+                highlightTarget === 'endTurn' ? spotlightClass : ''
+              }`}
+            >
+              <span>End turn</span>
+              <span className="text-[10px]">▷</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => alert('Bug report submitted. Thank you for testing the simulator!')}
+              className="px-2.5 py-1 rounded-xl bg-[#141a29] text-gray-300 hover:text-white font-semibold text-[9.5px] border border-white/10 shadow-xs flex items-center gap-1 transition"
+            >
+              <Bug className="w-3 h-3 text-amber-500" />
+              <span>Report bug</span>
+            </button>
+
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className="flex items-center gap-1 py-1 px-2.5 rounded-full bg-[#1c2230] text-rose-300 font-bold text-[10px] shadow border border-red-500/30 hover:bg-[#262f42] active:scale-95 transition"
+              >
+                <ShieldAlert className="w-3 h-3 text-rose-400" />
+                <span>Admin</span>
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+
 
       {/* =======================================================================
           TUTORIAL OVERLAY DOCK (Covers the inactive half automatically in Dark Theme)
