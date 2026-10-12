@@ -208,10 +208,10 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
   };
 
   // Card Play
-  const handlePlayCard = (instanceId: string) => {
+  const handlePlayCard = (instanceId: string, replaceSlotIndex?: number) => {
     setSelectedDonCount(0);
     setSelectedAttacker(null);
-    setGameState((prev) => playCardFromHand(prev, instanceId));
+    setGameState((prev) => playCardFromHand(prev, instanceId, replaceSlotIndex));
     setSelectedHandCard(null);
   };
 
@@ -558,6 +558,15 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                   <div
                     key={card.instanceId}
                     onClick={() => {
+                      // If a hand card is selected and can afford to summon/replace:
+                      if (
+                        selectedHandCard &&
+                        selectedHandCard.category === 'Character' &&
+                        gameState.activeDon >= (selectedHandCard.cost || 0)
+                      ) {
+                        handlePlayCard(selectedHandCard.instanceId, slotIdx);
+                        return;
+                      }
                       if (selectedDonCount > 0) {
                         handleAttachDon(card.instanceId, selectedDonCount);
                         return;
@@ -579,6 +588,11 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                         ? 'border-2 border-amber-400 ring-3 ring-amber-400 ring-offset-1 ring-offset-black animate-pulse shadow-[0_0_20px_rgba(251,191,36,0.9)] scale-105 z-20'
                         : isThisAttacking
                         ? 'border-2 border-rose-500 ring-4 ring-rose-500 ring-offset-1 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(244,63,94,0.95)] scale-105 z-20'
+                        : selectedHandCard &&
+                          selectedHandCard.category === 'Character' &&
+                          gameState.activeDon >= (selectedHandCard.cost || 0) &&
+                          gameState.characters.length >= 5
+                        ? 'border-2 border-amber-400 ring-2 ring-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.8)] animate-pulse scale-105 z-20'
                         : card.rested
                         ? 'rotate-90 scale-95 opacity-80 border-2 border-amber-500'
                         : 'border border-cyan-400/80 shadow-[0_0_10px_rgba(34,211,238,0.4)] hover:border-cyan-300'
@@ -586,6 +600,11 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                     title={
                       selectedDonCount > 0
                         ? `Click to attach ${selectedDonCount} DON (+${selectedDonCount * 1000} Power)`
+                        : selectedHandCard &&
+                          selectedHandCard.category === 'Character' &&
+                          gameState.activeDon >= (selectedHandCard.cost || 0) &&
+                          gameState.characters.length >= 5
+                        ? `Click to replace this character with ${selectedHandCard.name}`
                         : isThisAttacking
                         ? 'Attacker selected - Click enemy target or click here to cancel'
                         : canAttack
@@ -606,6 +625,16 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                         </span>
                       </div>
                     )}
+                    {selectedHandCard &&
+                      selectedHandCard.category === 'Character' &&
+                      gameState.activeDon >= (selectedHandCard.cost || 0) &&
+                      gameState.characters.length >= 5 && (
+                        <div className="absolute inset-0 bg-amber-950/60 backdrop-blur-[0.5px] flex flex-col items-center justify-center p-0.5 pointer-events-none z-10 animate-fadeIn">
+                          <span className="px-1.5 py-0.5 rounded-full bg-amber-500 text-black font-black text-[6.5px] sm:text-[7.5px] shadow-lg animate-bounce">
+                            REPLACE
+                          </span>
+                        </div>
+                      )}
                     {isThisAttacking && (
                       <div className="absolute inset-0 bg-rose-950/40 backdrop-blur-[0.5px] flex flex-col items-center justify-between p-0.5 pointer-events-none z-10 animate-fadeIn">
                         <span className="px-1.5 py-0.2 rounded-full bg-rose-600 text-white font-black text-[6.5px] sm:text-[7.5px] shadow-lg animate-bounce flex items-center gap-0.5">
@@ -632,11 +661,39 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                   </div>
                 );
               }
+
+              const canSummonHere = Boolean(
+                selectedHandCard &&
+                selectedHandCard.category === 'Character' &&
+                gameState.activeDon >= (selectedHandCard.cost || 0)
+              );
+
               return (
                 <div
                   key={`player-char-slot-${slotIdx}`}
-                  className="w-full aspect-[2.5/3.5] rounded-xl border border-dashed border-emerald-900/40 bg-[#05110d]/40"
-                />
+                  onClick={() => {
+                    if (canSummonHere && selectedHandCard) {
+                      handlePlayCard(selectedHandCard.instanceId, slotIdx);
+                    }
+                  }}
+                  className={`w-full aspect-[2.5/3.5] rounded-xl transition flex flex-col items-center justify-center p-1 text-center ${
+                    canSummonHere
+                      ? 'border-2 border-dashed border-emerald-400 bg-emerald-500/25 shadow-[0_0_20px_rgba(52,211,153,0.6)] animate-pulse cursor-pointer hover:bg-emerald-500/35 active:scale-95 z-20'
+                      : 'border border-dashed border-emerald-900/40 bg-[#05110d]/40'
+                  }`}
+                  title={canSummonHere ? `Click to summon ${selectedHandCard?.name} here (${selectedHandCard?.cost} DON)` : undefined}
+                >
+                  {canSummonHere && (
+                    <div className="flex flex-col items-center gap-0.5 pointer-events-none animate-fadeIn">
+                      <span className="text-[7.5px] sm:text-[8.5px] font-black text-emerald-300 uppercase tracking-wider">
+                        + PLAY
+                      </span>
+                      <span className="text-[6px] sm:text-[7px] font-mono font-bold text-emerald-200">
+                        {selectedHandCard?.cost} DON
+                      </span>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -739,18 +796,38 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
 
           {/* Stage & Deck */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            <div
-              onClick={() => {
-                if (gameState.stage) setSelectedFieldCard(gameState.stage);
-              }}
-              className="w-10 sm:w-12 md:w-13 aspect-[2.5/3.5] rounded-xl border border-dashed border-emerald-900/40 bg-[#05110d]/40 flex items-center justify-center text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider text-gray-500 overflow-hidden relative cursor-pointer"
-            >
-              {gameState.stage ? (
-                <img src={gameState.stage.imageUrl} alt={gameState.stage.name} className="w-full h-full object-cover" />
-              ) : (
-                <span>STAGE</span>
-              )}
-            </div>
+            {(() => {
+              const canPlayStage = Boolean(
+                selectedHandCard &&
+                selectedHandCard.category === 'Stage' &&
+                gameState.activeDon >= (selectedHandCard.cost || 0)
+              );
+              return (
+                <div
+                  onClick={() => {
+                    if (canPlayStage && selectedHandCard) {
+                      handlePlayCard(selectedHandCard.instanceId);
+                      return;
+                    }
+                    if (gameState.stage) setSelectedFieldCard(gameState.stage);
+                  }}
+                  className={`w-10 sm:w-12 md:w-13 aspect-[2.5/3.5] rounded-xl flex items-center justify-center text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider overflow-hidden relative cursor-pointer transition ${
+                    canPlayStage
+                      ? 'border-2 border-dashed border-emerald-400 bg-emerald-500/25 shadow-[0_0_15px_rgba(52,211,153,0.6)] animate-pulse text-emerald-300'
+                      : 'border border-dashed border-emerald-900/40 bg-[#05110d]/40 text-gray-500'
+                  }`}
+                  title={canPlayStage ? `Click to play Stage ${selectedHandCard?.name} (${selectedHandCard?.cost} DON)` : undefined}
+                >
+                  {gameState.stage ? (
+                    <img src={gameState.stage.imageUrl} alt={gameState.stage.name} className="w-full h-full object-cover" />
+                  ) : canPlayStage ? (
+                    <span className="text-emerald-300 font-black text-[7px] leading-tight text-center">+ PLAY STAGE</span>
+                  ) : (
+                    <span>STAGE</span>
+                  )}
+                </div>
+              );
+            })()}
             <div
               onClick={handleManualDraw}
               className="w-10 sm:w-12 md:w-13 aspect-[2.5/3.5] rounded-xl border border-emerald-900/50 bg-[#05110d]/70 overflow-hidden relative shadow-md cursor-pointer hover:brightness-110 transition group"
@@ -1082,6 +1159,57 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
             </div>
           </div>
 
+          {/* Floating Hand Card Action Banner - Seamless One-Tap Summon */}
+          {selectedHandCard && (
+            <div className="w-full px-2.5 py-1.5 flex items-center justify-between gap-2 bg-[#101626]/95 border border-emerald-500/50 shadow-2xl backdrop-blur-md rounded-xl text-xs text-white animate-fadeIn my-0.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
+                <span className="font-black text-emerald-300 truncate">{selectedHandCard.name}</span>
+                <span className="text-[11px] text-gray-300 shrink-0">
+                  Cost: <b className="text-amber-300 font-bold">{selectedHandCard.cost} DON</b>
+                </span>
+                {gameState.activeDon >= (selectedHandCard.cost || 0) ? (
+                  <span className="text-[10px] text-emerald-400 font-semibold hidden sm:inline">
+                    ➔ Tap any green slot on field to summon
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-rose-400 font-semibold hidden sm:inline">
+                    (Need {selectedHandCard.cost} Active DON!!, have {gameState.activeDon})
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {selectedHandCard.category === 'Event' && gameState.activeDon >= (selectedHandCard.cost || 0) && (
+                  <button
+                    type="button"
+                    onClick={() => handlePlayCard(selectedHandCard.instanceId)}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold flex items-center gap-1 transition active:scale-95 cursor-pointer shadow-md"
+                  >
+                    <Play className="w-3 h-3" />
+                    <span>Activate</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleDiscardCard(selectedHandCard.instanceId)}
+                  className="px-2.5 py-1 rounded-lg bg-rose-950/70 hover:bg-rose-900/80 text-rose-300 border border-rose-700/50 text-[10px] font-bold flex items-center gap-1 transition active:scale-95 cursor-pointer"
+                  title="Discard to Trash"
+                >
+                  <Trash2 className="w-3 h-3 text-rose-400" />
+                  <span>Trash</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedHandCard(null)}
+                  className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+                  title="Cancel"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Player Hand (Overlapping cards - nice and large like Image 1) */}
           {playerHandExpanded && (
             <div
@@ -1090,13 +1218,26 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
               }`}
             >
               {gameState.hand.map((card) => {
+                const isSelected = selectedHandCard?.instanceId === card.instanceId;
                 const canAfford = gameState.activeDon >= (card.cost || 0);
                 return (
                   <div
                     key={card.instanceId}
-                    onClick={() => setSelectedHandCard(card)}
-                    className={`w-13 sm:w-16 md:w-18 aspect-[2.5/3.5] rounded-lg overflow-hidden border border-white/20 shadow-xl cursor-pointer transform transition duration-150 hover:-translate-y-2 hover:z-20 bg-black/40 shrink-0 ${
-                      canAfford ? 'opacity-100 hover:border-amber-400' : 'opacity-70'
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedHandCard(null);
+                      } else {
+                        setSelectedHandCard(card);
+                        setSelectedDonCount(0);
+                        setSelectedAttacker(null);
+                      }
+                    }}
+                    className={`w-13 sm:w-16 md:w-18 aspect-[2.5/3.5] rounded-lg overflow-hidden border shadow-xl cursor-pointer transform transition duration-150 shrink-0 ${
+                      isSelected
+                        ? '-translate-y-3 ring-3 ring-amber-400 border-amber-300 shadow-[0_0_20px_rgba(251,191,36,0.8)] z-30 scale-105'
+                        : canAfford
+                        ? 'opacity-100 hover:-translate-y-2 hover:border-amber-400 hover:z-20 border-white/20 bg-black/40'
+                        : 'opacity-60 border-white/10 hover:-translate-y-1 bg-black/50'
                     }`}
                   >
                     <img
@@ -1249,68 +1390,6 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
         />
       )}
 
-      {/* =========================================================================
-          CONTEXTUAL CARD ACTION DRAWER (Hand Card Tap)
-         ========================================================================= */}
-      {selectedHandCard && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-3 animate-fadeIn">
-          <div className="bg-[#101626] border border-[#232f48] rounded-2xl max-w-sm w-full p-4 space-y-3 shadow-2xl relative text-gray-200">
-            <button
-              type="button"
-              onClick={() => setSelectedHandCard(null)}
-              className="absolute top-3 right-3 p-1.5 rounded-lg text-gray-400 hover:text-white bg-white/5"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            <div className="flex items-center gap-3">
-              <div className="w-16 aspect-[2.5/3.5] rounded-lg overflow-hidden bg-black/40 border border-white/10 shrink-0 shadow-xs">
-                <img
-                  src={selectedHandCard.imageUrl}
-                  alt={selectedHandCard.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h4 className="text-sm font-bold text-white truncate">{selectedHandCard.name}</h4>
-                <div className="text-[11px] text-gray-400 font-mono mt-0.5">
-                  Cost: {selectedHandCard.cost} &bull; Power: {selectedHandCard.power || 0}
-                </div>
-                {selectedHandCard.counter && (
-                  <span className="inline-block mt-1 px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono text-[9px] font-bold border border-amber-500/30">
-                    +{selectedHandCard.counter} Counter
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 pt-1">
-              <button
-                type="button"
-                disabled={gameState.activeDon < (selectedHandCard.cost || 0)}
-                onClick={() => handlePlayCard(selectedHandCard.instanceId)}
-                className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs ${
-                  gameState.activeDon >= (selectedHandCard.cost || 0)
-                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white active:scale-95 cursor-pointer'
-                    : 'bg-white/5 text-gray-500 cursor-not-allowed border border-white/5'
-                }`}
-              >
-                <Play className="w-3.5 h-3.5" />
-                <span>Play Card ({selectedHandCard.cost} DON)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDiscardCard(selectedHandCard.instanceId)}
-                className="py-2 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-gray-200 font-semibold text-xs flex items-center justify-center gap-1.5 border border-white/10"
-              >
-                <Trash2 className="w-3.5 h-3.5 text-gray-400" />
-                <span>Trash</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* =========================================================================
           CONTEXTUAL CARD ACTION DRAWER (Field Card Tap)

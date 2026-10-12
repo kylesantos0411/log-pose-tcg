@@ -667,12 +667,26 @@ export function playCardFromHand(
       canAttackThisTurn: card.hasRush || false,
     };
 
-    if (newCharacters.length >= 5) {
-      const replaceIdx = replaceSlotIndex !== undefined && replaceSlotIndex >= 0 ? replaceSlotIndex : 0;
+    if (
+      (newCharacters.length >= 5 && replaceSlotIndex !== undefined) ||
+      (replaceSlotIndex !== undefined && replaceSlotIndex < newCharacters.length)
+    ) {
+      const replaceIdx = Math.max(0, Math.min(replaceSlotIndex, newCharacters.length - 1));
       const replaced = newCharacters[replaceIdx];
+      const returnedDon = replaced.attachedDon || 0;
       newTrash.push({ ...replaced, rested: false, attachedDon: 0 });
       newCharacters[replaceIdx] = playedChar;
-      actionLog = `Played Character ${card.name} (Cost: ${cost}), sending ${replaced.name} to Trash`;
+      actionLog = `Played Character ${card.name} (Cost: ${cost}), replacing ${replaced.name} to Trash${returnedDon ? ` (${returnedDon} attached DON!! returned to Cost Area)` : ''}`;
+      return {
+        ...state,
+        activeDon: newActiveDon,
+        restedDon: newRestedDon + returnedDon,
+        hand: newHand,
+        characters: newCharacters,
+        stage: newStage,
+        trash: newTrash,
+        logs: [...state.logs, createLog(actionLog, 'action')],
+      };
     } else {
       newCharacters.push(playedChar);
       actionLog = `Played Character ${card.name} (Cost: ${cost}${card.hasRush ? ' [Rush]' : ''})`;
