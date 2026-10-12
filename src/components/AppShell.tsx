@@ -37,6 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, logout, openSettings } = useSettings();
   const isPreview = pathname === '/preview';
+  const isSim = pathname === '/sim' || pathname?.startsWith('/sim');
 
   const [systemSettings, setSystemSettings] = useState<SystemSettingsState>(DEFAULT_SYSTEM_SETTINGS);
   const [loadingSettings, setLoadingSettings] = useState(true);
@@ -156,9 +157,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // In /preview mode, render dedicated studio canvas without outer desktop sidebar
-  if (isPreview) {
-    return <div className="min-h-screen bg-[#13151b]">{children}</div>;
+  // In /preview or /sim mode, render dedicated studio/game canvas without outer desktop sidebar, padding or footer
+  if (isPreview || isSim) {
+    return <div className="fixed inset-0 w-screen h-screen overflow-hidden bg-[#0a0e17]">{children}</div>;
   }
 
   const ROUTE_FEATURE_MAP: Record<string, AppFeatureKey> = {

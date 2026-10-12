@@ -454,12 +454,12 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
       {/* =======================================================================
           MAIN CENTER BATTLEFIELD: LOG POSE DARK THEME (NAVY OPPONENT + EMERALD PLAYER)
          ======================================================================= */}
-      <div className="flex-1 flex flex-col items-center justify-center max-w-[860px] w-full mx-auto my-auto gap-1.5 relative px-10 sm:px-14">
+      <div className="flex-1 flex flex-col items-center justify-between max-w-[880px] w-full mx-auto my-auto gap-0.5 sm:gap-1.5 relative px-8 sm:px-14 h-full py-0.5 sm:py-1">
         {/* =====================================================================
             1. OPPONENT PLAYMAT: Deep Navy Slate (#0d1424, border #1e293b)
            ===================================================================== */}
         <div
-          className={`w-full rounded-2xl border-2 border-[#1e293b] bg-[#0d1424] p-1.5 sm:p-2 shadow-xl relative flex flex-row items-stretch gap-1.5 sm:gap-2 transition-all ${
+          className={`w-full rounded-xl sm:rounded-2xl border-2 border-[#1e293b] bg-[#0d1424] p-1 sm:p-1.5 shadow-xl relative flex flex-row items-stretch gap-1 sm:gap-2 transition-all flex-1 min-h-0 ${
             highlightTarget === 'opponent' ? spotlightClass : ''
           }`}
         >
@@ -650,7 +650,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
             2. PLAYER PLAYMAT: Deep Emerald Forest Slate (#0b1a14, border #16382a)
            ===================================================================== */}
         <div
-          className="w-full rounded-2xl border-2 border-[#16382a] bg-[#0b1a14] p-1.5 sm:p-2 shadow-xl relative flex flex-row items-stretch gap-1.5 sm:gap-2"
+          className="w-full rounded-xl sm:rounded-2xl border-2 border-[#16382a] bg-[#0b1a14] p-1 sm:p-1.5 shadow-xl relative flex flex-row items-stretch gap-1 sm:gap-2 flex-1 min-h-0"
         >
           {/* Far Left of Player Mat: LIFE - 5 Vertical Stack (Crimson accent) */}
           <div

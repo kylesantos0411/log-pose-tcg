@@ -11,7 +11,7 @@ export function MobileOnlyDesktopGuard() {
   const [isBypassed, setIsBypassed] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState('');
 
-  const isAdminRoute = pathname?.startsWith('/admin');
+  const isBypassedRoute = pathname?.startsWith('/admin') || pathname?.startsWith('/sim') || pathname?.startsWith('/preview');
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -51,7 +51,7 @@ export function MobileOnlyDesktopGuard() {
     setIsBypassed(true);
   };
 
-  if (!isDesktop || isBypassed || isAdminRoute) {
+  if (!isDesktop || isBypassed || isBypassedRoute) {
     return null;
   }
 
