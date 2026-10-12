@@ -12,8 +12,11 @@ import {
   Filter,
   Layers,
   ChevronRight,
-  User
+  User,
+  Gamepad2,
 } from 'lucide-react';
+import { useSettings } from '@/context/SettingsContext';
+import { checkIsAdmin } from '@/lib/supabase-sync';
 import { RECOMMENDED_DECKS, RecommendedDeck } from '@/lib/recommended-decks';
 import { getEditionCardImageUrl, handleCardImageError } from '@/lib/card-image';
 
@@ -31,6 +34,9 @@ const COLOR_CHIPS: { label: string; value: ColorFilter; bg: string; text: string
 ];
 
 export default function RecommendedDecksPage() {
+  const { user } = useSettings();
+  const isAdmin = checkIsAdmin(user);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [activeMeta, setActiveMeta] = useState<MetaFilter>('ALL');
   const [activeColor, setActiveColor] = useState<ColorFilter>('ALL');
@@ -108,9 +114,25 @@ export default function RecommendedDecksPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-slate-300 text-[10px] sm:text-[11px] font-medium uppercase tracking-wider shrink-0">
-          <Layers className="w-3.5 h-3.5 text-slate-400" />
-          <span>{filteredDecks.length} Decks</span>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Link
+              href="/sim"
+              title="Open TCG Simulator"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/35 text-amber-300 hover:bg-amber-500/25 text-[10px] sm:text-[11px] font-black uppercase tracking-wider shrink-0 transition shadow-sm active:scale-95"
+            >
+              <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
+              <span>PLAYTEST</span>
+              <span className="text-[8px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono">
+                BETA
+              </span>
+            </Link>
+          )}
+
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-slate-300 text-[10px] sm:text-[11px] font-medium uppercase tracking-wider shrink-0">
+            <Layers className="w-3.5 h-3.5 text-slate-400" />
+            <span>{filteredDecks.length} Decks</span>
+          </div>
         </div>
       </header>
 

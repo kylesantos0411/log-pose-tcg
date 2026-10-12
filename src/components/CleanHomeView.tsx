@@ -18,6 +18,8 @@ import {
   Flame,
   User as UserIcon,
   ShieldAlert,
+  Gamepad2,
+  Lock,
 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 
@@ -223,9 +225,9 @@ export function CleanHomeView({
       </div>
 
       {/* =========================================================================
-          3. 6-TILE FEATURE GRID (Responsive: 2 cols on mobile, 3 on tablet, 6 on desktop)
+          3. FEATURE GRID (Responsive: 2 cols on mobile, 3-4 on tablet, 7 on desktop)
          ========================================================================= */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-3.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-3.5">
         {/* Tile 1: Collection */}
         <Link
           href="/collection"
@@ -336,6 +338,64 @@ export function CleanHomeView({
             </h3>
             <p className="text-xs text-slate-400 font-medium mt-0.5">
               Trades &amp; Social
+            </p>
+          </div>
+        </Link>
+
+        {/* Tile 7: TCG Simulator (Admin Unlocked, Visitor Locked) */}
+        <Link
+          href="/sim"
+          className={`group rounded-2xl p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer col-span-2 sm:col-span-1 ${
+            isAdmin
+              ? 'bg-[#141620] hover:bg-[#181b26] border border-amber-500/40 hover:border-amber-400/70 shadow-amber-500/5'
+              : 'bg-[#141620] hover:bg-[#181b26] border border-[#222533] hover:border-[#2f3548]'
+          }`}
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-2">
+              <Gamepad2
+                className={`w-7 h-7 stroke-[1.8] group-hover:scale-105 transition-transform ${
+                  isAdmin
+                    ? 'text-amber-400 group-hover:text-amber-300'
+                    : 'text-slate-400 group-hover:text-slate-300'
+                }`}
+              />
+              {isAdmin ? (
+                <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono">
+                  BETA
+                </span>
+              ) : (
+                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/60 font-mono flex items-center gap-1">
+                  <Lock className="w-2.5 h-2.5 text-amber-400/80" />
+                  LOCKED
+                </span>
+              )}
+            </div>
+
+            {isAdmin ? (
+              <ChevronRight className="w-4 h-4 text-amber-400/70 group-hover:text-amber-300 group-hover:translate-x-0.5 transition" />
+            ) : (
+              <div className="w-5 h-5 rounded-md bg-slate-800/80 border border-slate-700/60 flex items-center justify-center text-slate-400 group-hover:text-amber-300 transition">
+                <Lock className="w-3 h-3 text-amber-500/70" />
+              </div>
+            )}
+          </div>
+
+          <div className="mt-2">
+            <div className="flex items-center gap-1.5">
+              <h3
+                className={`font-bold text-sm sm:text-base tracking-wide leading-tight ${
+                  isAdmin ? 'text-amber-200 group-hover:text-white' : 'text-slate-100'
+                }`}
+              >
+                TCG Sim
+              </h3>
+              {isAdmin && (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              )}
+            </div>
+            <p className="text-xs text-slate-400 font-medium mt-0.5">
+              {isAdmin ? 'Playtest Decks' : 'Closed Beta • Locked'}
             </p>
           </div>
         </Link>
