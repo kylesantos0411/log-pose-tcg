@@ -124,12 +124,12 @@ export function createDefaultOpponent(deck?: RecommendedDeck): SimOpponent {
     trigger: null,
     types: 'Animal Kingdom Pirates',
     attributes: 'Strike',
-    rested: false,
+    rested: true, // Practice character starts rested so players can practice character combat
     attachedDon: 0,
     customPowerModifier: 0,
     hasBlocker: false,
     hasRush: false,
-    canAttackThisTurn: true,
+    canAttackThisTurn: false,
   };
 
   return {
@@ -831,12 +831,36 @@ export function attackOpponentLeader(
     : state.characters.find((c) => c.instanceId === attackerInstanceId);
 
   if (!attacker) return state;
+
+  // 1. Check Turn 1 rule: Player going first cannot attack on Turn 1
+  if (state.turn === 1 && state.goingFirst) {
+    return {
+      ...state,
+      logs: [
+        ...state.logs,
+        createLog(`⚠️ The player going first cannot declare attacks on Turn 1!`, 'combat'),
+      ],
+    };
+  }
+
+  // 2. Check Rested status: A rested card cannot attack again
   if (attacker.rested) {
     return {
       ...state,
       logs: [
         ...state.logs,
-        createLog(`⚠️ ${attacker.name} is already rested and cannot attack this turn!`, 'combat'),
+        createLog(`⚠️ ${attacker.name} is already rested! A card can only attack once per turn.`, 'combat'),
+      ],
+    };
+  }
+
+  // 3. Check Summoning Sickness: Characters cannot attack the turn played unless they have [Rush]
+  if (attacker.category === 'Character' && !attacker.canAttackThisTurn && !attacker.hasRush) {
+    return {
+      ...state,
+      logs: [
+        ...state.logs,
+        createLog(`⚠️ ${attacker.name} cannot attack on the turn it was played! (Summoning Sickness)`, 'combat'),
       ],
     };
   }
@@ -844,7 +868,7 @@ export function attackOpponentLeader(
   const attackerPower = (attacker.power || 0) + attacker.attachedDon * 1000 + attacker.customPowerModifier;
   const defenderPower = (state.opponent?.leaderPower ?? 5000) + (state.opponent?.attachedDon ?? 0) * 1000;
 
-  // Rest the attacker
+  // Rest the attacker immediately upon declaring the attack
   let updatedLeader = state.leader;
   let updatedCharacters = state.characters;
 
@@ -876,14 +900,14 @@ export function attackOpponentLeader(
   const logEntry = hitSuccess
     ? createLog(
         winner === 'player'
-          ? `🏆 VICTORY! ${attacker.name} (${attackerPower} Power) landed the fatal attack on ${oppLeaderName}! YOU WON THE GAME!`
+          ? `🏆 VICTORY! ${attacker.name} (${attackerPower} Power) landed the fatal blow on ${oppLeaderName}! YOU WON THE MATCH!`
           : newOppLife === 0
-          ? `💥 ${attacker.name} (${attackerPower} Power) attacked ${oppLeaderName} (${defenderPower} Power) — DIRECT HIT! Opponent Life is now 0!`
-          : `⚔️ ${attacker.name} (${attackerPower} Power) attacked ${oppLeaderName} (${defenderPower} Power) — HIT! Opponent takes 1 damage (Life: ${newOppLife}).`,
+          ? `💥 ${attacker.name} (${attackerPower} Power) attacked ${oppLeaderName} (${defenderPower} Power) — DIRECT HIT! Opponent Life is 0 (Lethal Range)!`
+          : `⚔️ ${attacker.name} (${attackerPower} Power) attacked ${oppLeaderName} (${defenderPower} Power) — DIRECT HIT! ${oppLeaderName} takes 1 damage (${newOppLife} Life left).`,
         'combat'
       )
     : createLog(
-        `🛡️ ${attacker.name} (${attackerPower} Power) attacked ${oppLeaderName} (${defenderPower} Power) — DEFENDED / INSUFFICIENT POWER!`,
+        `🛡️ ${attacker.name} (${attackerPower} Power) attacked ${oppLeaderName} (${defenderPower} Power) — INSUFFICIENT POWER! Attack failed.`,
         'combat'
       );
 
@@ -914,12 +938,47 @@ export function attackOpponentCharacter(
   const target = state.opponent.characters.find((c) => c.instanceId === targetCharInstanceId);
 
   if (!attacker || !target) return state;
+
+  // 1. Check Turn 1 rule
+  if (state.turn === 1 && state.goingFirst) {
+    return {
+      ...state,
+      logs: [
+        ...state.logs,
+        createLog(`⚠️ The player going first cannot declare attacks on Turn 1!`, 'combat'),
+      ],
+    };
+  }
+
+  // 2. Check Attacker Rested status
   if (attacker.rested) {
     return {
       ...state,
       logs: [
         ...state.logs,
-        createLog(`⚠️ ${attacker.name} is already rested!`, 'combat'),
+        createLog(`⚠️ ${attacker.name} is already rested and cannot attack again this turn!`, 'combat'),
+      ],
+    };
+  }
+
+  // 3. Check Summoning Sickness
+  if (attacker.category === 'Character' && !attacker.canAttackThisTurn && !attacker.hasRush) {
+    return {
+      ...state,
+      logs: [
+        ...state.logs,
+        createLog(`⚠️ ${attacker.name} cannot attack on the turn it was played! (Summoning Sickness)`, 'combat'),
+      ],
+    };
+  }
+
+  // 4. Official Rule: Opponent Character MUST be RESTED to be targeted for attack!
+  if (!target.rested) {
+    return {
+      ...state,
+      logs: [
+        ...state.logs,
+        createLog(`⚠️ Cannot attack ${target.name}! You can only attack an opponent's Character if it is RESTED!`, 'combat'),
       ],
     };
   }
@@ -927,7 +986,7 @@ export function attackOpponentCharacter(
   const attackerPower = (attacker.power || 0) + attacker.attachedDon * 1000 + attacker.customPowerModifier;
   const defenderPower = (target.power || 0) + target.attachedDon * 1000;
 
-  // Rest the attacker
+  // Rest the attacker immediately
   let updatedLeader = state.leader;
   let updatedCharacters = state.characters;
 

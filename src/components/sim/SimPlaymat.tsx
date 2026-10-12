@@ -76,6 +76,33 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
   const [selectedHandCard, setSelectedHandCard] = useState<SimCard | null>(null);
   const [selectedFieldCard, setSelectedFieldCard] = useState<SimCard | null>(null);
 
+  // Derive live field card from current gameState so attached DON, power, and rested state stay reactive
+  const liveFieldCard: SimCard | null = selectedFieldCard
+    ? (gameState.leader?.instanceId === selectedFieldCard.instanceId
+        ? gameState.leader
+        : gameState.characters.find((c) => c.instanceId === selectedFieldCard.instanceId) ||
+          (gameState.stage?.instanceId === selectedFieldCard.instanceId ? gameState.stage : selectedFieldCard))
+    : null;
+
+  // Combat legality according to official Bandai rules
+  const isTurn1First = gameState.turn === 1 && gameState.goingFirst;
+  const isSummonSick = Boolean(
+    liveFieldCard?.category === 'Character' && !liveFieldCard.canAttackThisTurn && !liveFieldCard.hasRush
+  );
+  const isCardRested = Boolean(liveFieldCard?.rested);
+  const canDeclareAttack = Boolean(
+    liveFieldCard &&
+    !isCardRested &&
+    !isSummonSick &&
+    !isTurn1First &&
+    (liveFieldCard.category === 'Leader' || liveFieldCard.category === 'Character')
+  );
+
+  let attackDisabledReason = '';
+  if (isCardRested) attackDisabledReason = 'Rested (Already Attacked)';
+  else if (isSummonSick) attackDisabledReason = 'Cannot attack on turn played';
+  else if (isTurn1First) attackDisabledReason = 'Cannot attack on Turn 1';
+
   // Tutorial target highlight (subtle, clean 1.5px ring without neon glow)
   const currentStep = gameState.tutorialMode
     ? OPTCG_TUTORIAL_STEPS[gameState.tutorialStepIndex]
@@ -328,11 +355,17 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
 
                 {/* Opponent Leader Card */}
                 <div
-                  onClick={() => handleDirectDamageOpponent(1)}
+                  onClick={() => {
+                    if (selectedFieldCard) {
+                      handleAttackOpponent(selectedFieldCard.instanceId);
+                    } else if (gameState.leader && !gameState.leader.rested) {
+                      setSelectedFieldCard(gameState.leader);
+                    }
+                  }}
                   className={`aspect-[2.5/3.5] rounded-md border border-red-500/40 overflow-hidden relative shadow-sm cursor-pointer hover:scale-102 transition group ${
                     highlightTarget === 'opponent' ? 'ring-2 ring-red-400' : ''
                   }`}
-                  title="Click to deal 1 damage to Opponent Leader"
+                  title={`${gameState.opponent.leaderName} (${gameState.opponent.leaderPower} Power) · Click with active card to declare attack`}
                 >
                   <img
                     src={gameState.opponent.leaderImage}
@@ -340,9 +373,11 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                     className="w-full h-full object-cover"
                     onError={(e) => handleCardImageError(e, gameState.opponent.leaderId, gameState.opponent.leaderImage)}
                   />
-                  <div className="absolute inset-0 bg-red-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
-                    <span className="text-[8px] font-bold text-white bg-black/80 px-1 rounded uppercase">HIT (-1)</span>
-                  </div>
+                  {selectedFieldCard && (
+                    <div className="absolute inset-0 bg-red-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                      <span className="text-[8px] font-bold text-white bg-black/80 px-1 rounded uppercase">ATTACK</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Spacer slots */}
@@ -406,7 +441,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
               {/* Opponent real DON!! Deck back */}
               <div className="flex flex-col items-center">
                 <span className="text-[8px] font-bold uppercase text-gray-400 mb-0.5 tracking-wider">DON!! DECK</span>
-                <div className="w-11 sm:w-13 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 relative shadow-sm bg-black/20">
+                <div className="w-9 sm:w-13 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 relative shadow-sm bg-black/20">
                   <img src={OPCG_DON_DECK_DATA_URL} alt="DON Deck" className="w-full h-full object-cover" />
                   <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/85 text-white font-mono text-[7px] font-bold flex items-center justify-center border border-white/20">
                     {gameState.opponent.donDeckCount}
@@ -416,24 +451,22 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
 
               {/* Opponent real Life Stack with real card backs */}
               <div
-                onClick={() => handleDirectDamageOpponent(1)}
-                className="flex flex-col items-center cursor-pointer group"
-                title="Click to deal damage to Opponent Life"
+                className="flex flex-col items-center select-none"
               >
                 <div className="rounded bg-rose-700/80 text-white font-mono text-[8px] font-bold px-1.5 py-0.5 text-center tracking-wider w-full">
                   LIFE · {gameState.opponent.life}
                 </div>
-                <div className="relative flex flex-col -space-y-11 sm:-space-y-13 pt-0.5">
+                <div className="relative flex flex-col -space-y-9 sm:-space-y-13 pt-0.5">
                   {Array.from({ length: Math.min(5, gameState.opponent.life) }).map((_, idx) => (
                     <div
                       key={`opp-life-${idx}`}
-                      className="w-11 sm:w-13 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-sm"
+                      className="w-9 sm:w-13 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-sm"
                     >
                       <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Life" className="w-full h-full object-cover" />
                     </div>
                   ))}
                   {gameState.opponent.life === 0 && (
-                    <div className="w-11 sm:w-13 aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/40 flex items-center justify-center text-[8px] text-red-400 font-bold text-center">
+                    <div className="w-9 sm:w-13 aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/40 flex items-center justify-center text-[8px] text-red-400 font-bold text-center">
                       0 LIFE
                     </div>
                   )}
@@ -535,8 +568,11 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                           />
                           {/* Attached DON!! Mini Badge (power boost) */}
                           {card.attachedDon > 0 && (
-                            <div className="absolute bottom-0.5 inset-x-0.5 py-0.2 bg-amber-500 text-black text-[7px] font-bold rounded-sm text-center shadow">
-                              DON ×{card.attachedDon} (+{card.attachedDon * 1000})
+                            <div className="absolute bottom-0.5 inset-x-0.5 py-0.2 bg-amber-500 text-black text-[7px] font-bold rounded-sm text-center shadow flex items-center justify-center gap-0.5">
+                              <span>DON ×{card.attachedDon}</span>
+                              <span className="bg-black/25 text-white px-1 rounded text-[6.5px] font-mono">
+                                {(card.power || 0) + card.attachedDon * 1000}
+                              </span>
                             </div>
                           )}
                           {card.rested && (
@@ -584,8 +620,11 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                         onError={(e) => handleCardImageError(e, gameState.leader?.cardId, gameState.leader?.imageUrl)}
                       />
                       {gameState.leader.attachedDon > 0 && (
-                        <div className="absolute bottom-0.5 inset-x-0.5 py-0.2 bg-amber-500 text-black text-[7px] font-bold rounded-sm text-center shadow">
-                          DON ×{gameState.leader.attachedDon} (+{gameState.leader.attachedDon * 1000})
+                        <div className="absolute bottom-0.5 inset-x-0.5 py-0.2 bg-amber-500 text-black text-[7px] font-bold rounded-sm text-center shadow flex items-center justify-center gap-0.5">
+                          <span>DON ×{gameState.leader.attachedDon}</span>
+                          <span className="bg-black/25 text-white px-1 rounded text-[6.5px] font-mono">
+                            {(gameState.leader.power || 5000) + gameState.leader.attachedDon * 1000}
+                          </span>
                         </div>
                       )}
                       {gameState.leader.rested && (
@@ -847,7 +886,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
       {/* =========================================================================
           9. CONTEXTUAL CARD ACTION DRAWER (Field Card Tap)
          ========================================================================= */}
-      {selectedFieldCard && (
+      {selectedFieldCard && liveFieldCard && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-3 animate-fadeIn">
           <div className="bg-[#111726] border border-white/15 rounded-xl max-w-sm w-full p-4 space-y-3 shadow-xl relative text-gray-200">
             <button
@@ -861,52 +900,98 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
             <div className="flex items-center gap-3">
               <div className="w-16 aspect-[2.5/3.5] rounded-md overflow-hidden bg-black/40 border border-white/10 shrink-0">
                 <img
-                  src={selectedFieldCard.imageUrl}
-                  alt={selectedFieldCard.name}
+                  src={liveFieldCard.imageUrl}
+                  alt={liveFieldCard.name}
                   className="w-full h-full object-cover"
                 />
               </div>
               <div className="min-w-0 flex-1">
-                <h4 className="text-sm font-bold text-white truncate">{selectedFieldCard.name}</h4>
-                <div className="text-[11px] text-amber-300 font-mono mt-0.5">
-                  Total Power: {selectedFieldCard.power + selectedFieldCard.attachedDon * 1000} (DON: {selectedFieldCard.attachedDon})
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-white truncate">{liveFieldCard.name}</h4>
+                  <span
+                    className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase ${
+                      liveFieldCard.rested
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                    }`}
+                  >
+                    {liveFieldCard.rested ? 'Rested' : 'Active'}
+                  </span>
+                </div>
+                <div className="text-[12px] text-amber-300 font-mono mt-1 font-bold">
+                  Combat Power: {(liveFieldCard.power || 0) + liveFieldCard.attachedDon * 1000}
+                  {liveFieldCard.attachedDon > 0 && (
+                    <span className="text-emerald-400 font-semibold text-[10px] ml-1">
+                      (+{liveFieldCard.attachedDon * 1000} from {liveFieldCard.attachedDon} DON!!)
+                    </span>
+                  )}
+                </div>
+                <div className="text-[10px] text-gray-400 font-mono mt-0.5">
+                  Base Power: {liveFieldCard.power || 0} &bull; Attached DON: {liveFieldCard.attachedDon}
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2 pt-1">
-              {/* Attack Opponent Leader */}
+              {/* Attack Opponent Leader Button */}
               <button
                 type="button"
-                onClick={() => handleAttackOpponent(selectedFieldCard.instanceId)}
-                className="py-2 px-3 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
+                disabled={!canDeclareAttack}
+                onClick={() => {
+                  handleAttackOpponent(liveFieldCard.instanceId);
+                }}
+                className={`col-span-2 py-2.5 px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition ${
+                  canDeclareAttack
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white active:scale-95 cursor-pointer'
+                    : 'bg-white/5 text-gray-500 border border-white/5 cursor-not-allowed'
+                }`}
               >
-                <Swords className="w-3.5 h-3.5" />
-                <span>Attack Leader</span>
+                <Swords className="w-4 h-4" />
+                <span>
+                  {canDeclareAttack
+                    ? `Attack Leader with ${liveFieldCard.name} (${(liveFieldCard.power || 0) + liveFieldCard.attachedDon * 1000} Power)`
+                    : `Cannot Attack: ${attackDisabledReason}`}
+                </span>
               </button>
 
-              {/* Toggle Rest/Active */}
-              <button
-                type="button"
-                onClick={() => {
-                  handleToggleRest(selectedFieldCard.instanceId);
-                  setSelectedFieldCard(null);
-                }}
-                className="py-2 px-3 rounded-lg bg-white/10 hover:bg-white/15 text-white font-medium text-xs flex items-center justify-center gap-1.5"
-              >
-                <RotateCcw className="w-3.5 h-3.5 text-gray-300" />
-                <span>{selectedFieldCard.rested ? 'Activate' : 'Rest'}</span>
-              </button>
+              {/* Attack Rested Opponent Characters (if any are rested) */}
+              {gameState.opponent.characters.some((c) => c.rested) && (
+                <div className="col-span-2 flex flex-col gap-1 pt-1 border-t border-white/10">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                    Attack Rested Character:
+                  </span>
+                  <div className="flex gap-1.5 overflow-x-auto">
+                    {gameState.opponent.characters
+                      .filter((c) => c.rested)
+                      .map((oppChar) => (
+                        <button
+                          key={`attack-target-${oppChar.instanceId}`}
+                          type="button"
+                          disabled={!canDeclareAttack}
+                          onClick={() => handleAttackOpponentChar(liveFieldCard.instanceId, oppChar.instanceId)}
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition ${
+                            canDeclareAttack
+                              ? 'bg-rose-950/40 hover:bg-rose-900/60 text-rose-200 border-rose-500/40 cursor-pointer active:scale-95'
+                              : 'bg-white/5 text-gray-500 border-white/5 cursor-not-allowed'
+                          }`}
+                        >
+                          <Swords className="w-3 h-3 text-rose-400" />
+                          <span>Attack {oppChar.name} ({oppChar.power} Power)</span>
+                        </button>
+                      ))}
+                  </div>
+                </div>
+              )}
 
               {/* Attach DON!! */}
               <button
                 type="button"
                 disabled={gameState.activeDon === 0}
-                onClick={() => handleAttachDon(selectedFieldCard.instanceId)}
-                className={`py-2 px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 ${
+                onClick={() => handleAttachDon(liveFieldCard.instanceId)}
+                className={`py-2 px-3 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition ${
                   gameState.activeDon > 0
-                    ? 'bg-amber-600 hover:bg-amber-500 text-white'
-                    : 'bg-white/5 text-gray-500'
+                    ? 'bg-amber-600 hover:bg-amber-500 text-white active:scale-95 cursor-pointer'
+                    : 'bg-white/5 text-gray-500 cursor-not-allowed'
                 }`}
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -916,16 +1001,16 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
               {/* Detach DON!! */}
               <button
                 type="button"
-                disabled={selectedFieldCard.attachedDon === 0}
-                onClick={() => handleDetachDon(selectedFieldCard.instanceId)}
-                className={`py-2 px-3 rounded-lg font-medium text-xs flex items-center justify-center gap-1.5 ${
-                  selectedFieldCard.attachedDon > 0
-                    ? 'bg-white/10 hover:bg-white/15 text-white'
-                    : 'bg-white/5 text-gray-500'
+                disabled={liveFieldCard.attachedDon === 0}
+                onClick={() => handleDetachDon(liveFieldCard.instanceId)}
+                className={`py-2 px-3 rounded-lg font-medium text-xs flex items-center justify-center gap-1.5 transition ${
+                  liveFieldCard.attachedDon > 0
+                    ? 'bg-white/10 hover:bg-white/15 text-white active:scale-95 cursor-pointer'
+                    : 'bg-white/5 text-gray-500 cursor-not-allowed'
                 }`}
               >
                 <Minus className="w-3.5 h-3.5" />
-                <span>Detach DON</span>
+                <span>Detach DON ({liveFieldCard.attachedDon})</span>
               </button>
             </div>
           </div>
