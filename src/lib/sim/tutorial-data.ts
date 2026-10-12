@@ -1,106 +1,117 @@
 /**
  * tutorial-data.ts
- * Step-by-step interactive tutorial definitions matching OPlayTCG and official Bandai One Piece Card Game rules.
+ * Step-by-step interactive tutorial matching OPlayTCG and official Bandai One Piece Card Game rules.
  */
 
 export interface TutorialStep {
   id: number;
+  chapter: number;
   title: string;
-  bannerPrompt: string; // The floating pill banner (e.g. "✦ Attach a DON!!")
+  bannerPrompt: string; // The floating pill prompt (e.g. "✦ Attach a DON!!")
   subtitle: string;
-  description: string;
+  body: string;
   targetHighlight: 'leader' | 'characters' | 'hand' | 'costArea' | 'donDeck' | 'life' | 'opponent' | 'endTurn' | 'none';
   instruction: string;
-  recommendedAction?: string;
 }
 
 export const OPTCG_TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 1,
-    title: 'Welcome to the One Piece Card Game!',
+    chapter: 1,
+    title: 'Basics: The Table',
     bannerPrompt: '✦ Welcome to the Match',
-    subtitle: 'Tabletop Overview & Victory Condition',
-    description:
-      'You are piloting the Red Straw Hat Crew led by Monkey D. Luffy against Emperor Kaido! Each player starts with their Leader on field, a 50-card Main Deck, 10 DON!! cards, and Life cards determined by their Leader. Your objective is to reduce the opponent Leader\'s Life to 0 and land one final direct attack to win the game!',
+    subtitle: 'Battlefield Overview & Objective',
+    body:
+      'Welcome! Your goal in the One Piece Card Game is to reduce your opponent\'s Life to zero and land one final battle against their Leader to win the match. You also win if their deck runs out of cards.\n\nNotice the two playmats: You are at the bottom (Straw Hat Crew led by Monkey D. Luffy) and your opponent is at the top (Animal Kingdom Pirates led by Kaido).',
     targetHighlight: 'leader',
-    instruction: 'Familiarize yourself with your Leader card and the battlefield, then tap Next to continue.',
-    recommendedAction: 'Inspect Luffy Leader (5000 Power, 5 Life)',
+    instruction: 'Review your Leader in the center and the table layout. Tap Next to continue.',
   },
   {
     id: 2,
-    title: 'The Phases of a Turn',
-    bannerPrompt: '✦ Turn Phases: Refresh → Draw → DON!!',
-    subtitle: 'Refresh, Draw & DON!! Phase',
-    description:
-      'At the beginning of your turn, three automatic phases occur:\n1. Refresh Phase: All rested cards stand up (Active), and attached DON!! return to your Cost Area.\n2. Draw Phase: Draw 1 card from your Deck.\n3. DON!! Phase: Place 2 DON!! cards into your Cost Area as Active (Player going 1st receives only 1 on Turn 1).',
+    chapter: 1,
+    title: 'DON!! Deck & Cost Area',
+    bannerPrompt: '✦ DON!! Resources',
+    subtitle: 'Your Main Resource',
+    body:
+      'On the left is your DON!! deck (10 cards). In the middle is your Cost Area, where DON!! land. At the start of every turn, you place 2 DON!! cards into your Cost Area as Active (whoever goes first places 1 on Turn 1).\n\nDON!! is your only resource: you turn them sideways (rested) to pay costs, and you can attach them to your Leader or Characters to make them stronger!',
     targetHighlight: 'costArea',
-    instruction: 'Observe your Active DON!! cards in the Cost Area ready to pay costs or power up attacks.',
-    recommendedAction: 'Check your Active DON!! in the Cost Area',
+    instruction: 'Check your Cost Area with 5 active DON!! cards ready to use.',
   },
   {
     id: 3,
-    title: 'Playing a Character from Hand',
-    bannerPrompt: '✦ Play a Character from Hand',
-    subtitle: 'Paying DON!! Costs to Summon',
-    description:
-      'Each Character card in your hand displays its Cost inside the circle on the top-left corner. To summon a Character to your frontline, tap the card in your hand and pay its cost by resting that many Active DON!! cards in your Cost Area.',
-    targetHighlight: 'hand',
-    instruction: 'Tap Tony Tony.Chopper (Cost 1) or Roronoa Zoro (Cost 3) in your hand, then tap "Play Card".',
-    recommendedAction: 'Tap a card in your hand to play it to the field',
+    chapter: 2,
+    title: 'Your First Action',
+    bannerPrompt: '✦ Attach a DON!!',
+    subtitle: 'Powering Up for Battle',
+    body:
+      'Now you try! Tap your Leader (Monkey D. Luffy) and select "Attach DON (+1000)".\n\nYour Leader gains +1000 power for each attached DON!! during your turn. This is how you spend your active DON!! to prepare for combat!',
+    targetHighlight: 'leader',
+    instruction: 'Tap on Luffy → Tap "Attach DON (+1000)" to increase his power to 6000.',
   },
   {
     id: 4,
-    title: 'Powering Up with DON!! (+1000 Power)',
-    bannerPrompt: '✦ Attach a DON!!',
-    subtitle: 'Equipping Active DON!! to Characters or Leader',
-    description:
-      'During your Main Phase, you can take Active DON!! from your Cost Area and attach them to your Leader or any Character on your field! Each attached DON!! gives that card +1000 Power for the duration of your turn.',
-    targetHighlight: 'leader',
-    instruction: 'Tap on your Leader (Luffy) or an active Character on field, and tap "Attach DON (+1000)".',
-    recommendedAction: 'Tap Leader or Character → Attach DON',
+    chapter: 3,
+    title: 'Playing a Character',
+    bannerPrompt: '✦ Play a Character',
+    subtitle: 'Paying DON!! Costs to Summon',
+    body:
+      'To play a Character from your hand, you pay its Cost with DON!!: the cost is the number printed in the top-left circle of the card. When paid, that many active DON!! turn sideways (rested) in your Cost Area.\n\nTry tapping Tony Tony.Chopper (Cost 1, Blocker) or Roronoa Zoro (Cost 3) in your hand, and select "Play Card".',
+    targetHighlight: 'hand',
+    instruction: 'Tap a card in your hand → Tap "Play Card" to summon it to your frontline.',
   },
   {
     id: 5,
-    title: 'Declaring an Attack (Battle Step)',
+    chapter: 4,
+    title: 'Declaring an Attack',
     bannerPrompt: '✦ Attack Opponent\'s Leader',
-    subtitle: 'Combat Declaration & Power Comparison',
-    description:
-      'You can declare an attack using your Leader or an active Character (that was not played this turn, unless they have [Rush]). When attacking, your card rests (turns horizontal). You can target the Opponent\'s Leader OR any of their Rested Characters. Your Power must equal or exceed their Power to deal damage!',
+    subtitle: 'Combat Declaration & Power Rules',
+    body:
+      'You can attack using an active Leader or active Character (characters cannot attack the turn they are played, unless they have [Rush]).\n\nWhen attacking, your card turns sideways (rested). You can target the opponent\'s Leader or any of their rested Characters. If the attacker\'s power equals or exceeds the defender\'s power, the attack hits!',
     targetHighlight: 'opponent',
-    instruction: 'Tap your Leader or an active Character on field, then tap "Attack Leader" to launch an assault on Kaido!',
-    recommendedAction: 'Tap an active card → Attack Leader',
+    instruction: 'Tap your Leader or active character → Tap "Attack Leader" to strike Kaido!',
   },
   {
     id: 6,
-    title: 'Defending: Blockers & Counters',
-    bannerPrompt: '✦ Defense: Blockers & Counters',
-    subtitle: 'Protecting Yourself on the Opponent\'s Turn',
-    description:
-      'When your opponent attacks you:\n1. [Blocker]: If you have an active Character with [Blocker] (like Tony Tony.Chopper or Queen), you can rest them to intercept the attack and protect your Leader!\n2. [Counter]: You can discard cards from your hand with +1000 or +2000 Counter values to temporarily boost your defending card\'s Power to survive!',
+    chapter: 5,
+    title: 'Defending: Blockers',
+    bannerPrompt: '✦ Defense: [Blocker]',
+    subtitle: 'Intercepting Enemy Attacks',
+    body:
+      'When your opponent declares an attack, you enter the Blocker Step.\n\nIf you have an active character with [Blocker] (such as Tony Tony.Chopper on your side, or Queen on the opponent\'s side), you can rest that character to make it the new target of the attack, protecting your Leader from taking damage!',
     targetHighlight: 'characters',
-    instruction: 'Keep a Blocker on field or hold high-counter cards in hand to defend during enemy attacks.',
-    recommendedAction: 'Review Blocker & Counter values on your cards',
+    instruction: 'Keep [Blocker] characters on field to safeguard your life total.',
   },
   {
     id: 7,
-    title: 'Life Stack & [Trigger] Effects',
-    bannerPrompt: '✦ Life Stack & Triggers',
-    subtitle: 'Taking Damage & Activating Triggers',
-    description:
-      'When your Leader takes damage, you take 1 card from the top of your Life stack into your hand. If that card features a yellow [Trigger] badge at the bottom, you can reveal it and activate its powerful effect immediately for FREE (such as K.O. enemy characters or drawing cards)!',
-    targetHighlight: 'life',
-    instruction: 'Every point of Life lost gives you card advantage and potential Trigger swings!',
-    recommendedAction: 'Check your Life stack on the left of your mat',
+    chapter: 6,
+    title: 'Defending: Counters',
+    bannerPrompt: '✦ Defense: [Counter]',
+    subtitle: 'Counter Step & Hand Discards',
+    body:
+      'After the Blocker step comes the Counter Step! You can discard cards from your hand with a printed Counter value (like +1000 or +2000 on the left edge of character cards) to temporarily increase your defender\'s power to survive the attack!\n\nYou can also play Counter Event cards like Guard Point (+3000) by paying their active DON!! cost.',
+    targetHighlight: 'hand',
+    instruction: 'Hold counter cards in hand to defend during opponent turns.',
   },
   {
     id: 8,
-    title: 'Ending Your Turn & Claiming Victory',
-    bannerPrompt: '✦ End Your Turn ▷',
-    subtitle: 'Passing the Turn & Win Conditions',
-    description:
-      'When you are done with your Main Phase actions, tap the bright amber "End turn ▷" button. All attached DON!! return to your Cost Area, temporary buffs expire, and the opponent takes their turn. When your opponent has 0 Life, landing one final attack against their Leader wins you the match!',
+    chapter: 7,
+    title: 'Life Damage & [Trigger]',
+    bannerPrompt: '✦ Life Stack & [Trigger]',
+    subtitle: 'Taking Hits & Free Effects',
+    body:
+      'When your Leader takes damage, you take the top card from your Life stack into your hand.\n\nIf that card has a yellow [Trigger] badge at the bottom, you can reveal it and activate its effect immediately for FREE (such as K.O.\'ing an opponent\'s character or playing a character to the field)!',
+    targetHighlight: 'life',
+    instruction: 'Check your Life stack on the left of your mat.',
+  },
+  {
+    id: 9,
+    chapter: 8,
+    title: 'Keywords & Victory',
+    bannerPrompt: '✦ End Turn & Victory',
+    subtitle: 'Rush, Double Attack, and Final Blow',
+    body:
+      'Key traits in OPTCG:\n• [Rush]: Can attack the turn it is played.\n• [Double Attack]: Deals 2 damage to Leader instead of 1.\n• [Banish]: Damaged Life cards go straight to Trash with NO trigger.\n\nWhen the opponent\'s Life reaches 0, land one final successful attack against their Leader to win the match! Tap "End turn ▷" when ready.',
     targetHighlight: 'endTurn',
-    instruction: 'Tap "End turn ▷" when ready to pass the turn to Kaido!',
-    recommendedAction: 'Tap "End turn ▷" on bottom-right',
+    instruction: 'Tap the amber "End turn ▷" button to pass turn to opponent.',
   },
 ];

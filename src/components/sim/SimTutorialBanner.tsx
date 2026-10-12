@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { OPTCG_TUTORIAL_STEPS, TutorialStep } from '@/lib/sim/tutorial-data';
-import { Sparkles, ChevronRight, ChevronLeft, X, BookOpen, CheckCircle2, HelpCircle } from 'lucide-react';
+import { ChevronRight, ChevronLeft, X, CheckCircle2, SlidersHorizontal, BookOpen } from 'lucide-react';
 
 interface SimTutorialBannerProps {
   currentStepIndex: number;
@@ -24,16 +24,16 @@ export function SimTutorialBanner({
 
   return (
     <div className="w-full flex flex-col items-center justify-center my-1 z-30 select-none">
-      {/* Floating Pill Banner matching OPlayTCG screenshot */}
+      {/* Clean, minimalist floating banner matching OPlayTCG */}
       <div className="flex items-center gap-1.5">
         <button
           type="button"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="group px-4 py-1.5 rounded-full bg-[#182638]/90 hover:bg-[#1e324a] text-cyan-300 font-bold text-xs tracking-wide shadow-lg border border-cyan-500/40 flex items-center gap-2 backdrop-blur-md transition-all active:scale-95"
+          className="group px-3.5 py-1.5 rounded-full bg-[#131b2e]/95 hover:bg-[#1a253e] text-gray-100 text-xs font-semibold shadow-md border border-white/15 flex items-center gap-2 backdrop-blur-sm transition active:scale-98"
         >
-          <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-          <span className="font-extrabold text-[12px]">{step.bannerPrompt}</span>
-          <span className="text-[10px] bg-cyan-500/20 px-1.5 py-0.2 rounded-full font-mono text-cyan-200 border border-cyan-400/30">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+          <span className="text-[11px] tracking-wide font-bold text-white">{step.bannerPrompt}</span>
+          <span className="text-[10px] bg-white/10 px-1.5 py-0.2 rounded-full font-mono text-gray-300">
             {step.id}/{OPTCG_TUTORIAL_STEPS.length}
           </span>
         </button>
@@ -41,59 +41,57 @@ export function SimTutorialBanner({
         <button
           type="button"
           onClick={onOpenSettings}
-          title="Tutorial & Game Settings"
-          className="w-7 h-7 rounded-full bg-[#182638]/90 hover:bg-[#1e324a] border border-white/15 text-gray-300 hover:text-white flex items-center justify-center text-xs shadow-md backdrop-blur-md transition"
+          title="Settings & Lessons"
+          className="w-7 h-7 rounded-full bg-[#131b2e]/95 hover:bg-[#1a253e] border border-white/15 text-gray-300 hover:text-white flex items-center justify-center text-xs shadow-md transition"
         >
-          ⚙
+          <SlidersHorizontal className="w-3.5 h-3.5 text-gray-300" />
         </button>
       </div>
 
-      {/* Expanded Interactive Guidance Drawer */}
+      {/* Clean Drawer with step details */}
       {isExpanded && (
-        <div className="mt-2 max-w-md w-full bg-[#0d1522]/95 border border-cyan-500/30 rounded-2xl p-4 shadow-2xl backdrop-blur-md text-left animate-fadeIn">
-          <div className="flex items-start justify-between gap-2 pb-2 border-b border-white/10">
+        <div className="mt-2 max-w-md w-full bg-[#111726]/98 border border-white/15 rounded-xl p-4 shadow-xl backdrop-blur-md text-left animate-fadeIn">
+          <div className="flex items-start justify-between gap-2 pb-2.5 border-b border-white/10">
             <div>
-              <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">
                 Lesson {step.id}: {step.subtitle}
               </span>
-              <h3 className="text-sm font-black text-white mt-0.5">{step.title}</h3>
+              <h3 className="text-sm font-bold text-white mt-0.5">{step.title}</h3>
             </div>
             <button
               type="button"
               onClick={() => setIsExpanded(false)}
-              className="p-1 rounded-full text-gray-400 hover:text-white hover:bg-white/10"
+              className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-white/10"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           <div className="py-2.5 text-xs text-gray-300 whitespace-pre-line leading-relaxed">
-            {step.description}
+            {step.body}
           </div>
 
-          {step.recommendedAction && (
-            <div className="mb-3 px-3 py-2 rounded-xl bg-cyan-950/50 border border-cyan-500/30 text-cyan-200 text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0" />
-              <span className="font-medium">
-                <strong className="text-white">Goal:</strong> {step.recommendedAction}
-              </span>
-            </div>
-          )}
+          <div className="mb-3 px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-gray-200 text-xs flex items-center gap-2">
+            <CheckCircle2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="text-[11px]">
+              <strong className="text-white">Instruction:</strong> {step.instruction}
+            </span>
+          </div>
 
-          {/* Step Navigation Controls */}
+          {/* Navigation */}
           <div className="flex items-center justify-between pt-2 border-t border-white/10">
             <button
               type="button"
               disabled={isFirst}
               onClick={() => onSetStep(currentStepIndex - 1)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 ${
+              className={`px-3 py-1 rounded-lg text-xs font-medium flex items-center gap-1 ${
                 isFirst
-                  ? 'text-gray-600 bg-white/5 cursor-not-allowed'
-                  : 'text-gray-300 hover:text-white bg-white/10 hover:bg-white/15'
+                  ? 'text-gray-600 cursor-not-allowed'
+                  : 'text-gray-300 hover:text-white bg-white/5 hover:bg-white/10'
               }`}
             >
               <ChevronLeft className="w-3.5 h-3.5" />
-              <span>Previous</span>
+              <span>Back</span>
             </button>
 
             {/* Dots */}
@@ -103,10 +101,10 @@ export function SimTutorialBanner({
                   key={s.id}
                   type="button"
                   onClick={() => onSetStep(idx)}
-                  className={`w-2 h-2 rounded-full transition-all ${
+                  className={`w-1.5 h-1.5 rounded-full transition-all ${
                     idx === currentStepIndex
-                      ? 'w-4 bg-cyan-400'
-                      : 'bg-white/20 hover:bg-white/40'
+                      ? 'w-3.5 bg-amber-400'
+                      : 'bg-white/25 hover:bg-white/40'
                   }`}
                 />
               ))}
@@ -119,15 +117,15 @@ export function SimTutorialBanner({
                   setIsExpanded(false);
                   onCloseTutorial();
                 }}
-                className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs shadow-md transition"
+                className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition"
               >
-                Done
+                Complete
               </button>
             ) : (
               <button
                 type="button"
                 onClick={() => onSetStep(currentStepIndex + 1)}
-                className="px-3 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs flex items-center gap-1 shadow-md transition"
+                className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-1 transition"
               >
                 <span>Next</span>
                 <ChevronRight className="w-3.5 h-3.5" />
