@@ -1162,7 +1162,7 @@ export function attackOpponentLeader(
   }
 
   const attackerPower = (attacker.power || 0) + attacker.attachedDon * 1000 + attacker.customPowerModifier;
-  const defenderPower = (state.opponent?.leaderPower ?? 5000) + (state.opponent?.attachedDon ?? 0) * 1000;
+  let defenderPower = (state.opponent?.leaderPower ?? 5000) + (state.opponent?.attachedDon ?? 0) * 1000;
 
   // Rest the attacker immediately upon declaring the attack
   let updatedLeader = state.leader;
@@ -1176,45 +1176,118 @@ export function attackOpponentLeader(
     );
   }
 
-  const hitSuccess = attackerPower >= defenderPower;
-  const currentOppLife = state.opponent ? state.opponent.life : state.opponentLife;
-
-  // WIN CHECK: If opponent has 0 life and takes a successful hit, player WINS!
+  const oppLeaderName = state.opponent ? state.opponent.leaderName : 'Opponent Leader';
+  const combatLogs: GameLogEntry[] = [];
+  let updatedOppChars = [...state.opponent.characters];
+  let updatedOppTrash = state.opponent.trashCount;
+  let currentOppLife = state.opponent ? state.opponent.life : state.opponentLife;
   let winner: 'player' | 'opponent' | null = state.winner;
-  let newOppLife = currentOppLife;
+
+  // 1. OPPONENT BLOCKER CHECK:
+  // If opponent has an active blocker (e.g. Queen ST04-005) and either:
+  // - Opponent life is low (<= 2) or in lethal range (life === 0), OR
+  // - The blocker's power is higher than or equal to attacker power
+  const activeBlockerIdx = updatedOppChars.findIndex((c) => c.hasBlocker && !c.rested);
+  let blockedByOpponent = false;
+
+  if (activeBlockerIdx !== -1 && (currentOppLife <= 2 || (updatedOppChars[activeBlockerIdx].power || 0) >= attackerPower)) {
+    const oppBlocker = updatedOppChars[activeBlockerIdx];
+    blockedByOpponent = true;
+    // Rest the blocker
+    const oppBlockerPower = (oppBlocker.power || 0) + oppBlocker.attachedDon * 1000;
+    combatLogs.push(
+      createLog(
+        `🛡️ [OPPONENT BLOCKER] Opponent intercepted your attack on Leader with Blocker ${oppBlocker.name} (${oppBlockerPower} Power)!`,
+        'combat'
+      )
+    );
+
+    if (attackerPower >= oppBlockerPower) {
+      // Blocker is K.O.'d
+      updatedOppChars.splice(activeBlockerIdx, 1);
+      updatedOppTrash += 1;
+      combatLogs.push(
+        createLog(
+          `💥 [K.O.] ${attacker.name} (${attackerPower} Power) overpowered and K.O.'d opponent's Blocker ${oppBlocker.name}!`,
+          'combat'
+        )
+      );
+    } else {
+      combatLogs.push(
+        createLog(
+          `🛡️ Opponent's Blocker ${oppBlocker.name} (${oppBlockerPower} Power) successfully repelled ${attacker.name}'s (${attackerPower} Power) attack!`,
+          'combat'
+        )
+      );
+    }
+
+    return {
+      ...state,
+      leader: updatedLeader,
+      characters: updatedCharacters,
+      opponent: {
+        ...state.opponent,
+        characters: updatedOppChars,
+        trashCount: updatedOppTrash,
+      },
+      winner,
+      logs: [...state.logs, ...combatLogs],
+    };
+  }
+
+  // 2. OPPONENT COUNTER AI:
+  // If opponent has cards in hand and power gap is small (+1000 or +2000), opponent can counter
+  let oppBoost = 0;
+  if (state.opponent.handCount > 0 && attackerPower > defenderPower && attackerPower <= defenderPower + 2000 && currentOppLife <= 1) {
+    oppBoost = 2000;
+    combatLogs.push(
+      createLog(`⚡ [OPPONENT COUNTER] Opponent discarded a +2000 Counter card from hand to protect Leader ${oppLeaderName}!`, 'combat')
+    );
+  }
+
+  const finalDefenderPower = defenderPower + oppBoost;
+  const hitSuccess = attackerPower >= finalDefenderPower;
 
   if (hitSuccess) {
     if (currentOppLife === 0) {
       winner = 'player';
+      combatLogs.push(
+        createLog(`🏆 VICTORY! ${attacker.name} (${attackerPower} Power) landed the fatal blow on ${oppLeaderName}! YOU WON THE MATCH!`, 'combat')
+      );
     } else {
-      newOppLife = Math.max(0, currentOppLife - 1);
+      currentOppLife = Math.max(0, currentOppLife - 1);
+      combatLogs.push(
+        createLog(
+          currentOppLife === 0
+            ? `💥 ${attacker.name} (${attackerPower} Power) attacked ${oppLeaderName} (${finalDefenderPower} Power) — DIRECT HIT! Opponent Life is 0 (Lethal Range)!`
+            : `⚔️ ${attacker.name} (${attackerPower} Power) attacked ${oppLeaderName} (${finalDefenderPower} Power) — DIRECT HIT! ${oppLeaderName} takes 1 damage (${currentOppLife} Life left).`,
+          'combat'
+        )
+      );
     }
-  }
-
-  const oppLeaderName = state.opponent ? state.opponent.leaderName : 'Opponent Leader';
-
-  const logEntry = hitSuccess
-    ? createLog(
-        winner === 'player'
-          ? `🏆 VICTORY! ${attacker.name} (${attackerPower} Power) landed the fatal blow on ${oppLeaderName}! YOU WON THE MATCH!`
-          : newOppLife === 0
-          ? `💥 ${attacker.name} (${attackerPower} Power) attacked ${oppLeaderName} (${defenderPower} Power) — DIRECT HIT! Opponent Life is 0 (Lethal Range)!`
-          : `⚔️ ${attacker.name} (${attackerPower} Power) attacked ${oppLeaderName} (${defenderPower} Power) — DIRECT HIT! ${oppLeaderName} takes 1 damage (${newOppLife} Life left).`,
+  } else {
+    combatLogs.push(
+      createLog(
+        `🛡️ ${attacker.name} (${attackerPower} Power) attacked ${oppLeaderName} (${finalDefenderPower} Power) — INSUFFICIENT POWER! Attack failed.`,
         'combat'
       )
-    : createLog(
-        `🛡️ ${attacker.name} (${attackerPower} Power) attacked ${oppLeaderName} (${defenderPower} Power) — INSUFFICIENT POWER! Attack failed.`,
-        'combat'
-      );
+    );
+  }
 
   return {
     ...state,
     leader: updatedLeader,
     characters: updatedCharacters,
-    opponent: state.opponent ? { ...state.opponent, life: newOppLife } : state.opponent,
-    opponentLife: newOppLife,
+    opponent: {
+      ...state.opponent,
+      life: currentOppLife,
+      characters: updatedOppChars,
+      trashCount: updatedOppTrash,
+      handCount: Math.max(0, state.opponent.handCount - (oppBoost > 0 ? 1 : 0)),
+    },
+    opponentLife: currentOppLife,
     winner,
-    logs: [...state.logs, logEntry],
+    logs: [...state.logs, ...combatLogs],
   };
 }
 
@@ -1294,25 +1367,63 @@ export function attackOpponentCharacter(
     );
   }
 
-  const hitSuccess = attackerPower >= defenderPower;
-  let updatedOppChars = state.opponent.characters;
+  let updatedOppChars = [...state.opponent.characters];
   let updatedOppTrash = state.opponent.trashCount;
+  const combatLogs: GameLogEntry[] = [];
 
-  if (hitSuccess) {
-    // Character K.O.'d!
-    updatedOppChars = updatedOppChars.filter((c) => c.instanceId !== targetCharInstanceId);
-    updatedOppTrash += 1;
-  }
+  // Check if opponent has an active blocker to protect the rested character
+  // AI blocks if target is high value (e.g. King ST04-004 or cost >= 5) and blocker power >= attackerPower
+  const activeBlockerIdx = updatedOppChars.findIndex(
+    (c) => c.hasBlocker && !c.rested && c.instanceId !== targetCharInstanceId
+  );
 
-  const logEntry = hitSuccess
-    ? createLog(
-        `💥 K.O.! ${attacker.name} (${attackerPower} Power) attacked and destroyed ${target.name} (${defenderPower} Power)!`,
+  if (activeBlockerIdx !== -1 && (target.cost >= 4 && (updatedOppChars[activeBlockerIdx].power || 0) >= attackerPower)) {
+    const oppBlocker = updatedOppChars[activeBlockerIdx];
+    const oppBlockerPower = (oppBlocker.power || 0) + oppBlocker.attachedDon * 1000;
+    combatLogs.push(
+      createLog(
+        `🛡️ [OPPONENT BLOCKER] Opponent intercepted your attack on ${target.name} with Blocker ${oppBlocker.name} (${oppBlockerPower} Power)!`,
         'combat'
       )
-    : createLog(
-        `🛡️ ${attacker.name} (${attackerPower} Power) attacked ${target.name} (${defenderPower} Power) — Attack failed!`,
-        'combat'
+    );
+
+    if (attackerPower >= oppBlockerPower) {
+      updatedOppChars.splice(activeBlockerIdx, 1);
+      updatedOppTrash += 1;
+      combatLogs.push(
+        createLog(
+          `💥 [K.O.] ${attacker.name} (${attackerPower} Power) K.O.'d opponent's Blocker ${oppBlocker.name}!`,
+          'combat'
+        )
       );
+    } else {
+      combatLogs.push(
+        createLog(
+          `🛡️ Opponent's Blocker ${oppBlocker.name} (${oppBlockerPower} Power) repelled ${attacker.name}'s (${attackerPower} Power) attack!`,
+          'combat'
+        )
+      );
+    }
+  } else {
+    const hitSuccess = attackerPower >= defenderPower;
+    if (hitSuccess) {
+      updatedOppChars = updatedOppChars.filter((c) => c.instanceId !== targetCharInstanceId);
+      updatedOppTrash += 1;
+      combatLogs.push(
+        createLog(
+          `💥 K.O.! ${attacker.name} (${attackerPower} Power) attacked and destroyed ${target.name} (${defenderPower} Power)!`,
+          'combat'
+        )
+      );
+    } else {
+      combatLogs.push(
+        createLog(
+          `🛡️ ${attacker.name} (${attackerPower} Power) attacked ${target.name} (${defenderPower} Power) — Attack failed!`,
+          'combat'
+        )
+      );
+    }
+  }
 
   return {
     ...state,
@@ -1323,7 +1434,7 @@ export function attackOpponentCharacter(
       characters: updatedOppChars,
       trashCount: updatedOppTrash,
     },
-    logs: [...state.logs, logEntry],
+    logs: [...state.logs, ...combatLogs],
   };
 }
 
