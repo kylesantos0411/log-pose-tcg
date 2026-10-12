@@ -152,14 +152,11 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
           {isAdmin && (
             <Link
               href={`/sim?deckId=${deck.id}`}
-              title="Playtest in TCG Simulator (Admin Preview)"
-              className="px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-red-500/20 hover:from-amber-500/30 hover:to-red-500/30 text-amber-300 border border-amber-500/40 text-[10px] sm:text-xs font-black tracking-wider uppercase flex items-center gap-1.5 shadow-sm active:scale-95 transition shrink-0"
+              title="Playtest in TCG Simulator"
+              className="px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-[#222738] hover:bg-[#2c3349] text-slate-200 hover:text-white border border-[#343b52] text-[10px] sm:text-xs font-bold tracking-wider uppercase flex items-center gap-1.5 shadow-sm active:scale-95 transition shrink-0"
             >
-              <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
+              <Gamepad2 className="w-3.5 h-3.5 text-slate-400" />
               <span>PLAYTEST</span>
-              <span className="text-[8px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono">
-                ADMIN
-              </span>
             </Link>
           )}
 
