@@ -500,13 +500,15 @@ export function playCardFromHand(
 }
 
 /**
- * Attach 1 active DON!! to target Leader or Character (+1000 Power)
+ * Attach active DON!! to target Leader or Character (+1000 Power per DON)
  */
 export function attachDonToCard(
   state: SimGameState,
-  targetInstanceId: string
+  targetInstanceId: string,
+  amount: number = 1
 ): SimGameState {
-  if (state.activeDon < 1) {
+  const attachCount = Math.min(Math.max(1, amount), state.activeDon);
+  if (attachCount < 1) {
     return {
       ...state,
       logs: [...state.logs, createLog(`❌ No active DON!! available to attach`, 'action')],
@@ -514,16 +516,21 @@ export function attachDonToCard(
   }
 
   if (state.leader && state.leader.instanceId === targetInstanceId) {
+    const newAttached = state.leader.attachedDon + attachCount;
+    const newPower = (state.leader.power || 5000) + newAttached * 1000;
     return {
       ...state,
-      activeDon: state.activeDon - 1,
+      activeDon: state.activeDon - attachCount,
       leader: {
         ...state.leader,
-        attachedDon: state.leader.attachedDon + 1,
+        attachedDon: newAttached,
       },
       logs: [
         ...state.logs,
-        createLog(`Attached 1 DON!! to Leader ${state.leader.name} (Now ${(state.leader.power || 5000) + (state.leader.attachedDon + 1) * 1000} Power)`, 'action'),
+        createLog(
+          `Attached ${attachCount} DON!! to Leader ${state.leader.name} (Now ${newPower} Power)`,
+          'action'
+        ),
       ],
     };
   }
@@ -532,17 +539,22 @@ export function attachDonToCard(
   if (charIdx !== -1) {
     const updatedChars = [...state.characters];
     const target = updatedChars[charIdx];
+    const newAttached = target.attachedDon + attachCount;
+    const newPower = (target.power || 0) + newAttached * 1000;
     updatedChars[charIdx] = {
       ...target,
-      attachedDon: target.attachedDon + 1,
+      attachedDon: newAttached,
     };
     return {
       ...state,
-      activeDon: state.activeDon - 1,
+      activeDon: state.activeDon - attachCount,
       characters: updatedChars,
       logs: [
         ...state.logs,
-        createLog(`Attached 1 DON!! to ${target.name} (Now ${(target.power || 0) + (target.attachedDon + 1) * 1000} Power)`, 'action'),
+        createLog(
+          `Attached ${attachCount} DON!! to ${target.name} (Now ${newPower} Power)`,
+          'action'
+        ),
       ],
     };
   }

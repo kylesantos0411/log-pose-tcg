@@ -79,6 +79,16 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
   const [selectedHandCard, setSelectedHandCard] = useState<SimCard | null>(null);
   const [selectedFieldCard, setSelectedFieldCard] = useState<SimCard | null>(null);
 
+  // Multi-DON selection for quick attachment (e.g. clicking 4th DON selects 4 DONs to attach)
+  const [selectedDonCount, setSelectedDonCount] = useState<number>(0);
+
+  // Auto-clamp selected DON count if active DON decreases
+  useEffect(() => {
+    if (selectedDonCount > gameState.activeDon) {
+      setSelectedDonCount(gameState.activeDon);
+    }
+  }, [gameState.activeDon, selectedDonCount]);
+
   // Toggle for original card hand view vs minimized count pill
   const [playerHandExpanded, setPlayerHandExpanded] = useState(true);
   const [oppHandExpanded, setOppHandExpanded] = useState(true);
@@ -145,6 +155,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
 
   // Restart match
   const handleRestart = (goingFirst: boolean = true) => {
+    setSelectedDonCount(0);
     setGameState(
       initializeGame(
         chosenDeck,
@@ -157,6 +168,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
 
   // Turn advance (Triggers Refresh -> Opponent Turn -> Player Turn)
   const handleNextTurn = () => {
+    setSelectedDonCount(0);
     setGameState((prev) => advanceNextTurn(prev));
     setSelectedHandCard(null);
     setSelectedFieldCard(null);
@@ -164,6 +176,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
 
   // Card Play
   const handlePlayCard = (instanceId: string) => {
+    setSelectedDonCount(0);
     setGameState((prev) => playCardFromHand(prev, instanceId));
     setSelectedHandCard(null);
   };
@@ -181,8 +194,10 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
   };
 
   // DON Attach / Detach
-  const handleAttachDon = (instanceId: string) => {
-    setGameState((prev) => attachDonToCard(prev, instanceId));
+  const handleAttachDon = (instanceId: string, count?: number) => {
+    const amountToAttach = count ?? (selectedDonCount > 0 ? selectedDonCount : 1);
+    setGameState((prev) => attachDonToCard(prev, instanceId, amountToAttach));
+    setSelectedDonCount(0);
   };
 
   const handleDetachDon = (instanceId: string) => {
@@ -461,12 +476,25 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                 return (
                   <div
                     key={card.instanceId}
-                    onClick={() => setSelectedFieldCard(card)}
+                    onClick={() => {
+                      if (selectedDonCount > 0) {
+                        handleAttachDon(card.instanceId, selectedDonCount);
+                      } else {
+                        setSelectedFieldCard(card);
+                      }
+                    }}
                     className={`w-full aspect-[2.5/3.5] rounded-xl overflow-hidden relative shadow-md cursor-pointer transition ${
-                      card.rested
+                      selectedDonCount > 0
+                        ? 'border-2 border-amber-400 ring-3 ring-amber-400 ring-offset-1 ring-offset-black animate-pulse shadow-[0_0_20px_rgba(251,191,36,0.9)] scale-105 z-20'
+                        : card.rested
                         ? 'rotate-90 scale-95 opacity-80 border-2 border-amber-500'
                         : 'border border-cyan-400/80 shadow-[0_0_10px_rgba(34,211,238,0.4)] hover:border-cyan-300'
                     }`}
+                    title={
+                      selectedDonCount > 0
+                        ? `Click to attach ${selectedDonCount} DON (+${selectedDonCount * 1000} Power)`
+                        : card.name
+                    }
                   >
                     <img
                       src={card.imageUrl}
@@ -474,8 +502,15 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                       className="w-full h-full object-cover"
                       onError={(e) => handleCardImageError(e, card.cardId, card.imageUrl)}
                     />
+                    {selectedDonCount > 0 && (
+                      <div className="absolute inset-0 bg-amber-500/20 backdrop-blur-[1px] flex flex-col items-center justify-center p-0.5 pointer-events-none z-10">
+                        <span className="px-1 py-0.2 rounded-full bg-amber-400 text-black font-black text-[6.5px] sm:text-[7.5px] shadow-lg animate-bounce">
+                          +{selectedDonCount * 1000}
+                        </span>
+                      </div>
+                    )}
                     {card.attachedDon > 0 && (
-                      <div className="absolute bottom-0.5 inset-x-0.5 py-0.2 bg-[#d97706] text-white text-[6.5px] font-bold rounded-sm text-center shadow flex items-center justify-center gap-0.5">
+                      <div className="absolute bottom-0.5 inset-x-0.5 py-0.2 bg-[#d97706] text-white text-[6.5px] font-bold rounded-sm text-center shadow flex items-center justify-center gap-0.5 z-10">
                         <span>DON ×{card.attachedDon}</span>
                       </div>
                     )}
@@ -505,10 +540,26 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
           <div className="flex flex-col items-center mx-auto">
             {gameState.leader && (
               <div
-                onClick={() => setSelectedFieldCard(gameState.leader)}
-                className={`w-16 sm:w-20 md:w-22 aspect-[2.5/3.5] rounded-xl border-2 border-cyan-400 overflow-hidden relative shadow-[0_0_15px_rgba(34,211,238,0.4)] cursor-pointer hover:border-cyan-300 transition ${
+                onClick={() => {
+                  if (!gameState.leader) return;
+                  if (selectedDonCount > 0) {
+                    handleAttachDon(gameState.leader.instanceId, selectedDonCount);
+                  } else {
+                    setSelectedFieldCard(gameState.leader);
+                  }
+                }}
+                className={`w-16 sm:w-20 md:w-22 aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-[0_0_15px_rgba(34,211,238,0.4)] cursor-pointer hover:border-cyan-300 transition ${
+                  selectedDonCount > 0
+                    ? 'border-amber-400 ring-4 ring-amber-400 ring-offset-2 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(251,191,36,0.9)] scale-105 z-20'
+                    : 'border-cyan-400'
+                } ${
                   gameState.leader.rested ? 'rotate-90 scale-95 opacity-80' : ''
                 } ${highlightTarget === 'leader' ? spotlightClass : ''}`}
+                title={
+                  selectedDonCount > 0
+                    ? `Click to attach ${selectedDonCount} DON (+${selectedDonCount * 1000} Power)`
+                    : gameState.leader.name
+                }
               >
                 <img
                   src={gameState.leader.imageUrl}
@@ -516,8 +567,18 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                   className="w-full h-full object-cover"
                   onError={(e) => handleCardImageError(e, gameState.leader?.cardId, gameState.leader?.imageUrl)}
                 />
+                {selectedDonCount > 0 && (
+                  <div className="absolute inset-0 bg-amber-500/20 backdrop-blur-[1px] flex flex-col items-center justify-center p-1 pointer-events-none z-10">
+                    <span className="px-1.5 py-0.5 rounded-full bg-amber-400 text-black font-black text-[7.5px] sm:text-[8.5px] shadow-lg animate-bounce">
+                      +{selectedDonCount * 1000} ATK
+                    </span>
+                    <span className="text-[6px] font-bold text-amber-200 mt-0.5 drop-shadow">
+                      Tap to attach
+                    </span>
+                  </div>
+                )}
                 {gameState.leader.attachedDon > 0 && (
-                  <div className="absolute bottom-0.5 inset-x-0.5 py-0.5 bg-[#d97706] text-white text-[7px] font-bold rounded-sm text-center shadow flex items-center justify-center gap-0.5">
+                  <div className="absolute bottom-0.5 inset-x-0.5 py-0.5 bg-[#d97706] text-white text-[7px] font-bold rounded-sm text-center shadow flex items-center justify-center gap-0.5 z-10">
                     <span>DON ×{gameState.leader.attachedDon}</span>
                   </div>
                 )}
@@ -577,19 +638,86 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
             }`}
           >
             <div className="flex items-center justify-between text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider text-emerald-400/80">
-              <span>COST AREA</span>
+              <span className="flex items-center gap-1">
+                <span>COST AREA</span>
+                {selectedDonCount > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-black font-extrabold text-[7px] sm:text-[8px] animate-pulse">
+                    {selectedDonCount} DON (+{selectedDonCount * 1000})
+                  </span>
+                )}
+              </span>
+              {selectedDonCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedDonCount(0);
+                  }}
+                  className="text-amber-400 hover:text-white text-[7.5px] sm:text-[8.5px] font-bold underline"
+                >
+                  Clear Selection
+                </button>
+              ) : (
+                <span className="text-[6.5px] sm:text-[7.5px] text-gray-400 normal-case">
+                  Tap Nth DON to attach
+                </span>
+              )}
             </div>
-            <div className="flex items-center justify-center gap-1 sm:gap-1.5 my-0.5">
-              {Array.from({ length: Math.min(5, gameState.activeDon) }).map((_, idx) => (
-                <div key={`player-don-${idx}`} className="h-10 sm:h-12 md:h-13 aspect-[2.5/3.5] rounded-xs overflow-hidden border border-black/80 shadow-md">
-                  <img src={OPCG_DON_CARD_DATA_URL} alt="DON" className="w-full h-full object-cover" />
+
+            {/* Upright DON cards row */}
+            <div className="flex items-center justify-center gap-1 sm:gap-1.5 my-0.5 overflow-x-auto max-w-full px-0.5 scrollbar-none">
+              {Array.from({ length: gameState.activeDon }).map((_, idx) => {
+                const donNumber = idx + 1;
+                const isSelected = selectedDonCount >= donNumber;
+                return (
+                  <div
+                    key={`player-don-${idx}`}
+                    onClick={() => {
+                      if (selectedFieldCard) {
+                        handleAttachDon(selectedFieldCard.instanceId, donNumber);
+                        setSelectedFieldCard(null);
+                        return;
+                      }
+                      setSelectedDonCount((prev) => (prev === donNumber ? 0 : donNumber));
+                    }}
+                    className={`h-10 sm:h-12 md:h-13 aspect-[2.5/3.5] rounded-xs overflow-hidden border shadow-md cursor-pointer transition-all duration-150 relative select-none shrink-0 ${
+                      isSelected
+                        ? 'border-amber-400 ring-2 ring-amber-400 ring-offset-1 ring-offset-black -translate-y-1 scale-105 shadow-[0_0_12px_rgba(251,191,36,0.8)] z-10 brightness-110'
+                        : 'border-black/80 hover:scale-102 hover:border-amber-300/60'
+                    }`}
+                    title={`Click to select ${donNumber} DON (+${donNumber * 1000} Power)`}
+                  >
+                    <img src={OPCG_DON_CARD_DATA_URL} alt="DON" className="w-full h-full object-cover" />
+                    <div
+                      className={`absolute top-0.5 left-0.5 px-1 py-0.2 rounded-xs font-mono text-[7px] sm:text-[8px] font-black leading-none ${
+                        isSelected
+                          ? 'bg-amber-400 text-black shadow-xs'
+                          : 'bg-black/85 text-gray-300 border border-white/10'
+                      }`}
+                    >
+                      {donNumber}
+                    </div>
+                  </div>
+                );
+              })}
+              {gameState.activeDon === 0 && (
+                <div className="h-10 sm:h-12 md:h-13 aspect-[2.5/3.5] rounded-xs border border-dashed border-gray-600/50 flex items-center justify-center text-[8px] text-gray-500 font-mono">
+                  0
                 </div>
-              ))}
+              )}
             </div>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-black/80 border border-white/10 w-fit text-[7.5px] sm:text-[8.5px] font-mono text-gray-200">
-              <span className="flex items-center gap-0.5 text-amber-300 font-bold">🪙 {gameState.activeDon}</span>
-              <span className="text-gray-500">|</span>
-              <span className="flex items-center gap-0.5 text-gray-400 font-bold">🎴 {gameState.restedDon}</span>
+
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-black/80 border border-white/10 w-fit text-[7.5px] sm:text-[8.5px] font-mono text-gray-200">
+                <span className="flex items-center gap-0.5 text-amber-300 font-bold">🪙 {gameState.activeDon}</span>
+                <span className="text-gray-500">|</span>
+                <span className="flex items-center gap-0.5 text-gray-400 font-bold">🎴 {gameState.restedDon}</span>
+              </div>
+              {selectedDonCount > 0 && (
+                <span className="text-[7.5px] sm:text-[8.5px] text-amber-300 font-bold animate-pulse">
+                  Tap Leader/Char to attach ➜
+                </span>
+              )}
             </div>
           </div>
 
@@ -1113,34 +1241,60 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
               )}
 
               {/* Attach DON!! */}
-              <button
-                type="button"
-                disabled={gameState.activeDon === 0}
-                onClick={() => handleAttachDon(liveFieldCard.instanceId)}
-                className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition ${
-                  gameState.activeDon > 0
-                    ? 'bg-[#d97706] hover:bg-[#b45309] text-white active:scale-95 cursor-pointer'
-                    : 'bg-white/5 text-gray-500 border border-white/5 cursor-not-allowed'
-                }`}
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Attach DON (+1000)</span>
-              </button>
-
-              {/* Detach DON!! */}
-              <button
-                type="button"
-                disabled={liveFieldCard.attachedDon === 0}
-                onClick={() => handleDetachDon(liveFieldCard.instanceId)}
-                className={`py-2 px-3 rounded-xl font-medium text-xs flex items-center justify-center gap-1.5 transition ${
-                  liveFieldCard.attachedDon > 0
-                    ? 'bg-white/10 hover:bg-white/15 text-white border border-white/10 active:scale-95 cursor-pointer'
-                    : 'bg-white/5 text-gray-500 border border-white/5 cursor-not-allowed'
-                }`}
-              >
-                <Minus className="w-3.5 h-3.5" />
-                <span>Detach DON ({liveFieldCard.attachedDon})</span>
-              </button>
+              <div className="col-span-2 flex flex-col gap-1.5 pt-1 border-t border-white/10">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                    Attach Active DON!! (+1000 / DON):
+                  </span>
+                  <span className="text-[10px] font-mono text-amber-400 font-bold">
+                    {gameState.activeDon} available
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    disabled={gameState.activeDon < 1}
+                    onClick={() => handleAttachDon(liveFieldCard.instanceId, 1)}
+                    className={`flex-1 min-w-[70px] py-2 px-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1 transition ${
+                      gameState.activeDon >= 1
+                        ? 'bg-[#d97706] hover:bg-[#b45309] text-white active:scale-95 cursor-pointer'
+                        : 'bg-white/5 text-gray-500 border border-white/5 cursor-not-allowed'
+                    }`}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+1 DON</span>
+                  </button>
+                  {gameState.activeDon >= 2 && (
+                    <button
+                      type="button"
+                      onClick={() => handleAttachDon(liveFieldCard.instanceId, 2)}
+                      className="flex-1 min-w-[70px] py-2 px-2 rounded-xl bg-[#d97706]/85 hover:bg-[#b45309] text-white font-bold text-xs flex items-center justify-center gap-1 transition active:scale-95 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+2 DON</span>
+                    </button>
+                  )}
+                  {gameState.activeDon >= 3 && (
+                    <button
+                      type="button"
+                      onClick={() => handleAttachDon(liveFieldCard.instanceId, gameState.activeDon)}
+                      className="flex-1 min-w-[70px] py-2 px-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs flex items-center justify-center gap-1 transition active:scale-95 cursor-pointer shadow-md"
+                    >
+                      <span>+All ({gameState.activeDon})</span>
+                    </button>
+                  )}
+                  {liveFieldCard.attachedDon > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => handleDetachDon(liveFieldCard.instanceId)}
+                      className="py-2 px-3 rounded-xl bg-white/10 hover:bg-white/15 text-white border border-white/10 font-medium text-xs flex items-center justify-center gap-1 transition active:scale-95 cursor-pointer"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                      <span>Detach ({liveFieldCard.attachedDon})</span>
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
