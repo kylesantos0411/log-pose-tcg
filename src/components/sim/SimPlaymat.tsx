@@ -12,10 +12,6 @@ import {
   takeLifeDamage,
   sendCardToTrash,
   drawManualCard,
-  restActiveDonManual,
-  activateRestedDonManual,
-  damageOpponent,
-  healOpponent,
   attackOpponentLeader,
   attackOpponentCharacter,
   switchOpponent,
@@ -35,7 +31,6 @@ import { ST01_STRAW_HAT_DECK, ST04_ANIMAL_KINGDOM_DECK } from '@/lib/sim/starter
 import {
   ArrowLeft,
   RotateCcw,
-  Sparkles,
   Swords,
   ScrollText,
   Clock,
@@ -49,10 +44,7 @@ import {
   X,
   SlidersHorizontal,
   Bug,
-  HelpCircle,
   ShieldAlert,
-  Smartphone,
-  Eye,
 } from 'lucide-react';
 import { RECOMMENDED_DECKS, RecommendedDeck } from '@/lib/recommended-decks';
 import { handleCardImageError } from '@/lib/card-image';
@@ -93,22 +85,6 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
 
   // Virtual landscape mode toggle for mobile devices
   const [isVirtualLandscape, setIsVirtualLandscape] = useState(false);
-  const [isLandscape, setIsLandscape] = useState(false);
-
-  useEffect(() => {
-    const checkOrientation = () => {
-      setIsLandscape(typeof window !== 'undefined' ? window.innerWidth > window.innerHeight : false);
-    };
-    checkOrientation();
-    window.addEventListener('resize', checkOrientation);
-    window.addEventListener('orientationchange', checkOrientation);
-    return () => {
-      window.removeEventListener('resize', checkOrientation);
-      window.removeEventListener('orientationchange', checkOrientation);
-    };
-  }, []);
-
-  const activeLandscape = isLandscape || isVirtualLandscape;
 
   // Derive live field card from current gameState so attached DON, power, and rested state stay reactive
   const liveFieldCard: SimCard | null = selectedFieldCard
