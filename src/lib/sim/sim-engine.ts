@@ -5,7 +5,7 @@
  */
 
 import { SimCard, SimGameState, GameLogEntry, SimOpponent, PendingCombat } from './sim-types';
-import { RecommendedDeck, DeckCardItem } from '../recommended-decks';
+import { RecommendedDeck, DeckCardItem, RECOMMENDED_DECKS } from '../recommended-decks';
 import { getEditionCardImageUrl } from '../card-image';
 import { ST01_STRAW_HAT_DECK, ST04_ANIMAL_KINGDOM_DECK } from './starter-decks';
 
@@ -369,33 +369,236 @@ export function advanceNextTurn(state: SimGameState): SimGameState {
   }
 
   // 4. OPPONENT AI TURN SIMULATION:
-  // Opponent untaps, draws, gains DON, and may attack or pass
+  // Opponent untaps, draws, gains DON, summons character, attaches DON, and attacks
+  let oppCharAttachedRecovered = 0;
+  for (const c of state.opponent.characters) {
+    oppCharAttachedRecovered += c.attachedDon;
+  }
   const oppAttachedDonReturned = state.opponent.attachedDon;
-  let oppActiveDon = state.opponent.activeDon + state.opponent.restedDon + oppAttachedDonReturned;
+  let oppActiveDon = state.opponent.activeDon + state.opponent.restedDon + oppAttachedDonReturned + oppCharAttachedRecovered;
+  let oppRestedDon = 0;
+  let oppLeaderAttachedDon = 0;
   let oppDonDeckRemaining = state.opponent.donDeckCount;
   const oppCanAdd = Math.min(2, 10 - oppActiveDon, oppDonDeckRemaining);
   oppActiveDon += oppCanAdd;
   oppDonDeckRemaining -= oppCanAdd;
 
-  const oppChars = state.opponent.characters.map((c) => ({
+  let oppHandCount = (state.opponent.handCount || 5) + 1;
+  let oppDeckCount = Math.max(0, (state.opponent.deckCount || 40) - 1);
+
+  // Untap existing characters
+  let oppChars: SimCard[] = state.opponent.characters.map((c) => ({
     ...c,
     rested: false,
     attachedDon: 0,
     canAttackThisTurn: true,
   }));
 
+  const aiLogs: GameLogEntry[] = [];
+  aiLogs.push(
+    createLog(`🤖 Opponent Refreshed: Drew 1 card, gained +${oppCanAdd} DON!! (Active: ${oppActiveDon})`, 'phase')
+  );
+
+  // A. SUMMON PHASE:
+  // If opponent has room (< 5 characters) and active DON >= 2, play character from deck
+  const oppDeckDef = RECOMMENDED_DECKS.find((d) => d.id === state.opponent.deckId) || ST04_ANIMAL_KINGDOM_DECK;
+  const oppDeckChars = (oppDeckDef.cards || []).filter((c) => c.category === 'Character');
+
+  if (oppChars.length < 5 && oppActiveDon >= 2 && oppDeckChars.length > 0) {
+    const affordable = oppDeckChars
+      .filter((c) => (c.cost ?? 0) <= oppActiveDon)
+      .sort((a, b) => (b.cost ?? 0) - (a.cost ?? 0));
+
+    if (affordable.length > 0) {
+      const chosenCard = affordable[0];
+      const cost = chosenCard.cost ?? 2;
+      oppActiveDon -= cost;
+      oppRestedDon += cost;
+      oppHandCount = Math.max(0, oppHandCount - 1);
+
+      const newChar = createSimCard(
+        chosenCard,
+        `opp-char-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        oppDeckDef.color || 'Purple'
+      );
+      newChar.canAttackThisTurn = Boolean(newChar.hasRush);
+      newChar.rested = false;
+      oppChars.push(newChar);
+
+      aiLogs.push(
+        createLog(`🤖 Opponent played ${chosenCard.name} (${chosenCard.power} Power) for ${cost} DON!!`, 'action')
+      );
+    }
+  }
+
+  // B. ATTACH DON PHASE:
+  // If opponent has remaining active DON and eligible attackers, attach 1-2 DON!!
+  const readyAttackers = oppChars.filter((c) => c.canAttackThisTurn && !c.rested);
+  if (oppActiveDon > 0) {
+    const donToAttach = Math.min(oppActiveDon, 2);
+    if (readyAttackers.length > 0) {
+      const bestAttacker = readyAttackers[0];
+      bestAttacker.attachedDon += donToAttach;
+      oppActiveDon -= donToAttach;
+      aiLogs.push(
+        createLog(`🤖 Opponent attached ${donToAttach} DON!! to ${bestAttacker.name} (Now ${(bestAttacker.power || 0) + bestAttacker.attachedDon * 1000} Power)`, 'action')
+      );
+    } else {
+      oppLeaderAttachedDon += donToAttach;
+      oppActiveDon -= donToAttach;
+      aiLogs.push(
+        createLog(`🤖 Opponent attached ${donToAttach} DON!! to Leader ${state.opponent.leaderName} (Now ${5000 + oppLeaderAttachedDon * 1000} Power)`, 'action')
+      );
+    }
+  }
+
+  // C. COMBAT PHASE:
+  // In tutorial mode steps 1-9, opponent stays passive so the player can learn.
+  // In steps 10+ or normal game, opponent attacks!
+  const canAIAttack = !state.tutorialMode || state.tutorialStepIndex >= 10;
+  let playerChars = [...updatedCharacters];
+  let playerLife = [...state.life];
+  let playerHand = [...updatedHand];
+  let playerTrash = [...state.trash];
+  let gameWinner: 'player' | 'opponent' | null = state.winner;
+  let oppLeaderRested = false;
+
+  if (canAIAttack && !gameWinner) {
+    // 1. Character attacks:
+    for (let i = 0; i < oppChars.length; i++) {
+      const attacker = oppChars[i];
+      if (!attacker.canAttackThisTurn || attacker.rested || gameWinner) continue;
+
+      const attackerPower = (attacker.power || 0) + attacker.attachedDon * 1000;
+      attacker.rested = true;
+
+      // Target priority 1: Rested player character with power <= attackerPower
+      const restedTargets = playerChars.filter(
+        (pc) => pc.rested && ((pc.power || 0) + pc.attachedDon * 1000) <= attackerPower
+      );
+
+      if (restedTargets.length > 0) {
+        const target = restedTargets[0];
+        // Check Player Blocker
+        const blockerIdx = playerChars.findIndex(
+          (pc) => pc.hasBlocker && !pc.rested && pc.instanceId !== target.instanceId
+        );
+        if (blockerIdx !== -1) {
+          const blocker = playerChars[blockerIdx];
+          playerChars.splice(blockerIdx, 1);
+          playerTrash.push({ ...blocker, rested: false, attachedDon: 0 });
+          totalActiveDon += blocker.attachedDon;
+          aiLogs.push(
+            createLog(`🛡️ Your Blocker ${blocker.name} intercepted ${attacker.name}'s attack and was K.O.'d!`, 'combat')
+          );
+        } else {
+          playerChars = playerChars.filter((pc) => pc.instanceId !== target.instanceId);
+          playerTrash.push({ ...target, rested: false, attachedDon: 0 });
+          totalActiveDon += target.attachedDon;
+          aiLogs.push(
+            createLog(`⚔️ Opponent's ${attacker.name} (${attackerPower} Power) attacked and K.O.'d your ${target.name}!`, 'combat')
+          );
+        }
+      } else {
+        // Target priority 2: Attack Player Leader
+        const playerLeaderPower = 5000 + (updatedLeader?.attachedDon || 0) * 1000;
+        if (attackerPower >= playerLeaderPower) {
+          const blockerIdx = playerChars.findIndex((pc) => pc.hasBlocker && !pc.rested);
+          if (blockerIdx !== -1) {
+            const blocker = playerChars[blockerIdx];
+            playerChars.splice(blockerIdx, 1);
+            playerTrash.push({ ...blocker, rested: false, attachedDon: 0 });
+            totalActiveDon += blocker.attachedDon;
+            aiLogs.push(
+              createLog(`🛡️ Your Blocker ${blocker.name} guarded your Leader and was K.O.'d!`, 'combat')
+            );
+          } else if (playerLife.length > 0) {
+            const lostLifeCard = playerLife.shift()!;
+            playerHand.push(lostLifeCard);
+            aiLogs.push(
+              createLog(`💔 Opponent's ${attacker.name} (${attackerPower} Power) attacked your Leader! Took 1 Life Damage (${playerLife.length} Life left). Added ${lostLifeCard.name} to hand.`, 'combat')
+            );
+          } else {
+            gameWinner = 'opponent';
+            aiLogs.push(
+              createLog(`💀 Opponent's ${attacker.name} dealt the fatal blow! Opponent wins the match!`, 'combat')
+            );
+          }
+        }
+      }
+    }
+
+    // 2. Leader attack:
+    if (!gameWinner && !oppLeaderRested) {
+      const oppLeaderPower = 5000 + oppLeaderAttachedDon * 1000;
+      oppLeaderRested = true;
+
+      const restedTargets = playerChars.filter(
+        (pc) => pc.rested && ((pc.power || 0) + pc.attachedDon * 1000) <= oppLeaderPower
+      );
+
+      if (restedTargets.length > 0) {
+        const target = restedTargets[0];
+        const blockerIdx = playerChars.findIndex(
+          (pc) => pc.hasBlocker && !pc.rested && pc.instanceId !== target.instanceId
+        );
+        if (blockerIdx !== -1) {
+          const blocker = playerChars[blockerIdx];
+          playerChars.splice(blockerIdx, 1);
+          playerTrash.push({ ...blocker, rested: false, attachedDon: 0 });
+          totalActiveDon += blocker.attachedDon;
+          aiLogs.push(
+            createLog(`🛡️ Your Blocker ${blocker.name} intercepted Leader ${state.opponent.leaderName}'s attack and was K.O.'d!`, 'combat')
+          );
+        } else {
+          playerChars = playerChars.filter((pc) => pc.instanceId !== target.instanceId);
+          playerTrash.push({ ...target, rested: false, attachedDon: 0 });
+          totalActiveDon += target.attachedDon;
+          aiLogs.push(
+            createLog(`⚔️ Opponent Leader ${state.opponent.leaderName} (${oppLeaderPower} Power) attacked and K.O.'d your ${target.name}!`, 'combat')
+          );
+        }
+      } else {
+        const blockerIdx = playerChars.findIndex((pc) => pc.hasBlocker && !pc.rested);
+        if (blockerIdx !== -1) {
+          const blocker = playerChars[blockerIdx];
+          playerChars.splice(blockerIdx, 1);
+          playerTrash.push({ ...blocker, rested: false, attachedDon: 0 });
+          totalActiveDon += blocker.attachedDon;
+          aiLogs.push(
+            createLog(`🛡️ Your Blocker ${blocker.name} intercepted Opponent Leader's attack!`, 'combat')
+          );
+        } else if (playerLife.length > 0) {
+          const lostLifeCard = playerLife.shift()!;
+          playerHand.push(lostLifeCard);
+          aiLogs.push(
+            createLog(`💔 Opponent Leader ${state.opponent.leaderName} (${oppLeaderPower} Power) attacked your Leader! Took 1 Life Damage (${playerLife.length} Life left).`, 'combat')
+          );
+        } else {
+          gameWinner = 'opponent';
+          aiLogs.push(
+            createLog(`💀 Opponent Leader ${state.opponent.leaderName} dealt lethal blow to your Leader! Opponent wins!`, 'combat')
+          );
+        }
+      }
+    }
+  }
+
   const updatedOpponent: SimOpponent = {
     ...state.opponent,
-    rested: false,
-    attachedDon: 0,
+    rested: oppLeaderRested,
+    attachedDon: oppLeaderAttachedDon,
     activeDon: oppActiveDon,
-    restedDon: 0,
+    restedDon: oppRestedDon,
     donDeckCount: oppDonDeckRemaining,
     characters: oppChars,
+    handCount: oppHandCount,
+    deckCount: oppDeckCount,
   };
 
   const newLogs = [
     ...state.logs,
+    ...aiLogs,
     createLog(`🔄 Started Turn ${nextTurnNumber} (Refreshed field, ${drawLog}, +${maxCanAdd} DON!!)`, 'phase'),
   ];
 
@@ -403,10 +606,12 @@ export function advanceNextTurn(state: SimGameState): SimGameState {
     ...state,
     turn: nextTurnNumber,
     leader: updatedLeader,
-    characters: updatedCharacters,
+    characters: playerChars,
     stage: updatedStage,
     deck: updatedDeck,
-    hand: updatedHand,
+    hand: playerHand,
+    life: playerLife,
+    trash: playerTrash,
     activeDon: totalActiveDon,
     restedDon: 0,
     donDeckCount: donDeckRemaining,
@@ -415,6 +620,7 @@ export function advanceNextTurn(state: SimGameState): SimGameState {
     opponent: updatedOpponent,
     logs: newLogs,
     pendingCombat: null,
+    winner: gameWinner,
   };
 }
 

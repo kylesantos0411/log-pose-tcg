@@ -61,7 +61,7 @@ export const OPTCG_TUTORIAL_STEPS: TutorialStep[] = [
     inspectCard: {
       cardId: 'ST01-001',
       name: 'Monkey.D.Luffy',
-      imageUrl: 'https://en.onepiece-cardgame.com/images/cardlist/card/ST01-001.png?260929',
+      imageUrl: '/cards/ST01-001.png',
       category: 'Leader',
       callouts: [
         { label: 'POWER 5000', position: 'top-right', description: 'Attack & defense power in combat' },
@@ -86,7 +86,7 @@ export const OPTCG_TUTORIAL_STEPS: TutorialStep[] = [
     inspectCard: {
       cardId: 'ST01-008',
       name: 'Nico Robin',
-      imageUrl: 'https://en.onepiece-cardgame.com/images/cardlist/card/ST01-008.png?260929',
+      imageUrl: '/cards/ST01-008.png',
       category: 'Character',
       callouts: [
         { label: 'COST 3', position: 'top-left', description: 'Active DON!! required to play from hand' },

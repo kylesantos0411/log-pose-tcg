@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { OPTCG_TUTORIAL_STEPS, TutorialStep } from '@/lib/sim/tutorial-data';
+import { getSafeCardImageUrl, handleCardImageError } from '@/lib/card-image';
 import {
   ChevronRight,
   ChevronLeft,
@@ -70,95 +71,107 @@ export function SimTutorialBanner({
       <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center p-3 animate-fadeIn select-none pointer-events-auto">
         {/* Center Card Zoom Frame with Callouts */}
         <div className="relative flex flex-col items-center justify-center my-auto">
-          {/* Main Card Image */}
-          <div className="relative w-52 sm:w-64 aspect-[2.5/3.5] rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20">
-            <img
-              src={inspectCard.imageUrl}
-              alt={inspectCard.name}
-              className="w-full h-full object-cover"
-            />
+          {/* Card Container with Overflow Visible for Accurate Edge Anchors */}
+          <div className="relative w-44 xs:w-52 sm:w-64 aspect-[2.5/3.5] rounded-xl sm:rounded-2xl shadow-2xl overflow-visible">
+            {/* Card Artwork */}
+            <div className="w-full h-full rounded-xl sm:rounded-2xl overflow-hidden border-2 border-white/20 bg-slate-900 shadow-2xl">
+              <img
+                src={getSafeCardImageUrl(inspectCard.imageUrl, inspectCard.cardId)}
+                alt={inspectCard.name}
+                className="w-full h-full object-cover"
+                onError={(e) => handleCardImageError(e, inspectCard.cardId, inspectCard.imageUrl)}
+              />
+            </div>
+
+            {/* Callout Badges with Exact Geometric Connectors */}
+            {inspectCard.callouts.map((callout, idx) => {
+              const parts = callout.label.split(' ');
+              const title = parts[0];
+              const value = parts.slice(1).join(' ');
+
+              if (callout.position === 'top-right') {
+                return (
+                  <div
+                    key={`callout-${idx}`}
+                    className="absolute top-[3.8%] left-full flex items-center animate-fadeIn pointer-events-none"
+                  >
+                    <div className="w-2.5 xs:w-3.5 sm:w-6 border-t-2 border-dashed border-amber-400" />
+                    <div className="px-2 xs:px-2.5 py-1 rounded-lg bg-[#faf5eb] dark:bg-[#141b2a] text-[#2b2118] dark:text-amber-300 font-black text-[10px] xs:text-xs shadow-xl border border-[#e2d5c3] dark:border-amber-500/40 tracking-wide flex items-center gap-1 whitespace-nowrap">
+                      <span className="text-[#8c7b6d] dark:text-gray-400 font-bold">{title}</span>
+                      {value && <span>{value}</span>}
+                    </div>
+                  </div>
+                );
+              }
+
+              if (callout.position === 'top-left') {
+                return (
+                  <div
+                    key={`callout-${idx}`}
+                    className="absolute top-[3.8%] right-full flex items-center animate-fadeIn pointer-events-none"
+                  >
+                    <div className="px-2 xs:px-2.5 py-1 rounded-lg bg-[#faf5eb] dark:bg-[#141b2a] text-[#2b2118] dark:text-amber-300 font-black text-[10px] xs:text-xs shadow-xl border border-[#e2d5c3] dark:border-amber-500/40 tracking-wide flex items-center gap-1 whitespace-nowrap">
+                      <span className="text-[#8c7b6d] dark:text-gray-400 font-bold">{title}</span>
+                      {value && <span>{value}</span>}
+                    </div>
+                    <div className="w-2.5 xs:w-3.5 sm:w-6 border-t-2 border-dashed border-amber-400" />
+                  </div>
+                );
+              }
+
+              if (callout.position === 'left') {
+                return (
+                  <div
+                    key={`callout-${idx}`}
+                    className="absolute top-[36%] right-full flex items-center animate-fadeIn pointer-events-none"
+                  >
+                    <div className="px-2 xs:px-2.5 py-1 rounded-lg bg-[#faf5eb] dark:bg-[#141b2a] text-[#2b2118] dark:text-amber-300 font-black text-[10px] xs:text-xs shadow-xl border border-[#e2d5c3] dark:border-amber-500/40 tracking-wide flex items-center gap-1 whitespace-nowrap">
+                      <span className="text-[#8c7b6d] dark:text-gray-400 font-bold">{title}</span>
+                      {value && <span>{value}</span>}
+                    </div>
+                    <div className="w-2.5 xs:w-3.5 sm:w-6 border-t-2 border-dashed border-amber-400" />
+                  </div>
+                );
+              }
+
+              if (callout.position === 'bottom-right') {
+                return (
+                  <div
+                    key={`callout-${idx}`}
+                    className="absolute top-[64%] left-full flex items-center animate-fadeIn pointer-events-none"
+                  >
+                    <div className="w-2.5 xs:w-3.5 sm:w-6 border-t-2 border-dashed border-amber-400" />
+                    <div className="px-2 xs:px-2.5 py-1 rounded-lg bg-[#faf5eb] dark:bg-[#141b2a] text-[#2b2118] dark:text-amber-300 font-black text-[10px] xs:text-xs shadow-xl border border-[#e2d5c3] dark:border-amber-500/40 tracking-wide flex items-center gap-1 whitespace-nowrap">
+                      <span className="text-[#8c7b6d] dark:text-gray-400 font-bold">{title}</span>
+                      {value && <span>{value}</span>}
+                    </div>
+                  </div>
+                );
+              }
+
+              if (callout.position === 'bottom-left') {
+                return (
+                  <div
+                    key={`callout-${idx}`}
+                    className="absolute top-[64%] right-full flex items-center animate-fadeIn pointer-events-none"
+                  >
+                    <div className="px-2 xs:px-2.5 py-1 rounded-lg bg-[#faf5eb] dark:bg-[#141b2a] text-[#2b2118] dark:text-amber-300 font-black text-[10px] xs:text-xs shadow-xl border border-[#e2d5c3] dark:border-amber-500/40 tracking-wide flex items-center gap-1.5 whitespace-nowrap">
+                      <span className="text-[#8c7b6d] dark:text-gray-400 font-bold">{title}</span>
+                      {callout.dotColor && (
+                        <span
+                          className="w-2.5 h-2.5 rounded-full inline-block border border-white/20 shadow-sm"
+                          style={{ backgroundColor: callout.dotColor }}
+                        />
+                      )}
+                    </div>
+                    <div className="w-2.5 xs:w-3.5 sm:w-6 border-t-2 border-dashed border-amber-400" />
+                  </div>
+                );
+              }
+
+              return null;
+            })}
           </div>
-
-          {/* Callout Badges with Pointers */}
-          {inspectCard.callouts.map((callout, idx) => {
-            if (callout.position === 'top-right') {
-              return (
-                <div
-                  key={`callout-${idx}`}
-                  className="absolute -top-3 sm:-top-4 -right-16 sm:-right-24 flex items-center gap-1.5 animate-fadeIn"
-                >
-                  <div className="w-6 sm:w-10 border-t-2 border-dashed border-amber-400/80" />
-                  <div className="px-3 py-1 rounded-lg bg-[#141b2a] text-amber-300 font-black text-xs sm:text-sm shadow-xl border border-amber-500/40 tracking-wide font-mono flex items-center gap-1.5">
-                    <span>{callout.label}</span>
-                  </div>
-                </div>
-              );
-            }
-
-            if (callout.position === 'top-left') {
-              return (
-                <div
-                  key={`callout-${idx}`}
-                  className="absolute -top-3 sm:-top-4 -left-16 sm:-left-24 flex items-center gap-1.5 animate-fadeIn"
-                >
-                  <div className="px-3 py-1 rounded-lg bg-[#141b2a] text-amber-300 font-black text-xs sm:text-sm shadow-xl border border-amber-500/40 tracking-wide font-mono flex items-center gap-1.5">
-                    <span>{callout.label}</span>
-                  </div>
-                  <div className="w-6 sm:w-10 border-t-2 border-dashed border-amber-400/80" />
-                </div>
-              );
-            }
-
-            if (callout.position === 'left') {
-              return (
-                <div
-                  key={`callout-${idx}`}
-                  className="absolute top-1/2 -translate-y-1/2 -left-20 sm:-left-32 flex items-center gap-1.5 animate-fadeIn"
-                >
-                  <div className="px-3 py-1 rounded-lg bg-[#141b2a] text-amber-300 font-black text-xs sm:text-sm shadow-xl border border-amber-500/40 tracking-wide font-mono flex items-center gap-1.5">
-                    <span>{callout.label}</span>
-                  </div>
-                  <div className="w-6 sm:w-10 border-t-2 border-dashed border-amber-400/80" />
-                </div>
-              );
-            }
-
-            if (callout.position === 'bottom-right') {
-              return (
-                <div
-                  key={`callout-${idx}`}
-                  className="absolute -bottom-2 -right-14 sm:-right-20 flex items-center gap-1.5 animate-fadeIn"
-                >
-                  <div className="w-6 sm:w-10 border-t-2 border-dashed border-amber-400/80" />
-                  <div className="px-3 py-1 rounded-lg bg-[#141b2a] text-amber-300 font-black text-xs sm:text-sm shadow-xl border border-amber-500/40 tracking-wide font-mono flex items-center gap-1.5">
-                    <span>{callout.label}</span>
-                  </div>
-                </div>
-              );
-            }
-
-            if (callout.position === 'bottom-left') {
-              return (
-                <div
-                  key={`callout-${idx}`}
-                  className="absolute -bottom-2 -left-16 sm:-left-24 flex items-center gap-1.5 animate-fadeIn"
-                >
-                  <div className="px-3 py-1 rounded-lg bg-[#141b2a] text-amber-300 font-black text-xs sm:text-sm shadow-xl border border-amber-500/40 tracking-wide flex items-center gap-1.5">
-                    <span>{callout.label}</span>
-                    {callout.dotColor && (
-                      <span
-                        className="w-3 h-3 rounded-full inline-block border border-white/20"
-                        style={{ backgroundColor: callout.dotColor }}
-                      />
-                    )}
-                  </div>
-                  <div className="w-6 sm:w-10 border-t-2 border-dashed border-amber-400/80" />
-                </div>
-              );
-            }
-
-            return null;
-          })}
         </div>
 
         {/* Dialogue Box Docked Below Card in Log Pose Dark Theme */}
