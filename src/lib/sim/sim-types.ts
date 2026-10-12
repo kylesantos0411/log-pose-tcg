@@ -83,6 +83,12 @@ export interface PendingCombat {
   usedCounters?: SimCard[];
 }
 
+export interface PendingTrigger {
+  card: SimCard;
+  isPlayer: boolean;
+  effect: string;
+}
+
 export interface SimGameState {
   leader: SimCard | null;
   deck: SimCard[];
@@ -106,6 +112,7 @@ export interface SimGameState {
   tutorialMode: boolean;
   tutorialStepIndex: number;
   pendingCombat: PendingCombat | null;
+  pendingTrigger: PendingTrigger | null;
   winner: 'player' | 'opponent' | null;
   isOpponentTurn: boolean;
 }

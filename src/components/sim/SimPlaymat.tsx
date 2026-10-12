@@ -18,6 +18,8 @@ import {
   passBlockerStep,
   applyCounterFromHand,
   resolvePendingCombat,
+  activateTriggerEffect,
+  dismissTriggerEffect,
   switchOpponent,
   performMulligan,
   keepInitialHand,
@@ -25,11 +27,15 @@ import {
   setTutorialStep,
   toggleTutorialMode,
 } from '@/lib/sim/sim-engine';
+import { simAudio } from '@/lib/sim/sim-audio';
 import { SimCardInspectorModal } from './SimCardInspectorModal';
 import { SimPileViewerModal } from './SimPileViewerModal';
 import { SimMulliganModal } from './SimMulliganModal';
+import { SimTriggerModal } from './SimTriggerModal';
+import { SimMultiplayerModal } from './SimMultiplayerModal';
 import { SimTutorialBanner } from './SimTutorialBanner';
 import { SimSettingsModal } from './SimSettingsModal';
+import { simMultiplayer } from '@/lib/sim/sim-multiplayer';
 import { OPTCG_TUTORIAL_STEPS } from '@/lib/sim/tutorial-data';
 import { ST01_STRAW_HAT_DECK, ST04_ANIMAL_KINGDOM_DECK } from '@/lib/sim/starter-decks';
 import {
@@ -85,6 +91,9 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
   const [showLogModal, setShowLogModal] = useState(false);
   const [showOpponentSelector, setShowOpponentSelector] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showMultiplayerModal, setShowMultiplayerModal] = useState(false);
+  const [activeMultiplayerRoom, setActiveMultiplayerRoom] = useState<string | null>(null);
+  const [isMultiplayerHost, setIsMultiplayerHost] = useState(false);
   const [selectedHandCard, setSelectedHandCard] = useState<SimCard | null>(null);
   const [selectedFieldCard, setSelectedFieldCard] = useState<SimCard | null>(null);
 
@@ -207,19 +216,39 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
     );
   };
 
-  // Turn advance (Triggers Refresh -> Opponent Turn -> Player Turn)
+  const [isAiThinking, setIsAiThinking] = useState(false);
+
+  // Turn advance (Triggers Refresh -> Opponent Turn -> Player Turn with paced AI progression)
   const handleNextTurn = () => {
+    if (isAiThinking) return;
     setSelectedDonCount(0);
     setSelectedAttacker(null);
-    setGameState((prev) => advanceNextTurn(prev));
     setSelectedHandCard(null);
     setSelectedFieldCard(null);
+
+    setIsAiThinking(true);
+    // Paced AI turn delay (650ms) to simulate real human/opponent turn thinking
+    setTimeout(() => {
+      setGameState((prev) => {
+        const next = advanceNextTurn(prev);
+        if (next.pendingCombat) {
+          simAudio.playAttackSlash();
+        } else if (next.pendingTrigger) {
+          simAudio.playCounterBoost();
+        } else {
+          simAudio.playDonAttach();
+        }
+        return next;
+      });
+      setIsAiThinking(false);
+    }, 650);
   };
 
   // Card Play
   const handlePlayCard = (instanceId: string, replaceSlotIndex?: number) => {
     setSelectedDonCount(0);
     setSelectedAttacker(null);
+    simAudio.playCardPlay();
     setGameState((prev) => playCardFromHand(prev, instanceId, replaceSlotIndex));
     setSelectedHandCard(null);
   };
@@ -239,6 +268,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
   // DON Attach / Detach
   const handleAttachDon = (instanceId: string, count?: number) => {
     const amountToAttach = count ?? (selectedDonCount > 0 ? selectedDonCount : 1);
+    simAudio.playDonAttach();
     setGameState((prev) => attachDonToCard(prev, instanceId, amountToAttach));
     setSelectedDonCount(0);
   };
@@ -249,6 +279,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
 
   // Life damage
   const handleTakeLifeDamage = () => {
+    simAudio.playLifeBreak();
     setGameState((prev) => takeLifeDamage(prev));
   };
 
@@ -259,12 +290,14 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
 
   // Opponent Attacks & Damage
   const handleAttackOpponent = (attackerInstanceId: string) => {
+    simAudio.playAttackSlash();
     setGameState((prev) => attackOpponentLeader(prev, attackerInstanceId));
     setSelectedFieldCard(null);
     setSelectedAttacker(null);
   };
 
   const handleAttackOpponentChar = (attackerInstanceId: string, oppCharId: string) => {
+    simAudio.playAttackSlash();
     setGameState((prev) => attackOpponentCharacter(prev, attackerInstanceId, oppCharId));
     setSelectedFieldCard(null);
     setSelectedAttacker(null);
@@ -272,6 +305,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
 
   // Phase 4: Blocker & Counter Defend actions
   const handleActivateBlocker = (blockerInstanceId: string) => {
+    simAudio.playBlockerDefend();
     setGameState((prev) => activateBlocker(prev, blockerInstanceId));
   };
 
@@ -280,11 +314,53 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
   };
 
   const handleApplyCounter = (cardInstanceId: string) => {
+    simAudio.playCounterBoost();
     setGameState((prev) => applyCounterFromHand(prev, cardInstanceId));
   };
 
   const handleResolveCombat = () => {
-    setGameState((prev) => resolvePendingCombat(prev));
+    setGameState((prev) => {
+      const next = resolvePendingCombat(prev);
+      if (next.winner === 'player') {
+        simAudio.playVictory();
+      } else if (next.winner === 'opponent') {
+        simAudio.playLifeBreak();
+      }
+      return next;
+    });
+  };
+
+  // Phase 5: Trigger Handling
+  const handleActivateTrigger = () => {
+    simAudio.playCounterBoost();
+    setGameState((prev) => activateTriggerEffect(prev));
+  };
+
+  const handleDismissTrigger = () => {
+    setGameState((prev) => dismissTriggerEffect(prev));
+  };
+
+  // Phase 6: Multiplayer Room Handlers
+  const handleJoinMultiplayerRoom = (roomId: string, isHost: boolean) => {
+    setActiveMultiplayerRoom(roomId);
+    setIsMultiplayerHost(isHost);
+
+    simMultiplayer.joinRoom(
+      roomId,
+      (syncedState) => {
+        // Sync incoming opponent state
+        setGameState(syncedState);
+      },
+      (joinedPlayerId) => {
+        // Broadcast arrival sound & notification
+        simAudio.playVictory();
+      }
+    );
+  };
+
+  const handleLeaveMultiplayerRoom = () => {
+    simMultiplayer.leaveRoom();
+    setActiveMultiplayerRoom(null);
   };
 
   // Switch opponent deck
@@ -1395,12 +1471,24 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
             <button
               type="button"
               onClick={handleNextTurn}
-              className={`px-5 py-2.5 rounded-xl bg-[#f59e0b] hover:bg-[#d97706] text-black font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-lg active:scale-95 transition cursor-pointer select-none ${
-                highlightTarget === 'endTurn' ? spotlightClass : ''
-              }`}
+              disabled={isAiThinking}
+              className={`px-5 py-2.5 rounded-xl text-black font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-lg active:scale-95 transition select-none ${
+                isAiThinking
+                  ? 'bg-amber-600/70 cursor-not-allowed opacity-80'
+                  : 'bg-[#f59e0b] hover:bg-[#d97706] cursor-pointer'
+              } ${highlightTarget === 'endTurn' ? spotlightClass : ''}`}
             >
-              <span>End turn</span>
-              <span className="text-xs">▷</span>
+              {isAiThinking ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  <span>Opponent Turn...</span>
+                </>
+              ) : (
+                <>
+                  <span>End turn</span>
+                  <span className="text-xs">▷</span>
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -1434,6 +1522,19 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
               >
                 <RotateCcw className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Restart Match</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowTurnMenu(false);
+                  setShowMultiplayerModal(true);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-950/40 hover:bg-indigo-900/60 text-indigo-200 font-semibold transition border border-indigo-500/30"
+              >
+                <Users className="w-3.5 h-3.5 text-indigo-400" />
+                <span>
+                  {activeMultiplayerRoom ? `Multiplayer (Room: ${activeMultiplayerRoom})` : 'Online Multiplayer'}
+                </span>
               </button>
               <button
                 type="button"
@@ -1976,6 +2077,23 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Multiplayer Room Modal */}
+      <SimMultiplayerModal
+        isOpen={showMultiplayerModal}
+        onClose={() => setShowMultiplayerModal(false)}
+        onJoinRoom={handleJoinMultiplayerRoom}
+      />
+
+      {/* Trigger Modal */}
+      {gameState.pendingTrigger && (
+        <SimTriggerModal
+          card={gameState.pendingTrigger.card}
+          effect={gameState.pendingTrigger.effect}
+          onActivate={handleActivateTrigger}
+          onDismiss={handleDismissTrigger}
+        />
       )}
 
       {/* Victory / Defeat Modals */}

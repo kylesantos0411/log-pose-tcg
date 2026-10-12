@@ -4,7 +4,7 @@
  * Implements official Bandai rules: 5 Phases, DON!! mechanics, combat, blockers, triggers, and AI turns.
  */
 
-import { SimCard, SimGameState, GameLogEntry, SimOpponent, PendingCombat } from './sim-types';
+import { SimCard, SimGameState, GameLogEntry, SimOpponent, PendingCombat, PendingTrigger } from './sim-types';
 import { RecommendedDeck, DeckCardItem, RECOMMENDED_DECKS } from '../recommended-decks';
 import { getEditionCardImageUrl } from '../card-image';
 import { ST01_STRAW_HAT_DECK, ST04_ANIMAL_KINGDOM_DECK } from './starter-decks';
@@ -76,6 +76,68 @@ function createSimCard(
     counterVal = 1000;
   }
 
+  // Specific Card Effects & Triggers from Bandai Official database:
+  let cardEffect: string | null = isBlocker ? '[Blocker]' : isRush ? '[Rush]' : null;
+  let cardTrigger: string | null = null;
+  let englishName: string | null = null;
+  let englishEffect: string | null = null;
+  let englishTrigger: string | null = null;
+
+  switch (item.cardId) {
+    case 'ST01-011': // Brook
+      cardEffect = '[On Play] Give up to 2 of your rested DON!! cards to your Leader or 1 of your Characters.';
+      englishName = 'Brook';
+      englishEffect = cardEffect;
+      break;
+    case 'ST01-003': // Karoo
+      cardEffect = null;
+      cardTrigger = '[Trigger] Play this card.';
+      englishName = 'Karoo';
+      englishTrigger = cardTrigger;
+      break;
+    case 'ST01-014': // Guard Point
+      cardEffect = '[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle.';
+      cardTrigger = '[Trigger] Up to 1 of your Leader or Character cards gains +1000 power until the end of this turn.';
+      englishName = 'Guard Point';
+      englishEffect = cardEffect;
+      englishTrigger = cardTrigger;
+      break;
+    case 'ST01-015': // Gum-Gum Pistol
+      cardEffect = '[Main] K.O. up to 1 of your opponent\'s Characters with 6000 power or less.';
+      cardTrigger = '[Trigger] K.O. up to 1 of your opponent\'s Characters with 5000 power or less.';
+      englishName = 'Gum-Gum Pistol';
+      englishEffect = cardEffect;
+      englishTrigger = cardTrigger;
+      break;
+    case 'ST01-016': // Diable Jambe
+      cardEffect = '[Main] Select 1 of your Straw Hat Crew Leader or Characters; it cannot be blocked this turn.';
+      cardTrigger = '[Trigger] Return 1 Character with 5000 power or less to its owner\'s hand.';
+      englishName = 'Diable Jambe';
+      englishEffect = cardEffect;
+      englishTrigger = cardTrigger;
+      break;
+    case 'ST01-006': // Chopper
+      cardEffect = '[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)';
+      englishName = 'Tony Tony Chopper';
+      englishEffect = cardEffect;
+      break;
+    case 'ST01-013': // Zoro
+      cardEffect = '[Rush] (This card can attack on the turn in which it is played.)';
+      englishName = 'Roronoa Zoro';
+      englishEffect = cardEffect;
+      break;
+    case 'ST04-002': // Page One
+      cardEffect = '[On Play] If you have a [Ulti] Character, set up to 1 of your DON!! cards as active.';
+      englishName = 'Page One';
+      englishEffect = cardEffect;
+      break;
+    case 'ST04-005': // Queen
+      cardEffect = '[Blocker] [On Play] DON!! -1: Draw 2 cards and trash 1 card from your hand.';
+      englishName = 'Queen';
+      englishEffect = cardEffect;
+      break;
+  }
+
   return {
     instanceId,
     cardId: item.cardId,
@@ -88,8 +150,11 @@ function createSimCard(
     power: item.power ?? 0,
     counter: counterVal,
     imageUrl: getEditionCardImageUrl(item.cardId, 'jp', item.imageUrl),
-    effect: isBlocker ? '[Blocker]' : isRush ? '[Rush]' : null,
-    trigger: item.cardId === 'ST01-015' ? '[Trigger] K.O. up to 1 of your opponent\'s Characters with 5000 power or less.' : null,
+    effect: cardEffect,
+    trigger: cardTrigger,
+    englishName,
+    englishEffect,
+    englishTrigger,
     types: null,
     attributes: null,
     rested: false,
@@ -265,6 +330,7 @@ export function initializeGame(
     tutorialMode: isTutorial,
     tutorialStepIndex: 0,
     pendingCombat: null,
+    pendingTrigger: null,
     winner: null,
     isOpponentTurn: false,
   };
@@ -463,6 +529,7 @@ export function advanceNextTurn(state: SimGameState): SimGameState {
   let gameWinner: 'player' | 'opponent' | null = state.winner;
   let oppLeaderRested = false;
   let pendingCombatToHandle: PendingCombat | null = null;
+  let pendingTriggerToHandle: PendingTrigger | null = null;
 
   if (canAIAttack && !gameWinner) {
     // 1. Character attacks:
@@ -549,10 +616,22 @@ export function advanceNextTurn(state: SimGameState): SimGameState {
             break;
           } else if (playerLife.length > 0) {
             const lostLifeCard = playerLife.shift()!;
-            playerHand.push(lostLifeCard);
-            aiLogs.push(
-              createLog(`💔 Opponent's ${attacker.name} (${attackerPower} Power) attacked your Leader! Took 1 Life Damage (${playerLife.length} Life left). Added ${lostLifeCard.name} to hand.`, 'combat')
-            );
+            if (lostLifeCard.trigger) {
+              pendingTriggerToHandle = {
+                card: lostLifeCard,
+                isPlayer: true,
+                effect: lostLifeCard.trigger,
+              };
+              aiLogs.push(
+                createLog(`✨ [TRIGGER DETECTED] Opponent's ${attacker.name} attacked your Leader! Life damage revealed ${lostLifeCard.name} (${lostLifeCard.trigger})! Choose whether to activate trigger!`, 'combat')
+              );
+              break;
+            } else {
+              playerHand.push(lostLifeCard);
+              aiLogs.push(
+                createLog(`💔 Opponent's ${attacker.name} (${attackerPower} Power) attacked your Leader! Took 1 Life Damage (${playerLife.length} Life left). Added ${lostLifeCard.name} to hand.`, 'combat')
+              );
+            }
           } else {
             gameWinner = 'opponent';
             aiLogs.push(
@@ -564,7 +643,7 @@ export function advanceNextTurn(state: SimGameState): SimGameState {
     }
 
     // 2. Leader attack (if no pending combat triggered yet):
-    if (!gameWinner && !oppLeaderRested && !pendingCombatToHandle) {
+    if (!gameWinner && !oppLeaderRested && !pendingCombatToHandle && !pendingTriggerToHandle) {
       const oppLeaderPower = 5000 + oppLeaderAttachedDon * 1000;
 
       const restedTargets = playerChars.filter(
@@ -634,10 +713,21 @@ export function advanceNextTurn(state: SimGameState): SimGameState {
           );
         } else if (playerLife.length > 0) {
           const lostLifeCard = playerLife.shift()!;
-          playerHand.push(lostLifeCard);
-          aiLogs.push(
-            createLog(`💔 Opponent Leader ${state.opponent.leaderName} (${oppLeaderPower} Power) attacked your Leader! Took 1 Life Damage (${playerLife.length} Life left).`, 'combat')
-          );
+          if (lostLifeCard.trigger) {
+            pendingTriggerToHandle = {
+              card: lostLifeCard,
+              isPlayer: true,
+              effect: lostLifeCard.trigger,
+            };
+            aiLogs.push(
+              createLog(`✨ [TRIGGER DETECTED] Opponent Leader ${state.opponent.leaderName} attacked your Leader! Life damage revealed ${lostLifeCard.name} (${lostLifeCard.trigger})! Choose whether to activate trigger!`, 'combat')
+            );
+          } else {
+            playerHand.push(lostLifeCard);
+            aiLogs.push(
+              createLog(`💔 Opponent Leader ${state.opponent.leaderName} (${oppLeaderPower} Power) attacked your Leader! Took 1 Life Damage (${playerLife.length} Life left).`, 'combat')
+            );
+          }
         } else {
           gameWinner = 'opponent';
           aiLogs.push(
@@ -684,6 +774,7 @@ export function advanceNextTurn(state: SimGameState): SimGameState {
     opponent: updatedOpponent,
     logs: newLogs,
     pendingCombat: pendingCombatToHandle,
+    pendingTrigger: pendingTriggerToHandle,
     winner: gameWinner,
   };
 }
@@ -714,7 +805,7 @@ export function playCardFromHand(
 
   // Deduct DON!! cost
   const newActiveDon = state.activeDon - cost;
-  const newRestedDon = state.restedDon + cost;
+  let newRestedDon = state.restedDon + cost;
   const newHand = state.hand.filter((_, idx) => idx !== cardIndex);
 
   let newCharacters = [...state.characters];
@@ -755,6 +846,18 @@ export function playCardFromHand(
       newCharacters.push(playedChar);
       actionLog = `Played Character ${card.name} (Cost: ${cost}${card.hasRush ? ' [Rush]' : ''})`;
     }
+
+    // [On Play] Effects:
+    if (card.cardId === 'ST01-011') {
+      // Brook: Give up to 2 rested DON!! to Leader or Character
+      const donToGive = Math.min(2, newRestedDon);
+      if (donToGive > 0) {
+        newRestedDon -= donToGive;
+        // Attach to Brook or Leader
+        playedChar.attachedDon += donToGive;
+        actionLog += ` ✨ [On Play] Attached ${donToGive} rested DON!! to ${card.name}!`;
+      }
+    }
   } else if (card.category === 'Stage') {
     if (newStage) {
       newTrash.push(newStage);
@@ -766,6 +869,35 @@ export function playCardFromHand(
   } else if (card.category === 'Event') {
     newTrash.push(card);
     actionLog = `Activated Event ${card.name} (Cost: ${cost}) -> Sent to Trash`;
+
+    // Scripted Event Effects:
+    if (card.cardId === 'ST01-015') {
+      // Gum-Gum Pistol: K.O. up to 1 of opponent's characters with 6000 power or less
+      const targetIdx = state.opponent.characters.findIndex(
+        (c) => ((c.power || 0) + c.attachedDon * 1000) <= 6000
+      );
+      if (targetIdx !== -1) {
+        const koTarget = state.opponent.characters[targetIdx];
+        const oppChars = [...state.opponent.characters];
+        oppChars.splice(targetIdx, 1);
+        actionLog += ` 💥 Gum-Gum Pistol K.O.'d opponent's ${koTarget.name}!`;
+        return {
+          ...state,
+          hand: newHand,
+          characters: newCharacters,
+          stage: newStage,
+          trash: newTrash,
+          activeDon: newActiveDon,
+          restedDon: newRestedDon,
+          opponent: {
+            ...state.opponent,
+            characters: oppChars,
+            trashCount: state.opponent.trashCount + 1,
+          },
+          logs: [...state.logs, createLog(actionLog, 'action')],
+        };
+      }
+    }
   } else {
     newTrash.push(card);
     actionLog = `Played ${card.name} (Cost: ${cost})`;
@@ -942,7 +1074,7 @@ export function toggleCardRest(
 }
 
 /**
- * Take 1 Life Damage: removes top life card and adds to hand (checking Trigger)
+ * Take 1 Life Damage: removes top life card and checks for [Trigger]
  */
 export function takeLifeDamage(state: SimGameState): SimGameState {
   if (state.life.length === 0) {
@@ -955,9 +1087,25 @@ export function takeLifeDamage(state: SimGameState): SimGameState {
 
   const updatedLife = [...state.life];
   const topLifeCard = updatedLife.shift()!;
-  const updatedHand = [...state.hand, topLifeCard];
 
-  const triggerNote = topLifeCard.trigger ? ` [TRIGGER REVEALED: ${topLifeCard.trigger}]` : '';
+  // If card has an active Trigger effect, set pendingTrigger so player can choose to activate
+  if (topLifeCard.trigger) {
+    return {
+      ...state,
+      life: updatedLife,
+      pendingTrigger: {
+        card: topLifeCard,
+        isPlayer: true,
+        effect: topLifeCard.trigger,
+      },
+      logs: [
+        ...state.logs,
+        createLog(`✨ [TRIGGER DETECTED] Life damage revealed ${topLifeCard.name} (${topLifeCard.trigger})! Choose whether to activate!`, 'combat'),
+      ],
+    };
+  }
+
+  const updatedHand = [...state.hand, topLifeCard];
 
   return {
     ...state,
@@ -965,7 +1113,7 @@ export function takeLifeDamage(state: SimGameState): SimGameState {
     hand: updatedHand,
     logs: [
       ...state.logs,
-      createLog(`💔 Took 1 Life Damage! Added ${topLifeCard.name} to hand (${updatedLife.length} Life left)${triggerNote}`, 'combat'),
+      createLog(`💔 Took 1 Life Damage! Added ${topLifeCard.name} to hand (${updatedLife.length} Life left).`, 'combat'),
     ],
   };
 }
@@ -1637,14 +1785,35 @@ export function resolvePendingCombat(state: SimGameState): SimGameState {
       // Leader damage
       if (playerLife.length > 0) {
         const topLife = playerLife.shift()!;
-        playerHand.push(topLife);
-        const triggerNote = topLife.trigger ? ` [TRIGGER: ${topLife.trigger}]` : '';
-        newLogs.push(
-          createLog(
-            `💔 [DAMAGE TAKEN] ${combat.attackerName} (${combat.attackerPower} Power) struck ${combat.targetName}! Lost 1 Life card (${topLife.name} added to hand, ${playerLife.length} Life left)${triggerNote}.`,
-            'combat'
-          )
-        );
+        if (topLife.trigger) {
+          // Trigger flow: prompt player whether to activate
+          return {
+            ...state,
+            characters: playerChars,
+            life: playerLife,
+            trash: playerTrash,
+            activeDon: totalActiveDon,
+            pendingCombat: null,
+            winner,
+            pendingTrigger: {
+              card: topLife,
+              isPlayer: true,
+              effect: topLife.trigger,
+            },
+            logs: [
+              ...newLogs,
+              createLog(`✨ [TRIGGER ACTIVATED] Life damage revealed ${topLife.name} (${topLife.trigger})! Choose whether to activate trigger!`, 'combat'),
+            ],
+          };
+        } else {
+          playerHand.push(topLife);
+          newLogs.push(
+            createLog(
+              `💔 [DAMAGE TAKEN] ${combat.attackerName} (${combat.attackerPower} Power) struck ${combat.targetName}! Lost 1 Life card (${topLife.name} added to hand, ${playerLife.length} Life left).`,
+              'combat'
+            )
+          );
+        }
       } else {
         winner = 'opponent';
         newLogs.push(
@@ -1669,3 +1838,107 @@ export function resolvePendingCombat(state: SimGameState): SimGameState {
     logs: newLogs,
   };
 }
+
+/**
+ * Activate the revealed Trigger card effect.
+ * If Character with "Play this card", plays it onto the field if < 5 characters.
+ * If Event card, executes effect and places in Trash.
+ */
+export function activateTriggerEffect(state: SimGameState): SimGameState {
+  if (!state.pendingTrigger) return state;
+
+  const trigger = state.pendingTrigger;
+  const card = trigger.card;
+  const effectText = trigger.effect;
+  const newLogs: GameLogEntry[] = [...state.logs];
+
+  // If it's a character card that says "Play this card"
+  if (card.category === 'Character') {
+    if (state.characters.length < 5) {
+      const playedChar: SimCard = {
+        ...card,
+        rested: false,
+        attachedDon: 0,
+        customPowerModifier: 0,
+        canAttackThisTurn: false, // Summoning sickness
+      };
+      newLogs.push(
+        createLog(`⚡ [TRIGGER PLAYED] Played Character ${card.name} (${card.power} Power) directly to the field via Trigger!`, 'combat')
+      );
+      return {
+        ...state,
+        characters: [...state.characters, playedChar],
+        pendingTrigger: null,
+        logs: newLogs,
+      };
+    } else {
+      // Field is full, goes to trash
+      newLogs.push(
+        createLog(`⚡ [TRIGGER FIRED] Field is full (5/5 characters)! ${card.name} sent to Trash.`, 'combat')
+      );
+      return {
+        ...state,
+        trash: [...state.trash, card],
+        pendingTrigger: null,
+        logs: newLogs,
+      };
+    }
+  }
+
+  // Event trigger: Gum-Gum Pistol / Guard Point / Jet Pistol etc.
+  // KO opponent character if effect says K.O. or power reduction
+  let updatedOppChars = [...state.opponent.characters];
+  let oppTrashCount = state.opponent.trashCount;
+
+  if (effectText.toLowerCase().includes('k.o.') || effectText.toLowerCase().includes('ko')) {
+    // Attempt to K.O. lowest/eligible opponent character
+    if (updatedOppChars.length > 0) {
+      // Find candidate: e.g. lowest cost or <= 5000 power
+      const koTarget = updatedOppChars[0];
+      updatedOppChars.splice(0, 1);
+      oppTrashCount += 1;
+      newLogs.push(
+        createLog(`⚡ [TRIGGER EFFECT] ${card.name} Trigger activated: K.O.'d opponent's ${koTarget.name}!`, 'combat')
+      );
+    } else {
+      newLogs.push(
+        createLog(`⚡ [TRIGGER EFFECT] ${card.name} Trigger activated! No opponent characters to target.`, 'combat')
+      );
+    }
+  } else {
+    newLogs.push(
+      createLog(`⚡ [TRIGGER EFFECT] ${card.name} Trigger activated: "${effectText}"! Card moved to Trash.`, 'combat')
+    );
+  }
+
+  return {
+    ...state,
+    trash: [...state.trash, card],
+    opponent: {
+      ...state.opponent,
+      characters: updatedOppChars,
+      trashCount: oppTrashCount,
+    },
+    pendingTrigger: null,
+    logs: newLogs,
+  };
+}
+
+/**
+ * Decline/Dismiss Trigger: Player chooses to put the card into hand instead of triggering.
+ */
+export function dismissTriggerEffect(state: SimGameState): SimGameState {
+  if (!state.pendingTrigger) return state;
+
+  const card = state.pendingTrigger.card;
+  return {
+    ...state,
+    hand: [...state.hand, card],
+    pendingTrigger: null,
+    logs: [
+      ...state.logs,
+      createLog(`📥 Kept Trigger card ${card.name} in hand instead of activating.`, 'action'),
+    ],
+  };
+}
+
