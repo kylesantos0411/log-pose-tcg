@@ -20,17 +20,20 @@ import {
   Zap,
   Info,
   ExternalLink,
-  User
+  User,
+  Gamepad2
 } from 'lucide-react';
 import { getDeckById, formatDeckExport, DeckCardItem } from '@/lib/recommended-decks';
 import { getEditionCardImageUrl, handleCardImageError } from '@/lib/card-image';
 import { useSettings } from '@/context/SettingsContext';
+import { checkIsAdmin } from '@/lib/supabase-sync';
 import { CardDetailView, CardDetailData } from '@/components/CardDetailView';
 
 export default function DeckDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const router = useRouter();
-  const { formatPrice, currency } = useSettings();
+  const { formatPrice, currency, user } = useSettings();
+  const isAdmin = checkIsAdmin(user);
 
   const deck = getDeckById(resolvedParams.id);
   const [activeTab, setActiveTab] = useState<'CARDS' | 'ANALYSE' | 'STATS'>('CARDS');
@@ -144,6 +147,21 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
           >
             <Maximize2 className="w-4 h-4" />
           </button>
+
+          {/* Admin Playtest Simulator Link */}
+          {isAdmin && (
+            <Link
+              href={`/sim?deckId=${deck.id}`}
+              title="Playtest in TCG Simulator (Admin Preview)"
+              className="px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-red-500/20 hover:from-amber-500/30 hover:to-red-500/30 text-amber-300 border border-amber-500/40 text-[10px] sm:text-xs font-black tracking-wider uppercase flex items-center gap-1.5 shadow-sm active:scale-95 transition shrink-0"
+            >
+              <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
+              <span>PLAYTEST</span>
+              <span className="text-[8px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono">
+                ADMIN
+              </span>
+            </Link>
+          )}
 
           {/* COPY DECK Button matching Screenshot 2 */}
           <button
