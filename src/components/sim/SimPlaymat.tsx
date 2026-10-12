@@ -82,6 +82,37 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
   // Multi-DON selection for quick attachment (e.g. clicking 4th DON selects 4 DONs to attach)
   const [selectedDonCount, setSelectedDonCount] = useState<number>(0);
 
+  // Attack Targeting Flow (Attacker selection ➜ reticle targeting on opponent mat)
+  const [selectedAttacker, setSelectedAttacker] = useState<SimCard | null>(null);
+
+  // Derive live attacker card from current gameState so power & attached DON stay updated
+  const liveAttackerCard: SimCard | null = selectedAttacker
+    ? (gameState.leader?.instanceId === selectedAttacker.instanceId
+        ? gameState.leader
+        : gameState.characters.find((c) => c.instanceId === selectedAttacker.instanceId) || null)
+    : null;
+
+  // Auto-clear attacker if that card becomes rested or is removed from the field
+  useEffect(() => {
+    if (selectedAttacker) {
+      const live =
+        gameState.leader?.instanceId === selectedAttacker.instanceId
+          ? gameState.leader
+          : gameState.characters.find((c) => c.instanceId === selectedAttacker.instanceId);
+      if (!live || live.rested) {
+        setSelectedAttacker(null);
+      }
+    }
+  }, [gameState, selectedAttacker]);
+
+  // Helper to determine if a card is currently eligible to declare an attack
+  const canCardAttack = (card: SimCard): boolean => {
+    if (card.rested) return false;
+    if (gameState.turn === 1 && gameState.goingFirst) return false;
+    if (card.category === 'Character' && !card.canAttackThisTurn && !card.hasRush) return false;
+    return card.category === 'Leader' || card.category === 'Character';
+  };
+
   // Auto-clamp selected DON count if active DON decreases
   useEffect(() => {
     if (selectedDonCount > gameState.activeDon) {
@@ -156,6 +187,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
   // Restart match
   const handleRestart = (goingFirst: boolean = true) => {
     setSelectedDonCount(0);
+    setSelectedAttacker(null);
     setGameState(
       initializeGame(
         chosenDeck,
@@ -169,6 +201,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
   // Turn advance (Triggers Refresh -> Opponent Turn -> Player Turn)
   const handleNextTurn = () => {
     setSelectedDonCount(0);
+    setSelectedAttacker(null);
     setGameState((prev) => advanceNextTurn(prev));
     setSelectedHandCard(null);
     setSelectedFieldCard(null);
@@ -177,6 +210,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
   // Card Play
   const handlePlayCard = (instanceId: string) => {
     setSelectedDonCount(0);
+    setSelectedAttacker(null);
     setGameState((prev) => playCardFromHand(prev, instanceId));
     setSelectedHandCard(null);
   };
@@ -218,11 +252,13 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
   const handleAttackOpponent = (attackerInstanceId: string) => {
     setGameState((prev) => attackOpponentLeader(prev, attackerInstanceId));
     setSelectedFieldCard(null);
+    setSelectedAttacker(null);
   };
 
   const handleAttackOpponentChar = (attackerInstanceId: string, oppCharId: string) => {
     setGameState((prev) => attackOpponentCharacter(prev, attackerInstanceId, oppCharId));
     setSelectedFieldCard(null);
+    setSelectedAttacker(null);
   };
 
   // Switch opponent deck
@@ -299,15 +335,19 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
           {/* Opponent Leader Card - Large and Commanding */}
           <div
             onClick={() => {
-              if (selectedFieldCard) {
+              if (selectedAttacker) {
+                handleAttackOpponent(selectedAttacker.instanceId);
+              } else if (selectedFieldCard) {
                 handleAttackOpponent(selectedFieldCard.instanceId);
-              } else if (gameState.leader && !gameState.leader.rested) {
-                setSelectedFieldCard(gameState.leader);
+              } else if (gameState.leader && canCardAttack(gameState.leader)) {
+                handleAttackOpponent(gameState.leader.instanceId);
               }
             }}
-            className={`w-16 sm:w-20 md:w-22 aspect-[2.5/3.5] rounded-xl border-2 border-red-500/80 overflow-hidden relative shadow-lg cursor-pointer hover:scale-102 transition group mx-auto ${
-              highlightTarget === 'opponent' ? spotlightClass : ''
-            }`}
+            className={`w-16 sm:w-20 md:w-22 aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-lg cursor-pointer transition group mx-auto ${
+              selectedAttacker
+                ? 'border-rose-500 ring-4 ring-rose-500 ring-offset-2 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(244,63,94,0.95)] scale-105 z-20'
+                : 'border-red-500/80 hover:scale-102'
+            } ${highlightTarget === 'opponent' ? spotlightClass : ''}`}
             title={`${gameState.opponent.leaderName} (${gameState.opponent.leaderPower} Power)`}
           >
             <img
@@ -316,9 +356,24 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
               className="w-full h-full object-cover"
               onError={(e) => handleCardImageError(e, gameState.opponent.leaderId, gameState.opponent.leaderImage)}
             />
-            {selectedFieldCard && (
+            {selectedAttacker && (
+              <div className="absolute inset-0 bg-rose-950/75 backdrop-blur-[0.5px] flex flex-col items-center justify-center p-0.5 text-center animate-fadeIn z-10">
+                <div className="w-5 h-5 rounded-full border-2 border-rose-400 border-dashed animate-spin flex items-center justify-center mb-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                </div>
+                <span className="text-[7.5px] sm:text-[9px] font-black text-rose-200 uppercase tracking-wider drop-shadow">
+                  STRIKE
+                </span>
+                <span className="text-[6.5px] sm:text-[7.5px] font-mono text-amber-300 font-bold">
+                  {(selectedAttacker?.power || 0) + (selectedAttacker?.attachedDon || 0) * 1000} vs {gameState.opponent.leaderPower}
+                </span>
+              </div>
+            )}
+            {!selectedAttacker && selectedFieldCard && (
               <div className="absolute inset-0 bg-red-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
-                <span className="text-[8px] sm:text-[9.5px] font-black text-white bg-red-600 px-1.5 py-0.5 rounded uppercase shadow">ATTACK</span>
+                <span className="text-[8px] sm:text-[9.5px] font-black text-white bg-red-600 px-1.5 py-0.5 rounded uppercase shadow">
+                  ATTACK
+                </span>
               </div>
             )}
           </div>
@@ -333,19 +388,33 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
             {[0, 1, 2, 3, 4].map((slotIdx) => {
               const oppChar = gameState.opponent.characters[slotIdx];
               if (oppChar) {
+                const canAttackThisChar = Boolean(selectedAttacker && oppChar.rested);
                 return (
                   <div
                     key={`opp-char-${oppChar.instanceId}`}
                     onClick={() => {
-                      if (selectedFieldCard) {
+                      if (selectedAttacker && oppChar.rested) {
+                        handleAttackOpponentChar(selectedAttacker.instanceId, oppChar.instanceId);
+                      } else if (selectedFieldCard && oppChar.rested) {
                         handleAttackOpponentChar(selectedFieldCard.instanceId, oppChar.instanceId);
                       } else {
                         setInspectedCard(oppChar);
                       }
                     }}
-                    className={`w-full aspect-[2.5/3.5] rounded-xl border border-white/20 overflow-hidden relative shadow-md cursor-pointer transition ${
-                      oppChar.rested ? 'rotate-90 scale-95 opacity-80 border-amber-500' : ''
+                    className={`w-full aspect-[2.5/3.5] rounded-xl overflow-hidden relative shadow-md cursor-pointer transition ${
+                      canAttackThisChar
+                        ? 'border-2 border-rose-500 ring-3 ring-rose-500 ring-offset-1 ring-offset-black animate-pulse shadow-[0_0_20px_rgba(244,63,94,0.9)] scale-105 z-20'
+                        : selectedAttacker && !oppChar.rested
+                        ? 'opacity-40 border border-white/10'
+                        : oppChar.rested
+                        ? 'rotate-90 scale-95 opacity-80 border-2 border-amber-500'
+                        : 'border border-white/20 hover:border-white/40'
                     }`}
+                    title={
+                      canAttackThisChar
+                        ? `Click to attack rested ${oppChar.name} (${oppChar.power} Power)`
+                        : oppChar.name
+                    }
                   >
                     <img
                       src={oppChar.imageUrl}
@@ -353,7 +422,17 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                       className="w-full h-full object-cover"
                       onError={(e) => handleCardImageError(e, oppChar.cardId, oppChar.imageUrl)}
                     />
-                    {oppChar.rested && (
+                    {canAttackThisChar && selectedAttacker && (
+                      <div className="absolute inset-0 bg-rose-950/75 backdrop-blur-[0.5px] flex flex-col items-center justify-center p-0.5 text-center animate-fadeIn z-10">
+                        <span className="text-[7px] sm:text-[8px] font-black text-rose-200 uppercase drop-shadow">
+                          K.O.
+                        </span>
+                        <span className="text-[6px] sm:text-[7px] font-mono text-amber-300 font-bold">
+                          {(selectedAttacker.power || 0) + (selectedAttacker.attachedDon || 0) * 1000} vs {oppChar.power}
+                        </span>
+                      </div>
+                    )}
+                    {oppChar.rested && !canAttackThisChar && (
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
                         <span className="text-[7px] font-bold uppercase text-amber-300 bg-black/85 px-1.5 rounded">
                           RESTED
@@ -473,19 +552,33 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
             {[0, 1, 2, 3, 4].map((slotIdx) => {
               const card = gameState.characters[slotIdx];
               if (card) {
+                const isThisAttacking = liveAttackerCard?.instanceId === card.instanceId;
+                const canAttack = canCardAttack(card);
                 return (
                   <div
                     key={card.instanceId}
                     onClick={() => {
                       if (selectedDonCount > 0) {
                         handleAttachDon(card.instanceId, selectedDonCount);
-                      } else {
-                        setSelectedFieldCard(card);
+                        return;
                       }
+                      if (isThisAttacking) {
+                        setSelectedAttacker(null);
+                        return;
+                      }
+                      if (canAttack) {
+                        setSelectedAttacker(card);
+                        setSelectedFieldCard(null);
+                        return;
+                      }
+                      setSelectedFieldCard(card);
+                      setSelectedAttacker(null);
                     }}
                     className={`w-full aspect-[2.5/3.5] rounded-xl overflow-hidden relative shadow-md cursor-pointer transition ${
                       selectedDonCount > 0
                         ? 'border-2 border-amber-400 ring-3 ring-amber-400 ring-offset-1 ring-offset-black animate-pulse shadow-[0_0_20px_rgba(251,191,36,0.9)] scale-105 z-20'
+                        : isThisAttacking
+                        ? 'border-2 border-rose-500 ring-4 ring-rose-500 ring-offset-1 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(244,63,94,0.95)] scale-105 z-20'
                         : card.rested
                         ? 'rotate-90 scale-95 opacity-80 border-2 border-amber-500'
                         : 'border border-cyan-400/80 shadow-[0_0_10px_rgba(34,211,238,0.4)] hover:border-cyan-300'
@@ -493,6 +586,10 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                     title={
                       selectedDonCount > 0
                         ? `Click to attach ${selectedDonCount} DON (+${selectedDonCount * 1000} Power)`
+                        : isThisAttacking
+                        ? 'Attacker selected - Click enemy target or click here to cancel'
+                        : canAttack
+                        ? `Click to declare attack with ${card.name} (${(card.power || 0) + card.attachedDon * 1000} Power)`
                         : card.name
                     }
                   >
@@ -506,6 +603,17 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                       <div className="absolute inset-0 bg-amber-500/20 backdrop-blur-[1px] flex flex-col items-center justify-center p-0.5 pointer-events-none z-10">
                         <span className="px-1 py-0.2 rounded-full bg-amber-400 text-black font-black text-[6.5px] sm:text-[7.5px] shadow-lg animate-bounce">
                           +{selectedDonCount * 1000}
+                        </span>
+                      </div>
+                    )}
+                    {isThisAttacking && (
+                      <div className="absolute inset-0 bg-rose-950/40 backdrop-blur-[0.5px] flex flex-col items-center justify-between p-0.5 pointer-events-none z-10 animate-fadeIn">
+                        <span className="px-1.5 py-0.2 rounded-full bg-rose-600 text-white font-black text-[6.5px] sm:text-[7.5px] shadow-lg animate-bounce flex items-center gap-0.5">
+                          <Swords className="w-2 h-2" />
+                          <span>ATTACK</span>
+                        </span>
+                        <span className="text-[6px] font-bold text-amber-200 drop-shadow">
+                          {(card.power || 0) + card.attachedDon * 1000} ATK
                         </span>
                       </div>
                     )}
@@ -544,13 +652,25 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                   if (!gameState.leader) return;
                   if (selectedDonCount > 0) {
                     handleAttachDon(gameState.leader.instanceId, selectedDonCount);
-                  } else {
-                    setSelectedFieldCard(gameState.leader);
+                    return;
                   }
+                  if (liveAttackerCard?.instanceId === gameState.leader.instanceId) {
+                    setSelectedAttacker(null);
+                    return;
+                  }
+                  if (canCardAttack(gameState.leader)) {
+                    setSelectedAttacker(gameState.leader);
+                    setSelectedFieldCard(null);
+                    return;
+                  }
+                  setSelectedFieldCard(gameState.leader);
+                  setSelectedAttacker(null);
                 }}
                 className={`w-16 sm:w-20 md:w-22 aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-[0_0_15px_rgba(34,211,238,0.4)] cursor-pointer hover:border-cyan-300 transition ${
                   selectedDonCount > 0
                     ? 'border-amber-400 ring-4 ring-amber-400 ring-offset-2 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(251,191,36,0.9)] scale-105 z-20'
+                    : liveAttackerCard?.instanceId === gameState.leader.instanceId
+                    ? 'border-rose-500 ring-4 ring-rose-500 ring-offset-2 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(244,63,94,0.95)] scale-105 z-20'
                     : 'border-cyan-400'
                 } ${
                   gameState.leader.rested ? 'rotate-90 scale-95 opacity-80' : ''
@@ -558,6 +678,10 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                 title={
                   selectedDonCount > 0
                     ? `Click to attach ${selectedDonCount} DON (+${selectedDonCount * 1000} Power)`
+                    : liveAttackerCard?.instanceId === gameState.leader.instanceId
+                    ? 'Attacker selected - Click enemy target or click here to cancel'
+                    : canCardAttack(gameState.leader)
+                    ? `Click to declare attack with Leader ${gameState.leader.name} (${(gameState.leader.power || 5000) + gameState.leader.attachedDon * 1000} Power)`
                     : gameState.leader.name
                 }
               >
@@ -574,6 +698,17 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                     </span>
                     <span className="text-[6px] font-bold text-amber-200 mt-0.5 drop-shadow">
                       Tap to attach
+                    </span>
+                  </div>
+                )}
+                {liveAttackerCard?.instanceId === gameState.leader.instanceId && (
+                  <div className="absolute inset-0 bg-rose-950/40 backdrop-blur-[0.5px] flex flex-col items-center justify-between p-1 pointer-events-none z-10 animate-fadeIn">
+                    <span className="px-1.5 py-0.5 rounded-full bg-rose-600 text-white font-black text-[7.5px] sm:text-[8.5px] shadow-lg animate-bounce flex items-center gap-0.5">
+                      <Swords className="w-2.5 h-2.5" />
+                      <span>ATTACKING</span>
+                    </span>
+                    <span className="text-[6.5px] font-bold text-amber-200 drop-shadow">
+                      {(gameState.leader.power || 5000) + gameState.leader.attachedDon * 1000} ATK
                     </span>
                   </div>
                 )}
@@ -673,6 +808,10 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
                   <div
                     key={`player-don-${idx}`}
                     onClick={() => {
+                      if (liveAttackerCard) {
+                        handleAttachDon(liveAttackerCard.instanceId, donNumber);
+                        return;
+                      }
                       if (selectedFieldCard) {
                         handleAttachDon(selectedFieldCard.instanceId, donNumber);
                         setSelectedFieldCard(null);
@@ -859,10 +998,43 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
         {/* 3. OPPONENT PLAYMAT */}
         {renderOpponentPlaymat()}
 
-        {/* 4. MIDLINE & FLOATING TUTORIAL ALERT BADGE */}
+        {/* 4. MIDLINE & FLOATING COMBAT TARGETING BANNER / TUTORIAL BADGE */}
         <div className="relative w-full flex items-center justify-center shrink-0 my-0.5 z-30">
           <div className="h-0.5 w-full bg-white/10" />
-          {currentStep && (
+          {liveAttackerCard ? (
+            <div className="absolute px-3.5 py-1 rounded-full bg-[#3b0d18] border-2 border-rose-500 text-white text-[9.5px] sm:text-xs font-bold shadow-2xl flex items-center gap-2 pointer-events-auto animate-pulse z-40 max-w-[95%]">
+              <span className="flex items-center gap-1 text-rose-300 truncate">
+                <Swords className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                <span className="truncate">
+                  {liveAttackerCard.name} ({(liveAttackerCard.power || 0) + liveAttackerCard.attachedDon * 1000} ATK)
+                </span>
+              </span>
+              <span className="text-gray-400">|</span>
+              <span className="text-amber-300 font-semibold whitespace-nowrap">Tap target 🎯</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedFieldCard(liveAttackerCard);
+                }}
+                className="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-[8.5px] text-gray-200 shrink-0 active:scale-95 transition"
+                title="Card details and manual controls"
+              >
+                Menu
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedAttacker(null);
+                }}
+                className="w-4 h-4 rounded-full bg-black/60 hover:bg-black text-gray-300 hover:text-white flex items-center justify-center text-[9px] shrink-0 active:scale-95 transition"
+                title="Cancel attack"
+              >
+                ✕
+              </button>
+            </div>
+          ) : currentStep ? (
             <button
               type="button"
               onClick={() => {
@@ -874,7 +1046,7 @@ export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
               <span className="text-amber-400">✦</span>
               <span>{currentStep.title}</span>
             </button>
-          )}
+          ) : null}
         </div>
 
         {/* 5. PLAYER PLAYMAT */}
