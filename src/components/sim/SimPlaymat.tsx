@@ -113,21 +113,25 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         isOpponentTurn: !initialMultiplayerRoom.isHost,
         turn: 1,
         goingFirst: initialMultiplayerRoom.isHost,
+        hand: [], // Do NOT draw starting cards before opponent connects
+        life: [], // Do NOT place life cards before opponent connects
+        activeDon: 0,
+        mulliganOffered: false,
         opponent: {
           ...init.opponent,
-          name: 'Connecting Opponent...',
+          name: 'Waiting for Opponent...',
           leaderName: 'Opponent Leader',
           characters: [],
-          handCount: 5,
-          life: 5,
-          maxLife: 5,
+          handCount: 0,
+          life: 0,
+          maxLife: 0,
         },
         logs: [
           createLog(`⚓ PVP Match Room: ${initialMultiplayerRoom.roomId}`, 'system'),
           createLog(
             initialMultiplayerRoom.isHost
-              ? `👑 You are Host (Going First on Turn 1). Waiting for Guest to join...`
-              : `⚔️ You are Guest (Going Second on Turn 2). Connected to room ${initialMultiplayerRoom.roomId}.`,
+              ? `👑 You are Host (Going First). Waiting for Player 2 to join...`
+              : `⚔️ You are Guest (Going Second). Connecting to room ${initialMultiplayerRoom.roomId}...`,
             'system'
           ),
         ],
@@ -348,39 +352,50 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
     simMultiplayer.joinRoom(roomId, {
       onHandshake: (payload) => {
         setIsMultiplayerOpponentConnected(true);
+        simAudio.playPhaseDing();
+
         setGameState((prev) => {
+          const needsDeal = prev.hand.length === 0 && prev.life.length === 0;
+          const fresh = needsDeal
+            ? initializeGame(chosenDeck, isHost, undefined, false)
+            : prev;
+
           const isNewOpponent = !prev.opponent.leaderId || prev.opponent.leaderId !== payload.leader.cardId;
-          const nextLogs = isNewOpponent
-            ? [
-                ...prev.logs,
-                createLog(`⚔️ Opponent connected: ${payload.deckName} (${payload.leader.name})!`, 'system'),
-              ]
-            : prev.logs;
+          const nextLogs = [
+            ...fresh.logs,
+            ...(isNewOpponent
+              ? [createLog(`⚔️ Opponent connected: ${payload.deckName} (${payload.leader.name})!`, 'system')]
+              : []),
+            ...(needsDeal
+              ? [createLog(`⚔️ Match Starting! Placed Life cards and drew 5 starting cards. Choose your Mulligan hand!`, 'action')]
+              : []),
+          ];
 
           return {
-            ...prev,
+            ...fresh,
+            isOpponentTurn: !isHost,
+            goingFirst: isHost,
+            turn: 1,
+            mulliganOffered: needsDeal ? true : fresh.mulliganOffered,
             opponent: {
-              ...prev.opponent,
+              ...fresh.opponent,
               name: payload.deckName,
               leaderId: payload.leader.cardId,
               leaderName: payload.leader.name,
               leaderImage: payload.leader.imageUrl,
               leaderPower: payload.leader.power,
-              life: payload.lifeCount,
-              maxLife: payload.lifeCount,
-              handCount: payload.handCount,
-              deckCount: payload.deckCount,
-              activeDon: payload.activeDon,
+              life: payload.lifeCount || 5,
+              maxLife: payload.lifeCount || 5,
+              handCount: payload.handCount || 5,
+              deckCount: payload.deckCount || 42,
+              activeDon: payload.activeDon || 0,
               characters: prev.opponent.characters || [],
             },
-            opponentLife: payload.lifeCount,
+            opponentLife: payload.lifeCount || 5,
             opponentPower: payload.leader.power,
             logs: nextLogs,
           };
         });
-
-        // Crisp chime to notify connection, avoid looped victory fanfare
-        simAudio.playPhaseDing();
 
         // Only reply if incoming handshake was NOT already a reply (prevents infinite ping-pong broadcast loop)
         if (!payload.isReply) {
@@ -2934,8 +2949,88 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         />
       )}
 
-      {/* Mulligan Modal - only shown once matchmaking completes */}
-      {!showMatchmaking && gameState.mulliganOffered && (
+      {/* Online PVP Lobby Waiting Screen (Displayed until 2nd player joins) */}
+      {activeMultiplayerRoom && !isMultiplayerOpponentConnected && (
+        <div className="fixed inset-0 z-50 bg-[#0a0e17]/95 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-[#121724] border border-[#232d44] rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl space-y-5 relative overflow-hidden text-gray-200">
+            {/* Background glow */}
+            <div className="absolute -top-20 -left-20 w-44 h-44 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-20 -right-20 w-44 h-44 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Header Badge */}
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-xs font-bold uppercase tracking-wider">
+              <Radio className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+              <span>PVP Match Lobby</span>
+            </div>
+
+            {/* Room Code Card */}
+            <div className="bg-[#182032] border border-[#2d3a57] rounded-2xl p-4 space-y-2">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Room Match Code
+              </span>
+              <div className="text-3xl sm:text-4xl font-mono font-black text-amber-400 tracking-widest selection:bg-amber-400 selection:text-black">
+                {activeMultiplayerRoom}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(activeMultiplayerRoom);
+                  setCopiedRoomCode(true);
+                  setTimeout(() => setCopiedRoomCode(false), 2000);
+                }}
+                className="mt-1 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 mx-auto transition cursor-pointer shadow-md active:scale-95"
+              >
+                {copiedRoomCode ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiedRoomCode ? 'Room Code Copied!' : 'Copy Room Code'}</span>
+              </button>
+            </div>
+
+            {/* Waiting Status */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-center gap-2 text-white font-bold text-sm">
+                <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+                <span>{isMultiplayerHost ? 'Waiting for Player 2 to join...' : 'Connecting to Host...'}</span>
+              </div>
+              <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+                {isMultiplayerHost
+                  ? 'Share this code with your opponent. When both players enter the lobby, cards will be drawn and the match will start automatically!'
+                  : 'Connected to room channel. Cards will be dealt once both players are ready.'}
+              </p>
+            </div>
+
+            {/* Selected Deck Info */}
+            <div className="flex items-center justify-between p-3 rounded-xl bg-[#0f1420] border border-white/5 text-left text-xs">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-14 rounded-lg overflow-hidden border border-white/10 shrink-0 bg-black/40">
+                  <img src={chosenDeck.leaderImage} alt={chosenDeck.leaderName} className="w-full h-full object-cover" />
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Your Deck</span>
+                  <span className="font-bold text-white block text-sm">{chosenDeck.name}</span>
+                  <span className="text-[11px] text-slate-400">{chosenDeck.leaderName}</span>
+                </div>
+              </div>
+              <span className="px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold">
+                {isMultiplayerHost ? 'HOST (1st)' : 'GUEST (2nd)'}
+              </span>
+            </div>
+
+            {/* Cancel Button */}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={handleLeaveMultiplayerRoom}
+                className="text-xs font-semibold text-slate-400 hover:text-rose-400 transition cursor-pointer"
+              >
+                Cancel & Leave Room
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mulligan Modal - only shown once both players are in match and matchmaking completes */}
+      {!showMatchmaking && !(Boolean(activeMultiplayerRoom) && !isMultiplayerOpponentConnected) && gameState.mulliganOffered && (
         <SimMulliganModal
           hand={gameState.hand}
           hasMulliganed={gameState.hasMulliganed}
