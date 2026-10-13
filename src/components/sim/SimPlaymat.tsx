@@ -11,7 +11,6 @@ import {
   toggleCardRest,
   takeLifeDamage,
   sendCardToTrash,
-  drawManualCard,
   attackOpponentLeader,
   attackOpponentCharacter,
   activateBlocker,
@@ -324,11 +323,6 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
   const handleTakeLifeDamage = () => {
     simAudio.playLifeBreak();
     setGameState((prev) => takeLifeDamage(prev));
-  };
-
-  // Manual Draw
-  const handleManualDraw = () => {
-    setGameState((prev) => drawManualCard(prev));
   };
 
   // Opponent Attacks & Damage
@@ -1056,9 +1050,8 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
               );
             })()}
             <div
-              onClick={handleManualDraw}
-              className="w-10 sm:w-12 md:w-13 aspect-[2.5/3.5] rounded-xl border border-emerald-900/50 bg-[#05110d]/70 overflow-hidden relative shadow-md cursor-pointer hover:brightness-110 transition group"
-              title="Click to draw 1 card"
+              className="w-10 sm:w-12 md:w-13 aspect-[2.5/3.5] rounded-xl border border-emerald-900/50 bg-[#05110d]/70 overflow-hidden relative shadow-md select-none"
+              title={`Main Deck (${gameState.deck.length} cards remaining)`}
             >
               <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Main Deck" className="w-full h-full object-cover" />
               <div className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded-full bg-black/85 text-white font-mono text-[8px] sm:text-[9px] font-bold flex items-center justify-center border border-white/20">
