@@ -516,19 +516,6 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                   draggable={false}
                   onError={(e) => handleCardImageError(e, gameState.opponent.leaderId, gameState.opponent.leaderImage)}
                 />
-                {/* Direct EN Button on Opponent Leader */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setInspectedCard(oppLeaderCard);
-                  }}
-                  className="absolute top-1 right-1 z-20 px-1 py-0.2 rounded bg-black/85 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-400/40 text-[7px] font-bold tracking-tighter flex items-center gap-0.5 shadow transition active:scale-90"
-                  title="View Leader translation & details in English"
-                >
-                  <Languages className="w-2.5 h-2.5 text-blue-400" />
-                  <span>EN</span>
-                </button>
                 {selectedAttacker && (
                   <div className="absolute inset-0 bg-rose-950/75 backdrop-blur-[0.5px] flex flex-col items-center justify-center p-0.5 text-center animate-fadeIn z-10">
                     <div className="w-5 h-5 rounded-full border-2 border-rose-400 border-dashed animate-spin flex items-center justify-center mb-0.5">
@@ -606,19 +593,6 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                       draggable={false}
                       onError={(e) => handleCardImageError(e, oppChar.cardId, oppChar.imageUrl)}
                     />
-                    {/* Direct EN Button on Opponent Card */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setInspectedCard(oppChar);
-                      }}
-                      className="absolute top-0.5 right-0.5 z-20 px-1 py-0.2 rounded bg-black/85 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-400/40 text-[7px] font-bold tracking-tighter flex items-center gap-0.5 shadow transition active:scale-90"
-                      title="View card translation & details in English"
-                    >
-                      <Languages className="w-2.5 h-2.5 text-blue-400" />
-                      <span>EN</span>
-                    </button>
                     {canAttackThisChar && selectedAttacker && (
                       <div className="absolute inset-0 bg-rose-950/75 backdrop-blur-[0.5px] flex flex-col items-center justify-center p-0.5 text-center animate-fadeIn z-10">
                         <span className="text-[7px] sm:text-[8px] font-black text-rose-200 uppercase drop-shadow">
@@ -852,19 +826,6 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                         </span>
                       </div>
                     )}
-                    {/* Direct English Translation Badge / Button */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setInspectedCard(card);
-                      }}
-                      className="absolute top-0.5 right-0.5 z-20 px-1 py-0.2 rounded bg-black/85 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-400/40 text-[7px] font-bold tracking-tighter flex items-center gap-0.5 shadow transition active:scale-90"
-                      title="View card translation & details in English"
-                    >
-                      <Languages className="w-2.5 h-2.5 text-blue-400" />
-                      <span>EN</span>
-                    </button>
 
                     {card.attachedDon > 0 && (
                       <div className="absolute bottom-0.5 inset-x-0.5 py-0.2 bg-[#d97706] text-white text-[6.5px] font-bold rounded-sm text-center shadow flex items-center justify-center gap-0.5 z-10">
@@ -998,19 +959,6 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                     </span>
                   </div>
                 )}
-                {/* Direct English Translation Badge / Button */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (gameState.leader) setInspectedCard(gameState.leader);
-                  }}
-                  className="absolute top-1 right-1 z-20 px-1 py-0.2 rounded bg-black/85 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-400/40 text-[7px] font-bold tracking-tighter flex items-center gap-0.5 shadow transition active:scale-90"
-                  title="View Leader translation & details in English"
-                >
-                  <Languages className="w-2.5 h-2.5 text-blue-400" />
-                  <span>EN</span>
-                </button>
 
                 {gameState.leader.attachedDon > 0 && (
                   <div className="absolute bottom-0.5 inset-x-0.5 py-0.5 bg-[#d97706] text-white text-[7px] font-bold rounded-sm text-center shadow flex items-center justify-center gap-0.5 z-10">
@@ -1441,15 +1389,6 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                 )}
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setInspectedCard(selectedHandCard)}
-                  className="px-2 py-1 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-400/40 text-[10px] font-bold flex items-center gap-1 transition active:scale-95 cursor-pointer shadow-xs"
-                  title="View English translation & card details"
-                >
-                  <Languages className="w-3 h-3 text-blue-400" />
-                  <span>Info</span>
-                </button>
                 {selectedHandCard.category === 'Event' && gameState.activeDon >= (selectedHandCard.cost || 0) && (
                   <button
                     type="button"
@@ -1527,19 +1466,6 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                       draggable={false}
                       onError={(e) => handleCardImageError(e, card.cardId, card.imageUrl)}
                     />
-                    {/* Direct EN Button on Hand Card */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setInspectedCard(card);
-                      }}
-                      className="absolute top-0.5 right-0.5 z-20 px-1 py-0.2 rounded bg-black/85 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-400/40 text-[6.5px] sm:text-[7px] font-bold tracking-tighter flex items-center gap-0.5 shadow transition active:scale-90"
-                      title="View card translation & details in English"
-                    >
-                      <Languages className="w-2.5 h-2.5 text-blue-400" />
-                      <span>EN</span>
-                    </button>
                   </div>
                 );
               })}
