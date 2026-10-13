@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSettings } from '@/context/SettingsContext';
@@ -14,11 +14,14 @@ import {
   ChevronRight,
   BookOpen,
   Swords,
-  Search
+  Search,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { checkIsAdmin } from '@/lib/supabase-sync';
 import { getEditionCardImageUrl, handleCardImageError } from '@/lib/card-image';
 import { ST01_STRAW_HAT_DECK } from '@/lib/sim/starter-decks';
+import { SimCustomDeckModal } from '@/components/sim/SimCustomDeckModal';
 
 function SimulatorContent() {
   const router = useRouter();
@@ -44,6 +47,35 @@ function SimulatorContent() {
   });
 
   const [deckSearch, setDeckSearch] = useState('');
+  const [isCustomDeckModalOpen, setIsCustomDeckModalOpen] = useState(false);
+  const [customDecks, setCustomDecks] = useState<RecommendedDeck[]>([]);
+
+  // Load custom decks from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('optcg_custom_decks');
+      if (stored) {
+        setCustomDecks(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error('Failed to load custom decks from localStorage', e);
+    }
+  }, []);
+
+  const handleDeleteCustomDeck = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    try {
+      const updated = customDecks.filter((d) => d.id !== id);
+      setCustomDecks(updated);
+      localStorage.setItem('optcg_custom_decks', JSON.stringify(updated));
+    } catch (err) {
+      console.error('Failed to delete custom deck', err);
+    }
+  };
+
+  const handleDeckSaved = (newDeck: RecommendedDeck) => {
+    setCustomDecks((prev) => [newDeck, ...prev.filter((d) => d.id !== newDeck.id)]);
+  };
 
   // 2. IF A DECK IS SELECTED -> RENDER PLAYMAT
   if (selectedDeck) {
@@ -58,6 +90,17 @@ function SimulatorContent() {
       />
     );
   }
+
+  // Filter custom decks by search
+  const filteredCustomDecks = customDecks.filter((d) => {
+    if (!deckSearch.trim()) return true;
+    const q = deckSearch.toLowerCase().trim();
+    return (
+      d.name.toLowerCase().includes(q) ||
+      d.leaderName.toLowerCase().includes(q) ||
+      d.leaderId.toLowerCase().includes(q)
+    );
+  });
 
   // 3. IF NO DECK SELECTED -> SHOW DECK SELECTOR & CUSTOM DECK IMPORT
   const filteredDecks = RECOMMENDED_DECKS.filter((d) => {
@@ -179,14 +222,21 @@ function SimulatorContent() {
         </div>
       </div>
 
-      {/* Custom Deck Fast Importer info */}
-      <div className="p-3.5 rounded-xl bg-[#131622] border border-[#222738] flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Layers className="w-4 h-4 text-slate-400" />
+      {/* Custom Deck Action Bar & Importer */}
+      <div className="p-3.5 rounded-xl bg-[#131622] border border-[#222738] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <Layers className="w-4 h-4 text-slate-400 shrink-0" />
           <p className="text-xs text-slate-300">
-            Select any meta or custom deck below to practice in Sandbox mode:
+            Practice meta decks or import your own deck to test against AI combat:
           </p>
         </div>
+        <button
+          onClick={() => setIsCustomDeckModalOpen(true)}
+          className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white shadow-md flex items-center justify-center gap-1.5 transition shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Create / Import Custom Deck</span>
+        </button>
       </div>
 
       {/* Search Input */}
@@ -201,54 +251,139 @@ function SimulatorContent() {
         />
       </div>
 
-      {/* Grid of Decks to test */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-        {filteredDecks.map((deck) => (
-          <div
-            key={deck.id}
-            onClick={() => setSelectedDeck(deck)}
-            className="group p-3 rounded-xl bg-[#141824] border border-[#23293a] hover:border-slate-500 shadow-sm transition-all cursor-pointer flex items-center gap-3 relative"
-          >
-            {/* Leader thumbnail */}
-            <div className="w-13 sm:w-14 aspect-[2.5/3.5] rounded-lg overflow-hidden bg-black/40 border border-white/10 shrink-0">
-              <img
-                src={getEditionCardImageUrl(deck.leaderId, 'jp', deck.leaderImage)}
-                alt={deck.name}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                referrerPolicy="no-referrer"
-                onError={(e) => handleCardImageError(e, deck.leaderId, deck.leaderImage)}
-              />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-mono font-medium text-slate-400">
-                  {deck.leaderId}
-                </span>
-                <span className="px-1.5 py-0.2 rounded text-[9px] font-medium bg-slate-800 text-slate-300">
-                  {deck.rank}
-                </span>
-              </div>
-              <h3 className="text-sm font-semibold text-white truncate mt-0.5">
-                {deck.name}
-              </h3>
-              <p className="text-[11px] text-slate-400 truncate">
-                {deck.subname}
-              </p>
-
-              <div className="flex items-center justify-between mt-2 pt-1 border-t border-[#1e2435]">
-                <span className="text-[10px] text-slate-500 font-medium">
-                  50 Cards + Leader
-                </span>
-                <span className="text-[11px] font-semibold text-slate-300 group-hover:text-white flex items-center gap-0.5 transition-colors">
-                  <span>Playtest</span>
-                  <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-                </span>
-              </div>
-            </div>
+      {/* 1. MY CUSTOM DECKS SECTION (IF ANY) */}
+      {filteredCustomDecks.length > 0 && (
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-bold text-slate-200 tracking-wider uppercase flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>My Custom Decks ({filteredCustomDecks.length})</span>
+            </h2>
+            <button
+              onClick={() => setIsCustomDeckModalOpen(true)}
+              className="text-[11px] text-blue-400 hover:text-blue-300 font-medium"
+            >
+              + Add Another
+            </button>
           </div>
-        ))}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {filteredCustomDecks.map((deck) => (
+              <div
+                key={deck.id}
+                onClick={() => setSelectedDeck(deck)}
+                className="group p-3 rounded-xl bg-[#141824] border border-[#262f44] hover:border-blue-500/70 shadow-sm transition-all cursor-pointer flex items-center gap-3 relative"
+              >
+                {/* Leader thumbnail */}
+                <div className="w-13 sm:w-14 aspect-[2.5/3.5] rounded-lg overflow-hidden bg-black/40 border border-white/10 shrink-0">
+                  <img
+                    src={getEditionCardImageUrl(deck.leaderId, 'jp', deck.leaderImage)}
+                    alt={deck.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => handleCardImageError(e, deck.leaderId, deck.leaderImage)}
+                  />
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[10px] font-mono font-medium text-slate-400">
+                      {deck.leaderId}
+                    </span>
+                    <button
+                      onClick={(e) => handleDeleteCustomDeck(e, deck.id)}
+                      title="Delete Custom Deck"
+                      className="p-1 rounded hover:bg-red-950/60 text-slate-500 hover:text-red-400 transition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <h3 className="text-sm font-semibold text-white truncate mt-0.5">
+                    {deck.name}
+                  </h3>
+                  <p className="text-[11px] text-slate-400 truncate">
+                    {deck.subname}
+                  </p>
+
+                  <div className="flex items-center justify-between mt-2 pt-1 border-t border-[#1e2435]">
+                    <span className="text-[10px] text-emerald-400 font-medium">
+                      Custom Deck
+                    </span>
+                    <span className="text-[11px] font-semibold text-blue-400 group-hover:text-blue-300 flex items-center gap-0.5 transition-colors">
+                      <span>Test Deck</span>
+                      <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 2. RECOMMENDED DECKS SECTION */}
+      <div className="space-y-2.5">
+        <h2 className="text-xs font-bold text-slate-300 tracking-wider uppercase">
+          Standard & Meta Decks ({filteredDecks.length})
+        </h2>
+
+        {/* Grid of Decks to test */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          {filteredDecks.map((deck) => (
+            <div
+              key={deck.id}
+              onClick={() => setSelectedDeck(deck)}
+              className="group p-3 rounded-xl bg-[#141824] border border-[#23293a] hover:border-slate-500 shadow-sm transition-all cursor-pointer flex items-center gap-3 relative"
+            >
+              {/* Leader thumbnail */}
+              <div className="w-13 sm:w-14 aspect-[2.5/3.5] rounded-lg overflow-hidden bg-black/40 border border-white/10 shrink-0">
+                <img
+                  src={getEditionCardImageUrl(deck.leaderId, 'jp', deck.leaderImage)}
+                  alt={deck.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  referrerPolicy="no-referrer"
+                  onError={(e) => handleCardImageError(e, deck.leaderId, deck.leaderImage)}
+                />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-mono font-medium text-slate-400">
+                    {deck.leaderId}
+                  </span>
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-medium bg-slate-800 text-slate-300">
+                    {deck.rank}
+                  </span>
+                </div>
+                <h3 className="text-sm font-semibold text-white truncate mt-0.5">
+                  {deck.name}
+                </h3>
+                <p className="text-[11px] text-slate-400 truncate">
+                  {deck.subname}
+                </p>
+
+                <div className="flex items-center justify-between mt-2 pt-1 border-t border-[#1e2435]">
+                  <span className="text-[10px] text-slate-500 font-medium">
+                    50 Cards + Leader
+                  </span>
+                  <span className="text-[11px] font-semibold text-slate-300 group-hover:text-white flex items-center gap-0.5 transition-colors">
+                    <span>Playtest</span>
+                    <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
+
+      {/* Custom Deck Creation Modal */}
+      <SimCustomDeckModal
+        isOpen={isCustomDeckModalOpen}
+        onClose={() => setIsCustomDeckModalOpen(false)}
+        onSelectDeck={(deck) => setSelectedDeck(deck)}
+        onDeckSaved={handleDeckSaved}
+      />
     </div>
   );
 }
