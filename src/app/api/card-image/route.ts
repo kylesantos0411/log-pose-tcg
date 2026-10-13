@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import os from 'node:os';
 import https from 'node:https';
 import http from 'node:http';
 import fs from 'node:fs';
@@ -8,7 +9,8 @@ import { prisma } from '@/lib/prisma';
 import { sanitizeIdentifier } from '@/lib/sanitizer';
 import { JP_CARD_IMAGE_MAP } from '@/lib/card-image';
 
-const CACHE_DIR = path.join(process.cwd(), 'public', 'cards');
+const CACHE_DIR = path.join(os.tmpdir(), 'optcg_cards_cache');
+const PUBLIC_CARDS_DIR = path.join(process.cwd(), 'public', 'cards');
 if (!fs.existsSync(CACHE_DIR)) {
   try {
     fs.mkdirSync(CACHE_DIR, { recursive: true });
@@ -239,8 +241,8 @@ export async function GET(req: NextRequest) {
 
   // Check if a direct local card asset exists (e.g. public/cards/EB04-061_p3.png)
   const directAssetFile = upperCleanId === 'EB04-061_P2' || upperCleanId === 'EB04-061_P3'
-    ? path.join(CACHE_DIR, 'EB04-061_p3.png')
-    : path.join(CACHE_DIR, `${cleanId}.png`);
+    ? path.join(PUBLIC_CARDS_DIR, 'EB04-061_p3.png')
+    : path.join(PUBLIC_CARDS_DIR, `${cleanId}.png`);
 
   if (fs.existsSync(directAssetFile)) {
     try {
@@ -318,6 +320,19 @@ export async function GET(req: NextRequest) {
   const uniqueCandidates = Array.from(new Set(candidates));
 
   for (const candidate of uniqueCandidates) {
+    // If the candidate is from a CORS-enabled HTTPS host (e.g. BunnyCDN / Yuyu-tei),
+    // redirect directly so the browser loads it without streaming ~400KB through Vercel Origin Transfer
+    if (candidate.startsWith('https://card.yuyu-tei.jp/')) {
+      return NextResponse.redirect(candidate, {
+        status: 307,
+        headers: {
+          'Cache-Control': 'public, max-age=31536000, s-maxage=31536000, stale-while-revalidate=86400',
+          'CDN-Cache-Control': 'public, s-maxage=31536000, stale-while-revalidate=86400',
+          'Vercel-CDN-Cache-Control': 'public, s-maxage=31536000, stale-while-revalidate=86400',
+        },
+      });
+    }
+
     const result = await fetchUrlBuffer(candidate);
     if (result && result.buffer && result.buffer.length > 200) {
       // Cache the valid buffer
