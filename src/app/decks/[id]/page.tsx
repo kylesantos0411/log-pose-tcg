@@ -23,7 +23,7 @@ import {
   User,
   Gamepad2
 } from 'lucide-react';
-import { getDeckById, formatDeckExport, DeckCardItem } from '@/lib/recommended-decks';
+import { getDeckById, formatDeckExport, DeckCardItem, RecommendedDeck } from '@/lib/recommended-decks';
 import { getEditionCardImageUrl, handleCardImageError } from '@/lib/card-image';
 import { useSettings } from '@/context/SettingsContext';
 import { checkIsAdmin } from '@/lib/supabase-sync';
@@ -35,7 +35,15 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
   const { formatPrice, currency, user } = useSettings();
   const isAdmin = checkIsAdmin(user);
 
-  const deck = getDeckById(resolvedParams.id);
+  const [deck, setDeck] = useState<RecommendedDeck | null>(() => getDeckById(resolvedParams.id) || null);
+
+  React.useEffect(() => {
+    if (!deck) {
+      const found = getDeckById(resolvedParams.id);
+      if (found) setDeck(found);
+    }
+  }, [resolvedParams.id, deck]);
+
   const [activeTab, setActiveTab] = useState<'CARDS' | 'ANALYSE' | 'STATS'>('CARDS');
   const [showPrice, setShowPrice] = useState(false);
   const [copied, setCopied] = useState(false);

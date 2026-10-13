@@ -13299,7 +13299,20 @@ export const RECOMMENDED_DECKS: RecommendedDeck[] = [
 ];
 
 export function getDeckById(id: string): RecommendedDeck | undefined {
-  return RECOMMENDED_DECKS.find((d) => d.id === id);
+  const metaDeck = RECOMMENDED_DECKS.find((d) => d.id === id);
+  if (metaDeck) return metaDeck;
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('optcg_custom_decks');
+      if (stored) {
+        const customList: RecommendedDeck[] = JSON.parse(stored);
+        return customList.find((d) => d.id === id);
+      }
+    } catch (e) {
+      // ignore localStorage parse error
+    }
+  }
+  return undefined;
 }
 
 export function formatDeckExport(deck: RecommendedDeck): string {

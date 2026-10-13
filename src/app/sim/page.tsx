@@ -55,12 +55,17 @@ function SimulatorContent() {
     try {
       const stored = localStorage.getItem('optcg_custom_decks');
       if (stored) {
-        setCustomDecks(JSON.parse(stored));
+        const parsed: RecommendedDeck[] = JSON.parse(stored);
+        setCustomDecks(parsed);
+        if (deckId && !selectedDeck) {
+          const match = parsed.find((d) => d.id === deckId);
+          if (match) setSelectedDeck(match);
+        }
       }
     } catch (e) {
       console.error('Failed to load custom decks from localStorage', e);
     }
-  }, []);
+  }, [deckId, selectedDeck]);
 
   const handleDeleteCustomDeck = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
