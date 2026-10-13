@@ -277,7 +277,7 @@ export function initializeGame(
   // 5. Initial Hand:
   // If tutorial, provide the exact iconic cards from OPlayTCG tutorial:
   let initialHand: SimCard[] = [];
-  if (isTutorial || playerDeck.id === 'st01-straw-hat-crew') {
+  if (isTutorial) {
     // Curated hand matching OPlayTCG: Zoro, Chopper, Brook, Karoo, Guard Point
     const tutorialCardIds = ['ST01-013', 'ST01-006', 'ST01-011', 'ST01-003', 'ST01-014'];
     for (const cid of tutorialCardIds) {
@@ -342,23 +342,29 @@ export function initializeGame(
 }
 
 /**
- * Perform Redraw / Mulligan: shuffle current hand back into deck, draw 5 new cards
+ * Perform Redraw / Mulligan:
+ * Following official Bandai One Piece TCG rules:
+ * Draw 5 fresh cards from the remaining deck first,
+ * then return the previous 5 hand cards and reshuffle the deck.
  */
 export function performMulligan(state: SimGameState): SimGameState {
   if (state.hasMulliganed || !state.mulliganOffered) return state;
 
-  const combinedDeck = shuffle([...state.deck, ...state.hand]);
-  const newHand = combinedDeck.splice(0, 5);
+  // Bandai OPTCG rule: Draw 5 new cards from deck first
+  const newHand = state.deck.slice(0, 5);
+  const remainingDeck = state.deck.slice(5);
+  // Reshuffle the returned hand cards into the rest of the deck
+  const reshuffledDeck = shuffle([...remainingDeck, ...state.hand]);
 
   return {
     ...state,
-    deck: combinedDeck,
+    deck: reshuffledDeck,
     hand: newHand,
     hasMulliganed: true,
-    mulliganOffered: false,
+    mulliganOffered: true, // Keep modal open so the player sees their redrawn hand
     logs: [
       ...state.logs,
-      createLog('Mulligan used: returned hand, reshuffled deck, drew 5 new cards', 'action'),
+      createLog('⚓ Mulligan used: drew 5 new cards, returned old hand & reshuffled deck', 'action'),
     ],
   };
 }
@@ -370,7 +376,10 @@ export function keepInitialHand(state: SimGameState): SimGameState {
   return {
     ...state,
     mulliganOffered: false,
-    logs: [...state.logs, createLog('Kept opening hand', 'action')],
+    logs: [
+      ...state.logs,
+      createLog(state.hasMulliganed ? 'Confirmed redrawn starting hand' : 'Kept opening hand', 'action'),
+    ],
   };
 }
 

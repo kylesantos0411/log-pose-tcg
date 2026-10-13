@@ -403,6 +403,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
 
   // Mulligan controls
   const handleMulligan = () => {
+    simAudio.playCardPlay();
     setGameState((prev) => performMulligan(prev));
   };
 
@@ -2033,8 +2034,10 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
       {gameState.mulliganOffered && (
         <SimMulliganModal
           hand={gameState.hand}
+          hasMulliganed={gameState.hasMulliganed}
           onKeep={handleKeepHand}
           onMulligan={handleMulligan}
+          onInspect={(card) => setInspectedCard(card)}
         />
       )}
 
