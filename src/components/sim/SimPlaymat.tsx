@@ -2023,9 +2023,9 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
           Player Mat -> Player Pill & Hand -> Bottom Action Bar
          ======================================================================= */}
       <div className="w-full h-full max-w-[480px] sm:max-w-[540px] md:max-w-[600px] mx-auto flex flex-col justify-between gap-1 overflow-hidden">
-        {/* 1. TOP HEADER NAVIGATION - Clean & minimal like reference (media_1791811058901) */}
+        {/* 1. TOP HEADER NAVIGATION - Ultra-clean & unified */}
         <div className="flex items-center justify-between w-full shrink-0 px-1 py-0.5 z-20">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             {onExit ? (
               <button
                 type="button"
@@ -2059,6 +2059,26 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
             >
               <Maximize2 className="w-3.5 h-3.5" />
             </button>
+
+            {activeMultiplayerRoom && (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-indigo-950/80 border border-indigo-700/60 text-indigo-300 font-mono text-[10px] shadow-xs">
+                <Radio className="w-3 h-3 text-indigo-400" />
+                <span className="font-bold tracking-wide">ROOM: {activeMultiplayerRoom}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(activeMultiplayerRoom);
+                    setCopiedRoomCode(true);
+                    setTimeout(() => setCopiedRoomCode(false), 2000);
+                  }}
+                  className="ml-0.5 px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[9px] flex items-center gap-0.5 cursor-pointer transition font-sans"
+                  title="Copy room code"
+                >
+                  {copiedRoomCode ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5" />}
+                  <span>{copiedRoomCode ? 'Copied' : 'Copy'}</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Quick Menu Button */}
@@ -2066,89 +2086,16 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
             <button
               type="button"
               onClick={() => setShowTurnMenu(true)}
-              className="px-2 py-0.5 rounded-md bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 text-[9px] font-semibold flex items-center gap-1 transition"
+              className="px-2.5 py-1 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 text-[10px] font-semibold flex items-center gap-1 transition"
             >
-              <Menu className="w-2.5 h-2.5 text-amber-400" />
+              <Menu className="w-3 h-3 text-amber-400" />
               <span>Menu</span>
             </button>
           </div>
         </div>
 
-        {/* MULTIPLAYER ROOM STATUS BAR */}
-        {activeMultiplayerRoom && (
-          <div className="w-full px-2.5 py-1.5 rounded-xl bg-[#10141f] border border-[#252b3d] flex flex-wrap items-center justify-between gap-2 text-xs mb-1 shrink-0 z-20 shadow-sm">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-950/70 border border-indigo-700/60 text-indigo-300 font-mono font-bold text-[11px]">
-                <Radio className="w-3 h-3 text-indigo-400" />
-                <span>ROOM: {activeMultiplayerRoom}</span>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard.writeText(activeMultiplayerRoom);
-                  setCopiedRoomCode(true);
-                  setTimeout(() => setCopiedRoomCode(false), 2000);
-                }}
-                className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] flex items-center gap-1 transition cursor-pointer"
-                title="Copy room code to clipboard"
-              >
-                {copiedRoomCode ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                <span>{copiedRoomCode ? 'Copied' : 'Copy Code'}</span>
-              </button>
-
-              <div className="flex items-center gap-1.5 text-[11px]">
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    isMultiplayerOpponentConnected
-                      ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]'
-                      : 'bg-amber-400 animate-pulse'
-                  }`}
-                />
-                <span className="font-semibold text-white">
-                  {isMultiplayerOpponentConnected
-                    ? `Connected: ${gameState.opponent.name}`
-                    : 'Waiting for Opponent to Join...'}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span
-                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                  gameState.isOpponentTurn
-                    ? 'bg-amber-950/60 text-amber-300 border border-amber-800/40'
-                    : 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/40'
-                }`}
-              >
-                {gameState.isOpponentTurn ? "⌛ Opponent's Turn" : '⚔️ Your Turn'}
-              </span>
-
-              {/* Quick Pirate Emotes */}
-              <div className="flex items-center gap-1">
-                {['Ahoy! ⚓', 'Good Luck! 🍀', 'Nice Move! 🔥', 'GG! 🏆'].map((emoteText) => (
-                  <button
-                    key={emoteText}
-                    type="button"
-                    onClick={() => {
-                      simMultiplayer.broadcastEmote(emoteText);
-                      setGameState((prev) => ({
-                        ...prev,
-                        logs: [...prev.logs, createLog(`💬 You: "${emoteText}"`, 'system')],
-                      }));
-                    }}
-                    className="px-1.5 py-0.5 rounded bg-[#1e2435] hover:bg-[#28324a] text-slate-300 text-[10px] transition cursor-pointer"
-                  >
-                    {emoteText}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* 2. OPPONENT STATUS PILL BAR */}
-        <div className="flex items-center justify-between w-full px-1 py-1 shrink-0 z-10">
+        <div className="flex items-center justify-between w-full px-1 py-0.5 shrink-0 z-10">
           <div className="flex items-center gap-1.5">
             <button
               type="button"
@@ -2161,7 +2108,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
               title={activeMultiplayerRoom ? `Playing against ${gameState.opponent.name}` : 'Click to change opponent deck'}
             >
               <span className={`w-2 h-2 rounded-full ${activeMultiplayerRoom ? (isMultiplayerOpponentConnected ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]' : 'bg-amber-400 animate-pulse') : 'bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.8)]'}`} />
-              <span>{activeMultiplayerRoom ? gameState.opponent.name : 'OPPONENT'}</span>
+              <span>{activeMultiplayerRoom ? (isMultiplayerOpponentConnected ? gameState.opponent.name : 'Waiting for Opponent...') : 'OPPONENT'}</span>
             </button>
             <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8.5px]">
               <Clock className="w-2.5 h-2.5 text-gray-400" />
@@ -2245,8 +2192,10 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
             <div className="flex items-center gap-1.5">
               <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#131d31] border border-emerald-500/30 text-white text-[9px] font-bold shadow-xs">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-                <span>GUEST</span>
-                <span className="px-1 py-0.2 rounded bg-amber-600 text-[6.5px] font-bold text-white uppercase">TURN</span>
+                <span>{activeMultiplayerRoom ? (isMultiplayerHost ? 'HOST' : 'GUEST') : 'YOU'}</span>
+                {!gameState.isOpponentTurn && (
+                  <span className="px-1 py-0.2 rounded bg-amber-600 text-[6.5px] font-bold text-white uppercase">YOUR TURN</span>
+                )}
               </div>
               <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8.5px]">
                 <Clock className="w-2.5 h-2.5 text-gray-400" />
@@ -2322,7 +2271,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
           {/* Player Hand (Overlapping cards - nice and large like Image 1) */}
           {playerHandExpanded && (
             <div
-              className={`flex items-center justify-center -space-x-3 sm:-space-x-4 animate-fadeIn my-0.5 transition-all overflow-x-auto max-w-full px-2 py-0.5 ${
+              className={`flex items-center justify-center -space-x-3 sm:-space-x-4 animate-fadeIn my-0.5 pb-1.5 transition-all overflow-x-auto max-w-full px-2 py-0.5 ${
                 highlightTarget === 'hand' ? spotlightClass : ''
               }`}
             >
