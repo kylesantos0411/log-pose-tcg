@@ -229,9 +229,12 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
     if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
     longPressTimerRef.current = setTimeout(() => {
       isLongPressTriggeredRef.current = true;
+      if (typeof window !== 'undefined' && 'navigator' in window && navigator.vibrate) {
+        navigator.vibrate(35); // Gentle haptic vibration on mobile
+      }
       setInspectedCard(card);
       simAudio.playCardPlay();
-    }, 450); // 450ms hold triggers English card inspector modal
+    }, 380); // 380ms triggers inspection smoothly before browser long-press menu
   }, []);
 
   const cancelLongPress = useCallback(() => {
@@ -239,6 +242,12 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
     }
+  }, []);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent | React.TouchEvent, card: SimCard) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setInspectedCard(card);
   }, []);
 
   // Turn advance (Triggers Refresh -> Opponent Turn -> Player Turn with paced AI progression)
@@ -482,6 +491,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                 onMouseDown={() => startLongPress(oppLeaderCard)}
                 onMouseUp={cancelLongPress}
                 onMouseLeave={cancelLongPress}
+                onContextMenu={(e) => handleContextMenu(e, oppLeaderCard)}
                 onClick={() => {
                   if (isLongPressTriggeredRef.current) return;
                   if (selectedAttacker) {
@@ -492,7 +502,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                     handleAttackOpponent(gameState.leader.instanceId);
                   }
                 }}
-                className={`w-16 sm:w-20 md:w-22 aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-lg cursor-pointer transition group mx-auto ${
+                className={`sim-card-interactive select-none w-16 sm:w-20 md:w-22 aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-lg cursor-pointer transition group mx-auto ${
                   selectedAttacker
                     ? 'border-rose-500 ring-4 ring-rose-500 ring-offset-2 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(244,63,94,0.95)] scale-105 z-20'
                     : 'border-red-500/80 hover:scale-102'
@@ -502,7 +512,8 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                 <img
                   src={gameState.opponent.leaderImage}
                   alt={gameState.opponent.leaderName}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover pointer-events-none select-none"
+                  draggable={false}
                   onError={(e) => handleCardImageError(e, gameState.opponent.leaderId, gameState.opponent.leaderImage)}
                 />
                 {/* Direct EN Button on Opponent Leader */}
@@ -562,6 +573,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                     onMouseDown={() => startLongPress(oppChar)}
                     onMouseUp={cancelLongPress}
                     onMouseLeave={cancelLongPress}
+                    onContextMenu={(e) => handleContextMenu(e, oppChar)}
                     onClick={() => {
                       if (isLongPressTriggeredRef.current) return;
                       if (selectedAttacker && oppChar.rested) {
@@ -572,7 +584,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                         setInspectedCard(oppChar);
                       }
                     }}
-                    className={`w-full aspect-[2.5/3.5] rounded-xl overflow-hidden relative shadow-md cursor-pointer transition ${
+                    className={`sim-card-interactive select-none w-full aspect-[2.5/3.5] rounded-xl overflow-hidden relative shadow-md cursor-pointer transition ${
                       canAttackThisChar
                         ? 'border-2 border-rose-500 ring-3 ring-rose-500 ring-offset-1 ring-offset-black animate-pulse shadow-[0_0_20px_rgba(244,63,94,0.9)] scale-105 z-20'
                         : selectedAttacker && !oppChar.rested
@@ -584,13 +596,14 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                     title={
                       canAttackThisChar
                         ? `Click to attack rested ${oppChar.name} (${oppChar.power} Power)`
-                        : oppChar.name
+                        : `Hold / Long-press to inspect. ${oppChar.name}`
                     }
                   >
                     <img
                       src={oppChar.imageUrl}
                       alt={oppChar.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover pointer-events-none select-none"
+                      draggable={false}
                       onError={(e) => handleCardImageError(e, oppChar.cardId, oppChar.imageUrl)}
                     />
                     {/* Direct EN Button on Opponent Card */}
@@ -747,6 +760,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                     onMouseDown={() => startLongPress(card)}
                     onMouseUp={cancelLongPress}
                     onMouseLeave={cancelLongPress}
+                    onContextMenu={(e) => handleContextMenu(e, card)}
                     onClick={() => {
                       if (isLongPressTriggeredRef.current) return;
                       // If a hand card is selected and can afford to summon/replace:
@@ -774,7 +788,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                       setSelectedFieldCard(card);
                       setSelectedAttacker(null);
                     }}
-                    className={`w-full aspect-[2.5/3.5] rounded-xl overflow-hidden relative shadow-md cursor-pointer transition ${
+                    className={`sim-card-interactive select-none w-full aspect-[2.5/3.5] rounded-xl overflow-hidden relative shadow-md cursor-pointer transition ${
                       selectedDonCount > 0
                         ? 'border-2 border-amber-400 ring-3 ring-amber-400 ring-offset-1 ring-offset-black animate-pulse shadow-[0_0_20px_rgba(251,191,36,0.9)] scale-105 z-20'
                         : isThisAttacking
@@ -800,13 +814,14 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                         ? 'Attacker selected - Click enemy target or click here to cancel'
                         : canAttack
                         ? `Click to declare attack with ${card.name} (${(card.power || 0) + card.attachedDon * 1000} Power)`
-                        : card.name
+                        : `Hold / Long-press to inspect. ${card.name}`
                     }
                   >
                     <img
                       src={card.imageUrl}
                       alt={card.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover pointer-events-none select-none"
+                      draggable={false}
                       onError={(e) => handleCardImageError(e, card.cardId, card.imageUrl)}
                     />
                     {selectedDonCount > 0 && (
@@ -916,6 +931,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                 onMouseDown={() => gameState.leader && startLongPress(gameState.leader)}
                 onMouseUp={cancelLongPress}
                 onMouseLeave={cancelLongPress}
+                onContextMenu={(e) => gameState.leader && handleContextMenu(e, gameState.leader)}
                 onClick={() => {
                   if (isLongPressTriggeredRef.current) return;
                   if (!gameState.leader) return;
@@ -935,7 +951,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                   setSelectedFieldCard(gameState.leader);
                   setSelectedAttacker(null);
                 }}
-                className={`w-16 sm:w-20 md:w-22 aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-[0_0_15px_rgba(34,211,238,0.4)] cursor-pointer hover:border-cyan-300 transition ${
+                className={`sim-card-interactive select-none w-16 sm:w-20 md:w-22 aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-[0_0_15px_rgba(34,211,238,0.4)] cursor-pointer hover:border-cyan-300 transition ${
                   selectedDonCount > 0
                     ? 'border-amber-400 ring-4 ring-amber-400 ring-offset-2 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(251,191,36,0.9)] scale-105 z-20'
                     : liveAttackerCard?.instanceId === gameState.leader.instanceId
@@ -951,13 +967,14 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                     ? 'Attacker selected - Click enemy target or click here to cancel'
                     : canCardAttack(gameState.leader)
                     ? `Click to declare attack with Leader ${gameState.leader.name} (${(gameState.leader.power || 5000) + gameState.leader.attachedDon * 1000} Power)`
-                    : gameState.leader.name
+                    : `Hold / Long-press to inspect. ${gameState.leader.name}`
                 }
               >
                 <img
                   src={gameState.leader.imageUrl}
                   alt={gameState.leader.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover pointer-events-none select-none"
+                  draggable={false}
                   onError={(e) => handleCardImageError(e, gameState.leader?.cardId, gameState.leader?.imageUrl)}
                 />
                 {selectedDonCount > 0 && (
@@ -1036,6 +1053,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                   onMouseDown={() => gameState.stage && startLongPress(gameState.stage)}
                   onMouseUp={cancelLongPress}
                   onMouseLeave={cancelLongPress}
+                  onContextMenu={(e) => gameState.stage && handleContextMenu(e, gameState.stage)}
                   onClick={() => {
                     if (isLongPressTriggeredRef.current) return;
                     if (canPlayStage && selectedHandCard) {
@@ -1044,15 +1062,26 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                     }
                     if (gameState.stage) setSelectedFieldCard(gameState.stage);
                   }}
-                  className={`w-10 sm:w-12 md:w-13 aspect-[2.5/3.5] rounded-xl flex items-center justify-center text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider overflow-hidden relative cursor-pointer transition ${
+                  className={`sim-card-interactive select-none w-10 sm:w-12 md:w-13 aspect-[2.5/3.5] rounded-xl flex items-center justify-center text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider overflow-hidden relative cursor-pointer transition ${
                     canPlayStage
                       ? 'border-2 border-dashed border-emerald-400 bg-emerald-500/25 shadow-[0_0_15px_rgba(52,211,153,0.6)] animate-pulse text-emerald-300'
                       : 'border border-dashed border-emerald-900/40 bg-[#05110d]/40 text-gray-500'
                   }`}
-                  title={canPlayStage ? `Click to play Stage ${selectedHandCard?.name} (${selectedHandCard?.cost} DON)` : undefined}
+                  title={
+                    canPlayStage
+                      ? `Click to play Stage ${selectedHandCard?.name} (${selectedHandCard?.cost} DON)`
+                      : gameState.stage
+                      ? `Hold / Long-press to inspect. ${gameState.stage.name}`
+                      : undefined
+                  }
                 >
                   {gameState.stage ? (
-                    <img src={gameState.stage.imageUrl} alt={gameState.stage.name} className="w-full h-full object-cover" />
+                    <img
+                      src={gameState.stage.imageUrl}
+                      alt={gameState.stage.name}
+                      className="w-full h-full object-cover pointer-events-none select-none"
+                      draggable={false}
+                    />
                   ) : canPlayStage ? (
                     <span className="text-emerald-300 font-black text-[7px] leading-tight text-center">+ PLAY STAGE</span>
                   ) : (
@@ -1471,6 +1500,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                     onMouseDown={() => startLongPress(card)}
                     onMouseUp={cancelLongPress}
                     onMouseLeave={cancelLongPress}
+                    onContextMenu={(e) => handleContextMenu(e, card)}
                     onClick={() => {
                       if (isLongPressTriggeredRef.current) return;
                       if (isSelected) {
@@ -1481,18 +1511,20 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                         setSelectedAttacker(null);
                       }
                     }}
-                    className={`w-13 sm:w-16 md:w-18 aspect-[2.5/3.5] rounded-lg overflow-hidden border shadow-xl cursor-pointer transform transition duration-150 shrink-0 ${
+                    className={`sim-card-interactive select-none w-13 sm:w-16 md:w-18 aspect-[2.5/3.5] rounded-lg overflow-hidden border shadow-xl cursor-pointer transform transition duration-150 shrink-0 ${
                       isSelected
                         ? '-translate-y-3 ring-3 ring-amber-400 border-amber-300 shadow-[0_0_20px_rgba(251,191,36,0.8)] z-30 scale-105'
                         : canAfford
                         ? 'opacity-100 hover:-translate-y-2 hover:border-amber-400 hover:z-20 border-white/20 bg-black/40'
                         : 'opacity-60 border-white/10 hover:-translate-y-1 bg-black/50'
                     }`}
+                    title={`Hold / Long-press to inspect. ${card.name} (Cost: ${card.cost})`}
                   >
                     <img
                       src={card.imageUrl}
                       alt={card.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover pointer-events-none select-none"
+                      draggable={false}
                       onError={(e) => handleCardImageError(e, card.cardId, card.imageUrl)}
                     />
                     {/* Direct EN Button on Hand Card */}

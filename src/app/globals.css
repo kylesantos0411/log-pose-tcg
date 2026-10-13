@@ -66,3 +66,19 @@ body {
   animation-play-state: paused;
 }
 
+/* TCG Sim touch handling: disable browser long-press callout (copy/save image) */
+.sim-card-interactive {
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  touch-action: manipulation;
+}
+
+.sim-card-interactive img {
+  -webkit-touch-callout: none !important;
+  pointer-events: none !important;
+  user-select: none !important;
+  -webkit-user-drag: none !important;
+}
+
+
