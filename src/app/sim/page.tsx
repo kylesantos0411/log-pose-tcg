@@ -15,9 +15,11 @@ import {
   Swords, 
   Search,
   Users,
-  Radio
+  Radio,
+  Lock
 } from 'lucide-react';
-import { checkIsAdmin } from '@/lib/supabase-sync';
+import { checkCanAccessSim } from '@/lib/supabase-sync';
+import { getActiveSession } from '@/lib/user-accounts';
 import { getEditionCardImageUrl, handleCardImageError } from '@/lib/card-image';
 import { ST01_STRAW_HAT_DECK } from '@/lib/sim/starter-decks';
 
@@ -25,7 +27,14 @@ function SimulatorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useSettings();
-  const isAdmin = checkIsAdmin(user);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const sessionUser = user || (typeof window !== 'undefined' ? getActiveSession() : null);
+  const canAccessSim = checkCanAccessSim(sessionUser);
 
   const deckId = searchParams.get('deckId');
   const tutorialParam = searchParams.get('tutorial');
@@ -64,6 +73,51 @@ function SimulatorContent() {
       }
     }
   }, [deckId, selectedDeck]);
+
+  // 1. Loading & Authorization Guards
+  if (!mounted) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center p-4">
+        <div className="flex items-center gap-2 text-slate-400 text-sm">
+          <Gamepad2 className="w-5 h-5 text-amber-400 animate-pulse" />
+          <span>Loading TCG Simulator...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!canAccessSim) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-[#141824] border border-[#252b3d] rounded-3xl p-8 text-center space-y-4 shadow-2xl">
+          <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
+            <Lock className="w-7 h-7" />
+          </div>
+          <div className="space-y-1.5">
+            <h1 className="text-xl font-bold text-white">Closed Beta • Restricted</h1>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              The One Piece TCG Simulator is currently undergoing private closed testing for authorized test accounts only (@kaipuccino and @kaidump).
+            </p>
+          </div>
+          <div className="pt-2 flex flex-col sm:flex-row gap-2 justify-center">
+            <Link
+              href="/decks"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Browse Decks</span>
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#1e2332] hover:bg-[#282f44] border border-[#2e374f] text-slate-300 font-bold text-xs transition"
+            >
+              <span>Dashboard</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // 2. IF A DECK IS SELECTED -> RENDER PLAYMAT
   if (selectedDeck) {

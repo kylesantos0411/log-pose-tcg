@@ -25,6 +25,7 @@ import { getSafeCardImageUrl, handleCardImageError } from '@/lib/card-image';
 import { ARTIST_PROFILES } from '@/lib/artist-data';
 import { CardDetailView } from '@/components/CardDetailView';
 import { useSettings } from '@/context/SettingsContext';
+import { checkCanAccessSim } from '@/lib/supabase-sync';
 import { addCardToLocalBinder } from '@/lib/user-collection';
 import { AddToDeckModal } from '@/components/decks/AddToDeckModal';
 import { getActiveCustomDeck } from '@/lib/custom-decks';
@@ -127,6 +128,7 @@ function CardsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { currency, formatYuyuPrice, formatUsdPrice, formatPrice, openSettings, formatCard, user, exchangeRates } = useSettings();
+  const canAccessSim = checkCanAccessSim(user);
   
   const sortParam = searchParams.get('sort') || '';
   const initialQuery = searchParams.get('q') || '';
@@ -902,13 +904,15 @@ function CardsContent() {
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            <Link
-              href={`/sim?deckId=${activeCustomDeck.id}`}
-              className="px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/35 text-amber-300 text-[11px] font-bold flex items-center gap-1 transition active:scale-95 shadow-sm"
-            >
-              <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Playtest</span>
-            </Link>
+            {canAccessSim && (
+              <Link
+                href={`/sim?deckId=${activeCustomDeck.id}`}
+                className="px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/35 text-amber-300 text-[11px] font-bold flex items-center gap-1 transition active:scale-95 shadow-sm"
+              >
+                <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
+                <span className="hidden sm:inline">Playtest</span>
+              </Link>
+            )}
             <Link
               href={`/decks/${activeCustomDeck.id}`}
               className="px-2.5 py-1.5 rounded-xl bg-[#1c202d] hover:bg-[#252b3d] text-slate-300 text-[11px] font-semibold border border-[#2b3245] transition"
@@ -1340,13 +1344,15 @@ function CardsContent() {
               <Check className="w-3.5 h-3.5 stroke-[3]" />
             </div>
             <span>{deckSuccessToast.message}</span>
-            <Link
-              href={`/sim?deckId=${deckSuccessToast.deckId}`}
-              className="ml-2 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs flex items-center gap-1 transition"
-            >
-              <Gamepad2 className="w-3 h-3 text-amber-400" />
-              <span>Playtest</span>
-            </Link>
+            {canAccessSim && (
+              <Link
+                href={`/sim?deckId=${deckSuccessToast.deckId}`}
+                className="ml-2 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs flex items-center gap-1 transition"
+              >
+                <Gamepad2 className="w-3 h-3 text-amber-400" />
+                <span>Playtest</span>
+              </Link>
+            )}
             <Link
               href={`/decks/${deckSuccessToast.deckId}`}
               className="text-xs text-white underline hover:text-blue-200 font-semibold"

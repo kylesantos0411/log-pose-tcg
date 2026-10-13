@@ -25,7 +25,7 @@ import { useSettings } from '@/context/SettingsContext';
 
 import { SupportModal } from '@/components/SupportModal';
 import { AccountModal } from '@/components/AccountModal';
-import { checkIsAdmin, checkIsChiefAdmin } from '@/lib/supabase-sync';
+import { checkIsAdmin, checkIsChiefAdmin, checkCanAccessSim } from '@/lib/supabase-sync';
 
 interface CleanHomeViewProps {
   totalCards: number;
@@ -46,6 +46,7 @@ export function CleanHomeView({
 
   const isChiefAdmin = checkIsChiefAdmin(user);
   const isAdmin = checkIsAdmin(user);
+  const canAccessSim = checkCanAccessSim(user);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -342,24 +343,44 @@ export function CleanHomeView({
           </div>
         </Link>
 
-        {/* Tile 7: TCG Simulator (Styled exactly like other tiles, with lock icon) */}
-        <Link
-          href="/sim"
-          className="group rounded-2xl bg-[#141620] hover:bg-[#181b26] border border-[#222533] hover:border-[#2f3548] p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer col-span-2 sm:col-span-1"
-        >
-          <div className="flex items-start justify-between">
-            <Gamepad2 className="w-7 h-7 text-slate-300 group-hover:text-white stroke-[1.8] group-hover:scale-105 transition-transform" />
-            <Lock className="w-4 h-4 text-slate-600 group-hover:text-slate-300 transition" />
+        {/* Tile 7: TCG Simulator (Active for Kyle / kaidump, locked & disabled for others) */}
+        {canAccessSim ? (
+          <Link
+            href="/sim"
+            className="group rounded-2xl bg-[#141620] hover:bg-[#181b26] border border-[#222533] hover:border-amber-500/50 p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer col-span-2 sm:col-span-1"
+          >
+            <div className="flex items-start justify-between">
+              <Gamepad2 className="w-7 h-7 text-amber-400 group-hover:scale-105 transition-transform" />
+              <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 group-hover:translate-x-0.5 transition" />
+            </div>
+            <div className="mt-2">
+              <h3 className="font-bold text-sm sm:text-base text-slate-100 tracking-wide leading-tight">
+                TCG Sim
+              </h3>
+              <p className="text-xs text-amber-400/80 font-medium mt-0.5">
+                Playtest Decks
+              </p>
+            </div>
+          </Link>
+        ) : (
+          <div
+            className="rounded-2xl bg-[#141620]/60 border border-[#222533] p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] opacity-60 cursor-not-allowed col-span-2 sm:col-span-1 select-none"
+            title="Closed Beta • Restricted to authorized test accounts (@kaipuccino and @kaidump)"
+          >
+            <div className="flex items-start justify-between">
+              <Gamepad2 className="w-7 h-7 text-slate-500 stroke-[1.8]" />
+              <Lock className="w-4 h-4 text-slate-500" />
+            </div>
+            <div className="mt-2">
+              <h3 className="font-bold text-sm sm:text-base text-slate-400 tracking-wide leading-tight">
+                TCG Sim
+              </h3>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Locked • Closed Beta
+              </p>
+            </div>
           </div>
-          <div className="mt-2">
-            <h3 className="font-bold text-sm sm:text-base text-slate-100 tracking-wide leading-tight">
-              TCG Sim
-            </h3>
-            <p className="text-xs text-slate-400 font-medium mt-0.5">
-              {isAdmin ? 'Playtest Decks' : 'Locked • Closed Beta'}
-            </p>
-          </div>
-        </Link>
+        )}
       </div>
 
       {/* =========================================================================

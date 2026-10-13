@@ -27,7 +27,7 @@ import {
 import { getDeckById, formatDeckExport, DeckCardItem, RecommendedDeck } from '@/lib/recommended-decks';
 import { getEditionCardImageUrl, handleCardImageError } from '@/lib/card-image';
 import { useSettings } from '@/context/SettingsContext';
-import { checkIsAdmin } from '@/lib/supabase-sync';
+import { checkIsAdmin, checkCanAccessSim } from '@/lib/supabase-sync';
 import { CardDetailView, CardDetailData } from '@/components/CardDetailView';
 import { getCustomDeckById, setActiveCustomDeckId } from '@/lib/custom-decks';
 
@@ -36,6 +36,7 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
   const router = useRouter();
   const { formatPrice, currency, user } = useSettings();
   const isAdmin = checkIsAdmin(user);
+  const canAccessSim = checkCanAccessSim(user);
 
   const [deck, setDeck] = useState<RecommendedDeck | null>(() => {
     return getDeckById(resolvedParams.id) || getCustomDeckById(resolvedParams.id) || null;
@@ -173,14 +174,16 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
           </Link>
 
           {/* Playtest Simulator Link */}
-          <Link
-            href={`/sim?deckId=${deck.id}`}
-            title="Playtest in TCG Simulator"
-            className="px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 text-amber-300 hover:text-white border border-amber-500/40 text-[10px] sm:text-xs font-bold tracking-wider uppercase flex items-center gap-1.5 shadow-sm active:scale-95 transition shrink-0"
-          >
-            <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
-            <span>PLAYTEST</span>
-          </Link>
+          {canAccessSim && (
+            <Link
+              href={`/sim?deckId=${deck.id}`}
+              title="Playtest in TCG Simulator"
+              className="px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 text-amber-300 hover:text-white border border-amber-500/40 text-[10px] sm:text-xs font-bold tracking-wider uppercase flex items-center gap-1.5 shadow-sm active:scale-95 transition shrink-0"
+            >
+              <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
+              <span>PLAYTEST</span>
+            </Link>
+          )}
 
           {/* COPY DECK Button matching Screenshot 2 */}
           <button

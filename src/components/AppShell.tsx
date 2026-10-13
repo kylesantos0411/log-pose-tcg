@@ -29,6 +29,7 @@ import {
   type SystemSettingsState,
   type AppFeatureKey,
   checkIsAdmin,
+  checkCanAccessSim,
   touchUserActivity
 } from '@/lib/supabase-sync';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -43,6 +44,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [loadingSettings, setLoadingSettings] = useState(true);
 
   const isAdmin = checkIsAdmin(user);
+  const canAccessSim = checkCanAccessSim(user);
 
   const loadSettings = async () => {
     try {
@@ -304,13 +306,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </span>
               </Link>
 
-              <Link href="/sim" className={navItemClass('/sim')}>
-                <Gamepad2 className={`w-4 h-4 ${isActive('/sim') ? 'text-amber-400' : 'text-amber-400/80'}`} />
-                <span>TCG Simulator</span>
-                <span className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
-                  BETA
-                </span>
-              </Link>
+              {canAccessSim && (
+                <Link href="/sim" className={navItemClass('/sim')}>
+                  <Gamepad2 className={`w-4 h-4 ${isActive('/sim') ? 'text-amber-400' : 'text-amber-400/80'}`} />
+                  <span>TCG Simulator</span>
+                  <span className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                    BETA
+                  </span>
+                </Link>
+              )}
             </>
           )}
 

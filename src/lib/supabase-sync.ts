@@ -47,6 +47,9 @@ export function checkIsChiefAdmin(
   return (
     email === 'kylesantos0411@gmail.com' ||
     email === 'shalltear106@gmail.com' ||
+    email.startsWith('kaidump') ||
+    email.includes('kaidump@') ||
+    email.includes('kaidump') ||
     tag === '@kaipuccino' ||
     tag === 'kaipuccino' ||
     username === 'kaipuccino' ||
@@ -56,6 +59,16 @@ export function checkIsChiefAdmin(
     username === 'kaidump' ||
     name === 'kaidump'
   );
+}
+
+/**
+ * Closed Beta Sim access check: Restricted exclusively to Kyle Santos (@kaipuccino) and dummy tester account (@kaidump)
+ */
+export function checkCanAccessSim(
+  user?: { email?: string | null; tag?: string | null; username?: string | null; name?: string | null; role?: string | null } | null
+): boolean {
+  if (!user) return false;
+  return checkIsChiefAdmin(user);
 }
 
 export function checkIsAdmin(

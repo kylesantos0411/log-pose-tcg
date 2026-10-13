@@ -20,7 +20,7 @@ import {
   Play
 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
-import { checkIsAdmin } from '@/lib/supabase-sync';
+import { checkIsAdmin, checkCanAccessSim } from '@/lib/supabase-sync';
 import { RECOMMENDED_DECKS, RecommendedDeck } from '@/lib/recommended-decks';
 import { getEditionCardImageUrl, handleCardImageError } from '@/lib/card-image';
 import { SimCustomDeckModal } from '@/components/sim/SimCustomDeckModal';
@@ -58,6 +58,7 @@ export default function RecommendedDecksPage() {
   const router = useRouter();
   const { user } = useSettings();
   const isAdmin = checkIsAdmin(user);
+  const canAccessSim = checkCanAccessSim(user);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeMeta, setActiveMeta] = useState<MetaFilter>('ALL');
@@ -94,7 +95,11 @@ export default function RecommendedDecksPage() {
   };
 
   const handleSelectDeckForSim = (deck: RecommendedDeck) => {
-    router.push(`/sim?deckId=${deck.id}`);
+    if (canAccessSim) {
+      router.push(`/sim?deckId=${deck.id}`);
+    } else {
+      router.push(`/decks/${deck.id}`);
+    }
   };
 
   // Filter custom decks by search query and color
@@ -208,16 +213,18 @@ export default function RecommendedDecksPage() {
             <span className="sm:hidden">Create</span>
           </button>
 
-          {/* PLAYTEST Simulator button available for everyone */}
-          <Link
-            href="/sim"
-            title="Open TCG Simulator"
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/35 text-amber-300 hover:bg-amber-500/25 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider shrink-0 transition shadow-sm active:scale-95"
-          >
-            <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">PLAYTEST</span>
-            <span className="sm:hidden">SIM</span>
-          </Link>
+          {/* PLAYTEST Simulator button available only for authorized testers */}
+          {canAccessSim && (
+            <Link
+              href="/sim"
+              title="Open TCG Simulator"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/35 text-amber-300 hover:bg-amber-500/25 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider shrink-0 transition shadow-sm active:scale-95"
+            >
+              <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">PLAYTEST</span>
+              <span className="sm:hidden">SIM</span>
+            </Link>
+          )}
         </div>
       </header>
 
@@ -542,13 +549,15 @@ export default function RecommendedDecksPage() {
                           <span>Add Cards</span>
                         </Link>
 
-                        <Link
-                          href={`/sim?deckId=${deck.id}`}
-                          className="px-2 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 hover:text-white border border-amber-500/40 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition active:scale-95 shadow-sm"
-                        >
-                          <Gamepad2 className="w-3 h-3 text-amber-400" />
-                          <span>PLAYTEST</span>
-                        </Link>
+                        {canAccessSim && (
+                          <Link
+                            href={`/sim?deckId=${deck.id}`}
+                            className="px-2 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 hover:text-white border border-amber-500/40 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition active:scale-95 shadow-sm"
+                          >
+                            <Gamepad2 className="w-3 h-3 text-amber-400" />
+                            <span>PLAYTEST</span>
+                          </Link>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -675,13 +684,15 @@ export default function RecommendedDecksPage() {
                           </span>
                         </div>
 
-                        <Link
-                          href={`/sim?deckId=${deck.id}`}
-                          className="px-2 py-0.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 hover:text-white border border-amber-500/35 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 transition active:scale-95 shadow-sm"
-                        >
-                          <Gamepad2 className="w-3 h-3 text-amber-400" />
-                          <span>PLAYTEST</span>
-                        </Link>
+                        {canAccessSim && (
+                          <Link
+                            href={`/sim?deckId=${deck.id}`}
+                            className="px-2 py-0.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 hover:text-white border border-amber-500/35 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 transition active:scale-95 shadow-sm"
+                          >
+                            <Gamepad2 className="w-3 h-3 text-amber-400" />
+                            <span>PLAYTEST</span>
+                          </Link>
+                        )}
                       </div>
                     </div>
                   );
