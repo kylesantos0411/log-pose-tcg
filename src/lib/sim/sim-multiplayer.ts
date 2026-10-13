@@ -29,6 +29,7 @@ export interface PlayerHandshakePayload {
   lifeCount: number;
   handCount: number;
   activeDon: number;
+  isReply?: boolean;
 }
 
 export interface AttackDeclaredPayload {
@@ -110,10 +111,10 @@ export class SimMultiplayerEngine {
 
   constructor() {
     this.playerId = typeof window !== 'undefined'
-      ? (localStorage.getItem('optcg_player_id') || `p-${Math.random().toString(36).substring(2, 9)}`)
+      ? (sessionStorage.getItem('optcg_sim_peer_id') || `p-${Math.random().toString(36).substring(2, 9)}-${Date.now().toString(36)}`)
       : 'player-default';
     if (typeof window !== 'undefined') {
-      localStorage.setItem('optcg_player_id', this.playerId);
+      sessionStorage.setItem('optcg_sim_peer_id', this.playerId);
     }
   }
 
@@ -152,60 +153,71 @@ export class SimMultiplayerEngine {
           }
         : callbacksOrLegacySync;
 
-    // Register event listeners
+    // Register event listeners (strictly filter out own broadcasts to avoid echo loops)
     this.channel
       .on('broadcast', { event: 'player_joined' }, ({ payload }: any) => {
-        if (callbacks.onPlayerJoined && payload?.playerId) {
+        if (!payload?.playerId || payload.playerId === this.playerId) return;
+        if (callbacks.onPlayerJoined) {
           callbacks.onPlayerJoined(payload.playerId);
         }
       })
       .on('broadcast', { event: 'player_handshake' }, ({ payload }: any) => {
-        if (callbacks.onHandshake && payload) {
+        if (!payload?.playerId || payload.playerId === this.playerId) return;
+        if (callbacks.onHandshake) {
           callbacks.onHandshake(payload);
         }
       })
       .on('broadcast', { event: 'board_sync' }, ({ payload }: any) => {
+        if (!payload?.playerId || payload.playerId === this.playerId) return;
         if (callbacks.onBoardSync && payload?.board) {
           callbacks.onBoardSync(payload.board);
         }
       })
       .on('broadcast', { event: 'attack_declared' }, ({ payload }: any) => {
-        if (callbacks.onAttackDeclared && payload) {
+        if (!payload?.playerId || payload.playerId === this.playerId) return;
+        if (callbacks.onAttackDeclared) {
           callbacks.onAttackDeclared(payload);
         }
       })
       .on('broadcast', { event: 'blocker_activated' }, ({ payload }: any) => {
-        if (callbacks.onBlockerActivated && payload) {
+        if (!payload?.playerId || payload.playerId === this.playerId) return;
+        if (callbacks.onBlockerActivated) {
           callbacks.onBlockerActivated(payload);
         }
       })
       .on('broadcast', { event: 'counter_played' }, ({ payload }: any) => {
-        if (callbacks.onCounterPlayed && payload) {
+        if (!payload?.playerId || payload.playerId === this.playerId) return;
+        if (callbacks.onCounterPlayed) {
           callbacks.onCounterPlayed(payload);
         }
       })
       .on('broadcast', { event: 'combat_resolved' }, ({ payload }: any) => {
-        if (callbacks.onCombatResolved && payload) {
+        if (!payload?.playerId || payload.playerId === this.playerId) return;
+        if (callbacks.onCombatResolved) {
           callbacks.onCombatResolved(payload);
         }
       })
       .on('broadcast', { event: 'turn_end' }, ({ payload }: any) => {
-        if (callbacks.onTurnEnd && payload) {
+        if (!payload?.playerId || payload.playerId === this.playerId) return;
+        if (callbacks.onTurnEnd) {
           callbacks.onTurnEnd(payload);
         }
       })
       .on('broadcast', { event: 'emote' }, ({ payload }: any) => {
+        if (!payload?.playerId || payload.playerId === this.playerId) return;
         if (callbacks.onEmote && payload?.text) {
           callbacks.onEmote(payload.text);
         }
       })
       .on('broadcast', { event: 'game_state_sync' }, ({ payload }: any) => {
+        if (!payload?.playerId || payload.playerId === this.playerId) return;
         if (callbacks.onStateSync && payload?.gameState) {
           callbacks.onStateSync(payload.gameState);
         }
       })
       .on('broadcast', { event: 'game_action' }, ({ payload }: any) => {
-        if (onActionBroadcastLegacy && payload) {
+        if (!payload?.playerId || payload.playerId === this.playerId) return;
+        if (onActionBroadcastLegacy) {
           onActionBroadcastLegacy(payload);
         }
       })

@@ -158,6 +158,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
     initialMultiplayerRoom?.isHost || false
   );
   const [isMultiplayerOpponentConnected, setIsMultiplayerOpponentConnected] = useState(false);
+  const connectedRoomIdRef = useRef<string | null>(null);
   const [copiedRoomCode, setCopiedRoomCode] = useState(false);
   const [selectedHandCard, setSelectedHandCard] = useState<SimCard | null>(null);
   const [selectedFieldCard, setSelectedFieldCard] = useState<SimCard | null>(null);
@@ -347,47 +348,64 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
     simMultiplayer.joinRoom(roomId, {
       onHandshake: (payload) => {
         setIsMultiplayerOpponentConnected(true);
-        setGameState((prev) => ({
-          ...prev,
-          opponent: {
-            ...prev.opponent,
-            name: payload.deckName,
-            leaderId: payload.leader.cardId,
-            leaderName: payload.leader.name,
-            leaderImage: payload.leader.imageUrl,
-            leaderPower: payload.leader.power,
-            life: payload.lifeCount,
-            maxLife: payload.lifeCount,
-            handCount: payload.handCount,
-            deckCount: payload.deckCount,
-            activeDon: payload.activeDon,
-            characters: [],
-          },
-          opponentLife: payload.lifeCount,
-          opponentPower: payload.leader.power,
-          logs: [
-            ...prev.logs,
-            createLog(`⚔️ Opponent connected: ${payload.deckName} (${payload.leader.name})!`, 'system'),
-          ],
-        }));
-        simAudio.playVictory();
+        setGameState((prev) => {
+          const isNewOpponent = !prev.opponent.leaderId || prev.opponent.leaderId !== payload.leader.cardId;
+          const nextLogs = isNewOpponent
+            ? [
+                ...prev.logs,
+                createLog(`⚔️ Opponent connected: ${payload.deckName} (${payload.leader.name})!`, 'system'),
+              ]
+            : prev.logs;
 
-        // Reply with our own handshake and board state
-        setGameState((current) => {
-          if (current.leader) {
-            simMultiplayer.broadcastHandshake({
-              isHost,
-              deckName: chosenDeck.name,
-              leader: current.leader,
-              deckCount: current.deck.length,
-              lifeCount: current.life.length,
-              handCount: current.hand.length,
-              activeDon: current.activeDon,
-            });
-            syncMyBoardState(current);
-          }
-          return current;
+          return {
+            ...prev,
+            opponent: {
+              ...prev.opponent,
+              name: payload.deckName,
+              leaderId: payload.leader.cardId,
+              leaderName: payload.leader.name,
+              leaderImage: payload.leader.imageUrl,
+              leaderPower: payload.leader.power,
+              life: payload.lifeCount,
+              maxLife: payload.lifeCount,
+              handCount: payload.handCount,
+              deckCount: payload.deckCount,
+              activeDon: payload.activeDon,
+              characters: prev.opponent.characters || [],
+            },
+            opponentLife: payload.lifeCount,
+            opponentPower: payload.leader.power,
+            logs: nextLogs,
+          };
         });
+
+        // Crisp chime to notify connection, avoid looped victory fanfare
+        simAudio.playPhaseDing();
+
+        // Only reply if incoming handshake was NOT already a reply (prevents infinite ping-pong broadcast loop)
+        if (!payload.isReply) {
+          setGameState((current) => {
+            if (current.leader) {
+              simMultiplayer.broadcastHandshake({
+                isHost,
+                deckName: chosenDeck.name,
+                leader: current.leader,
+                deckCount: current.deck.length,
+                lifeCount: current.life.length,
+                handCount: current.hand.length,
+                activeDon: current.activeDon,
+                isReply: true,
+              });
+              syncMyBoardState(current);
+            }
+            return current;
+          });
+        } else {
+          setGameState((current) => {
+            syncMyBoardState(current);
+            return current;
+          });
+        }
       },
 
       onBoardSync: (board) => {
@@ -609,7 +627,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
       },
     });
 
-    // Send initial handshake
+    // Send initial handshake (isReply: false)
     setTimeout(() => {
       setGameState((current) => {
         if (current.leader) {
@@ -621,6 +639,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
             lifeCount: current.life.length,
             handCount: current.hand.length,
             activeDon: current.activeDon,
+            isReply: false,
           });
         }
         return current;
@@ -628,12 +647,14 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
     }, 400);
   };
 
-  // Auto-connect if initialMultiplayerRoom was passed
+  // Auto-connect if initialMultiplayerRoom was passed (guarded to only connect once)
   useEffect(() => {
-    if (initialMultiplayerRoom?.roomId) {
+    if (initialMultiplayerRoom?.roomId && connectedRoomIdRef.current !== initialMultiplayerRoom.roomId) {
+      connectedRoomIdRef.current = initialMultiplayerRoom.roomId;
       handleConnectMultiplayerRoom(initialMultiplayerRoom.roomId, initialMultiplayerRoom.isHost);
     }
     return () => {
+      connectedRoomIdRef.current = null;
       simMultiplayer.leaveRoom();
     };
   }, [initialMultiplayerRoom?.roomId, initialMultiplayerRoom?.isHost]);
@@ -1169,10 +1190,12 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
 
   // Phase 6: Multiplayer Room Handlers
   const handleJoinMultiplayerRoom = (roomId: string, isHost: boolean) => {
+    connectedRoomIdRef.current = roomId;
     handleConnectMultiplayerRoom(roomId, isHost);
   };
 
   const handleLeaveMultiplayerRoom = () => {
+    connectedRoomIdRef.current = null;
     simMultiplayer.leaveRoom();
     setActiveMultiplayerRoom(null);
     setIsMultiplayerOpponentConnected(false);

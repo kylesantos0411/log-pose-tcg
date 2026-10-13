@@ -7,9 +7,19 @@
 class SimAudioEngine {
   private ctx: AudioContext | null = null;
   private soundEnabled: boolean = true;
+  private lastPlayed: Map<string, number> = new Map();
 
   constructor() {
     // Lazily initialize on first interaction to respect browser autoplay policies
+  }
+
+  private canPlay(sound: string, cooldownMs: number = 80): boolean {
+    if (!this.soundEnabled) return false;
+    const now = Date.now();
+    const last = this.lastPlayed.get(sound) || 0;
+    if (now - last < cooldownMs) return false;
+    this.lastPlayed.set(sound, now);
+    return true;
   }
 
   private getContext(): AudioContext | null {
@@ -38,7 +48,7 @@ class SimAudioEngine {
    * Sound: DON!! Card Click / Attach (Crisp resonant metallic chime)
    */
   public playDonAttach() {
-    if (!this.soundEnabled) return;
+    if (!this.canPlay('donAttach', 70)) return;
     const ctx = this.getContext();
     if (!ctx) return;
 
@@ -63,7 +73,7 @@ class SimAudioEngine {
    * Sound: Card Play / Summon (Fast whip/swish into playmat)
    */
   public playCardPlay() {
-    if (!this.soundEnabled) return;
+    if (!this.canPlay('cardPlay', 80)) return;
     const ctx = this.getContext();
     if (!ctx) return;
 
@@ -88,7 +98,7 @@ class SimAudioEngine {
    * Sound: Attack Slash (Sword strike sound)
    */
   public playAttackSlash() {
-    if (!this.soundEnabled) return;
+    if (!this.canPlay('attackSlash', 100)) return;
     const ctx = this.getContext();
     if (!ctx) return;
 
@@ -114,7 +124,7 @@ class SimAudioEngine {
    * Sound: Blocker Intercept (Solid heavy metallic shield clank)
    */
   public playBlockerDefend() {
-    if (!this.soundEnabled) return;
+    if (!this.canPlay('blockerDefend', 150)) return;
     const ctx = this.getContext();
     if (!ctx) return;
 
@@ -147,7 +157,7 @@ class SimAudioEngine {
    * Sound: Counter Boost Spark (High energetic zap)
    */
   public playCounterBoost() {
-    if (!this.soundEnabled) return;
+    if (!this.canPlay('counterBoost', 100)) return;
     const ctx = this.getContext();
     if (!ctx) return;
 
@@ -172,7 +182,7 @@ class SimAudioEngine {
    * Sound: Life Damage / Break (Deep resonant punch)
    */
   public playLifeBreak() {
-    if (!this.soundEnabled) return;
+    if (!this.canPlay('lifeBreak', 150)) return;
     const ctx = this.getContext();
     if (!ctx) return;
 
@@ -197,7 +207,7 @@ class SimAudioEngine {
    * Sound: Victory Fanfare (Triumphant chord)
    */
   public playVictory() {
-    if (!this.soundEnabled) return;
+    if (!this.canPlay('victory', 1200)) return;
     const ctx = this.getContext();
     if (!ctx) return;
 
@@ -225,7 +235,7 @@ class SimAudioEngine {
    * Sound: Turn / Phase Ding (Clear bell-like chime)
    */
   public playPhaseDing() {
-    if (!this.soundEnabled) return;
+    if (!this.canPlay('phaseDing', 250)) return;
     const ctx = this.getContext();
     if (!ctx) return;
 
@@ -250,7 +260,7 @@ class SimAudioEngine {
    * Sound: Shield Defend / Repel (Metallic deflection ring)
    */
   public playShieldDefend() {
-    if (!this.soundEnabled) return;
+    if (!this.canPlay('shieldDefend', 150)) return;
     const ctx = this.getContext();
     if (!ctx) return;
 
