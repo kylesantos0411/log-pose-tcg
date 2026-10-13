@@ -24,6 +24,7 @@ import {
   performMulligan,
   keepInitialHand,
   initializeGame,
+  getRandomOpponentDeck,
   setTutorialStep,
   toggleTutorialMode,
 } from '@/lib/sim/sim-engine';
@@ -31,6 +32,7 @@ import { simAudio } from '@/lib/sim/sim-audio';
 import { SimCardInspectorModal } from './SimCardInspectorModal';
 import { SimPileViewerModal } from './SimPileViewerModal';
 import { SimMulliganModal } from './SimMulliganModal';
+import { SimMatchmakingModal } from './SimMatchmakingModal';
 import { SimTriggerModal } from './SimTriggerModal';
 import { SimMultiplayerModal } from './SimMultiplayerModal';
 import { SimTutorialBanner } from './SimTutorialBanner';
@@ -43,6 +45,7 @@ import {
   RotateCcw,
   Swords,
   ScrollText,
+  Shuffle,
   Clock,
   Menu,
   Play,
@@ -83,10 +86,18 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
   const { user } = useSettings();
   const isAdmin = checkIsAdmin(user);
 
-  // Initialize game session with user-chosen tutorial mode
+  // Initialize game session: random opponent when not in tutorial, ST04 when tutorial
   const [gameState, setGameState] = useState<SimGameState>(() =>
-    initializeGame(chosenDeck, true, ST04_ANIMAL_KINGDOM_DECK, isTutorial)
+    initializeGame(chosenDeck, true, isTutorial ? ST04_ANIMAL_KINGDOM_DECK : undefined, isTutorial)
   );
+
+  // Show matchmaking loading screen when starting a non-tutorial battle
+  const [showMatchmaking, setShowMatchmaking] = useState<boolean>(!isTutorial);
+
+  const currentOpponentDeck: RecommendedDeck =
+    [ST04_ANIMAL_KINGDOM_DECK, ...RECOMMENDED_DECKS].find(
+      (d) => d.id === gameState.opponent.deckId
+    ) || ST04_ANIMAL_KINGDOM_DECK;
 
   const [inspectedCard, setInspectedCard] = useState<SimCard | null>(null);
   const [showTrashModal, setShowTrashModal] = useState(false);
@@ -2030,8 +2041,17 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
       {/* =========================================================================
           MODALS & POPUPS
          ========================================================================= */}
-      {/* Mulligan Modal */}
-      {gameState.mulliganOffered && (
+      {/* Matchmaking Overlay (Finding Opponent) */}
+      {showMatchmaking && (
+        <SimMatchmakingModal
+          playerDeck={chosenDeck}
+          opponentDeck={currentOpponentDeck}
+          onComplete={() => setShowMatchmaking(false)}
+        />
+      )}
+
+      {/* Mulligan Modal - only shown once matchmaking completes */}
+      {!showMatchmaking && gameState.mulliganOffered && (
         <SimMulliganModal
           hand={gameState.hand}
           hasMulliganed={gameState.hasMulliganed}
@@ -2096,6 +2116,20 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+              <button
+                type="button"
+                onClick={() => {
+                  const randomDeck = getRandomOpponentDeck(gameState.opponent.deckId);
+                  handleSelectOpponentDeck(randomDeck);
+                  setShowOpponentSelector(false);
+                  setShowMatchmaking(true);
+                }}
+                className="w-full py-2.5 px-3 rounded-xl bg-[#1c2438] hover:bg-[#25304b] border border-amber-500/30 hover:border-amber-400 text-amber-300 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition active:scale-98 shadow-sm mb-2"
+              >
+                <Shuffle className="w-4 h-4 text-amber-400" />
+                <span>🎲 Match Random Opponent</span>
+              </button>
+
               {[ST04_ANIMAL_KINGDOM_DECK, ...RECOMMENDED_DECKS.slice(0, 15)].map((d) => (
                 <div
                   key={d.id}

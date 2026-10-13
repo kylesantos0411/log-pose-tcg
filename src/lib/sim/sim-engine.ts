@@ -167,35 +167,83 @@ function createSimCard(
 }
 
 /**
+ * Pick a random opponent deck from the tournament & starter deck pool,
+ * avoiding the player's own deck when possible.
+ */
+export function getRandomOpponentDeck(excludeDeckId?: string): RecommendedDeck {
+  const allDecks = [ST04_ANIMAL_KINGDOM_DECK, ...RECOMMENDED_DECKS];
+  const candidates = allDecks.filter((d) => d.id !== excludeDeckId);
+  const pool = candidates.length > 0 ? candidates : allDecks;
+  const randomIndex = Math.floor(Math.random() * pool.length);
+  return pool[randomIndex];
+}
+
+/**
  * Build an Opponent object from a RecommendedDeck
  */
-export function createDefaultOpponent(deck?: RecommendedDeck): SimOpponent {
+export function createDefaultOpponent(
+  deck?: RecommendedDeck,
+  isTutorial: boolean = false
+): SimOpponent {
   const chosenDeck = deck || ST04_ANIMAL_KINGDOM_DECK;
   const colors = chosenDeck.color ? chosenDeck.color.split(',').map((s) => s.trim()) : ['Purple'];
   const life = getLeaderBaseLife(chosenDeck.leaderId, colors);
 
-  // Initial practice opponent field character matching OPlayTCG Kaido board
-  const initialOpponentChar: SimCard = {
-    instanceId: 'opp-char-1',
-    cardId: 'ST04-002',
-    name: 'Ulti',
-    category: 'Character',
-    colors: ['Purple'],
-    cost: 4,
-    power: 5000,
-    counter: 2000,
-    imageUrl: getEditionCardImageUrl('ST04-002', 'jp', 'https://en.onepiece-cardgame.com/images/cardlist/card/ST04-002.png?260929'),
-    effect: '[On Play] Play Page One',
-    trigger: null,
-    types: 'Animal Kingdom Pirates',
-    attributes: 'Strike',
-    rested: true, // Practice character starts rested so players can practice character combat
-    attachedDon: 0,
-    customPowerModifier: 0,
-    hasBlocker: false,
-    hasRush: false,
-    canAttackThisTurn: false,
-  };
+  // Initial practice opponent field character
+  // If tutorial, keep Ulti to match tutorial instructions; otherwise pick an authentic character from chosenDeck
+  let initialOpponentChar: SimCard;
+  if (isTutorial || chosenDeck.id === 'st04-animal-kingdom') {
+    initialOpponentChar = {
+      instanceId: 'opp-char-1',
+      cardId: 'ST04-002',
+      name: 'Ulti',
+      category: 'Character',
+      colors: ['Purple'],
+      cost: 4,
+      power: 5000,
+      counter: 2000,
+      imageUrl: getEditionCardImageUrl('ST04-002', 'jp', 'https://en.onepiece-cardgame.com/images/cardlist/card/ST04-002.png?260929'),
+      effect: '[On Play] Play Page One',
+      trigger: null,
+      types: 'Animal Kingdom Pirates',
+      attributes: 'Strike',
+      rested: true, // Practice character starts rested so players can practice character combat
+      attachedDon: 0,
+      customPowerModifier: 0,
+      hasBlocker: false,
+      hasRush: false,
+      canAttackThisTurn: false,
+    };
+  } else {
+    // Pick an authentic character card from chosenDeck
+    const charDef = (chosenDeck.cards || []).find(
+      (c) => c.category === 'Character' && (c.cost ?? 0) >= 3 && (c.cost ?? 0) <= 5
+    ) || (chosenDeck.cards || []).find((c) => c.category === 'Character');
+
+    if (charDef) {
+      initialOpponentChar = createSimCard(charDef, 'opp-char-1', chosenDeck.color || 'Purple');
+      initialOpponentChar.rested = true; // Starts rested so players can practice combat
+      initialOpponentChar.canAttackThisTurn = false;
+    } else {
+      initialOpponentChar = {
+        instanceId: 'opp-char-1',
+        cardId: 'ST04-002',
+        name: 'Ulti',
+        category: 'Character',
+        colors: ['Purple'],
+        cost: 4,
+        power: 5000,
+        counter: 2000,
+        imageUrl: getEditionCardImageUrl('ST04-002', 'jp', 'https://en.onepiece-cardgame.com/images/cardlist/card/ST04-002.png?260929'),
+        rested: true,
+        attachedDon: 0,
+        customPowerModifier: 0,
+        hasBlocker: false,
+        hasRush: false,
+        canAttackThisTurn: false,
+      };
+    }
+  }
 
   return {
     deckId: chosenDeck.id,
@@ -228,6 +276,9 @@ export function initializeGame(
   isTutorial: boolean = false
 ): SimGameState {
   const playerDeck = deck || ST01_STRAW_HAT_DECK;
+  const finalOpponentDeck = isTutorial
+    ? (opponentDeck || ST04_ANIMAL_KINGDOM_DECK)
+    : (opponentDeck || getRandomOpponentDeck(playerDeck.id));
   let instanceCounter = 1;
 
   // 1. Prepare Leader Card
@@ -299,7 +350,7 @@ export function initializeGame(
   const initialActiveDon = isTutorial ? 5 : (goingFirst ? 1 : 2);
   const initialDonDeckCount = 10 - initialActiveDon;
 
-  const opponent = createDefaultOpponent(opponentDeck || ST04_ANIMAL_KINGDOM_DECK);
+  const opponent = createDefaultOpponent(finalOpponentDeck, isTutorial);
 
   const logs: GameLogEntry[] = [
     createLog(`⚓ Match started: ${playerDeck.name} vs ${opponent.name}`, 'system'),
@@ -1609,7 +1660,7 @@ export function switchOpponent(
   state: SimGameState,
   opponentDeck: RecommendedDeck
 ): SimGameState {
-  const newOpponent = createDefaultOpponent(opponentDeck);
+  const newOpponent = createDefaultOpponent(opponentDeck, state.tutorialMode);
   return {
     ...state,
     opponent: newOpponent,
