@@ -28,12 +28,21 @@ function SimulatorContent() {
   const isAdmin = checkIsAdmin(user);
 
   const deckId = searchParams.get('deckId');
+  const tutorialParam = searchParams.get('tutorial');
+
   const [selectedDeck, setSelectedDeck] = useState<RecommendedDeck | null>(() => {
     if (deckId) {
       return getDeckById(deckId) || null;
     }
-    // Default to authentic Straw Hat Crew starter deck for instant play/tutorial
-    return ST01_STRAW_HAT_DECK;
+    // Only auto-launch ST01 if user explicitly clicked tutorial or deckId was provided
+    if (tutorialParam === 'true') {
+      return ST01_STRAW_HAT_DECK;
+    }
+    return null; // Show deck selector & mode chooser first!
+  });
+
+  const [isTutorialEnabled, setIsTutorialEnabled] = useState<boolean>(() => {
+    return tutorialParam === 'true';
   });
 
   const [deckSearch, setDeckSearch] = useState('');
@@ -46,6 +55,7 @@ function SimulatorContent() {
     return (
       <SimPlaymat
         initialDeck={selectedDeck}
+        initialTutorialMode={isTutorialEnabled}
         onExit={() => {
           setSelectedDeck(null);
           router.push('/sim');
@@ -99,42 +109,89 @@ function SimulatorContent() {
         </Link>
       </div>
 
-      {/* Quick Launch Tutorial Banner */}
-      <div
-        onClick={() => setSelectedDeck(ST01_STRAW_HAT_DECK)}
-        className="p-4 rounded-2xl bg-gradient-to-r from-red-950/40 via-amber-950/20 to-purple-950/40 border-2 border-cyan-400/50 hover:border-cyan-400 shadow-xl cursor-pointer flex flex-col sm:flex-row items-center justify-between gap-4 transition group"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-12 aspect-[2.5/3.5] rounded-xl overflow-hidden bg-black/40 border border-white/20 shrink-0 shadow-md">
-            <img
-              src={ST01_STRAW_HAT_DECK.leaderImage}
-              alt="Luffy"
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-            />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-black border border-cyan-400/30">
-                RECOMMENDED
-              </span>
-              <span className="text-xs font-bold text-gray-400">Tutorial & Sandbox</span>
+      {/* Game Mode Selector Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+        {/* Card 1: Interactive Tutorial Mode */}
+        <div
+          onClick={() => {
+            setIsTutorialEnabled(true);
+            setSelectedDeck(ST01_STRAW_HAT_DECK);
+          }}
+          className="p-4 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-blue-950/30 to-[#101626] border-2 border-cyan-400/50 hover:border-cyan-400 shadow-xl cursor-pointer flex items-center justify-between gap-3 transition group hover:scale-[1.01]"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-12 aspect-[2.5/3.5] rounded-xl overflow-hidden bg-black/40 border border-cyan-400/30 shrink-0 shadow-md">
+              <img
+                src={ST01_STRAW_HAT_DECK.leaderImage}
+                alt="Luffy"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+              />
             </div>
-            <h3 className="text-sm font-black text-white mt-0.5">
-              Launch Official Tutorial: ST-01 Straw Hat Crew vs Kaido
-            </h3>
-            <p className="text-[11px] text-gray-300">
-              Interactive 8-step guided walkthrough of turn phases, DON!! attachment, combat, and triggers.
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-black border border-cyan-400/30">
+                  NEW PLAYERS
+                </span>
+                <span className="text-xs font-bold text-cyan-400">Step-by-Step</span>
+              </div>
+              <h3 className="text-sm font-black text-white mt-0.5">
+                Guided Tutorial Mode
+              </h3>
+              <p className="text-[11px] text-gray-300">
+                Interactive walkthrough of turn phases, DON!!, combat rules, blockers, and triggers.
+              </p>
+            </div>
           </div>
+
+          <button
+            type="button"
+            className="py-2 px-3 sm:px-4 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-black font-black text-xs shrink-0 shadow-lg flex items-center gap-1 transition"
+          >
+            <span>START TUTORIAL</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
         </div>
 
-        <button
-          type="button"
-          className="py-2 px-4 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-black font-black text-xs shrink-0 shadow-lg flex items-center gap-1.5 transition"
+        {/* Card 2: Regular Solitaire Sandbox (Tutorial OFF) */}
+        <div
+          onClick={() => {
+            setIsTutorialEnabled(false);
+            setSelectedDeck(ST01_STRAW_HAT_DECK);
+          }}
+          className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/30 via-orange-950/20 to-[#101626] border-2 border-amber-500/40 hover:border-amber-400 shadow-xl cursor-pointer flex items-center justify-between gap-3 transition group hover:scale-[1.01]"
         >
-          <span>START TUTORIAL</span>
-          <ChevronRight className="w-4 h-4" />
-        </button>
+          <div className="flex items-center gap-3">
+            <div className="w-12 aspect-[2.5/3.5] rounded-xl overflow-hidden bg-black/40 border border-amber-400/30 shrink-0 shadow-md">
+              <img
+                src={ST04_ANIMAL_KINGDOM_DECK.leaderImage}
+                alt="Kaido"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+              />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-black border border-amber-400/30">
+                  FREE PRACTICE
+                </span>
+                <span className="text-xs font-bold text-amber-400">Tutorial OFF</span>
+              </div>
+              <h3 className="text-sm font-black text-white mt-0.5">
+                Free Sandbox Practice
+              </h3>
+              <p className="text-[11px] text-gray-300">
+                Full-board freedom without tutorial banners. Test curves, mulligans, and test hands.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="py-2 px-3 sm:px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs shrink-0 shadow-lg flex items-center gap-1 transition"
+          >
+            <span>PLAY SANDBOX</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* Custom Deck Fast Importer (OPTCS / Bandai text code) */}

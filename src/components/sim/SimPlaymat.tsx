@@ -73,17 +73,19 @@ import { checkIsAdmin } from '@/lib/supabase-sync';
 
 interface SimPlaymatProps {
   initialDeck?: RecommendedDeck;
+  initialTutorialMode?: boolean;
   onExit?: () => void;
 }
 
-export function SimPlaymat({ initialDeck, onExit }: SimPlaymatProps) {
+export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlaymatProps) {
   const chosenDeck = initialDeck || ST01_STRAW_HAT_DECK;
+  const isTutorial = initialTutorialMode !== undefined ? initialTutorialMode : false;
   const { user } = useSettings();
   const isAdmin = checkIsAdmin(user);
 
-  // Initialize with official Starter matchup and tutorial mode
+  // Initialize game session with user-chosen tutorial mode
   const [gameState, setGameState] = useState<SimGameState>(() =>
-    initializeGame(chosenDeck, true, ST04_ANIMAL_KINGDOM_DECK, true)
+    initializeGame(chosenDeck, true, ST04_ANIMAL_KINGDOM_DECK, isTutorial)
   );
 
   const [inspectedCard, setInspectedCard] = useState<SimCard | null>(null);
