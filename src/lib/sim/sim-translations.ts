@@ -403,6 +403,19 @@ export const CARD_TRANSLATIONS: Record<string, CardTranslation> = {
   },
 };
 
+import cardRulesDbRaw from './card-rules-db.json';
+
+const cardRulesDb: Record<
+  string,
+  {
+    counter?: number | null;
+    effect?: string | null;
+    trigger?: string | null;
+    types?: string | null;
+    attributes?: string | null;
+  }
+> = cardRulesDbRaw as any;
+
 /**
  * Helper to fetch translation by cardId
  */
@@ -411,5 +424,22 @@ export function getCardTranslation(cardId: string): CardTranslation | null {
   if (CARD_TRANSLATIONS[cleanId]) return CARD_TRANSLATIONS[cleanId];
   const baseId = cleanId.split('_')[0];
   if (CARD_TRANSLATIONS[baseId]) return CARD_TRANSLATIONS[baseId];
+
+  // Universal fallback from compiled 3,903 card rules database
+  const dbData = cardRulesDb[cleanId] || cardRulesDb[baseId];
+  if (dbData) {
+    return {
+      name: baseId,
+      category: 'Card',
+      colors: '',
+      types: dbData.types || '',
+      cost: 0,
+      power: 0,
+      counter: dbData.counter || null,
+      effect: dbData.effect || 'No special effect text.',
+      trigger: dbData.trigger || null,
+    };
+  }
+
   return null;
 }

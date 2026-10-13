@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { SimGameState, SimCard } from '@/lib/sim/sim-types';
 import {
@@ -220,6 +220,27 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
 
   const [isAiThinking, setIsAiThinking] = useState(false);
 
+  // Long-press detection ref for mobile touch and desktop hold
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressTriggeredRef = useRef(false);
+
+  const startLongPress = useCallback((card: SimCard) => {
+    isLongPressTriggeredRef.current = false;
+    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = setTimeout(() => {
+      isLongPressTriggeredRef.current = true;
+      setInspectedCard(card);
+      simAudio.playCardPlay();
+    }, 450); // 450ms hold triggers English card inspector modal
+  }, []);
+
+  const cancelLongPress = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
   // Turn advance (Triggers Refresh -> Opponent Turn -> Player Turn with paced AI progression)
   const handleNextTurn = () => {
     if (isAiThinking) return;
@@ -437,77 +458,89 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
           </div>
 
           {/* Opponent Leader Card - Large and Commanding */}
-          <div
-            onClick={() => {
-              if (selectedAttacker) {
-                handleAttackOpponent(selectedAttacker.instanceId);
-              } else if (selectedFieldCard) {
-                handleAttackOpponent(selectedFieldCard.instanceId);
-              } else if (gameState.leader && canCardAttack(gameState.leader)) {
-                handleAttackOpponent(gameState.leader.instanceId);
-              }
-            }}
-            className={`w-16 sm:w-20 md:w-22 aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-lg cursor-pointer transition group mx-auto ${
-              selectedAttacker
-                ? 'border-rose-500 ring-4 ring-rose-500 ring-offset-2 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(244,63,94,0.95)] scale-105 z-20'
-                : 'border-red-500/80 hover:scale-102'
-            } ${highlightTarget === 'opponent' ? spotlightClass : ''}`}
-            title={`${gameState.opponent.leaderName} (${gameState.opponent.leaderPower} Power)`}
-          >
-            <img
-              src={gameState.opponent.leaderImage}
-              alt={gameState.opponent.leaderName}
-              className="w-full h-full object-cover"
-              onError={(e) => handleCardImageError(e, gameState.opponent.leaderId, gameState.opponent.leaderImage)}
-            />
-            {/* Direct EN Button on Opponent Leader */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setInspectedCard({
-                  instanceId: 'opp-leader-inspect',
-                  cardId: gameState.opponent.leaderId,
-                  name: gameState.opponent.leaderName,
-                  category: 'Leader',
-                  colors: ['Purple'],
-                  cost: 0,
-                  power: gameState.opponent.leaderPower,
-                  counter: null,
-                  imageUrl: gameState.opponent.leaderImage,
-                  effect: '[Activate: Main] [Once Per Turn] DON!! -7: Trash 1 of your opponent\'s Life cards.',
-                  rested: gameState.opponent.rested,
-                  attachedDon: gameState.opponent.attachedDon,
-                  customPowerModifier: 0,
-                });
-              }}
-              className="absolute top-1 right-1 z-20 px-1 py-0.2 rounded bg-black/85 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-400/40 text-[7px] font-bold tracking-tighter flex items-center gap-0.5 shadow transition active:scale-90"
-              title="View Leader translation & details in English"
-            >
-              <Languages className="w-2.5 h-2.5 text-blue-400" />
-              <span>EN</span>
-            </button>
-            {selectedAttacker && (
-              <div className="absolute inset-0 bg-rose-950/75 backdrop-blur-[0.5px] flex flex-col items-center justify-center p-0.5 text-center animate-fadeIn z-10">
-                <div className="w-5 h-5 rounded-full border-2 border-rose-400 border-dashed animate-spin flex items-center justify-center mb-0.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                </div>
-                <span className="text-[7.5px] sm:text-[9px] font-black text-rose-200 uppercase tracking-wider drop-shadow">
-                  STRIKE
-                </span>
-                <span className="text-[6.5px] sm:text-[7.5px] font-mono text-amber-300 font-bold">
-                  {(selectedAttacker?.power || 0) + (selectedAttacker?.attachedDon || 0) * 1000} vs {gameState.opponent.leaderPower}
-                </span>
+          {(() => {
+            const oppLeaderCard: SimCard = {
+              instanceId: 'opp-leader-inspect',
+              cardId: gameState.opponent.leaderId,
+              name: gameState.opponent.leaderName,
+              category: 'Leader',
+              colors: ['Purple'],
+              cost: 0,
+              power: gameState.opponent.leaderPower,
+              counter: null,
+              imageUrl: gameState.opponent.leaderImage,
+              effect: '[Activate: Main] [Once Per Turn] DON!! -7: Trash 1 of your opponent\'s Life cards.',
+              rested: gameState.opponent.rested,
+              attachedDon: gameState.opponent.attachedDon,
+              customPowerModifier: 0,
+            };
+            return (
+              <div
+                onTouchStart={() => startLongPress(oppLeaderCard)}
+                onTouchEnd={cancelLongPress}
+                onTouchMove={cancelLongPress}
+                onMouseDown={() => startLongPress(oppLeaderCard)}
+                onMouseUp={cancelLongPress}
+                onMouseLeave={cancelLongPress}
+                onClick={() => {
+                  if (isLongPressTriggeredRef.current) return;
+                  if (selectedAttacker) {
+                    handleAttackOpponent(selectedAttacker.instanceId);
+                  } else if (selectedFieldCard) {
+                    handleAttackOpponent(selectedFieldCard.instanceId);
+                  } else if (gameState.leader && canCardAttack(gameState.leader)) {
+                    handleAttackOpponent(gameState.leader.instanceId);
+                  }
+                }}
+                className={`w-16 sm:w-20 md:w-22 aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-lg cursor-pointer transition group mx-auto ${
+                  selectedAttacker
+                    ? 'border-rose-500 ring-4 ring-rose-500 ring-offset-2 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(244,63,94,0.95)] scale-105 z-20'
+                    : 'border-red-500/80 hover:scale-102'
+                } ${highlightTarget === 'opponent' ? spotlightClass : ''}`}
+                title={`Hold / Long-press to inspect. ${gameState.opponent.leaderName} (${gameState.opponent.leaderPower} Power)`}
+              >
+                <img
+                  src={gameState.opponent.leaderImage}
+                  alt={gameState.opponent.leaderName}
+                  className="w-full h-full object-cover"
+                  onError={(e) => handleCardImageError(e, gameState.opponent.leaderId, gameState.opponent.leaderImage)}
+                />
+                {/* Direct EN Button on Opponent Leader */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setInspectedCard(oppLeaderCard);
+                  }}
+                  className="absolute top-1 right-1 z-20 px-1 py-0.2 rounded bg-black/85 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-400/40 text-[7px] font-bold tracking-tighter flex items-center gap-0.5 shadow transition active:scale-90"
+                  title="View Leader translation & details in English"
+                >
+                  <Languages className="w-2.5 h-2.5 text-blue-400" />
+                  <span>EN</span>
+                </button>
+                {selectedAttacker && (
+                  <div className="absolute inset-0 bg-rose-950/75 backdrop-blur-[0.5px] flex flex-col items-center justify-center p-0.5 text-center animate-fadeIn z-10">
+                    <div className="w-5 h-5 rounded-full border-2 border-rose-400 border-dashed animate-spin flex items-center justify-center mb-0.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                    </div>
+                    <span className="text-[7.5px] sm:text-[9px] font-black text-rose-200 uppercase tracking-wider drop-shadow">
+                      STRIKE
+                    </span>
+                    <span className="text-[6.5px] sm:text-[7.5px] font-mono text-amber-300 font-bold">
+                      {(selectedAttacker?.power || 0) + (selectedAttacker?.attachedDon || 0) * 1000} vs {gameState.opponent.leaderPower}
+                    </span>
+                  </div>
+                )}
+                {!selectedAttacker && selectedFieldCard && (
+                  <div className="absolute inset-0 bg-red-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                    <span className="text-[8px] sm:text-[9.5px] font-black text-white bg-red-600 px-1.5 py-0.5 rounded uppercase shadow">
+                      ATTACK
+                    </span>
+                  </div>
+                )}
               </div>
-            )}
-            {!selectedAttacker && selectedFieldCard && (
-              <div className="absolute inset-0 bg-red-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
-                <span className="text-[8px] sm:text-[9.5px] font-black text-white bg-red-600 px-1.5 py-0.5 rounded uppercase shadow">
-                  ATTACK
-                </span>
-              </div>
-            )}
-          </div>
+            );
+          })()}
         </div>
 
         {/* Bottom Row: CHARACTER AREA (5 card slots across) */}
@@ -523,7 +556,14 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                 return (
                   <div
                     key={`opp-char-${oppChar.instanceId}`}
+                    onTouchStart={() => startLongPress(oppChar)}
+                    onTouchEnd={cancelLongPress}
+                    onTouchMove={cancelLongPress}
+                    onMouseDown={() => startLongPress(oppChar)}
+                    onMouseUp={cancelLongPress}
+                    onMouseLeave={cancelLongPress}
                     onClick={() => {
+                      if (isLongPressTriggeredRef.current) return;
                       if (selectedAttacker && oppChar.rested) {
                         handleAttackOpponentChar(selectedAttacker.instanceId, oppChar.instanceId);
                       } else if (selectedFieldCard && oppChar.rested) {
@@ -701,7 +741,14 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                 return (
                   <div
                     key={card.instanceId}
+                    onTouchStart={() => startLongPress(card)}
+                    onTouchEnd={cancelLongPress}
+                    onTouchMove={cancelLongPress}
+                    onMouseDown={() => startLongPress(card)}
+                    onMouseUp={cancelLongPress}
+                    onMouseLeave={cancelLongPress}
                     onClick={() => {
+                      if (isLongPressTriggeredRef.current) return;
                       // If a hand card is selected and can afford to summon/replace:
                       if (
                         selectedHandCard &&
@@ -863,7 +910,14 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
           <div className="flex flex-col items-center mx-auto">
             {gameState.leader && (
               <div
+                onTouchStart={() => gameState.leader && startLongPress(gameState.leader)}
+                onTouchEnd={cancelLongPress}
+                onTouchMove={cancelLongPress}
+                onMouseDown={() => gameState.leader && startLongPress(gameState.leader)}
+                onMouseUp={cancelLongPress}
+                onMouseLeave={cancelLongPress}
                 onClick={() => {
+                  if (isLongPressTriggeredRef.current) return;
                   if (!gameState.leader) return;
                   if (selectedDonCount > 0) {
                     handleAttachDon(gameState.leader.instanceId, selectedDonCount);
@@ -976,7 +1030,14 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
               );
               return (
                 <div
+                  onTouchStart={() => gameState.stage && startLongPress(gameState.stage)}
+                  onTouchEnd={cancelLongPress}
+                  onTouchMove={cancelLongPress}
+                  onMouseDown={() => gameState.stage && startLongPress(gameState.stage)}
+                  onMouseUp={cancelLongPress}
+                  onMouseLeave={cancelLongPress}
                   onClick={() => {
+                    if (isLongPressTriggeredRef.current) return;
                     if (canPlayStage && selectedHandCard) {
                       handlePlayCard(selectedHandCard.instanceId);
                       return;
@@ -1404,7 +1465,14 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                 return (
                   <div
                     key={card.instanceId}
+                    onTouchStart={() => startLongPress(card)}
+                    onTouchEnd={cancelLongPress}
+                    onTouchMove={cancelLongPress}
+                    onMouseDown={() => startLongPress(card)}
+                    onMouseUp={cancelLongPress}
+                    onMouseLeave={cancelLongPress}
                     onClick={() => {
+                      if (isLongPressTriggeredRef.current) return;
                       if (isSelected) {
                         setSelectedHandCard(null);
                       } else {

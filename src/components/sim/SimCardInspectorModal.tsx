@@ -17,12 +17,13 @@ export function SimCardInspectorModal({ card, onClose }: SimCardInspectorModalPr
   if (!card) return null;
 
   const translation = getCardTranslation(card.cardId);
-  const totalPower = (card.power || 0) + card.attachedDon * 1000 + card.customPowerModifier;
+  const totalPower = (card.power || 0) + (card.attachedDon || 0) * 1000 + (card.customPowerModifier || 0);
 
-  const displayName = showEnglishText && translation ? translation.name : card.name;
-  const displayEffect = showEnglishText && translation ? translation.effect : card.effect;
-  const displayTrigger = showEnglishText && translation?.trigger ? translation.trigger : card.trigger;
-  const displayTraits = (showEnglishText && translation ? translation.types : card.types) || null;
+  const displayName = (showEnglishText && (translation?.name && translation.name !== card.cardId ? translation.name : card.englishName)) || card.name;
+  const displayEffect = (showEnglishText && (translation?.effect || card.englishEffect)) || card.effect;
+  const displayTrigger = (showEnglishText && (translation?.trigger || card.englishTrigger)) || card.trigger;
+  const displayTraits = (showEnglishText && (translation?.types || card.types)) || card.types || null;
+  const counterVal = card.counter ?? translation?.counter ?? null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fadeIn">
@@ -94,9 +95,9 @@ export function SimCardInspectorModal({ card, onClose }: SimCardInspectorModalPr
                 </span>
               )}
 
-              {card.counter && card.counter > 0 && (
+              {counterVal && counterVal > 0 && (
                 <span className="px-2.5 py-0.5 rounded-lg bg-cyan-500/20 text-cyan-300 font-bold text-xs border border-cyan-500/30 font-mono">
-                  Counter: +{card.counter}
+                  Counter: +{counterVal}
                 </span>
               )}
 
