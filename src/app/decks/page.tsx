@@ -24,6 +24,7 @@ import { checkIsAdmin } from '@/lib/supabase-sync';
 import { RECOMMENDED_DECKS, RecommendedDeck } from '@/lib/recommended-decks';
 import { getEditionCardImageUrl, handleCardImageError } from '@/lib/card-image';
 import { SimCustomDeckModal } from '@/components/sim/SimCustomDeckModal';
+import { setActiveCustomDeckId } from '@/lib/custom-decks';
 
 type MetaFilter = 
   | 'ALL' 
@@ -520,23 +521,35 @@ export default function RecommendedDecksPage() {
                       </div>
                     </Link>
 
-                    {/* Bottom Action Bar: Playtest Button */}
-                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-[#1e2435]">
+                    {/* Bottom Action Bar: View, Add Cards & Playtest */}
+                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-[#1e2435] gap-2">
                       <Link
                         href={`/decks/${deck.id}`}
-                        className="text-[11px] text-slate-400 hover:text-white transition flex items-center gap-0.5"
+                        className="text-[11px] text-slate-400 hover:text-white transition flex items-center gap-0.5 truncate"
                       >
                         <span>View Cards</span>
-                        <ChevronRight className="w-3 h-3" />
+                        <ChevronRight className="w-3 h-3 shrink-0" />
                       </Link>
 
-                      <Link
-                        href={`/sim?deckId=${deck.id}`}
-                        className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 hover:text-white border border-amber-500/40 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition active:scale-95 shadow-sm"
-                      >
-                        <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
-                        <span>PLAYTEST</span>
-                      </Link>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Link
+                          href="/cards"
+                          onClick={() => setActiveCustomDeckId(deck.id)}
+                          className="px-2 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-white border border-blue-500/40 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition active:scale-95 shadow-sm"
+                          title="Browse card catalog to add cards to this deck"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Add Cards</span>
+                        </Link>
+
+                        <Link
+                          href={`/sim?deckId=${deck.id}`}
+                          className="px-2 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 hover:text-white border border-amber-500/40 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition active:scale-95 shadow-sm"
+                        >
+                          <Gamepad2 className="w-3 h-3 text-amber-400" />
+                          <span>PLAYTEST</span>
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 ))}

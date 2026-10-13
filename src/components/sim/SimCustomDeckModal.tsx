@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   X, 
   Layers, 
@@ -12,11 +13,13 @@ import {
   Trash2, 
   FileText, 
   HelpCircle,
-  Copy
+  Copy,
+  ExternalLink
 } from 'lucide-react';
 import { RecommendedDeck } from '@/lib/recommended-decks';
 import { parseCustomDeckText } from '@/lib/sim/sim-deck-parser';
 import { getEditionCardImageUrl, handleCardImageError } from '@/lib/card-image';
+import { createCustomDeck, setActiveCustomDeckId } from '@/lib/custom-decks';
 
 interface SimCustomDeckModalProps {
   isOpen: boolean;
@@ -88,11 +91,25 @@ export function SimCustomDeckModal({
   onSelectDeck,
   onDeckSaved,
 }: SimCustomDeckModalProps) {
+  const router = useRouter();
   const [deckName, setDeckName] = useState('My Custom Deck');
   const [deckText, setDeckText] = useState('');
   const [parsedDeck, setParsedDeck] = useState<RecommendedDeck | null>(null);
   const [parseErrors, setParseErrors] = useState<string[]>([]);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  const handleBrowseCards = () => {
+    let deckToBuild = parsedDeck;
+    if (!deckToBuild) {
+      deckToBuild = createCustomDeck(deckName.trim() || 'My Custom Deck');
+      if (onDeckSaved) onDeckSaved(deckToBuild);
+    } else {
+      handleSaveToStorage();
+    }
+    setActiveCustomDeckId(deckToBuild.id);
+    onClose();
+    router.push('/cards');
+  };
 
   // Parse text whenever input changes
   useEffect(() => {
@@ -190,6 +207,28 @@ export function SimCustomDeckModal({
               placeholder="e.g. Red Zoro Tournament, My Enel Test..."
               className="w-full bg-[#161a26] border border-[#262c3e] focus:border-slate-400 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 outline-none transition"
             />
+          </div>
+
+          {/* Visual Card Catalog Picker shortcut */}
+          <div className="p-3.5 rounded-2xl bg-[#161c2b] border border-blue-500/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+            <div className="flex items-start sm:items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center shrink-0">
+                <Layers className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-white">Interactive Card Catalog Builder</h4>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Browse sets or search cards, then click &quot;Add to Deck&quot; directly
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleBrowseCards}
+              className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/25 flex items-center justify-center gap-1.5 transition active:scale-95 shrink-0 cursor-pointer"
+            >
+              <span>Browse &amp; Pick Cards &rarr;</span>
+            </button>
           </div>
 
           {/* Quick Sample Buttons */}

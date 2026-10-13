@@ -19,12 +19,16 @@ import {
   Settings as SettingsIcon,
   Flame,
   Calendar,
+  Gamepad2,
 } from 'lucide-react';
 import { getSafeCardImageUrl, handleCardImageError } from '@/lib/card-image';
 import { ARTIST_PROFILES } from '@/lib/artist-data';
 import { CardDetailView } from '@/components/CardDetailView';
 import { useSettings } from '@/context/SettingsContext';
 import { addCardToLocalBinder } from '@/lib/user-collection';
+import { AddToDeckModal } from '@/components/decks/AddToDeckModal';
+import { getActiveCustomDeck } from '@/lib/custom-decks';
+import { RecommendedDeck } from '@/lib/recommended-decks';
 
 interface CardItem {
   id: string;
@@ -178,6 +182,22 @@ function CardsContent() {
   const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(new Set());
   const [isBulkAdding, setIsBulkAdding] = useState(false);
   const [bulkAddToast, setBulkAddToast] = useState<string | null>(null);
+
+  // Custom Deck Building State
+  const [isAddToDeckOpen, setIsAddToDeckOpen] = useState(false);
+  const [deckModalCards, setDeckModalCards] = useState<CardItem[]>([]);
+  const [activeCustomDeck, setActiveCustomDeck] = useState<RecommendedDeck | null>(null);
+  const [deckSuccessToast, setDeckSuccessToast] = useState<{ message: string; deckId: string } | null>(null);
+
+  // Sync active custom deck on mount and when changed
+  useEffect(() => {
+    const syncDeck = () => {
+      setActiveCustomDeck(getActiveCustomDeck());
+    };
+    syncDeck();
+    window.addEventListener('optcg_custom_decks_changed', syncDeck);
+    return () => window.removeEventListener('optcg_custom_decks_changed', syncDeck);
+  }, []);
 
   const toggleCardSelection = (cardId: string) => {
     setSelectedCardIds((prev) => {
@@ -859,6 +879,46 @@ function CardsContent() {
         </div>
       )}
 
+      {/* Active Deck Building Strip (Shows when actively editing a custom deck) */}
+      {activeCustomDeck && (
+        <div className="mx-2 sm:mx-3 my-2 px-3 sm:px-4 py-2.5 rounded-2xl bg-[#141824] border border-blue-500/35 flex items-center justify-between gap-2 shadow-sm text-xs">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-blue-600/20 text-blue-400 flex items-center justify-center shrink-0">
+              <Layers className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-bold text-white truncate">
+                  Building: {activeCustomDeck.name}
+                </span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-950 text-blue-300 border border-blue-800/40 font-semibold shrink-0">
+                  {activeCustomDeck.cards.reduce((sum, c) => sum + (c.quantity || 0), 0)}/50 Cards
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 truncate">
+                Click &quot;Add to Deck&quot; on any card below to add copies
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Link
+              href={`/sim?deckId=${activeCustomDeck.id}`}
+              className="px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/35 text-amber-300 text-[11px] font-bold flex items-center gap-1 transition active:scale-95 shadow-sm"
+            >
+              <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Playtest</span>
+            </Link>
+            <Link
+              href={`/decks/${activeCustomDeck.id}`}
+              className="px-2.5 py-1.5 rounded-xl bg-[#1c202d] hover:bg-[#252b3d] text-slate-300 text-[11px] font-semibold border border-[#2b3245] transition"
+            >
+              View Deck
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* 3. Pure Card Art Grid (Matching media_1790063450672.jpg) */}
       <main className="px-2 sm:px-3 pt-2">
         {(() => {
@@ -1021,11 +1081,11 @@ function CardsContent() {
 
               <div className="h-5 w-px bg-white/10 hidden sm:block" />
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <button
                   type="button"
                   onClick={clearSelection}
-                  className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition cursor-pointer"
+                  className="px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1034,23 +1094,36 @@ function CardsContent() {
                   type="button"
                   disabled={isBulkAdding}
                   onClick={handleBulkAddToCollection}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#e05d68] hover:bg-[#d04e59] text-white text-xs sm:text-sm font-bold shadow-md shadow-[#e05d68]/25 transition cursor-pointer disabled:opacity-50 whitespace-nowrap"
+                  className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-xl bg-[#e05d68] hover:bg-[#d04e59] text-white text-xs sm:text-sm font-bold shadow-md shadow-[#e05d68]/25 transition cursor-pointer disabled:opacity-50 whitespace-nowrap active:scale-95"
                 >
                   {isBulkAdding ? (
                     <span>Adding...</span>
                   ) : (
                     <>
-                      <Plus className="w-4 h-4 stroke-[2.5]" />
-                      <span>Add to Collection</span>
+                      <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]" />
+                      <span className="hidden xs:inline">Add to </span>Collection
                     </>
                   )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const selectedList = cards.filter((c) => selectedCardIds.has(c.id));
+                    setDeckModalCards(selectedList);
+                    setIsAddToDeckOpen(true);
+                  }}
+                  className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-bold shadow-md shadow-blue-600/25 transition cursor-pointer whitespace-nowrap active:scale-95"
+                >
+                  <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">Add to </span>Deck
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Success Feedback Toast */}
+        {/* Success Feedback Toast for Collection */}
         {bulkAddToast && (
           <div className="fixed bottom-20 sm:bottom-6 right-1/2 translate-x-1/2 sm:translate-x-0 sm:right-6 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
             <div className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-[#141620] border border-emerald-500/40 text-emerald-300 shadow-2xl backdrop-blur-md text-xs sm:text-sm font-semibold">
@@ -1082,6 +1155,10 @@ function CardsContent() {
                 setAddModalCard(c as CardItem);
                 setAddQuantity('1');
                 setAddPrice(c.yuyuPrice ? c.yuyuPrice.toString() : (c.marketPrice ? Math.round(c.marketPrice * 140).toString() : ''));
+              }}
+              onAddToDeck={(c) => {
+                setDeckModalCards([c as CardItem]);
+                setIsAddToDeckOpen(true);
               }}
             />
           </div>
@@ -1235,6 +1312,47 @@ function CardsContent() {
                 </button>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Add To Custom Deck Modal */}
+      <AddToDeckModal
+        isOpen={isAddToDeckOpen}
+        onClose={() => setIsAddToDeckOpen(false)}
+        cards={deckModalCards}
+        onSuccess={(deck, totalAdded) => {
+          clearSelection();
+          const totalInDeck = deck.cards.reduce((sum, c) => sum + (c.quantity || 0), 0);
+          setDeckSuccessToast({
+            message: `Added ${totalAdded > 0 ? `${totalAdded} card${totalAdded > 1 ? 's' : ''} ` : ''}to ${deck.name}! (${totalInDeck}/50 cards)`,
+            deckId: deck.id,
+          });
+          setTimeout(() => setDeckSuccessToast(null), 5000);
+        }}
+      />
+
+      {/* Deck Success Toast Feedback */}
+      {deckSuccessToast && (
+        <div className="fixed bottom-20 sm:bottom-6 right-1/2 translate-x-1/2 sm:translate-x-0 sm:right-6 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+          <div className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-[#141824] border border-blue-500/40 text-blue-300 shadow-2xl backdrop-blur-md text-xs sm:text-sm font-semibold">
+            <div className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0">
+              <Check className="w-3.5 h-3.5 stroke-[3]" />
+            </div>
+            <span>{deckSuccessToast.message}</span>
+            <Link
+              href={`/sim?deckId=${deckSuccessToast.deckId}`}
+              className="ml-2 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs flex items-center gap-1 transition"
+            >
+              <Gamepad2 className="w-3 h-3 text-amber-400" />
+              <span>Playtest</span>
+            </Link>
+            <Link
+              href={`/decks/${deckSuccessToast.deckId}`}
+              className="text-xs text-white underline hover:text-blue-200 font-semibold"
+            >
+              View Deck
+            </Link>
           </div>
         </div>
       )}

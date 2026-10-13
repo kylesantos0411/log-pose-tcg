@@ -50,6 +50,7 @@ import {
   type SystemSettingsState 
 } from '@/lib/supabase-sync';
 import { generateEbaySoldSearchUrl, getVintageRecentSales, calculateThreeSaleAverage } from '@/lib/ebay-pricing';
+import { AddToDeckModal } from '@/components/decks/AddToDeckModal';
 
 export interface CardDetailData {
   id: string;
@@ -115,6 +116,7 @@ interface CardDetailViewProps {
   initialLanguage?: 'en' | 'jp';
   onBack?: () => void;
   onAddToCollection?: (card: CardDetailData, language?: 'en' | 'jp') => void;
+  onAddToDeck?: (card: CardDetailData, language?: 'en' | 'jp') => void;
   onSelectCard?: (card: CardDetailData) => void;
 }
 
@@ -155,6 +157,7 @@ export function CardDetailView({
   initialLanguage = 'jp', 
   onBack, 
   onAddToCollection,
+  onAddToDeck,
   onSelectCard 
 }: CardDetailViewProps) {
   const router = useRouter();
@@ -267,6 +270,7 @@ export function CardDetailView({
   const [showComparison, setShowComparison] = useState(false);
   const [imgErrorEn, setImgErrorEn] = useState(false);
   const [imgErrorJp, setImgErrorJp] = useState(false);
+  const [isInternalAddToDeckOpen, setIsInternalAddToDeckOpen] = useState(false);
 
   const [systemSettings, setSystemSettings] = useState<SystemSettingsState>(DEFAULT_SYSTEM_SETTINGS);
   const isAdmin = checkIsAdmin(user);
@@ -1091,16 +1095,34 @@ export function CardDetailView({
             </div>
           </div>
 
-          {/* Bottom CTA: Add to Collection */}
-          {onAddToCollection && (
+          {/* Bottom Action CTAs: Add to Collection & Add to Custom Deck */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {onAddToCollection && (
+              <button
+                type="button"
+                onClick={() => onAddToCollection(card, selectedLang)}
+                className="w-full py-3 px-3 rounded-xl bg-[#e05d68] hover:bg-[#d04e59] text-white font-bold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 transition cursor-pointer active:scale-[0.98]"
+              >
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+                <span>Add to Collection</span>
+              </button>
+            )}
+
             <button
-              onClick={() => onAddToCollection(card, selectedLang)}
-              className="w-full py-3 rounded-xl bg-[#e05d68] hover:bg-[#d04e59] text-white font-bold text-sm shadow-sm flex items-center justify-center gap-2 transition cursor-pointer"
+              type="button"
+              onClick={() => {
+                if (onAddToDeck) {
+                  onAddToDeck(card, selectedLang);
+                } else {
+                  setIsInternalAddToDeckOpen(true);
+                }
+              }}
+              className="w-full py-3 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 transition cursor-pointer active:scale-[0.98]"
             >
-              <Plus className="w-4 h-4" />
-              Add to My Collection
+              <Layers className="w-4 h-4" />
+              <span>Add to Deck</span>
             </button>
-          )}
+          </div>
         </div>
 
         {/* Right Column (Desktop 7-cols): Market & Grading, Interactive Chart, Variations */}
@@ -3043,6 +3065,17 @@ export function CardDetailView({
         </div>
       );
     })()}
+
+      {/* Internal Add to Deck Modal */}
+      <AddToDeckModal
+        isOpen={isInternalAddToDeckOpen}
+        onClose={() => setIsInternalAddToDeckOpen(false)}
+        cards={[card]}
+        onSuccess={(deck, count) => {
+          const totalInDeck = deck.cards.reduce((sum, c) => sum + (c.quantity || 0), 0);
+          showToast(`Added to ${deck.name}! (${totalInDeck}/50 cards)`);
+        }}
+      />
     </div>
   );
 }

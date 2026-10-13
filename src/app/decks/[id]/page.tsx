@@ -21,13 +21,15 @@ import {
   Info,
   ExternalLink,
   User,
-  Gamepad2
+  Gamepad2,
+  Plus
 } from 'lucide-react';
 import { getDeckById, formatDeckExport, DeckCardItem, RecommendedDeck } from '@/lib/recommended-decks';
 import { getEditionCardImageUrl, handleCardImageError } from '@/lib/card-image';
 import { useSettings } from '@/context/SettingsContext';
 import { checkIsAdmin } from '@/lib/supabase-sync';
 import { CardDetailView, CardDetailData } from '@/components/CardDetailView';
+import { getCustomDeckById, setActiveCustomDeckId } from '@/lib/custom-decks';
 
 export default function DeckDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -35,11 +37,13 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
   const { formatPrice, currency, user } = useSettings();
   const isAdmin = checkIsAdmin(user);
 
-  const [deck, setDeck] = useState<RecommendedDeck | null>(() => getDeckById(resolvedParams.id) || null);
+  const [deck, setDeck] = useState<RecommendedDeck | null>(() => {
+    return getDeckById(resolvedParams.id) || getCustomDeckById(resolvedParams.id) || null;
+  });
 
   React.useEffect(() => {
     if (!deck) {
-      const found = getDeckById(resolvedParams.id);
+      const found = getDeckById(resolvedParams.id) || getCustomDeckById(resolvedParams.id);
       if (found) setDeck(found);
     }
   }, [resolvedParams.id, deck]);
@@ -155,6 +159,18 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
           >
             <Maximize2 className="w-4 h-4" />
           </button>
+
+          {/* Add Cards from Catalog shortcut */}
+          <Link
+            href="/cards"
+            onClick={() => setActiveCustomDeckId(deck.id)}
+            title="Browse & add more cards from catalog"
+            className="px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 hover:text-white border border-blue-500/40 text-[10px] sm:text-xs font-bold tracking-wider uppercase flex items-center gap-1.5 shadow-sm active:scale-95 transition shrink-0"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span className="hidden xs:inline">ADD CARDS</span>
+            <span className="xs:hidden">+ CARDS</span>
+          </Link>
 
           {/* Playtest Simulator Link */}
           <Link
