@@ -19,6 +19,8 @@ import {
   Zap,
 } from 'lucide-react';
 
+import { AnimationSpeed } from '@/lib/sim/sim-animations';
+
 interface SimSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -30,6 +32,8 @@ interface SimSettingsModalProps {
   onSelectPlayerDeck?: (deck: RecommendedDeck) => void;
   onSelectOpponentDeck?: (deck: RecommendedDeck) => void;
   currentOpponentDeckId?: string;
+  animationSpeed?: AnimationSpeed;
+  onSetAnimationSpeed?: (speed: AnimationSpeed) => void;
 }
 
 export function SimSettingsModal({
@@ -43,8 +47,10 @@ export function SimSettingsModal({
   onSelectPlayerDeck,
   onSelectOpponentDeck,
   currentOpponentDeckId,
+  animationSpeed = 'normal',
+  onSetAnimationSpeed,
 }: SimSettingsModalProps) {
-  const [activeTab, setActiveTab] = useState<'tutorial' | 'matchup' | 'rules'>('tutorial');
+  const [activeTab, setActiveTab] = useState<'tutorial' | 'gameplay' | 'matchup' | 'rules'>('gameplay');
 
   if (!isOpen) return null;
 
@@ -58,7 +64,7 @@ export function SimSettingsModal({
               ⚙
             </div>
             <div>
-              <h3 className="text-base font-black text-white">Simulator & Tutorial Settings</h3>
+              <h3 className="text-base font-black text-white">Simulator & Gameplay Settings</h3>
               <p className="text-[11px] text-gray-400">One Piece Card Game Official Engine</p>
             </div>
           </div>
@@ -72,11 +78,24 @@ export function SimSettingsModal({
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-white/10 bg-[#0d1320] px-4 pt-2">
+        <div className="flex border-b border-white/10 bg-[#0d1320] px-4 pt-2 overflow-x-auto scrollbar-none">
+          <button
+            type="button"
+            onClick={() => setActiveTab('gameplay')}
+            className={`pb-2.5 px-3 font-bold text-xs flex items-center gap-1.5 border-b-2 transition whitespace-nowrap ${
+              activeTab === 'gameplay'
+                ? 'border-amber-400 text-amber-300'
+                : 'border-transparent text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            <Zap className="w-3.5 h-3.5" />
+            <span>Speed & FX</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setActiveTab('tutorial')}
-            className={`pb-2.5 px-3 font-bold text-xs flex items-center gap-1.5 border-b-2 transition ${
+            className={`pb-2.5 px-3 font-bold text-xs flex items-center gap-1.5 border-b-2 transition whitespace-nowrap ${
               activeTab === 'tutorial'
                 ? 'border-cyan-400 text-cyan-300'
                 : 'border-transparent text-gray-400 hover:text-gray-200'
@@ -89,9 +108,9 @@ export function SimSettingsModal({
           <button
             type="button"
             onClick={() => setActiveTab('matchup')}
-            className={`pb-2.5 px-3 font-bold text-xs flex items-center gap-1.5 border-b-2 transition ${
+            className={`pb-2.5 px-3 font-bold text-xs flex items-center gap-1.5 border-b-2 transition whitespace-nowrap ${
               activeTab === 'matchup'
-                ? 'border-amber-400 text-amber-300'
+                ? 'border-emerald-400 text-emerald-300'
                 : 'border-transparent text-gray-400 hover:text-gray-200'
             }`}
           >
@@ -102,19 +121,110 @@ export function SimSettingsModal({
           <button
             type="button"
             onClick={() => setActiveTab('rules')}
-            className={`pb-2.5 px-3 font-bold text-xs flex items-center gap-1.5 border-b-2 transition ${
+            className={`pb-2.5 px-3 font-bold text-xs flex items-center gap-1.5 border-b-2 transition whitespace-nowrap ${
               activeTab === 'rules'
-                ? 'border-emerald-400 text-emerald-300'
+                ? 'border-purple-400 text-purple-300'
                 : 'border-transparent text-gray-400 hover:text-gray-200'
             }`}
           >
             <BookOpen className="w-3.5 h-3.5" />
-            <span>Rules Cheat Sheet</span>
+            <span>Rules</span>
           </button>
         </div>
 
         {/* Tab Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* ===================================================================
+              TAB 0: GAMEPLAY & ANIMATION SPEED SETTINGS
+             =================================================================== */}
+          {activeTab === 'gameplay' && (
+            <div className="space-y-4">
+              <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-3">
+                <div>
+                  <h4 className="text-xs font-black text-white flex items-center gap-1.5">
+                    <Zap className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Gameplay & Animation Speed</span>
+                  </h4>
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    Control card movement, combat slashes, and AI opponent pacing.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 pt-1">
+                  {/* Normal Speed */}
+                  <button
+                    type="button"
+                    onClick={() => onSetAnimationSpeed && onSetAnimationSpeed('normal')}
+                    className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition text-center cursor-pointer ${
+                      animationSpeed === 'normal'
+                        ? 'border-amber-400 bg-amber-400/15 text-white ring-2 ring-amber-400/40 shadow-lg'
+                        : 'border-white/10 bg-white/[0.02] text-gray-400 hover:text-white hover:bg-white/[0.05]'
+                    }`}
+                  >
+                    <span className="text-base font-black">⚡ Normal</span>
+                    <span className="text-[10px] text-gray-300 font-mono">1.0x (Default)</span>
+                    <span className="text-[9px] text-gray-400 leading-tight">
+                      Full animations, card flights & readable pacing
+                    </span>
+                  </button>
+
+                  {/* Fast Speed */}
+                  <button
+                    type="button"
+                    onClick={() => onSetAnimationSpeed && onSetAnimationSpeed('fast')}
+                    className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition text-center cursor-pointer ${
+                      animationSpeed === 'fast'
+                        ? 'border-cyan-400 bg-cyan-400/15 text-white ring-2 ring-cyan-400/40 shadow-lg'
+                        : 'border-white/10 bg-white/[0.02] text-gray-400 hover:text-white hover:bg-white/[0.05]'
+                    }`}
+                  >
+                    <span className="text-base font-black">⏩ Fast</span>
+                    <span className="text-[10px] text-gray-300 font-mono">2.0x</span>
+                    <span className="text-[9px] text-gray-400 leading-tight">
+                      Shortened 50% transitions for quick matches
+                    </span>
+                  </button>
+
+                  {/* Instant Speed */}
+                  <button
+                    type="button"
+                    onClick={() => onSetAnimationSpeed && onSetAnimationSpeed('instant')}
+                    className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition text-center cursor-pointer ${
+                      animationSpeed === 'instant'
+                        ? 'border-emerald-400 bg-emerald-400/15 text-white ring-2 ring-emerald-400/40 shadow-lg'
+                        : 'border-white/10 bg-white/[0.02] text-gray-400 hover:text-white hover:bg-white/[0.05]'
+                    }`}
+                  >
+                    <span className="text-base font-black">⏭️ Instant</span>
+                    <span className="text-[10px] text-gray-300 font-mono">0ms Delay</span>
+                    <span className="text-[9px] text-gray-400 leading-tight">
+                      Instant state updates, zero waiting
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Interaction Features Overview */}
+              <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
+                <h4 className="text-xs font-black text-white flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Interaction Guarantees</span>
+                </h4>
+                <ul className="list-disc list-inside text-[11px] text-gray-400 space-y-1">
+                  <li>
+                    <strong>Player Defense Windows:</strong> Opponent attacks always pause so you can choose to Block, Counter, or take damage.
+                  </li>
+                  <li>
+                    <strong>Input Protection:</strong> Double-clicking or rapid taps while a card is animating will not cause duplicate card plays or invalid state glitches.
+                  </li>
+                  <li>
+                    <strong>Reduced Motion Support:</strong> Respects system accessibility preferences automatically.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          )}
+
           {/* ===================================================================
               TAB 1: TUTORIAL SETTINGS
              =================================================================== */}

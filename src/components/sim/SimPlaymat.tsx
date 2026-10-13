@@ -30,8 +30,26 @@ import {
   setTutorialStep,
   toggleTutorialMode,
   createLog,
+  executeOpponentRefreshAndDraw,
+  executeOpponentSummon,
+  executeOpponentAttachDon,
+  executeOpponentAttack,
+  executePlayerStartTurn,
 } from '@/lib/sim/sim-engine';
 import { simAudio } from '@/lib/sim/sim-audio';
+import {
+  AnimationSpeed,
+  getStoredAnimationSpeed,
+  setStoredAnimationSpeed,
+  waitAnimation,
+  TurnBannerAnim,
+  FloatingCardAnim,
+  AttackSlashAnim,
+  DonFlyAnim,
+  CombatImpactAnim,
+  PowerFloatPopup,
+} from '@/lib/sim/sim-animations';
+import { SimAnimationLayer } from './SimAnimationLayer';
 import { SimCardInspectorModal } from './SimCardInspectorModal';
 import { SimPileViewerModal } from './SimPileViewerModal';
 import { SimMulliganModal } from './SimMulliganModal';
@@ -286,6 +304,83 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
   };
 
   const [isAiThinking, setIsAiThinking] = useState(false);
+
+  // Centralized Animation & Visual Feedback System
+  const [animSpeed, setAnimSpeed] = useState<AnimationSpeed>(() => getStoredAnimationSpeed());
+  const [turnBannerAnim, setTurnBannerAnim] = useState<TurnBannerAnim | null>(null);
+  const [flyingCardAnim, setFlyingCardAnim] = useState<FloatingCardAnim | null>(null);
+  const [attackSlashAnim, setAttackSlashAnim] = useState<AttackSlashAnim | null>(null);
+  const [donFlyAnim, setDonFlyAnim] = useState<DonFlyAnim | null>(null);
+  const [combatImpactAnim, setCombatImpactAnim] = useState<CombatImpactAnim | null>(null);
+  const [powerPopups, setPowerPopups] = useState<PowerFloatPopup[]>([]);
+  const isActionRunningRef = useRef(false);
+
+  const handleSpeedChange = (newSpeed: AnimationSpeed) => {
+    setAnimSpeed(newSpeed);
+    setStoredAnimationSpeed(newSpeed);
+  };
+
+  const spawnPowerPopup = useCallback(
+    (
+      text: string,
+      color: 'amber' | 'emerald' | 'rose' | 'cyan' | 'purple' = 'amber',
+      x: number = 50,
+      y: number = 50
+    ) => {
+      const id = `popup-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+      setPowerPopups((prev) => [...prev, { id, text, color, x, y }]);
+      setTimeout(() => {
+        setPowerPopups((prev) => prev.filter((p) => p.id !== id));
+      }, 900);
+    },
+    []
+  );
+
+  const triggerTurnBanner = useCallback(
+    async (turnNumber: number, isPlayerTurn: boolean, playerName: string) => {
+      if (animSpeed === 'instant') return;
+      setTurnBannerAnim({ id: `banner-${Date.now()}`, turnNumber, isPlayerTurn, playerName });
+      await waitAnimation(1100, animSpeed);
+      setTurnBannerAnim(null);
+    },
+    [animSpeed]
+  );
+
+  const triggerAttackVisual = useCallback(
+    async (
+      startX: number,
+      startY: number,
+      targetX: number,
+      targetY: number,
+      attackerName: string,
+      targetName: string
+    ) => {
+      if (animSpeed === 'instant') return;
+      setAttackSlashAnim({
+        id: `slash-${Date.now()}`,
+        startX,
+        startY,
+        targetX,
+        targetY,
+        attackerName,
+        targetName,
+        durationMs: 400,
+      });
+      await waitAnimation(400, animSpeed);
+      setAttackSlashAnim(null);
+    },
+    [animSpeed]
+  );
+
+  const triggerCombatImpactVisual = useCallback(
+    async (x: number, y: number, type: 'hit' | 'guard' | 'ko' | 'life', text?: string) => {
+      if (animSpeed === 'instant') return;
+      setCombatImpactAnim({ id: `impact-${Date.now()}`, x, y, type, text });
+      await waitAnimation(450, animSpeed);
+      setCombatImpactAnim(null);
+    },
+    [animSpeed]
+  );
 
   // Long-press detection ref for mobile touch and desktop hold
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -674,10 +769,10 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
     };
   }, [initialMultiplayerRoom?.roomId, initialMultiplayerRoom?.isHost]);
 
-  // Turn advance (Multiplayer peer handoff OR Paced AI progression)
-  const handleNextTurn = () => {
+  // Turn advance (Multiplayer peer handoff OR Sequenced Animated AI progression)
+  const handleNextTurn = async () => {
     if (activeMultiplayerRoom) {
-      if (gameState.isOpponentTurn) return;
+      if (gameState.isOpponentTurn || isActionRunningRef.current) return;
       setSelectedDonCount(0);
       setSelectedAttacker(null);
       setSelectedHandCard(null);
@@ -686,6 +781,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
       const nextTurn = gameState.turn + 1;
       simAudio.playPhaseDing();
       simMultiplayer.broadcastTurnEnd(nextTurn);
+      triggerTurnBanner(nextTurn, false, gameState.opponent.name);
       setGameState((prev) => ({
         ...prev,
         isOpponentTurn: true,
@@ -697,36 +793,91 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
       return;
     }
 
-    if (isAiThinking) return;
+    if (isAiThinking || isActionRunningRef.current) return;
     setSelectedDonCount(0);
     setSelectedAttacker(null);
     setSelectedHandCard(null);
     setSelectedFieldCard(null);
 
+    isActionRunningRef.current = true;
     setIsAiThinking(true);
-    // Paced AI turn delay (650ms) to simulate real human/opponent turn thinking
-    setTimeout(() => {
-      setGameState((prev) => {
-        const next = advanceNextTurn(prev);
-        if (next.pendingCombat) {
-          simAudio.playAttackSlash();
-        } else if (next.pendingTrigger) {
-          simAudio.playCounterBoost();
-        } else {
-          simAudio.playDonAttach();
+
+    try {
+      if (animSpeed === 'instant') {
+        setGameState((prev) => advanceNextTurn(prev));
+        return;
+      }
+
+      // Step 0: Opponent Turn Banner
+      await triggerTurnBanner(gameState.turn, false, gameState.opponent.name);
+      await waitAnimation(400, animSpeed);
+
+      // Step 1: Opponent Refresh & Draw
+      let currentState = gameState;
+      const step1 = executeOpponentRefreshAndDraw(currentState);
+      currentState = step1.nextState;
+      setGameState(currentState);
+      simAudio.playCardPlay();
+      spawnPowerPopup('+1 DRAW', 'purple', 50, 15);
+      await waitAnimation(450, animSpeed);
+
+      // Step 2: Opponent Summon
+      const step2 = executeOpponentSummon(currentState);
+      if (step2.playedCard) {
+        currentState = step2.nextState;
+        setGameState(currentState);
+        simAudio.playCardPlay();
+        spawnPowerPopup(`PLAY: ${step2.playedCard.name}`, 'emerald', 50, 26);
+        await waitAnimation(500, animSpeed);
+      }
+
+      // Step 3: Opponent Attach DON
+      const step3 = executeOpponentAttachDon(currentState);
+      if (step3.donAttached) {
+        currentState = step3.nextState;
+        setGameState(currentState);
+        simAudio.playDonAttach();
+        spawnPowerPopup(`+${step3.donAttached * 1000} ATK`, 'amber', 50, 22);
+        await waitAnimation(450, animSpeed);
+      }
+
+      // Step 4: Opponent Attack
+      const step4 = executeOpponentAttack(currentState);
+      if (step4.attackDeclared) {
+        currentState = step4.nextState;
+        setGameState(currentState);
+        simAudio.playAttackSlash();
+        await triggerAttackVisual(50, 25, 50, 75, step4.attackerName || 'Opponent', step4.targetName || 'Player');
+
+        // If attack triggered player defense (Blocker/Counter) or Trigger or Winner, yield control to player!
+        if (currentState.pendingCombat || currentState.pendingTrigger || currentState.winner) {
+          return;
         }
-        return next;
-      });
+      }
+
+      // Step 5: Transition back to Player Turn
+      const step5 = executePlayerStartTurn(currentState);
+      currentState = step5.nextState;
+      setGameState(currentState);
+      simAudio.playDonAttach();
+      await triggerTurnBanner(currentState.turn, true, 'YOU');
+      spawnPowerPopup(`+${step5.donAdded} DON!!`, 'amber', 50, 85);
+    } finally {
       setIsAiThinking(false);
-    }, 650);
+      isActionRunningRef.current = false;
+    }
   };
 
   // Card Play
   const handlePlayCard = (instanceId: string, replaceSlotIndex?: number) => {
-    if (gameState.isOpponentTurn) return;
+    if (gameState.isOpponentTurn || isActionRunningRef.current) return;
+    const card = gameState.hand.find((c) => c.instanceId === instanceId);
     setSelectedDonCount(0);
     setSelectedAttacker(null);
     simAudio.playCardPlay();
+    if (card) {
+      spawnPowerPopup(`PLAY: ${card.name}`, 'emerald', 50, 60);
+    }
     setGameState((prev) => {
       const next = playCardFromHand(prev, instanceId, replaceSlotIndex);
       if (activeMultiplayerRoom) {
@@ -763,8 +914,16 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
 
   // DON Attach / Detach
   const handleAttachDon = (instanceId: string, count?: number) => {
+    if (isActionRunningRef.current) return;
     const amountToAttach = count ?? (selectedDonCount > 0 ? selectedDonCount : 1);
     simAudio.playDonAttach();
+    const target =
+      gameState.leader?.instanceId === instanceId
+        ? gameState.leader
+        : gameState.characters.find((c) => c.instanceId === instanceId);
+    if (target) {
+      spawnPowerPopup(`+${amountToAttach * 1000} ATK`, 'amber', 50, 65);
+    }
     setGameState((prev) => {
       const next = attachDonToCard(prev, instanceId, amountToAttach);
       if (activeMultiplayerRoom) {
@@ -776,6 +935,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
   };
 
   const handleDetachDon = (instanceId: string) => {
+    if (isActionRunningRef.current) return;
     setGameState((prev) => {
       const next = detachDonFromCard(prev, instanceId);
       if (activeMultiplayerRoom) {
@@ -787,7 +947,9 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
 
   // Life damage
   const handleTakeLifeDamage = () => {
+    if (isActionRunningRef.current) return;
     simAudio.playLifeBreak();
+    triggerCombatImpactVisual(15, 60, 'life', '-1 LIFE');
     setGameState((prev) => {
       const next = takeLifeDamage(prev);
       if (activeMultiplayerRoom) {
@@ -798,9 +960,22 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
   };
 
   // Opponent Attacks & Damage
-  const handleAttackOpponent = (attackerInstanceId: string) => {
+  const handleAttackOpponent = async (attackerInstanceId: string) => {
+    if (gameState.isOpponentTurn || isActionRunningRef.current) return;
+    const isLeaderAttacking = gameState.leader?.instanceId === attackerInstanceId;
+    const attacker = isLeaderAttacking
+      ? gameState.leader
+      : gameState.characters.find((c) => c.instanceId === attackerInstanceId);
+    if (!attacker || attacker.rested) return;
+    if (attacker.category === 'Character' && !attacker.canAttackThisTurn && !attacker.hasRush) return;
+
+    const attackerName = attacker.name;
+    const attackerPower = (attacker.power || 0) + attacker.attachedDon * 1000 + attacker.customPowerModifier;
+
+    simAudio.playAttackSlash();
+    await triggerAttackVisual(50, 75, 50, 20, attackerName, gameState.opponent.leaderName || 'Opponent Leader');
+
     if (activeMultiplayerRoom) {
-      if (gameState.isOpponentTurn) return;
       if (gameState.turn === 1 && gameState.goingFirst) {
         setGameState((prev) => ({
           ...prev,
@@ -809,20 +984,11 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         return;
       }
 
-      const isLeaderAttacking = gameState.leader?.instanceId === attackerInstanceId;
-      const attacker = isLeaderAttacking
-        ? gameState.leader
-        : gameState.characters.find((c) => c.instanceId === attackerInstanceId);
-      if (!attacker || attacker.rested) return;
-      if (attacker.category === 'Character' && !attacker.canAttackThisTurn && !attacker.hasRush) return;
-
       const updatedLeader = isLeaderAttacking && gameState.leader ? { ...gameState.leader, rested: true } : gameState.leader;
       const updatedChars = gameState.characters.map((c) =>
         c.instanceId === attackerInstanceId ? { ...c, rested: true } : c
       );
-      const attackerPower = (attacker.power || 0) + attacker.attachedDon * 1000 + attacker.customPowerModifier;
 
-      simAudio.playAttackSlash();
       simMultiplayer.broadcastAttackDeclared({
         attackerId: attacker.instanceId,
         attackerName: attacker.name,
@@ -864,15 +1030,39 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
       return;
     }
 
-    simAudio.playAttackSlash();
-    setGameState((prev) => attackOpponentLeader(prev, attackerInstanceId));
+    // Single Player AI Leader Attack
+    setGameState((prev) => {
+      const next = attackOpponentLeader(prev, attackerInstanceId);
+      if (next.opponent.life < prev.opponent.life) {
+        triggerCombatImpactVisual(50, 20, 'life', '-1 LIFE');
+      } else if (next.winner === 'player') {
+        triggerCombatImpactVisual(50, 20, 'ko', 'FATAL HIT!');
+      }
+      return next;
+    });
     setSelectedFieldCard(null);
     setSelectedAttacker(null);
   };
 
-  const handleAttackOpponentChar = (attackerInstanceId: string, oppCharId: string) => {
+  const handleAttackOpponentChar = async (attackerInstanceId: string, oppCharId: string) => {
+    if (gameState.isOpponentTurn || isActionRunningRef.current) return;
+    const isLeaderAttacking = gameState.leader?.instanceId === attackerInstanceId;
+    const attacker = isLeaderAttacking
+      ? gameState.leader
+      : gameState.characters.find((c) => c.instanceId === attackerInstanceId);
+    const target = gameState.opponent.characters.find((c) => c.instanceId === oppCharId);
+    if (!attacker || !target || attacker.rested || !target.rested) return;
+    if (attacker.category === 'Character' && !attacker.canAttackThisTurn && !attacker.hasRush) return;
+
+    const attackerName = attacker.name;
+    const targetName = target.name;
+    const attackerPower = (attacker.power || 0) + attacker.attachedDon * 1000 + attacker.customPowerModifier;
+    const targetPower = (target.power || 0) + target.attachedDon * 1000;
+
+    simAudio.playAttackSlash();
+    await triggerAttackVisual(50, 75, 50, 32, attackerName, targetName);
+
     if (activeMultiplayerRoom) {
-      if (gameState.isOpponentTurn) return;
       if (gameState.turn === 1 && gameState.goingFirst) {
         setGameState((prev) => ({
           ...prev,
@@ -881,22 +1071,11 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         return;
       }
 
-      const isLeaderAttacking = gameState.leader?.instanceId === attackerInstanceId;
-      const attacker = isLeaderAttacking
-        ? gameState.leader
-        : gameState.characters.find((c) => c.instanceId === attackerInstanceId);
-      const target = gameState.opponent.characters.find((c) => c.instanceId === oppCharId);
-      if (!attacker || !target || attacker.rested || !target.rested) return;
-      if (attacker.category === 'Character' && !attacker.canAttackThisTurn && !attacker.hasRush) return;
-
       const updatedLeader = isLeaderAttacking && gameState.leader ? { ...gameState.leader, rested: true } : gameState.leader;
       const updatedChars = gameState.characters.map((c) =>
         c.instanceId === attackerInstanceId ? { ...c, rested: true } : c
       );
-      const attackerPower = (attacker.power || 0) + attacker.attachedDon * 1000 + attacker.customPowerModifier;
-      const targetPower = (target.power || 0) + target.attachedDon * 1000;
 
-      simAudio.playAttackSlash();
       simMultiplayer.broadcastAttackDeclared({
         attackerId: attacker.instanceId,
         attackerName: attacker.name,
@@ -941,8 +1120,14 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
       return;
     }
 
-    simAudio.playAttackSlash();
-    setGameState((prev) => attackOpponentCharacter(prev, attackerInstanceId, oppCharId));
+    // Single Player AI Character Attack
+    setGameState((prev) => {
+      const next = attackOpponentCharacter(prev, attackerInstanceId, oppCharId);
+      if (next.opponent.characters.length < prev.opponent.characters.length) {
+        triggerCombatImpactVisual(50, 32, 'ko', 'K.O.!');
+      }
+      return next;
+    });
     setSelectedFieldCard(null);
     setSelectedAttacker(null);
   };
@@ -950,6 +1135,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
   // Phase 4: Blocker & Counter Defend actions
   const handleActivateBlocker = (blockerInstanceId: string) => {
     simAudio.playBlockerDefend();
+    triggerCombatImpactVisual(50, 65, 'guard', 'BLOCKED!');
     if (activeMultiplayerRoom) {
       const blockerCard = gameState.characters.find((c) => c.instanceId === blockerInstanceId);
       if (!blockerCard) return;
@@ -1012,8 +1198,13 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
 
   const handleApplyCounter = (cardInstanceId: string) => {
     simAudio.playCounterBoost();
+    const card = gameState.hand.find((c) => c.instanceId === cardInstanceId);
+    if (card) {
+      const boost = card.counter || 1000;
+      spawnPowerPopup(`+${boost} GUARD`, 'cyan', 50, 65);
+    }
+
     if (activeMultiplayerRoom) {
-      const card = gameState.hand.find((c) => c.instanceId === cardInstanceId);
       if (!card) return;
       const boost = card.counter || 1000;
 
@@ -1059,6 +1250,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
 
       if (!isHit) {
         simAudio.playShieldDefend();
+        triggerCombatImpactVisual(50, 65, 'guard', 'GUARDED!');
         simMultiplayer.broadcastCombatResolved({
           outcome: 'repelled',
           targetHitName: combat.targetName,
@@ -1081,6 +1273,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
       // HIT!
       simAudio.playAttackSlash();
       if (combat.targetType === 'character' && combat.targetInstanceId) {
+        triggerCombatImpactVisual(50, 65, 'ko', 'K.O.!');
         const targetChar = gameState.characters.find((c) => c.instanceId === combat.targetInstanceId);
         const updatedChars = gameState.characters.filter((c) => c.instanceId !== combat.targetInstanceId);
         const updatedTrash = targetChar ? [...gameState.trash, targetChar] : gameState.trash;
@@ -1110,6 +1303,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
       // Target is Leader
       if (gameState.life.length === 0) {
         simAudio.playLifeBreak();
+        triggerCombatImpactVisual(50, 65, 'ko', 'DEFEAT!');
         simMultiplayer.broadcastCombatResolved({
           outcome: 'hit',
           targetHitName: combat.targetName,
@@ -1133,6 +1327,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
 
       // Life damage taken
       simAudio.playLifeBreak();
+      triggerCombatImpactVisual(15, 60, 'life', '-1 LIFE');
       const updatedLife = [...gameState.life];
       const takenCard = updatedLife.shift()!;
       const updatedHand = [...gameState.hand, takenCard];
@@ -1171,12 +1366,45 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
     }
 
     setGameState((prev) => {
+      const isOppAttack = prev.pendingCombat && !prev.pendingCombat.attackerIsPlayer;
+      const prevLife = prev.life.length;
+      const prevOppLife = prev.opponent.life;
+      const prevCharsLen = prev.characters.length;
+      const prevOppCharsLen = prev.opponent.characters.length;
       const next = resolvePendingCombat(prev);
+
       if (next.winner === 'player') {
         simAudio.playVictory();
+        triggerCombatImpactVisual(50, 20, 'ko', 'FATAL HIT!');
       } else if (next.winner === 'opponent') {
         simAudio.playLifeBreak();
+        triggerCombatImpactVisual(50, 75, 'ko', 'DEFEAT!');
+      } else {
+        if (next.life.length < prevLife) {
+          triggerCombatImpactVisual(15, 60, 'life', '-1 LIFE');
+        } else if (next.opponent.life < prevOppLife) {
+          triggerCombatImpactVisual(50, 20, 'life', '-1 LIFE');
+        } else if (next.characters.length < prevCharsLen) {
+          triggerCombatImpactVisual(50, 65, 'ko', 'K.O.!');
+        } else if (next.opponent.characters.length < prevOppCharsLen) {
+          triggerCombatImpactVisual(50, 32, 'ko', 'K.O.!');
+        } else {
+          triggerCombatImpactVisual(50, 50, 'guard', 'GUARDED!');
+        }
       }
+
+      // If this was an opponent attack resolving cleanly with no pending trigger and no winner,
+      // start player turn!
+      if (isOppAttack && !activeMultiplayerRoom && !next.winner && !next.pendingTrigger) {
+        setTimeout(async () => {
+          const step5 = executePlayerStartTurn(next);
+          simAudio.playDonAttach();
+          await triggerTurnBanner(step5.nextState.turn, true, 'YOU');
+          spawnPowerPopup(`+${step5.donAdded} DON!!`, 'amber', 50, 85);
+          setGameState(step5.nextState);
+        }, 400);
+      }
+
       return next;
     });
   };
@@ -1185,9 +1413,18 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
   const handleActivateTrigger = () => {
     simAudio.playCounterBoost();
     setGameState((prev) => {
+      const isOppTurn = prev.isOpponentTurn;
       const next = activateTriggerEffect(prev);
       if (activeMultiplayerRoom) {
         setTimeout(() => syncMyBoardState(next), 30);
+      } else if (isOppTurn && !next.winner) {
+        setTimeout(async () => {
+          const step5 = executePlayerStartTurn(next);
+          simAudio.playDonAttach();
+          await triggerTurnBanner(step5.nextState.turn, true, 'YOU');
+          spawnPowerPopup(`+${step5.donAdded} DON!!`, 'amber', 50, 85);
+          setGameState(step5.nextState);
+        }, 400);
       }
       return next;
     });
@@ -1195,9 +1432,18 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
 
   const handleDismissTrigger = () => {
     setGameState((prev) => {
+      const isOppTurn = prev.isOpponentTurn;
       const next = dismissTriggerEffect(prev);
       if (activeMultiplayerRoom) {
         setTimeout(() => syncMyBoardState(next), 30);
+      } else if (isOppTurn && !next.winner) {
+        setTimeout(async () => {
+          const step5 = executePlayerStartTurn(next);
+          simAudio.playDonAttach();
+          await triggerTurnBanner(step5.nextState.turn, true, 'YOU');
+          spawnPowerPopup(`+${step5.donAdded} DON!!`, 'amber', 50, 85);
+          setGameState(step5.nextState);
+        }, 400);
       }
       return next;
     });
@@ -2090,8 +2336,21 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
             )}
           </div>
 
-          {/* Quick Menu Button */}
+          {/* Quick Menu Button & Speed Toggle */}
           <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                const nextSpeed: AnimationSpeed =
+                  animSpeed === 'normal' ? 'fast' : animSpeed === 'fast' ? 'instant' : 'normal';
+                handleSpeedChange(nextSpeed);
+              }}
+              className="px-2 py-1 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-amber-300 hover:text-amber-200 border border-amber-500/30 text-[10px] font-mono font-bold flex items-center gap-1 transition shadow-xs cursor-pointer"
+              title="Toggle Animation Speed (Normal / Fast / Instant)"
+            >
+              <Zap className="w-3 h-3 text-amber-400" />
+              <span>{animSpeed === 'normal' ? '1x' : animSpeed === 'fast' ? '2x' : 'INST'}</span>
+            </button>
             <button
               type="button"
               onClick={() => setShowTurnMenu(true)}
@@ -3092,6 +3351,30 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         />
       )}
 
+      {/* Centralized Gameplay Animation Layer */}
+      <SimAnimationLayer
+        turnBanner={turnBannerAnim}
+        flyingCard={flyingCardAnim}
+        attackSlash={attackSlashAnim}
+        donFly={donFlyAnim}
+        combatImpact={combatImpactAnim}
+        powerPopups={powerPopups}
+        victoryDefeat={
+          gameState.winner
+            ? {
+                winner: gameState.winner,
+                leaderName:
+                  gameState.winner === 'player'
+                    ? gameState.leader?.name
+                    : gameState.opponent.leaderName,
+                turnsElapsed: gameState.turn,
+                onRematch: () => handleRestart(true),
+                onExit,
+              }
+            : null
+        }
+      />
+
       {/* Settings & Tutorial Modal */}
       <SimSettingsModal
         isOpen={showSettingsModal}
@@ -3105,6 +3388,8 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         }}
         onSelectOpponentDeck={handleSelectOpponentDeck}
         currentOpponentDeckId={gameState.opponent.deckId}
+        animationSpeed={animSpeed}
+        onSetAnimationSpeed={handleSpeedChange}
       />
 
       {/* Opponent Selector Modal */}
@@ -3228,66 +3513,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         />
       )}
 
-      {/* Victory / Defeat Modals */}
-      {gameState.winner === 'player' && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-[#101626] border border-amber-400/50 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-3">
-            <div className="text-4xl">🏆</div>
-            <h2 className="text-xl font-black text-white">VICTORY!</h2>
-            <p className="text-xs text-gray-300">
-              You reduced Kaido's Life to 0 and landed the final strike!
-            </p>
-            <div className="flex items-center gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => handleRestart(true)}
-                className="flex-1 py-2 rounded-xl bg-[#d97706] hover:bg-[#b45309] text-white font-bold text-xs transition"
-              >
-                Play Again
-              </button>
-              {onExit && (
-                <button
-                  type="button"
-                  onClick={onExit}
-                  className="flex-1 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-gray-300 font-semibold text-xs transition"
-                >
-                  Exit
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {gameState.winner === 'opponent' && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-[#171114] border border-rose-500/40 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-3">
-            <div className="text-4xl">💀</div>
-            <h2 className="text-xl font-black text-white">DEFEAT</h2>
-            <p className="text-xs text-gray-300">
-              Your Life reached 0 and you took fatal damage.
-            </p>
-            <div className="flex items-center gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => handleRestart(true)}
-                className="flex-1 py-2 rounded-xl bg-rose-700 hover:bg-rose-600 text-white font-bold text-xs transition"
-              >
-                Rematch
-              </button>
-              {onExit && (
-                <button
-                  type="button"
-                  onClick={onExit}
-                  className="flex-1 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-gray-300 font-semibold text-xs transition"
-                >
-                  Exit
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Victory / Defeat is handled by SimAnimationLayer */}
     </div>
   );
 }

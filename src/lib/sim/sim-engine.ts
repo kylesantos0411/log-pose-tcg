@@ -846,6 +846,550 @@ export function advanceNextTurn(state: SimGameState): SimGameState {
 }
 
 /**
+ * =========================================================================
+ * SEQUENCED TURN STEP RUNNERS (FOR REALISTIC VISUAL PACING & ANIMATIONS)
+ * =========================================================================
+ */
+
+/**
+ * Step 1: Opponent Refresh Phase (Untap cards, return attached DON, draw 1 card, gain +2 DON)
+ */
+export function executeOpponentRefreshAndDraw(state: SimGameState): {
+  nextState: SimGameState;
+  donAdded: number;
+  oppHandCount: number;
+} {
+  let oppCharAttachedRecovered = 0;
+  for (const c of state.opponent.characters) {
+    oppCharAttachedRecovered += c.attachedDon;
+  }
+  const oppAttachedDonReturned = state.opponent.attachedDon;
+  let oppActiveDon = state.opponent.activeDon + state.opponent.restedDon + oppAttachedDonReturned + oppCharAttachedRecovered;
+  let oppDonDeckRemaining = state.opponent.donDeckCount;
+  const oppCanAdd = Math.min(2, 10 - oppActiveDon, oppDonDeckRemaining);
+  oppActiveDon += oppCanAdd;
+  oppDonDeckRemaining -= oppCanAdd;
+
+  const oppHandCount = (state.opponent.handCount || 5) + 1;
+  const oppDeckCount = Math.max(0, (state.opponent.deckCount || 40) - 1);
+
+  const oppChars: SimCard[] = state.opponent.characters.map((c) => ({
+    ...c,
+    rested: false,
+    attachedDon: 0,
+    canAttackThisTurn: true,
+  }));
+
+  const log = createLog(
+    `🤖 Opponent Refreshed: Drew 1 card, gained +${oppCanAdd} DON!! (Active: ${oppActiveDon})`,
+    'phase'
+  );
+
+  const nextState: SimGameState = {
+    ...state,
+    isOpponentTurn: true,
+    opponent: {
+      ...state.opponent,
+      rested: false,
+      attachedDon: 0,
+      activeDon: oppActiveDon,
+      restedDon: 0,
+      donDeckCount: oppDonDeckRemaining,
+      characters: oppChars,
+      handCount: oppHandCount,
+      deckCount: oppDeckCount,
+    },
+    logs: [...state.logs, log],
+  };
+
+  return { nextState, donAdded: oppCanAdd, oppHandCount };
+}
+
+/**
+ * Step 2: Opponent Summon Phase (Play character from deck if affordable and room available)
+ */
+export function executeOpponentSummon(state: SimGameState): {
+  nextState: SimGameState;
+  playedCard?: SimCard;
+  cost?: number;
+} {
+  const oppDeckDef = RECOMMENDED_DECKS.find((d) => d.id === state.opponent.deckId) || ST04_ANIMAL_KINGDOM_DECK;
+  const oppDeckChars = (oppDeckDef.cards || []).filter((c) => c.category === 'Character');
+  const oppChars = [...state.opponent.characters];
+  let oppActiveDon = state.opponent.activeDon;
+  let oppRestedDon = state.opponent.restedDon;
+  let oppHandCount = state.opponent.handCount;
+
+  if (oppChars.length < 5 && oppActiveDon >= 2 && oppDeckChars.length > 0) {
+    const affordable = oppDeckChars
+      .filter((c) => (c.cost ?? 0) <= oppActiveDon)
+      .sort((a, b) => (b.cost ?? 0) - (a.cost ?? 0));
+
+    if (affordable.length > 0) {
+      const chosenCard = affordable[0];
+      const cost = chosenCard.cost ?? 2;
+      oppActiveDon -= cost;
+      oppRestedDon += cost;
+      oppHandCount = Math.max(0, oppHandCount - 1);
+
+      const newChar = createSimCard(
+        chosenCard,
+        `opp-char-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        oppDeckDef.color || 'Purple'
+      );
+      newChar.canAttackThisTurn = Boolean(newChar.hasRush);
+      newChar.rested = false;
+      oppChars.push(newChar);
+
+      const log = createLog(
+        `🤖 Opponent played ${chosenCard.name} (${chosenCard.power} Power) for ${cost} DON!!`,
+        'action'
+      );
+
+      const nextState: SimGameState = {
+        ...state,
+        opponent: {
+          ...state.opponent,
+          activeDon: oppActiveDon,
+          restedDon: oppRestedDon,
+          handCount: oppHandCount,
+          characters: oppChars,
+        },
+        logs: [...state.logs, log],
+      };
+
+      return { nextState, playedCard: newChar, cost };
+    }
+  }
+
+  return { nextState: state };
+}
+
+/**
+ * Step 3: Opponent Attach DON Phase (Attach 1-2 active DON to attackers)
+ */
+export function executeOpponentAttachDon(state: SimGameState): {
+  nextState: SimGameState;
+  targetName?: string;
+  donAttached?: number;
+} {
+  let oppActiveDon = state.opponent.activeDon;
+  if (oppActiveDon <= 0) return { nextState: state };
+
+  const oppChars = state.opponent.characters.map((c) => ({ ...c }));
+  let oppLeaderAttachedDon = state.opponent.attachedDon;
+  const readyAttackers = oppChars.filter((c) => c.canAttackThisTurn && !c.rested);
+  const donToAttach = Math.min(oppActiveDon, 2);
+
+  if (readyAttackers.length > 0) {
+    const bestAttacker = readyAttackers[0];
+    bestAttacker.attachedDon += donToAttach;
+    oppActiveDon -= donToAttach;
+
+    const log = createLog(
+      `🤖 Opponent attached ${donToAttach} DON!! to ${bestAttacker.name} (Now ${(bestAttacker.power || 0) + bestAttacker.attachedDon * 1000} Power)`,
+      'action'
+    );
+
+    const nextState: SimGameState = {
+      ...state,
+      opponent: {
+        ...state.opponent,
+        activeDon: oppActiveDon,
+        characters: oppChars,
+      },
+      logs: [...state.logs, log],
+    };
+
+    return { nextState, targetName: bestAttacker.name, donAttached: donToAttach };
+  } else {
+    oppLeaderAttachedDon += donToAttach;
+    oppActiveDon -= donToAttach;
+
+    const log = createLog(
+      `🤖 Opponent attached ${donToAttach} DON!! to Leader ${state.opponent.leaderName} (Now ${5000 + oppLeaderAttachedDon * 1000} Power)`,
+      'action'
+    );
+
+    const nextState: SimGameState = {
+      ...state,
+      opponent: {
+        ...state.opponent,
+        activeDon: oppActiveDon,
+        attachedDon: oppLeaderAttachedDon,
+      },
+      logs: [...state.logs, log],
+    };
+
+    return { nextState, targetName: `Leader ${state.opponent.leaderName}`, donAttached: donToAttach };
+  }
+}
+
+/**
+ * Step 4: Opponent Combat Phase (Declare attack on rested character or player leader)
+ */
+export function executeOpponentAttack(state: SimGameState): {
+  nextState: SimGameState;
+  attackDeclared: boolean;
+  attackerName?: string;
+  targetName?: string;
+} {
+  const canAIAttack = !state.tutorialMode || state.tutorialStepIndex >= 10;
+  if (!canAIAttack || state.winner) {
+    return { nextState: state, attackDeclared: false };
+  }
+
+  const oppChars = state.opponent.characters.map((c) => ({ ...c }));
+  let playerChars = [...state.characters];
+  let playerLife = [...state.life];
+  let playerHand = [...state.hand];
+  let playerTrash = [...state.trash];
+  let gameWinner: 'player' | 'opponent' | null = state.winner;
+
+  // Find eligible character attacker
+  for (let i = 0; i < oppChars.length; i++) {
+    const attacker = oppChars[i];
+    if (!attacker.canAttackThisTurn || attacker.rested || gameWinner) continue;
+
+    const attackerPower = (attacker.power || 0) + attacker.attachedDon * 1000;
+
+    // Target priority 1: Rested character
+    const restedTargets = playerChars.filter(
+      (pc) => pc.rested && ((pc.power || 0) + pc.attachedDon * 1000) <= attackerPower
+    );
+
+    if (restedTargets.length > 0) {
+      const target = restedTargets[0];
+      const hasBlocker = playerChars.some((pc) => pc.hasBlocker && !pc.rested && pc.instanceId !== target.instanceId);
+      const hasCounterInHand = playerHand.some((c) => (c.counter || 0) > 0);
+
+      attacker.rested = true;
+
+      if (hasBlocker || hasCounterInHand) {
+        const pendingCombat: PendingCombat = {
+          attackerInstanceId: attacker.instanceId,
+          attackerName: attacker.name,
+          attackerImageUrl: attacker.imageUrl,
+          attackerPower,
+          attackerIsPlayer: false,
+          targetType: 'character',
+          targetInstanceId: target.instanceId,
+          targetName: target.name,
+          targetImageUrl: target.imageUrl,
+          targetPower: (target.power || 0) + target.attachedDon * 1000,
+          currentBoost: 0,
+          step: hasBlocker ? 'BLOCK_STEP' : 'COUNTER_STEP',
+          canBlock: hasBlocker,
+          canCounter: hasCounterInHand,
+        };
+
+        const log = createLog(
+          `⚔️ Opponent's ${attacker.name} (${attackerPower} Power) declared an attack on your ${target.name}!`,
+          'combat'
+        );
+
+        return {
+          nextState: {
+            ...state,
+            opponent: { ...state.opponent, characters: oppChars },
+            pendingCombat,
+            logs: [...state.logs, log],
+          },
+          attackDeclared: true,
+          attackerName: attacker.name,
+          targetName: target.name,
+        };
+      } else {
+        // Instant K.O.
+        playerChars = playerChars.filter((pc) => pc.instanceId !== target.instanceId);
+        playerTrash.push({ ...target, rested: false, attachedDon: 0 });
+        const log = createLog(
+          `⚔️ Opponent's ${attacker.name} (${attackerPower} Power) attacked and K.O.'d your ${target.name}!`,
+          'combat'
+        );
+
+        return {
+          nextState: {
+            ...state,
+            characters: playerChars,
+            trash: playerTrash,
+            opponent: { ...state.opponent, characters: oppChars },
+            logs: [...state.logs, log],
+          },
+          attackDeclared: true,
+          attackerName: attacker.name,
+          targetName: target.name,
+        };
+      }
+    } else {
+      // Target priority 2: Player Leader
+      const playerLeaderPower = 5000 + (state.leader?.attachedDon || 0) * 1000;
+      if (attackerPower >= playerLeaderPower) {
+        const hasBlocker = playerChars.some((pc) => pc.hasBlocker && !pc.rested);
+        const hasCounterInHand = playerHand.some((c) => (c.counter || 0) > 0);
+
+        attacker.rested = true;
+
+        if (hasBlocker || hasCounterInHand) {
+          const pendingCombat: PendingCombat = {
+            attackerInstanceId: attacker.instanceId,
+            attackerName: attacker.name,
+            attackerImageUrl: attacker.imageUrl,
+            attackerPower,
+            attackerIsPlayer: false,
+            targetType: 'leader',
+            targetInstanceId: state.leader?.instanceId,
+            targetName: state.leader?.name || 'Your Leader',
+            targetImageUrl: state.leader?.imageUrl,
+            targetPower: playerLeaderPower,
+            currentBoost: 0,
+            step: hasBlocker ? 'BLOCK_STEP' : 'COUNTER_STEP',
+            canBlock: hasBlocker,
+            canCounter: hasCounterInHand,
+          };
+
+          const log = createLog(
+            `⚔️ Opponent's ${attacker.name} (${attackerPower} Power) launched an attack on your Leader!`,
+            'combat'
+          );
+
+          return {
+            nextState: {
+              ...state,
+              opponent: { ...state.opponent, characters: oppChars },
+              pendingCombat,
+              logs: [...state.logs, log],
+            },
+            attackDeclared: true,
+            attackerName: attacker.name,
+            targetName: state.leader?.name || 'Leader',
+          };
+        } else if (playerLife.length > 0) {
+          const lostLifeCard = playerLife.shift()!;
+          if (lostLifeCard.trigger) {
+            const pendingTrigger: PendingTrigger = {
+              card: lostLifeCard,
+              isPlayer: true,
+              effect: lostLifeCard.trigger,
+            };
+            const log = createLog(
+              `✨ [TRIGGER DETECTED] Opponent's ${attacker.name} attacked your Leader! Life damage revealed ${lostLifeCard.name} (${lostLifeCard.trigger})!`,
+              'combat'
+            );
+            return {
+              nextState: {
+                ...state,
+                life: playerLife,
+                opponent: { ...state.opponent, characters: oppChars },
+                pendingTrigger,
+                logs: [...state.logs, log],
+              },
+              attackDeclared: true,
+              attackerName: attacker.name,
+              targetName: state.leader?.name || 'Leader',
+            };
+          } else {
+            playerHand.push(lostLifeCard);
+            const log = createLog(
+              `💔 Opponent's ${attacker.name} (${attackerPower} Power) attacked your Leader! Took 1 Life Damage (${playerLife.length} Life left).`,
+              'combat'
+            );
+            return {
+              nextState: {
+                ...state,
+                life: playerLife,
+                hand: playerHand,
+                opponent: { ...state.opponent, characters: oppChars },
+                logs: [...state.logs, log],
+              },
+              attackDeclared: true,
+              attackerName: attacker.name,
+              targetName: state.leader?.name || 'Leader',
+            };
+          }
+        } else {
+          gameWinner = 'opponent';
+          const log = createLog(
+            `💀 Opponent's ${attacker.name} dealt lethal blow to your Leader! Opponent wins!`,
+            'combat'
+          );
+          return {
+            nextState: {
+              ...state,
+              winner: 'opponent',
+              opponent: { ...state.opponent, characters: oppChars },
+              logs: [...state.logs, log],
+            },
+            attackDeclared: true,
+            attackerName: attacker.name,
+            targetName: state.leader?.name || 'Leader',
+          };
+        }
+      }
+    }
+  }
+
+  // Leader Attack (if not rested)
+  if (!state.opponent.rested) {
+    const oppLeaderPower = 5000 + state.opponent.attachedDon * 1000;
+    const playerLeaderPower = 5000 + (state.leader?.attachedDon || 0) * 1000;
+    const hasBlocker = playerChars.some((pc) => pc.hasBlocker && !pc.rested);
+    const hasCounterInHand = playerHand.some((c) => (c.counter || 0) > 0);
+
+    const updatedOpponent = { ...state.opponent, rested: true };
+
+    if (hasBlocker || hasCounterInHand) {
+      const pendingCombat: PendingCombat = {
+        attackerInstanceId: 'opp-leader',
+        attackerName: `Leader ${state.opponent.leaderName}`,
+        attackerImageUrl: state.opponent.leaderImage,
+        attackerPower: oppLeaderPower,
+        attackerIsPlayer: false,
+        targetType: 'leader',
+        targetInstanceId: state.leader?.instanceId,
+        targetName: state.leader?.name || 'Your Leader',
+        targetImageUrl: state.leader?.imageUrl,
+        targetPower: playerLeaderPower,
+        currentBoost: 0,
+        step: hasBlocker ? 'BLOCK_STEP' : 'COUNTER_STEP',
+        canBlock: hasBlocker,
+        canCounter: hasCounterInHand,
+      };
+
+      const log = createLog(
+        `⚔️ Opponent Leader ${state.opponent.leaderName} (${oppLeaderPower} Power) declared an attack on your Leader!`,
+        'combat'
+      );
+
+      return {
+        nextState: {
+          ...state,
+          opponent: updatedOpponent,
+          pendingCombat,
+          logs: [...state.logs, log],
+        },
+        attackDeclared: true,
+        attackerName: `Leader ${state.opponent.leaderName}`,
+        targetName: state.leader?.name || 'Leader',
+      };
+    } else if (playerLife.length > 0) {
+      const lostLifeCard = playerLife.shift()!;
+      playerHand.push(lostLifeCard);
+      const log = createLog(
+        `💔 Opponent Leader ${state.opponent.leaderName} (${oppLeaderPower} Power) attacked your Leader! Took 1 Life Damage (${playerLife.length} Life left).`,
+        'combat'
+      );
+      return {
+        nextState: {
+          ...state,
+          life: playerLife,
+          hand: playerHand,
+          opponent: updatedOpponent,
+          logs: [...state.logs, log],
+        },
+        attackDeclared: true,
+        attackerName: `Leader ${state.opponent.leaderName}`,
+        targetName: state.leader?.name || 'Leader',
+      };
+    } else {
+      const log = createLog(
+        `💀 Opponent Leader ${state.opponent.leaderName} dealt lethal blow! Opponent wins!`,
+        'combat'
+      );
+      return {
+        nextState: {
+          ...state,
+          winner: 'opponent',
+          opponent: updatedOpponent,
+          logs: [...state.logs, log],
+        },
+        attackDeclared: true,
+        attackerName: `Leader ${state.opponent.leaderName}`,
+        targetName: state.leader?.name || 'Leader',
+      };
+    }
+  }
+
+  return { nextState: state, attackDeclared: false };
+}
+
+/**
+ * Step 5: Start Player Turn (Refresh, Unrest, Draw 1, Gain +2 DON)
+ */
+export function executePlayerStartTurn(state: SimGameState): {
+  nextState: SimGameState;
+  donAdded: number;
+  drawnCard?: SimCard;
+} {
+  const nextTurnNumber = state.turn + 1;
+
+  // Unrest Leader & Characters, recover attached DON
+  let attachedDonRecovered = state.leader?.attachedDon || 0;
+  const updatedLeader = state.leader
+    ? { ...state.leader, rested: false, attachedDon: 0, customPowerModifier: 0 }
+    : null;
+
+  const updatedCharacters = state.characters.map((c) => {
+    attachedDonRecovered += c.attachedDon;
+    return {
+      ...c,
+      rested: false,
+      attachedDon: 0,
+      customPowerModifier: 0,
+      canAttackThisTurn: true,
+    };
+  });
+
+  const updatedStage = state.stage
+    ? { ...state.stage, rested: false, customPowerModifier: 0 }
+    : null;
+
+  let totalActiveDon = state.activeDon + state.restedDon + attachedDonRecovered;
+
+  // Draw 1
+  const updatedDeck = [...state.deck];
+  const updatedHand = [...state.hand];
+  let drawnCard: SimCard | undefined = undefined;
+
+  if (updatedDeck.length > 0) {
+    drawnCard = updatedDeck.shift()!;
+    updatedHand.push(drawnCard);
+  }
+
+  // +2 DON (capped at 10)
+  let donDeckRemaining = state.donDeckCount;
+  const maxCanAdd = Math.min(2, 10 - totalActiveDon, donDeckRemaining);
+  if (maxCanAdd > 0) {
+    donDeckRemaining -= maxCanAdd;
+    totalActiveDon += maxCanAdd;
+  }
+
+  const log = createLog(
+    `🔄 Started Turn ${nextTurnNumber} (Refreshed field, Drew ${drawnCard ? drawnCard.name : '0 cards'}, +${maxCanAdd} DON!!)`,
+    'phase'
+  );
+
+  const nextState: SimGameState = {
+    ...state,
+    turn: nextTurnNumber,
+    isOpponentTurn: false,
+    leader: updatedLeader,
+    characters: updatedCharacters,
+    stage: updatedStage,
+    deck: updatedDeck,
+    hand: updatedHand,
+    activeDon: totalActiveDon,
+    restedDon: 0,
+    donDeckCount: donDeckRemaining,
+    phase: 'MAIN',
+    logs: [...state.logs, log],
+  };
+
+  return { nextState, donAdded: maxCanAdd, drawnCard };
+}
+
+
+/**
  * Universal Searcher Effect Parser:
  * Identifies cards that peek top X cards from deck to find a specific card (Nami, Bonney, Buggy, etc.)
  */
