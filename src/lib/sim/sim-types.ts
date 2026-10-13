@@ -89,6 +89,14 @@ export interface PendingTrigger {
   effect: string;
 }
 
+export interface PendingSearcher {
+  sourceCardName: string;
+  sourceCardImageUrl?: string;
+  lookCount: number;
+  filterDescription?: string;
+  cards: SimCard[];
+}
+
 export interface SimGameState {
   leader: SimCard | null;
   deck: SimCard[];
@@ -113,6 +121,7 @@ export interface SimGameState {
   tutorialStepIndex: number;
   pendingCombat: PendingCombat | null;
   pendingTrigger: PendingTrigger | null;
+  pendingSearcher: PendingSearcher | null;
   winner: 'player' | 'opponent' | null;
   isOpponentTurn: boolean;
 }

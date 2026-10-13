@@ -24,6 +24,9 @@ import {
   keepInitialHand,
   initializeGame,
   getRandomOpponentDeck,
+  resolveSearcherSelection,
+  resolveSearcherPass,
+  activateFieldCardSearcher,
   setTutorialStep,
   toggleTutorialMode,
 } from '@/lib/sim/sim-engine';
@@ -32,6 +35,7 @@ import { SimCardInspectorModal } from './SimCardInspectorModal';
 import { SimPileViewerModal } from './SimPileViewerModal';
 import { SimMulliganModal } from './SimMulliganModal';
 import { SimMatchmakingModal } from './SimMatchmakingModal';
+import { SimSearcherModal } from './SimSearcherModal';
 import { SimTriggerModal } from './SimTriggerModal';
 import { SimMultiplayerModal } from './SimMultiplayerModal';
 import { SimTutorialBanner } from './SimTutorialBanner';
@@ -45,6 +49,7 @@ import {
   Swords,
   ScrollText,
   Shuffle,
+  Sparkles,
   Clock,
   Menu,
   Play,
@@ -413,6 +418,15 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
 
   const handleKeepHand = () => {
     setGameState((prev) => keepInitialHand(prev));
+  };
+
+  // Automated Searcher controls
+  const handleSelectSearcherCard = (instanceId: string) => {
+    setGameState((prev) => resolveSearcherSelection(prev, instanceId));
+  };
+
+  const handlePassSearcher = () => {
+    setGameState((prev) => resolveSearcherPass(prev));
   };
 
   // ---------------------------------------------------------------------------
@@ -1948,6 +1962,32 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                 </div>
               )}
 
+              {/* Field Card Searcher / Effect Activation */}
+              {liveFieldCard.effect && !liveFieldCard.rested && (
+                liveFieldCard.effect.toLowerCase().includes('look at') ||
+                liveFieldCard.effect.toLowerCase().includes('search') ||
+                liveFieldCard.effect.toLowerCase().includes('[activate: main]')
+              ) && (
+                <div className="col-span-2 pt-1 border-t border-white/10">
+                  <button
+                    type="button"
+                    disabled={gameState.activeDon < 1 || gameState.deck.length === 0}
+                    onClick={() => {
+                      setGameState((prev) => activateFieldCardSearcher(prev, liveFieldCard.instanceId, 5, 1));
+                      setSelectedFieldCard(null);
+                    }}
+                    className={`w-full py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition ${
+                      gameState.activeDon >= 1 && gameState.deck.length > 0
+                        ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 active:scale-95 cursor-pointer shadow-xs'
+                        : 'bg-white/5 text-gray-500 border border-white/5 cursor-not-allowed'
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Activate Effect: Search Top 5 Cards (Rest 1 DON)</span>
+                  </button>
+                </div>
+              )}
+
               {/* Attach DON!! */}
               <div className="col-span-2 flex flex-col gap-1.5 pt-1 border-t border-white/10">
                 <div className="flex items-center justify-between">
@@ -2027,6 +2067,16 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
           hasMulliganed={gameState.hasMulliganed}
           onKeep={handleKeepHand}
           onMulligan={handleMulligan}
+          onInspect={(card) => setInspectedCard(card)}
+        />
+      )}
+
+      {/* Automated Searcher Modal (Top X Cards Look & Select) */}
+      {gameState.pendingSearcher && (
+        <SimSearcherModal
+          searcher={gameState.pendingSearcher}
+          onSelectCard={handleSelectSearcherCard}
+          onPass={handlePassSearcher}
           onInspect={(card) => setInspectedCard(card)}
         />
       )}

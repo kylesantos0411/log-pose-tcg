@@ -4,7 +4,7 @@
  * Implements official Bandai rules: 5 Phases, DON!! mechanics, combat, blockers, triggers, and AI turns.
  */
 
-import { SimCard, SimGameState, GameLogEntry, SimOpponent, PendingCombat, PendingTrigger } from './sim-types';
+import { SimCard, SimGameState, GameLogEntry, SimOpponent, PendingCombat, PendingTrigger, PendingSearcher } from './sim-types';
 import { RecommendedDeck, DeckCardItem, RECOMMENDED_DECKS } from '../recommended-decks';
 import { getEditionCardImageUrl } from '../card-image';
 import { ST01_STRAW_HAT_DECK, ST04_ANIMAL_KINGDOM_DECK } from './starter-decks';
@@ -387,6 +387,7 @@ export function initializeGame(
     tutorialStepIndex: 0,
     pendingCombat: null,
     pendingTrigger: null,
+    pendingSearcher: null,
     winner: null,
     isOpponentTurn: false,
   };
@@ -845,6 +846,77 @@ export function advanceNextTurn(state: SimGameState): SimGameState {
 }
 
 /**
+ * Universal Searcher Effect Parser:
+ * Identifies cards that peek top X cards from deck to find a specific card (Nami, Bonney, Buggy, etc.)
+ */
+function parseSearcherEffect(card: SimCard): { lookCount: number; filterDescription: string } | null {
+  const text = (card.effect || card.englishEffect || '').toLowerCase();
+  
+  // Look at top X cards patterns
+  const match = text.match(/look at (?:up to )?(\d+) cards from the top of your deck/i)
+    || text.match(/look at the top (\d+) cards of your deck/i)
+    || text.match(/look at the top (\d+) cards/i);
+
+  // Known iconic searchers by ID
+  const isKnownSearcher = [
+    'OP01-016', // Nami
+    'ST02-007', // Jewelry Bonney
+    'OP01-060', // Doflamingo
+    'OP02-114', // Brannew
+    'OP03-008', // Buggy
+    'OP06-093', // Perona
+    'OP01-005', // Jinbe
+    'OP02-005', // Curiel
+    'OP03-112', // Pudding
+    'ST07-007', // Charlotte Linlin / Big Mom searcher
+    'ST01-003', // Karoo
+    'OP05-067', // Zoro-Juurou
+  ].some((id) => card.cardId.startsWith(id));
+
+  if (!match && !isKnownSearcher) return null;
+
+  const lookCount = match ? parseInt(match[1], 10) : (card.cardId.startsWith('OP02-114') ? 3 : 5);
+
+  let filterDescription = '1 eligible card';
+  const traitMatch = (card.effect || card.englishEffect || '').match(/\{([^}]+)\}/)
+    || (card.effect || card.englishEffect || '').match(/\[([^\]]+)\] type/);
+  if (traitMatch) {
+    filterDescription = `1 [${traitMatch[1]}] card`;
+  }
+
+  return {
+    lookCount: Math.max(1, Math.min(lookCount, 10)),
+    filterDescription,
+  };
+}
+
+/**
+ * Universal Draw Effect Parser:
+ * Identifies cards that draw cards upon play or trigger (e.g. Queen, Stage, Event)
+ */
+function parseDrawEffect(card: SimCard): number | null {
+  const text = (card.effect || card.englishEffect || '').toLowerCase();
+  if (!text.includes('draw')) return null;
+
+  // Must be on play or event
+  if (!text.includes('[on play]') && !text.includes('on play') && card.category !== 'Event') {
+    return null;
+  }
+
+  const match = text.match(/draw (\d+) card/i);
+  if (match) {
+    return parseInt(match[1], 10);
+  }
+  if (text.includes('draw 1 card') || text.includes('draw a card') || text.includes('draw 1')) {
+    return 1;
+  }
+  if (text.includes('draw 2 cards') || text.includes('draw 2')) {
+    return 2;
+  }
+  return null;
+}
+
+/**
  * Play a card from hand to field
  */
 export function playCardFromHand(
@@ -918,7 +990,6 @@ export function playCardFromHand(
       const donToGive = Math.min(2, newRestedDon);
       if (donToGive > 0) {
         newRestedDon -= donToGive;
-        // Attach to Brook or Leader
         playedChar.attachedDon += donToGive;
         actionLog += ` ✨ [On Play] Attached ${donToGive} rested DON!! to ${card.name}!`;
       }
@@ -954,6 +1025,7 @@ export function playCardFromHand(
           trash: newTrash,
           activeDon: newActiveDon,
           restedDon: newRestedDon,
+          pendingSearcher: null,
           opponent: {
             ...state.opponent,
             characters: oppChars,
@@ -968,15 +1040,154 @@ export function playCardFromHand(
     actionLog = `Played ${card.name} (Cost: ${cost})`;
   }
 
+  // Automated On-Play Searcher and Draw resolution:
+  let updatedDeck = [...state.deck];
+  let finalHand = newHand;
+  let pendingSearcherToSet: PendingSearcher | null = null;
+
+  const searcherInfo = parseSearcherEffect(card);
+  if (searcherInfo && updatedDeck.length > 0) {
+    const actualLook = Math.min(searcherInfo.lookCount, updatedDeck.length);
+    const topCards = updatedDeck.slice(0, actualLook);
+    updatedDeck = updatedDeck.slice(actualLook);
+    pendingSearcherToSet = {
+      sourceCardName: card.name,
+      sourceCardImageUrl: card.imageUrl,
+      lookCount: actualLook,
+      filterDescription: searcherInfo.filterDescription,
+      cards: topCards,
+    };
+    actionLog += ` 🔍 [On Play] Looking at top ${actualLook} cards of deck for ${searcherInfo.filterDescription}...`;
+  } else {
+    const drawCount = parseDrawEffect(card);
+    if (drawCount && drawCount > 0 && updatedDeck.length > 0) {
+      const actualDraw = Math.min(drawCount, updatedDeck.length);
+      const drawnCards = updatedDeck.slice(0, actualDraw);
+      updatedDeck = updatedDeck.slice(actualDraw);
+      finalHand = [...finalHand, ...drawnCards];
+      actionLog += ` ✨ [On Play] Drew ${actualDraw} card(s) (${drawnCards.map((c) => c.name).join(', ')})!`;
+    }
+  }
+
   return {
     ...state,
-    hand: newHand,
+    deck: updatedDeck,
+    hand: finalHand,
     characters: newCharacters,
     stage: newStage,
     trash: newTrash,
     activeDon: newActiveDon,
     restedDon: newRestedDon,
+    pendingSearcher: pendingSearcherToSet,
     logs: [...state.logs, createLog(actionLog, 'action')],
+  };
+}
+
+/**
+ * Resolve searcher selection: player picked a card from top cards to add to hand
+ */
+export function resolveSearcherSelection(
+  state: SimGameState,
+  selectedCardInstanceId: string
+): SimGameState {
+  if (!state.pendingSearcher) return state;
+
+  const { sourceCardName, cards } = state.pendingSearcher;
+  const chosenCard = cards.find((c) => c.instanceId === selectedCardInstanceId);
+  if (!chosenCard) return state;
+
+  const otherCards = cards.filter((c) => c.instanceId !== selectedCardInstanceId);
+  // Put remaining cards on the bottom of the deck (per official Bandai rules)
+  const updatedDeck = [...state.deck, ...otherCards];
+
+  return {
+    ...state,
+    deck: updatedDeck,
+    hand: [...state.hand, chosenCard],
+    pendingSearcher: null,
+    logs: [
+      ...state.logs,
+      createLog(
+        `🔍 ${sourceCardName}: Added ${chosenCard.name} to hand, placed ${otherCards.length} cards at bottom of deck`,
+        'action'
+      ),
+    ],
+  };
+}
+
+/**
+ * Resolve searcher pass / whiff: player didn't find a matching card or chose to bottom all
+ */
+export function resolveSearcherPass(state: SimGameState): SimGameState {
+  if (!state.pendingSearcher) return state;
+
+  const { sourceCardName, cards } = state.pendingSearcher;
+  const updatedDeck = [...state.deck, ...cards];
+
+  return {
+    ...state,
+    deck: updatedDeck,
+    pendingSearcher: null,
+    logs: [
+      ...state.logs,
+      createLog(
+        `🔍 ${sourceCardName}: No card selected. Placed all ${cards.length} cards at bottom of deck`,
+        'action'
+      ),
+    ],
+  };
+}
+
+/**
+ * Manually activate a card's searcher or effect from the field
+ */
+export function activateFieldCardSearcher(
+  state: SimGameState,
+  cardInstanceId: string,
+  lookCount: number = 5,
+  donCost: number = 1
+): SimGameState {
+  const card = state.characters.find((c) => c.instanceId === cardInstanceId)
+    || (state.leader?.instanceId === cardInstanceId ? state.leader : null);
+  if (!card || card.rested) return state;
+  if (state.activeDon < donCost) {
+    return {
+      ...state,
+      logs: [...state.logs, createLog(`⚠️ Not enough Active DON!! to activate ${card.name} (Need ${donCost})`, 'action')],
+    };
+  }
+
+  if (state.deck.length === 0) return state;
+
+  const actualLook = Math.min(lookCount, state.deck.length);
+  const topCards = state.deck.slice(0, actualLook);
+  const remainingDeck = state.deck.slice(actualLook);
+
+  const updatedChars = state.characters.map((c) =>
+    c.instanceId === cardInstanceId ? { ...c, rested: true } : c
+  );
+  const updatedLeader = state.leader?.instanceId === cardInstanceId
+    ? { ...state.leader, rested: true }
+    : state.leader;
+
+  return {
+    ...state,
+    activeDon: state.activeDon - donCost,
+    restedDon: state.restedDon + donCost,
+    characters: updatedChars,
+    leader: updatedLeader,
+    deck: remainingDeck,
+    pendingSearcher: {
+      sourceCardName: card.name,
+      sourceCardImageUrl: card.imageUrl,
+      lookCount: actualLook,
+      filterDescription: '1 eligible card',
+      cards: topCards,
+    },
+    logs: [
+      ...state.logs,
+      createLog(`✨ Activated ${card.name} effect: looking at top ${actualLook} cards of deck...`, 'action'),
+    ],
   };
 }
 
