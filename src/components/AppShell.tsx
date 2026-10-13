@@ -157,9 +157,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // In /preview or /sim mode, render dedicated studio/game canvas without outer desktop sidebar, padding or footer
+  // In /preview or /sim mode, render dedicated studio/game canvas
   if (isPreview || isSim) {
-    return <div className="fixed inset-0 w-screen h-screen overflow-hidden bg-[#0a0e17]">{children}</div>;
+    return <div className="fixed inset-0 w-screen h-screen overflow-y-auto overflow-x-hidden bg-[#0a0e17]">{children}</div>;
   }
 
   const ROUTE_FEATURE_MAP: Record<string, AppFeatureKey> = {
