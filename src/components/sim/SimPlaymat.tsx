@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { SimGameState, SimCard } from '@/lib/sim/sim-types';
+import { SimGameState, SimCard, PendingCombat } from '@/lib/sim/sim-types';
 import {
   advanceNextTurn,
   playCardFromHand,
@@ -29,6 +29,7 @@ import {
   activateFieldCardSearcher,
   setTutorialStep,
   toggleTutorialMode,
+  createLog,
 } from '@/lib/sim/sim-engine';
 import { simAudio } from '@/lib/sim/sim-audio';
 import { SimCardInspectorModal } from './SimCardInspectorModal';
@@ -40,7 +41,7 @@ import { SimTriggerModal } from './SimTriggerModal';
 import { SimMultiplayerModal } from './SimMultiplayerModal';
 import { SimTutorialBanner } from './SimTutorialBanner';
 import { SimSettingsModal } from './SimSettingsModal';
-import { simMultiplayer } from '@/lib/sim/sim-multiplayer';
+import { simMultiplayer, PlayerPublicBoard } from '@/lib/sim/sim-multiplayer';
 import { OPTCG_TUTORIAL_STEPS } from '@/lib/sim/tutorial-data';
 import { ST01_STRAW_HAT_DECK, ST04_ANIMAL_KINGDOM_DECK } from '@/lib/sim/starter-decks';
 import {
@@ -67,6 +68,9 @@ import {
   Eye,
   Info,
   Languages,
+  Copy,
+  Check,
+  Radio,
 } from 'lucide-react';
 import { RECOMMENDED_DECKS, RecommendedDeck } from '@/lib/recommended-decks';
 import { handleCardImageError } from '@/lib/card-image';
@@ -82,21 +86,59 @@ interface SimPlaymatProps {
   initialDeck?: RecommendedDeck;
   initialTutorialMode?: boolean;
   onExit?: () => void;
+  initialMultiplayerRoom?: {
+    roomId: string;
+    isHost: boolean;
+  };
 }
 
-export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlaymatProps) {
+export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMultiplayerRoom }: SimPlaymatProps) {
   const chosenDeck = initialDeck || ST01_STRAW_HAT_DECK;
   const isTutorial = initialTutorialMode !== undefined ? initialTutorialMode : false;
   const { user } = useSettings();
   const isAdmin = checkIsAdmin(user);
 
-  // Initialize game session: random opponent when not in tutorial, ST04 when tutorial
-  const [gameState, setGameState] = useState<SimGameState>(() =>
-    initializeGame(chosenDeck, true, isTutorial ? ST04_ANIMAL_KINGDOM_DECK : undefined, isTutorial)
-  );
+  // Initialize game session: if multiplayer room, adjust turn/goingFirst and clear practice characters
+  const [gameState, setGameState] = useState<SimGameState>(() => {
+    const init = initializeGame(
+      chosenDeck,
+      initialMultiplayerRoom ? initialMultiplayerRoom.isHost : true,
+      isTutorial ? ST04_ANIMAL_KINGDOM_DECK : undefined,
+      isTutorial
+    );
 
-  // Show matchmaking loading screen when starting a non-tutorial battle
-  const [showMatchmaking, setShowMatchmaking] = useState<boolean>(!isTutorial);
+    if (initialMultiplayerRoom) {
+      return {
+        ...init,
+        isOpponentTurn: !initialMultiplayerRoom.isHost,
+        turn: 1,
+        goingFirst: initialMultiplayerRoom.isHost,
+        opponent: {
+          ...init.opponent,
+          name: 'Connecting Opponent...',
+          leaderName: 'Opponent Leader',
+          characters: [],
+          handCount: 5,
+          life: 5,
+          maxLife: 5,
+        },
+        logs: [
+          createLog(`⚓ PVP Match Room: ${initialMultiplayerRoom.roomId}`, 'system'),
+          createLog(
+            initialMultiplayerRoom.isHost
+              ? `👑 You are Host (Going First on Turn 1). Waiting for Guest to join...`
+              : `⚔️ You are Guest (Going Second on Turn 2). Connected to room ${initialMultiplayerRoom.roomId}.`,
+            'system'
+          ),
+        ],
+      };
+    }
+
+    return init;
+  });
+
+  // Show matchmaking loading screen when starting a non-tutorial solo battle
+  const [showMatchmaking, setShowMatchmaking] = useState<boolean>(!isTutorial && !initialMultiplayerRoom);
 
   const currentOpponentDeck: RecommendedDeck =
     [ST04_ANIMAL_KINGDOM_DECK, ...RECOMMENDED_DECKS].find(
@@ -109,8 +151,14 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
   const [showOpponentSelector, setShowOpponentSelector] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showMultiplayerModal, setShowMultiplayerModal] = useState(false);
-  const [activeMultiplayerRoom, setActiveMultiplayerRoom] = useState<string | null>(null);
-  const [isMultiplayerHost, setIsMultiplayerHost] = useState(false);
+  const [activeMultiplayerRoom, setActiveMultiplayerRoom] = useState<string | null>(
+    initialMultiplayerRoom?.roomId || null
+  );
+  const [isMultiplayerHost, setIsMultiplayerHost] = useState(
+    initialMultiplayerRoom?.isHost || false
+  );
+  const [isMultiplayerOpponentConnected, setIsMultiplayerOpponentConnected] = useState(false);
+  const [copiedRoomCode, setCopiedRoomCode] = useState(false);
   const [selectedHandCard, setSelectedHandCard] = useState<SimCard | null>(null);
   const [selectedFieldCard, setSelectedFieldCard] = useState<SimCard | null>(null);
 
@@ -265,7 +313,354 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
   }, []);
 
   // Turn advance (Triggers Refresh -> Opponent Turn -> Player Turn with paced AI progression)
+  // Broadcast my public board state to opponent in multiplayer
+  const syncMyBoardState = (customState?: SimGameState) => {
+    if (!activeMultiplayerRoom) return;
+    const s = customState || gameState;
+    if (!s.leader) return;
+    const board: PlayerPublicBoard = {
+      playerId: simMultiplayer.getPlayerId(),
+      deckName: chosenDeck.name,
+      leader: s.leader,
+      characters: s.characters,
+      stage: s.stage,
+      activeDon: s.activeDon,
+      restedDon: s.restedDon,
+      attachedDon:
+        (s.leader.attachedDon || 0) +
+        s.characters.reduce((acc, c) => acc + (c.attachedDon || 0), 0),
+      donDeckCount: s.donDeckCount,
+      handCount: s.hand.length,
+      lifeCount: s.life.length,
+      deckCount: s.deck.length,
+      trashCount: s.trash.length,
+      trash: s.trash,
+    };
+    simMultiplayer.broadcastBoardSync(board);
+  };
+
+  // Connect to Multiplayer Room and setup peer synchronization listeners
+  const handleConnectMultiplayerRoom = (roomId: string, isHost: boolean) => {
+    setActiveMultiplayerRoom(roomId);
+    setIsMultiplayerHost(isHost);
+
+    simMultiplayer.joinRoom(roomId, {
+      onHandshake: (payload) => {
+        setIsMultiplayerOpponentConnected(true);
+        setGameState((prev) => ({
+          ...prev,
+          opponent: {
+            ...prev.opponent,
+            name: payload.deckName,
+            leaderId: payload.leader.cardId,
+            leaderName: payload.leader.name,
+            leaderImage: payload.leader.imageUrl,
+            leaderPower: payload.leader.power,
+            life: payload.lifeCount,
+            maxLife: payload.lifeCount,
+            handCount: payload.handCount,
+            deckCount: payload.deckCount,
+            activeDon: payload.activeDon,
+            characters: [],
+          },
+          opponentLife: payload.lifeCount,
+          opponentPower: payload.leader.power,
+          logs: [
+            ...prev.logs,
+            createLog(`⚔️ Opponent connected: ${payload.deckName} (${payload.leader.name})!`, 'system'),
+          ],
+        }));
+        simAudio.playVictory();
+
+        // Reply with our own handshake and board state
+        setGameState((current) => {
+          if (current.leader) {
+            simMultiplayer.broadcastHandshake({
+              isHost,
+              deckName: chosenDeck.name,
+              leader: current.leader,
+              deckCount: current.deck.length,
+              lifeCount: current.life.length,
+              handCount: current.hand.length,
+              activeDon: current.activeDon,
+            });
+            syncMyBoardState(current);
+          }
+          return current;
+        });
+      },
+
+      onBoardSync: (board) => {
+        setIsMultiplayerOpponentConnected(true);
+        setGameState((prev) => ({
+          ...prev,
+          opponent: {
+            ...prev.opponent,
+            name: board.deckName,
+            leaderId: board.leader.cardId,
+            leaderName: board.leader.name,
+            leaderImage: board.leader.imageUrl,
+            leaderPower: board.leader.power,
+            life: board.lifeCount,
+            characters: board.characters,
+            activeDon: board.activeDon,
+            restedDon: board.restedDon,
+            attachedDon: board.attachedDon,
+            donDeckCount: board.donDeckCount,
+            handCount: board.handCount,
+            deckCount: board.deckCount,
+            trashCount: board.trashCount,
+            rested: board.leader.rested,
+          },
+          opponentLife: board.lifeCount,
+          opponentPower: board.leader.power + (board.leader.attachedDon * 1000),
+        }));
+      },
+
+      onTurnEnd: (payload) => {
+        simAudio.playPhaseDing();
+        setGameState((prev) => {
+          let attachedRecovered = 0;
+          const leader = prev.leader
+            ? {
+                ...prev.leader,
+                rested: false,
+                attachedDon: 0,
+                customPowerModifier: 0,
+                canAttackThisTurn: true,
+              }
+            : null;
+          if (prev.leader?.attachedDon) attachedRecovered += prev.leader.attachedDon;
+
+          const characters = prev.characters.map((c) => {
+            attachedRecovered += c.attachedDon;
+            return {
+              ...c,
+              rested: false,
+              attachedDon: 0,
+              customPowerModifier: 0,
+              canAttackThisTurn: true,
+            };
+          });
+
+          let totalActiveDon = prev.activeDon + prev.restedDon + attachedRecovered;
+          let donDeckRemaining = prev.donDeckCount;
+          const maxCanAdd = Math.min(2, 10 - totalActiveDon, donDeckRemaining);
+          if (maxCanAdd > 0) {
+            donDeckRemaining -= maxCanAdd;
+            totalActiveDon += maxCanAdd;
+          }
+
+          let deck = [...prev.deck];
+          let hand = [...prev.hand];
+          if (deck.length > 0) {
+            const drawn = deck.shift()!;
+            hand.push(drawn);
+          }
+
+          const nextTurn = payload.nextTurnNumber || prev.turn + 1;
+          const nextState: SimGameState = {
+            ...prev,
+            turn: nextTurn,
+            isOpponentTurn: false,
+            phase: 'MAIN',
+            leader,
+            characters,
+            deck,
+            hand,
+            activeDon: totalActiveDon,
+            restedDon: 0,
+            donDeckCount: donDeckRemaining,
+            logs: [
+              ...prev.logs,
+              createLog(`🔔 Turn ${nextTurn}: Your turn! Refreshed cards, drew 1 card, gained +${maxCanAdd} DON!!`, 'phase'),
+            ],
+          };
+
+          setTimeout(() => syncMyBoardState(nextState), 50);
+          return nextState;
+        });
+      },
+
+      onAttackDeclared: (payload) => {
+        simAudio.playAttackSlash();
+        setGameState((prev) => {
+          const targetCard =
+            payload.targetType === 'character' && payload.targetCharId
+              ? prev.characters.find((c) => c.instanceId === payload.targetCharId)
+              : null;
+
+          const targetPower = targetCard
+            ? (targetCard.power || 0) + targetCard.attachedDon * 1000
+            : (prev.leader?.power || 5000) + (prev.leader?.attachedDon || 0) * 1000;
+
+          const targetName = targetCard ? targetCard.name : (prev.leader?.name || 'Leader');
+          const targetImageUrl = targetCard?.imageUrl || prev.leader?.imageUrl;
+
+          const hasActiveBlockers = prev.characters.some(
+            (c) => c.hasBlocker && !c.rested && c.instanceId !== payload.targetCharId
+          );
+
+          const combat: PendingCombat = {
+            attackerInstanceId: payload.attackerId,
+            attackerName: payload.attackerName,
+            attackerImageUrl: payload.attackerImageUrl,
+            attackerPower: payload.attackerPower,
+            attackerIsPlayer: false,
+            targetType: payload.targetType,
+            targetInstanceId: payload.targetCharId,
+            targetName,
+            targetImageUrl,
+            targetPower,
+            currentBoost: 0,
+            step: hasActiveBlockers ? 'BLOCK_STEP' : 'COUNTER_STEP',
+            canBlock: hasActiveBlockers,
+            canCounter: true,
+          };
+
+          return {
+            ...prev,
+            pendingCombat: combat,
+            logs: [
+              ...prev.logs,
+              createLog(`⚔️ Opponent declared attack with ${payload.attackerName} (${payload.attackerPower} Power) against ${targetName}!`, 'combat'),
+            ],
+          };
+        });
+      },
+
+      onBlockerActivated: (payload) => {
+        simAudio.playBlockerDefend();
+        setGameState((prev) => {
+          if (!prev.pendingCombat) return prev;
+          return {
+            ...prev,
+            pendingCombat: {
+              ...prev.pendingCombat,
+              targetName: `[Blocked by] ${payload.blockerName}`,
+              targetPower: payload.blockerPower,
+            },
+            logs: [
+              ...prev.logs,
+              createLog(`🛡️ Opponent intercepted with Blocker ${payload.blockerName} (${payload.blockerPower} Power)!`, 'combat'),
+            ],
+          };
+        });
+      },
+
+      onCounterPlayed: (payload) => {
+        simAudio.playCounterBoost();
+        setGameState((prev) => {
+          if (!prev.pendingCombat) return prev;
+          const newBoost = prev.pendingCombat.currentBoost + payload.counterBoost;
+          return {
+            ...prev,
+            pendingCombat: {
+              ...prev.pendingCombat,
+              currentBoost: newBoost,
+            },
+            logs: [
+              ...prev.logs,
+              createLog(`⚡ Opponent used ${payload.cardName} (+${payload.counterBoost} Counter)! Boost: +${newBoost}`, 'combat'),
+            ],
+          };
+        });
+      },
+
+      onCombatResolved: (payload) => {
+        setGameState((prev) => {
+          if (payload.outcome === 'repelled') {
+            simAudio.playShieldDefend();
+          } else if (payload.isFatal) {
+            simAudio.playVictory();
+          } else {
+            simAudio.playAttackSlash();
+          }
+
+          const nextWinner = payload.isFatal ? 'player' : prev.winner;
+          return {
+            ...prev,
+            pendingCombat: null,
+            winner: nextWinner,
+            logs: [
+              ...prev.logs,
+              createLog(
+                payload.outcome === 'repelled'
+                  ? `🛡️ Opponent repelled your attack on ${payload.targetHitName}!`
+                  : payload.isFatal
+                  ? `🏆 VICTORY! Fatal blow landed on opponent! YOU WON THE MATCH!`
+                  : `💥 Direct hit on opponent's ${payload.targetHitName}! Opponent Life: ${payload.lifeRemaining}`,
+                'combat'
+              ),
+            ],
+          };
+        });
+      },
+
+      onEmote: (text) => {
+        simAudio.playCardPlay();
+        setGameState((prev) => ({
+          ...prev,
+          logs: [
+            ...prev.logs,
+            createLog(`💬 Opponent: "${text}"`, 'system'),
+          ],
+        }));
+      },
+    });
+
+    // Send initial handshake
+    setTimeout(() => {
+      setGameState((current) => {
+        if (current.leader) {
+          simMultiplayer.broadcastHandshake({
+            isHost,
+            deckName: chosenDeck.name,
+            leader: current.leader,
+            deckCount: current.deck.length,
+            lifeCount: current.life.length,
+            handCount: current.hand.length,
+            activeDon: current.activeDon,
+          });
+        }
+        return current;
+      });
+    }, 400);
+  };
+
+  // Auto-connect if initialMultiplayerRoom was passed
+  useEffect(() => {
+    if (initialMultiplayerRoom?.roomId) {
+      handleConnectMultiplayerRoom(initialMultiplayerRoom.roomId, initialMultiplayerRoom.isHost);
+    }
+    return () => {
+      simMultiplayer.leaveRoom();
+    };
+  }, [initialMultiplayerRoom?.roomId, initialMultiplayerRoom?.isHost]);
+
+  // Turn advance (Multiplayer peer handoff OR Paced AI progression)
   const handleNextTurn = () => {
+    if (activeMultiplayerRoom) {
+      if (gameState.isOpponentTurn) return;
+      setSelectedDonCount(0);
+      setSelectedAttacker(null);
+      setSelectedHandCard(null);
+      setSelectedFieldCard(null);
+
+      const nextTurn = gameState.turn + 1;
+      simAudio.playPhaseDing();
+      simMultiplayer.broadcastTurnEnd(nextTurn);
+      setGameState((prev) => ({
+        ...prev,
+        isOpponentTurn: true,
+        logs: [
+          ...prev.logs,
+          createLog(`⌛ Ended turn. Waiting for opponent to play Turn ${nextTurn}...`, 'phase'),
+        ],
+      }));
+      return;
+    }
+
     if (isAiThinking) return;
     setSelectedDonCount(0);
     setSelectedAttacker(null);
@@ -292,45 +687,147 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
 
   // Card Play
   const handlePlayCard = (instanceId: string, replaceSlotIndex?: number) => {
+    if (gameState.isOpponentTurn) return;
     setSelectedDonCount(0);
     setSelectedAttacker(null);
     simAudio.playCardPlay();
-    setGameState((prev) => playCardFromHand(prev, instanceId, replaceSlotIndex));
+    setGameState((prev) => {
+      const next = playCardFromHand(prev, instanceId, replaceSlotIndex);
+      if (activeMultiplayerRoom) {
+        setTimeout(() => syncMyBoardState(next), 30);
+      }
+      return next;
+    });
     setSelectedHandCard(null);
   };
 
   // Discard / Trash
   const handleDiscardCard = (instanceId: string) => {
-    setGameState((prev) => sendCardToTrash(prev, instanceId));
+    setGameState((prev) => {
+      const next = sendCardToTrash(prev, instanceId);
+      if (activeMultiplayerRoom) {
+        setTimeout(() => syncMyBoardState(next), 30);
+      }
+      return next;
+    });
     setSelectedFieldCard(null);
     setSelectedHandCard(null);
   };
 
   // Rest / Active toggle
   const handleToggleRest = (instanceId: string) => {
-    setGameState((prev) => toggleCardRest(prev, instanceId));
+    setGameState((prev) => {
+      const next = toggleCardRest(prev, instanceId);
+      if (activeMultiplayerRoom) {
+        setTimeout(() => syncMyBoardState(next), 30);
+      }
+      return next;
+    });
   };
 
   // DON Attach / Detach
   const handleAttachDon = (instanceId: string, count?: number) => {
     const amountToAttach = count ?? (selectedDonCount > 0 ? selectedDonCount : 1);
     simAudio.playDonAttach();
-    setGameState((prev) => attachDonToCard(prev, instanceId, amountToAttach));
+    setGameState((prev) => {
+      const next = attachDonToCard(prev, instanceId, amountToAttach);
+      if (activeMultiplayerRoom) {
+        setTimeout(() => syncMyBoardState(next), 30);
+      }
+      return next;
+    });
     setSelectedDonCount(0);
   };
 
   const handleDetachDon = (instanceId: string) => {
-    setGameState((prev) => detachDonFromCard(prev, instanceId));
+    setGameState((prev) => {
+      const next = detachDonFromCard(prev, instanceId);
+      if (activeMultiplayerRoom) {
+        setTimeout(() => syncMyBoardState(next), 30);
+      }
+      return next;
+    });
   };
 
   // Life damage
   const handleTakeLifeDamage = () => {
     simAudio.playLifeBreak();
-    setGameState((prev) => takeLifeDamage(prev));
+    setGameState((prev) => {
+      const next = takeLifeDamage(prev);
+      if (activeMultiplayerRoom) {
+        setTimeout(() => syncMyBoardState(next), 30);
+      }
+      return next;
+    });
   };
 
   // Opponent Attacks & Damage
   const handleAttackOpponent = (attackerInstanceId: string) => {
+    if (activeMultiplayerRoom) {
+      if (gameState.isOpponentTurn) return;
+      if (gameState.turn === 1 && gameState.goingFirst) {
+        setGameState((prev) => ({
+          ...prev,
+          logs: [...prev.logs, createLog(`⚠️ Turn 1 player cannot declare attacks!`, 'combat')],
+        }));
+        return;
+      }
+
+      const isLeaderAttacking = gameState.leader?.instanceId === attackerInstanceId;
+      const attacker = isLeaderAttacking
+        ? gameState.leader
+        : gameState.characters.find((c) => c.instanceId === attackerInstanceId);
+      if (!attacker || attacker.rested) return;
+      if (attacker.category === 'Character' && !attacker.canAttackThisTurn && !attacker.hasRush) return;
+
+      const updatedLeader = isLeaderAttacking && gameState.leader ? { ...gameState.leader, rested: true } : gameState.leader;
+      const updatedChars = gameState.characters.map((c) =>
+        c.instanceId === attackerInstanceId ? { ...c, rested: true } : c
+      );
+      const attackerPower = (attacker.power || 0) + attacker.attachedDon * 1000 + attacker.customPowerModifier;
+
+      simAudio.playAttackSlash();
+      simMultiplayer.broadcastAttackDeclared({
+        attackerId: attacker.instanceId,
+        attackerName: attacker.name,
+        attackerImageUrl: attacker.imageUrl,
+        attackerPower,
+        targetType: 'leader',
+        targetName: gameState.opponent.leaderName || 'Opponent Leader',
+        targetPower: gameState.opponent.leaderPower || 5000,
+      });
+
+      const nextState: SimGameState = {
+        ...gameState,
+        leader: updatedLeader,
+        characters: updatedChars,
+        pendingCombat: {
+          attackerInstanceId: attacker.instanceId,
+          attackerName: attacker.name,
+          attackerImageUrl: attacker.imageUrl,
+          attackerPower,
+          attackerIsPlayer: true,
+          targetType: 'leader',
+          targetName: gameState.opponent.leaderName || 'Opponent Leader',
+          targetPower: gameState.opponent.leaderPower || 5000,
+          currentBoost: 0,
+          step: 'BLOCK_STEP',
+          canBlock: false,
+          canCounter: false,
+        },
+        logs: [
+          ...gameState.logs,
+          createLog(`⚔️ Declared attack on ${gameState.opponent.leaderName} with ${attacker.name} (${attackerPower} Power)! Waiting for opponent defense...`, 'combat'),
+        ],
+      };
+
+      setGameState(nextState);
+      setSelectedFieldCard(null);
+      setSelectedAttacker(null);
+      syncMyBoardState(nextState);
+      return;
+    }
+
     simAudio.playAttackSlash();
     setGameState((prev) => attackOpponentLeader(prev, attackerInstanceId));
     setSelectedFieldCard(null);
@@ -338,6 +835,76 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
   };
 
   const handleAttackOpponentChar = (attackerInstanceId: string, oppCharId: string) => {
+    if (activeMultiplayerRoom) {
+      if (gameState.isOpponentTurn) return;
+      if (gameState.turn === 1 && gameState.goingFirst) {
+        setGameState((prev) => ({
+          ...prev,
+          logs: [...prev.logs, createLog(`⚠️ Turn 1 player cannot declare attacks!`, 'combat')],
+        }));
+        return;
+      }
+
+      const isLeaderAttacking = gameState.leader?.instanceId === attackerInstanceId;
+      const attacker = isLeaderAttacking
+        ? gameState.leader
+        : gameState.characters.find((c) => c.instanceId === attackerInstanceId);
+      const target = gameState.opponent.characters.find((c) => c.instanceId === oppCharId);
+      if (!attacker || !target || attacker.rested || !target.rested) return;
+      if (attacker.category === 'Character' && !attacker.canAttackThisTurn && !attacker.hasRush) return;
+
+      const updatedLeader = isLeaderAttacking && gameState.leader ? { ...gameState.leader, rested: true } : gameState.leader;
+      const updatedChars = gameState.characters.map((c) =>
+        c.instanceId === attackerInstanceId ? { ...c, rested: true } : c
+      );
+      const attackerPower = (attacker.power || 0) + attacker.attachedDon * 1000 + attacker.customPowerModifier;
+      const targetPower = (target.power || 0) + target.attachedDon * 1000;
+
+      simAudio.playAttackSlash();
+      simMultiplayer.broadcastAttackDeclared({
+        attackerId: attacker.instanceId,
+        attackerName: attacker.name,
+        attackerImageUrl: attacker.imageUrl,
+        attackerPower,
+        targetType: 'character',
+        targetCharId: oppCharId,
+        targetName: target.name,
+        targetPower,
+      });
+
+      const nextState: SimGameState = {
+        ...gameState,
+        leader: updatedLeader,
+        characters: updatedChars,
+        pendingCombat: {
+          attackerInstanceId: attacker.instanceId,
+          attackerName: attacker.name,
+          attackerImageUrl: attacker.imageUrl,
+          attackerPower,
+          attackerIsPlayer: true,
+          targetType: 'character',
+          targetInstanceId: oppCharId,
+          targetName: target.name,
+          targetImageUrl: target.imageUrl,
+          targetPower,
+          currentBoost: 0,
+          step: 'BLOCK_STEP',
+          canBlock: false,
+          canCounter: false,
+        },
+        logs: [
+          ...gameState.logs,
+          createLog(`⚔️ Declared attack on ${target.name} with ${attacker.name} (${attackerPower} vs ${targetPower})! Waiting for opponent defense...`, 'combat'),
+        ],
+      };
+
+      setGameState(nextState);
+      setSelectedFieldCard(null);
+      setSelectedAttacker(null);
+      syncMyBoardState(nextState);
+      return;
+    }
+
     simAudio.playAttackSlash();
     setGameState((prev) => attackOpponentCharacter(prev, attackerInstanceId, oppCharId));
     setSelectedFieldCard(null);
@@ -347,19 +914,226 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
   // Phase 4: Blocker & Counter Defend actions
   const handleActivateBlocker = (blockerInstanceId: string) => {
     simAudio.playBlockerDefend();
+    if (activeMultiplayerRoom) {
+      const blockerCard = gameState.characters.find((c) => c.instanceId === blockerInstanceId);
+      if (!blockerCard) return;
+
+      const updatedChars = gameState.characters.map((c) =>
+        c.instanceId === blockerInstanceId ? { ...c, rested: true } : c
+      );
+      const blockerPower = (blockerCard.power || 0) + blockerCard.attachedDon * 1000;
+
+      simMultiplayer.broadcastBlockerActivated({
+        blockerId: blockerInstanceId,
+        blockerName: blockerCard.name,
+        blockerPower,
+      });
+
+      setGameState((prev) => {
+        if (!prev.pendingCombat) return prev;
+        return {
+          ...prev,
+          characters: updatedChars,
+          pendingCombat: {
+            ...prev.pendingCombat,
+            targetType: 'character',
+            targetInstanceId: blockerInstanceId,
+            targetName: blockerCard.name,
+            targetImageUrl: blockerCard.imageUrl,
+            targetPower: blockerPower,
+            step: 'COUNTER_STEP',
+            blockedBy: blockerCard,
+          },
+          logs: [
+            ...prev.logs,
+            createLog(`🛡️ You blocked the attack with ${blockerCard.name} (${blockerPower} Power)!`, 'combat'),
+          ],
+        };
+      });
+      syncMyBoardState();
+      return;
+    }
+
     setGameState((prev) => activateBlocker(prev, blockerInstanceId));
   };
 
   const handlePassBlocker = () => {
+    if (activeMultiplayerRoom) {
+      setGameState((prev) => {
+        if (!prev.pendingCombat) return prev;
+        return {
+          ...prev,
+          pendingCombat: {
+            ...prev.pendingCombat,
+            step: 'COUNTER_STEP',
+          },
+        };
+      });
+      return;
+    }
     setGameState((prev) => passBlockerStep(prev));
   };
 
   const handleApplyCounter = (cardInstanceId: string) => {
     simAudio.playCounterBoost();
+    if (activeMultiplayerRoom) {
+      const card = gameState.hand.find((c) => c.instanceId === cardInstanceId);
+      if (!card) return;
+      const boost = card.counter || 1000;
+
+      const updatedHand = gameState.hand.filter((c) => c.instanceId !== cardInstanceId);
+      const updatedTrash = [...gameState.trash, card];
+
+      simMultiplayer.broadcastCounterPlayed({
+        counterBoost: boost,
+        cardName: card.name,
+      });
+
+      setGameState((prev) => {
+        if (!prev.pendingCombat) return prev;
+        const nextBoost = prev.pendingCombat.currentBoost + boost;
+        return {
+          ...prev,
+          hand: updatedHand,
+          trash: updatedTrash,
+          pendingCombat: {
+            ...prev.pendingCombat,
+            currentBoost: nextBoost,
+            usedCounters: [...(prev.pendingCombat.usedCounters || []), card],
+          },
+          logs: [
+            ...prev.logs,
+            createLog(`⚡ Used Counter: ${card.name} (+${boost} Power). Total Boost: +${nextBoost}`, 'combat'),
+          ],
+        };
+      });
+      syncMyBoardState();
+      return;
+    }
+
     setGameState((prev) => applyCounterFromHand(prev, cardInstanceId));
   };
 
   const handleResolveCombat = () => {
+    if (activeMultiplayerRoom) {
+      if (!gameState.pendingCombat) return;
+      const combat = gameState.pendingCombat;
+      const finalDefenderPower = combat.targetPower + combat.currentBoost;
+      const isHit = combat.attackerPower >= finalDefenderPower;
+
+      if (!isHit) {
+        simAudio.playShieldDefend();
+        simMultiplayer.broadcastCombatResolved({
+          outcome: 'repelled',
+          targetHitName: combat.targetName,
+          damageTaken: false,
+          lifeRemaining: gameState.life.length,
+        });
+
+        setGameState((prev) => ({
+          ...prev,
+          pendingCombat: null,
+          logs: [
+            ...prev.logs,
+            createLog(`🛡️ Successfully repelled ${combat.attackerName}'s attack! (${finalDefenderPower} >= ${combat.attackerPower})`, 'combat'),
+          ],
+        }));
+        syncMyBoardState();
+        return;
+      }
+
+      // HIT!
+      simAudio.playAttackSlash();
+      if (combat.targetType === 'character' && combat.targetInstanceId) {
+        const targetChar = gameState.characters.find((c) => c.instanceId === combat.targetInstanceId);
+        const updatedChars = gameState.characters.filter((c) => c.instanceId !== combat.targetInstanceId);
+        const updatedTrash = targetChar ? [...gameState.trash, targetChar] : gameState.trash;
+
+        simMultiplayer.broadcastCombatResolved({
+          outcome: 'hit',
+          targetHitName: combat.targetName,
+          damageTaken: false,
+          koCharId: combat.targetInstanceId,
+          lifeRemaining: gameState.life.length,
+        });
+
+        setGameState((prev) => ({
+          ...prev,
+          characters: updatedChars,
+          trash: updatedTrash,
+          pendingCombat: null,
+          logs: [
+            ...prev.logs,
+            createLog(`💥 [K.O.] ${combat.attackerName} (${combat.attackerPower} Power) K.O.'d ${combat.targetName}!`, 'combat'),
+          ],
+        }));
+        syncMyBoardState();
+        return;
+      }
+
+      // Target is Leader
+      if (gameState.life.length === 0) {
+        simAudio.playLifeBreak();
+        simMultiplayer.broadcastCombatResolved({
+          outcome: 'hit',
+          targetHitName: combat.targetName,
+          damageTaken: true,
+          lifeRemaining: 0,
+          isFatal: true,
+        });
+
+        setGameState((prev) => ({
+          ...prev,
+          pendingCombat: null,
+          winner: 'opponent',
+          logs: [
+            ...prev.logs,
+            createLog(`💀 Fatal blow taken! Opponent won the match!`, 'combat'),
+          ],
+        }));
+        syncMyBoardState();
+        return;
+      }
+
+      // Life damage taken
+      simAudio.playLifeBreak();
+      const updatedLife = [...gameState.life];
+      const takenCard = updatedLife.shift()!;
+      const updatedHand = [...gameState.hand, takenCard];
+      const hasTrigger = Boolean(takenCard.trigger && takenCard.trigger.trim().length > 0);
+
+      simMultiplayer.broadcastCombatResolved({
+        outcome: 'hit',
+        targetHitName: combat.targetName,
+        damageTaken: true,
+        lifeRemaining: updatedLife.length,
+        isFatal: false,
+      });
+
+      setGameState((prev) => ({
+        ...prev,
+        life: updatedLife,
+        hand: updatedHand,
+        pendingCombat: null,
+        pendingTrigger: hasTrigger
+          ? {
+              card: takenCard,
+              isPlayer: true,
+              effect: takenCard.trigger || 'Trigger Effect',
+            }
+          : null,
+        logs: [
+          ...prev.logs,
+          createLog(
+            `⚔️ Direct hit on Leader! Took 1 damage (Drew ${takenCard.name} from Life. ${updatedLife.length} Life left).`,
+            'combat'
+          ),
+        ],
+      }));
+      syncMyBoardState();
+      return;
+    }
+
     setGameState((prev) => {
       const next = resolvePendingCombat(prev);
       if (next.winner === 'player') {
@@ -374,34 +1148,34 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
   // Phase 5: Trigger Handling
   const handleActivateTrigger = () => {
     simAudio.playCounterBoost();
-    setGameState((prev) => activateTriggerEffect(prev));
+    setGameState((prev) => {
+      const next = activateTriggerEffect(prev);
+      if (activeMultiplayerRoom) {
+        setTimeout(() => syncMyBoardState(next), 30);
+      }
+      return next;
+    });
   };
 
   const handleDismissTrigger = () => {
-    setGameState((prev) => dismissTriggerEffect(prev));
+    setGameState((prev) => {
+      const next = dismissTriggerEffect(prev);
+      if (activeMultiplayerRoom) {
+        setTimeout(() => syncMyBoardState(next), 30);
+      }
+      return next;
+    });
   };
 
   // Phase 6: Multiplayer Room Handlers
   const handleJoinMultiplayerRoom = (roomId: string, isHost: boolean) => {
-    setActiveMultiplayerRoom(roomId);
-    setIsMultiplayerHost(isHost);
-
-    simMultiplayer.joinRoom(
-      roomId,
-      (syncedState) => {
-        // Sync incoming opponent state
-        setGameState(syncedState);
-      },
-      (joinedPlayerId) => {
-        // Broadcast arrival sound & notification
-        simAudio.playVictory();
-      }
-    );
+    handleConnectMultiplayerRoom(roomId, isHost);
   };
 
   const handleLeaveMultiplayerRoom = () => {
     simMultiplayer.leaveRoom();
     setActiveMultiplayerRoom(null);
+    setIsMultiplayerOpponentConnected(false);
   };
 
   // Switch opponent deck
@@ -413,20 +1187,44 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
   // Mulligan controls
   const handleMulligan = () => {
     simAudio.playCardPlay();
-    setGameState((prev) => performMulligan(prev));
+    setGameState((prev) => {
+      const next = performMulligan(prev);
+      if (activeMultiplayerRoom) {
+        setTimeout(() => syncMyBoardState(next), 30);
+      }
+      return next;
+    });
   };
 
   const handleKeepHand = () => {
-    setGameState((prev) => keepInitialHand(prev));
+    setGameState((prev) => {
+      const next = keepInitialHand(prev);
+      if (activeMultiplayerRoom) {
+        setTimeout(() => syncMyBoardState(next), 30);
+      }
+      return next;
+    });
   };
 
   // Automated Searcher controls
   const handleSelectSearcherCard = (instanceId: string) => {
-    setGameState((prev) => resolveSearcherSelection(prev, instanceId));
+    setGameState((prev) => {
+      const next = resolveSearcherSelection(prev, instanceId);
+      if (activeMultiplayerRoom) {
+        setTimeout(() => syncMyBoardState(next), 30);
+      }
+      return next;
+    });
   };
 
   const handlePassSearcher = () => {
-    setGameState((prev) => resolveSearcherPass(prev));
+    setGameState((prev) => {
+      const next = resolveSearcherPass(prev);
+      if (activeMultiplayerRoom) {
+        setTimeout(() => syncMyBoardState(next), 30);
+      }
+      return next;
+    });
   };
 
   // ---------------------------------------------------------------------------
@@ -1253,17 +2051,94 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
           </div>
         </div>
 
+        {/* MULTIPLAYER ROOM STATUS BAR */}
+        {activeMultiplayerRoom && (
+          <div className="w-full px-2.5 py-1.5 rounded-xl bg-[#10141f] border border-[#252b3d] flex flex-wrap items-center justify-between gap-2 text-xs mb-1 shrink-0 z-20 shadow-sm">
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-950/70 border border-indigo-700/60 text-indigo-300 font-mono font-bold text-[11px]">
+                <Radio className="w-3 h-3 text-indigo-400" />
+                <span>ROOM: {activeMultiplayerRoom}</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(activeMultiplayerRoom);
+                  setCopiedRoomCode(true);
+                  setTimeout(() => setCopiedRoomCode(false), 2000);
+                }}
+                className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] flex items-center gap-1 transition cursor-pointer"
+                title="Copy room code to clipboard"
+              >
+                {copiedRoomCode ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                <span>{copiedRoomCode ? 'Copied' : 'Copy Code'}</span>
+              </button>
+
+              <div className="flex items-center gap-1.5 text-[11px]">
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    isMultiplayerOpponentConnected
+                      ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]'
+                      : 'bg-amber-400 animate-pulse'
+                  }`}
+                />
+                <span className="font-semibold text-white">
+                  {isMultiplayerOpponentConnected
+                    ? `Connected: ${gameState.opponent.name}`
+                    : 'Waiting for Opponent to Join...'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  gameState.isOpponentTurn
+                    ? 'bg-amber-950/60 text-amber-300 border border-amber-800/40'
+                    : 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/40'
+                }`}
+              >
+                {gameState.isOpponentTurn ? "⌛ Opponent's Turn" : '⚔️ Your Turn'}
+              </span>
+
+              {/* Quick Pirate Emotes */}
+              <div className="flex items-center gap-1">
+                {['Ahoy! ⚓', 'Good Luck! 🍀', 'Nice Move! 🔥', 'GG! 🏆'].map((emoteText) => (
+                  <button
+                    key={emoteText}
+                    type="button"
+                    onClick={() => {
+                      simMultiplayer.broadcastEmote(emoteText);
+                      setGameState((prev) => ({
+                        ...prev,
+                        logs: [...prev.logs, createLog(`💬 You: "${emoteText}"`, 'system')],
+                      }));
+                    }}
+                    className="px-1.5 py-0.5 rounded bg-[#1e2435] hover:bg-[#28324a] text-slate-300 text-[10px] transition cursor-pointer"
+                  >
+                    {emoteText}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 2. OPPONENT STATUS PILL BAR */}
         <div className="flex items-center justify-between w-full px-1 py-1 shrink-0 z-10">
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              onClick={() => setShowOpponentSelector(true)}
+              onClick={() => {
+                if (!activeMultiplayerRoom) {
+                  setShowOpponentSelector(true);
+                }
+              }}
               className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#131d31] border border-blue-500/30 text-white text-[9px] font-bold shadow-xs hover:bg-[#1a263f] transition cursor-pointer"
-              title="Click to change opponent deck"
+              title={activeMultiplayerRoom ? `Playing against ${gameState.opponent.name}` : 'Click to change opponent deck'}
             >
-              <span className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.8)]" />
-              <span>OPPONENT</span>
+              <span className={`w-2 h-2 rounded-full ${activeMultiplayerRoom ? (isMultiplayerOpponentConnected ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]' : 'bg-amber-400 animate-pulse') : 'bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.8)]'}`} />
+              <span>{activeMultiplayerRoom ? gameState.opponent.name : 'OPPONENT'}</span>
             </button>
             <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8.5px]">
               <Clock className="w-2.5 h-2.5 text-gray-400" />
@@ -1548,10 +2423,10 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
             <button
               type="button"
               onClick={handleNextTurn}
-              disabled={isAiThinking}
+              disabled={isAiThinking || (Boolean(activeMultiplayerRoom) && gameState.isOpponentTurn)}
               className={`px-5 py-2.5 rounded-xl text-black font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-lg active:scale-95 transition select-none ${
-                isAiThinking
-                  ? 'bg-amber-600/70 cursor-not-allowed opacity-80'
+                isAiThinking || (Boolean(activeMultiplayerRoom) && gameState.isOpponentTurn)
+                  ? 'bg-amber-600/70 cursor-not-allowed opacity-80 text-white'
                   : 'bg-[#f59e0b] hover:bg-[#d97706] cursor-pointer'
               } ${highlightTarget === 'endTurn' ? spotlightClass : ''}`}
             >
@@ -1559,6 +2434,11 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                 <>
                   <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
                   <span>Opponent Turn...</span>
+                </>
+              ) : activeMultiplayerRoom && gameState.isOpponentTurn ? (
+                <>
+                  <Clock className="w-3.5 h-3.5 text-white" />
+                  <span>Opponent&apos;s Turn</span>
                 </>
               ) : (
                 <>
@@ -1847,6 +2727,28 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* MULTIPLAYER ATTACKER PENDING COMBAT BANNER */}
+      {gameState.pendingCombat && gameState.pendingCombat.attackerIsPlayer && (
+        <div className="fixed bottom-3 inset-x-2 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-50 max-w-md w-full bg-[#0d1527]/95 border-2 border-indigo-500/80 rounded-2xl p-3.5 shadow-2xl backdrop-blur-md animate-slideUp text-white flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0">
+              <span className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+            </div>
+            <div className="min-w-0">
+              <h4 className="text-xs font-bold text-white truncate">
+                Attacking with {gameState.pendingCombat.attackerName} ({gameState.pendingCombat.attackerPower} Power)
+              </h4>
+              <p className="text-[10px] text-slate-400 truncate">
+                Awaiting opponent reaction (Blockers &amp; Counters)...
+              </p>
+            </div>
+          </div>
+          <span className="px-2 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800/50 text-[10px] font-mono shrink-0">
+            vs {gameState.pendingCombat.targetName}
+          </span>
         </div>
       )}
 

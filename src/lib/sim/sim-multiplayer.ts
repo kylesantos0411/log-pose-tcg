@@ -1,7 +1,89 @@
 'use client';
 
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
-import { SimGameState } from '@/lib/sim/sim-types';
+import { SimCard, SimGameState } from '@/lib/sim/sim-types';
+
+export interface PlayerPublicBoard {
+  playerId: string;
+  deckName: string;
+  leader: SimCard;
+  characters: SimCard[];
+  stage: SimCard | null;
+  activeDon: number;
+  restedDon: number;
+  attachedDon: number;
+  donDeckCount: number;
+  handCount: number;
+  lifeCount: number;
+  deckCount: number;
+  trashCount: number;
+  trash: SimCard[];
+}
+
+export interface PlayerHandshakePayload {
+  playerId: string;
+  isHost: boolean;
+  deckName: string;
+  leader: SimCard;
+  deckCount: number;
+  lifeCount: number;
+  handCount: number;
+  activeDon: number;
+}
+
+export interface AttackDeclaredPayload {
+  playerId: string;
+  attackerId: string;
+  attackerName: string;
+  attackerImageUrl?: string;
+  attackerPower: number;
+  targetType: 'leader' | 'character';
+  targetCharId?: string;
+  targetName: string;
+  targetPower: number;
+}
+
+export interface BlockerActivatedPayload {
+  playerId: string;
+  blockerId: string;
+  blockerName: string;
+  blockerPower: number;
+}
+
+export interface CounterPlayedPayload {
+  playerId: string;
+  counterBoost: number;
+  cardName: string;
+}
+
+export interface CombatResolvedPayload {
+  playerId: string;
+  outcome: 'hit' | 'repelled';
+  targetHitName: string;
+  damageTaken: boolean;
+  lifeRemaining: number;
+  koCharId?: string;
+  isFatal?: boolean;
+}
+
+export interface TurnEndPayload {
+  playerId: string;
+  nextTurnNumber: number;
+}
+
+export interface SimMultiplayerCallbacks {
+  onHandshake?: (payload: PlayerHandshakePayload) => void;
+  onBoardSync?: (board: PlayerPublicBoard) => void;
+  onAttackDeclared?: (payload: AttackDeclaredPayload) => void;
+  onBlockerActivated?: (payload: BlockerActivatedPayload) => void;
+  onCounterPlayed?: (payload: CounterPlayedPayload) => void;
+  onCombatResolved?: (payload: CombatResolvedPayload) => void;
+  onTurnEnd?: (payload: TurnEndPayload) => void;
+  onPlayerJoined?: (playerId: string) => void;
+  onPlayerLeft?: (playerId: string) => void;
+  onEmote?: (text: string) => void;
+  onStateSync?: (state: SimGameState) => void;
+}
 
 export interface MultiplayerRoomState {
   roomId: string;
@@ -17,8 +99,6 @@ export interface MultiplayerRoomState {
     timestamp: number;
   };
 }
-
-export type RoomEventCallback = (payload: any) => void;
 
 /**
  * Manage Realtime 2-Player Match Room via Supabase Broadcast channels
@@ -46,12 +126,15 @@ export class SimMultiplayerEngine {
    */
   public joinRoom(
     roomId: string,
-    onStateSync: (state: SimGameState) => void,
-    onPlayerJoined?: (playerId: string) => void,
-    onActionBroadcast?: (action: any) => void
+    callbacksOrLegacySync: SimMultiplayerCallbacks | ((state: SimGameState) => void),
+    onPlayerJoinedLegacy?: (playerId: string) => void,
+    onActionBroadcastLegacy?: (action: any) => void
   ) {
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return null;
+
+    // Clean up previous room if any
+    this.leaveRoom();
 
     this.roomId = roomId;
     const channelName = `sim-room-${roomId}`;
@@ -61,25 +144,73 @@ export class SimMultiplayerEngine {
       },
     });
 
+    const callbacks: SimMultiplayerCallbacks =
+      typeof callbacksOrLegacySync === 'function'
+        ? {
+            onStateSync: callbacksOrLegacySync,
+            onPlayerJoined: onPlayerJoinedLegacy,
+          }
+        : callbacksOrLegacySync;
+
+    // Register event listeners
     this.channel
-      .on('broadcast', { event: 'game_state_sync' }, ({ payload }: any) => {
-        if (payload?.gameState) {
-          onStateSync(payload.gameState);
+      .on('broadcast', { event: 'player_joined' }, ({ payload }: any) => {
+        if (callbacks.onPlayerJoined && payload?.playerId) {
+          callbacks.onPlayerJoined(payload.playerId);
         }
       })
-      .on('broadcast', { event: 'player_joined' }, ({ payload }: any) => {
-        if (onPlayerJoined && payload?.playerId) {
-          onPlayerJoined(payload.playerId);
+      .on('broadcast', { event: 'player_handshake' }, ({ payload }: any) => {
+        if (callbacks.onHandshake && payload) {
+          callbacks.onHandshake(payload);
+        }
+      })
+      .on('broadcast', { event: 'board_sync' }, ({ payload }: any) => {
+        if (callbacks.onBoardSync && payload?.board) {
+          callbacks.onBoardSync(payload.board);
+        }
+      })
+      .on('broadcast', { event: 'attack_declared' }, ({ payload }: any) => {
+        if (callbacks.onAttackDeclared && payload) {
+          callbacks.onAttackDeclared(payload);
+        }
+      })
+      .on('broadcast', { event: 'blocker_activated' }, ({ payload }: any) => {
+        if (callbacks.onBlockerActivated && payload) {
+          callbacks.onBlockerActivated(payload);
+        }
+      })
+      .on('broadcast', { event: 'counter_played' }, ({ payload }: any) => {
+        if (callbacks.onCounterPlayed && payload) {
+          callbacks.onCounterPlayed(payload);
+        }
+      })
+      .on('broadcast', { event: 'combat_resolved' }, ({ payload }: any) => {
+        if (callbacks.onCombatResolved && payload) {
+          callbacks.onCombatResolved(payload);
+        }
+      })
+      .on('broadcast', { event: 'turn_end' }, ({ payload }: any) => {
+        if (callbacks.onTurnEnd && payload) {
+          callbacks.onTurnEnd(payload);
+        }
+      })
+      .on('broadcast', { event: 'emote' }, ({ payload }: any) => {
+        if (callbacks.onEmote && payload?.text) {
+          callbacks.onEmote(payload.text);
+        }
+      })
+      .on('broadcast', { event: 'game_state_sync' }, ({ payload }: any) => {
+        if (callbacks.onStateSync && payload?.gameState) {
+          callbacks.onStateSync(payload.gameState);
         }
       })
       .on('broadcast', { event: 'game_action' }, ({ payload }: any) => {
-        if (onActionBroadcast && payload) {
-          onActionBroadcast(payload);
+        if (onActionBroadcastLegacy && payload) {
+          onActionBroadcastLegacy(payload);
         }
       })
       .subscribe((status: string) => {
         if (status === 'SUBSCRIBED') {
-          // Announce arrival
           this.channel?.send({
             type: 'broadcast',
             event: 'player_joined',
@@ -92,7 +223,127 @@ export class SimMultiplayerEngine {
   }
 
   /**
-   * Broadcast state update to opponent
+   * Broadcast handshake with player leader and starting cards
+   */
+  public broadcastHandshake(payload: Omit<PlayerHandshakePayload, 'playerId'>) {
+    if (!this.channel) return;
+    this.channel.send({
+      type: 'broadcast',
+      event: 'player_handshake',
+      payload: {
+        playerId: this.playerId,
+        ...payload,
+      },
+    });
+  }
+
+  /**
+   * Broadcast public board state (characters, leader, active DON, hand count, etc.)
+   */
+  public broadcastBoardSync(board: PlayerPublicBoard) {
+    if (!this.channel) return;
+    this.channel.send({
+      type: 'broadcast',
+      event: 'board_sync',
+      payload: {
+        playerId: this.playerId,
+        board,
+      },
+    });
+  }
+
+  /**
+   * Broadcast attack declaration
+   */
+  public broadcastAttackDeclared(payload: Omit<AttackDeclaredPayload, 'playerId'>) {
+    if (!this.channel) return;
+    this.channel.send({
+      type: 'broadcast',
+      event: 'attack_declared',
+      payload: {
+        playerId: this.playerId,
+        ...payload,
+      },
+    });
+  }
+
+  /**
+   * Broadcast Blocker intercept
+   */
+  public broadcastBlockerActivated(payload: Omit<BlockerActivatedPayload, 'playerId'>) {
+    if (!this.channel) return;
+    this.channel.send({
+      type: 'broadcast',
+      event: 'blocker_activated',
+      payload: {
+        playerId: this.playerId,
+        ...payload,
+      },
+    });
+  }
+
+  /**
+   * Broadcast Counter from hand
+   */
+  public broadcastCounterPlayed(payload: Omit<CounterPlayedPayload, 'playerId'>) {
+    if (!this.channel) return;
+    this.channel.send({
+      type: 'broadcast',
+      event: 'counter_played',
+      payload: {
+        playerId: this.playerId,
+        ...payload,
+      },
+    });
+  }
+
+  /**
+   * Broadcast Combat resolution outcome
+   */
+  public broadcastCombatResolved(payload: Omit<CombatResolvedPayload, 'playerId'>) {
+    if (!this.channel) return;
+    this.channel.send({
+      type: 'broadcast',
+      event: 'combat_resolved',
+      payload: {
+        playerId: this.playerId,
+        ...payload,
+      },
+    });
+  }
+
+  /**
+   * Broadcast Turn End
+   */
+  public broadcastTurnEnd(nextTurnNumber: number) {
+    if (!this.channel) return;
+    this.channel.send({
+      type: 'broadcast',
+      event: 'turn_end',
+      payload: {
+        playerId: this.playerId,
+        nextTurnNumber,
+      },
+    });
+  }
+
+  /**
+   * Broadcast Emote / Chat quick phrase
+   */
+  public broadcastEmote(text: string) {
+    if (!this.channel) return;
+    this.channel.send({
+      type: 'broadcast',
+      event: 'emote',
+      payload: {
+        playerId: this.playerId,
+        text,
+      },
+    });
+  }
+
+  /**
+   * Broadcast raw state update (legacy)
    */
   public broadcastGameState(gameState: SimGameState) {
     if (!this.channel) return;
@@ -107,7 +358,7 @@ export class SimMultiplayerEngine {
   }
 
   /**
-   * Broadcast specific game action (e.g. attack, pass, blocker, trigger)
+   * Broadcast specific game action (legacy)
    */
   public broadcastAction(actionType: string, payload: any) {
     if (!this.channel) return;
@@ -129,7 +380,11 @@ export class SimMultiplayerEngine {
     if (this.channel) {
       const supabase = getSupabaseBrowserClient();
       if (supabase) {
-        supabase.removeChannel(this.channel);
+        try {
+          supabase.removeChannel(this.channel);
+        } catch (e) {
+          console.warn('Error removing multiplayer channel:', e);
+        }
       }
       this.channel = null;
       this.roomId = null;

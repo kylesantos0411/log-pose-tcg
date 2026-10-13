@@ -9,7 +9,7 @@ import { RecommendedDeck, DeckCardItem, RECOMMENDED_DECKS } from '../recommended
 import { getEditionCardImageUrl } from '../card-image';
 import { ST01_STRAW_HAT_DECK, ST04_ANIMAL_KINGDOM_DECK } from './starter-decks';
 
-function createLog(text: string, type: GameLogEntry['type'] = 'action'): GameLogEntry {
+export function createLog(text: string, type: GameLogEntry['type'] = 'action'): GameLogEntry {
   const d = new Date();
   const time = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
   return {
