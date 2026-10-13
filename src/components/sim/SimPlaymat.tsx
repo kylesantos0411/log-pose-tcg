@@ -152,7 +152,6 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
 
   // Toggle for original card hand view vs minimized count pill
   const [playerHandExpanded, setPlayerHandExpanded] = useState(true);
-  const [oppHandExpanded, setOppHandExpanded] = useState(true);
   const [showTurnMenu, setShowTurnMenu] = useState(false);
 
   // Virtual landscape mode toggle for mobile devices
@@ -1240,54 +1239,32 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
           </div>
         </div>
 
-        {/* 2. OPPONENT HAND & STATUS PILL */}
-        <div className="flex flex-col items-center w-full shrink-0 z-10 gap-0.5">
-          {/* Opponent Hand (Overlapping cards - nice and large like Image 1) */}
-          {oppHandExpanded && (
-            <div className="flex items-center justify-center -space-x-3 sm:-space-x-4 animate-fadeIn my-0.5">
-              {Array.from({ length: gameState.opponent.handCount }).map((_, idx) => (
-                <div
-                  key={`opp-hand-card-${idx}`}
-                  className="w-13 sm:w-16 md:w-18 aspect-[2.5/3.5] rounded-lg overflow-hidden border border-white/20 shadow-md transform transition hover:-translate-y-1 hover:z-10 bg-black/40 shrink-0"
-                >
-                  <img
-                    src={OPCG_PURPLE_BACK_DATA_URL}
-                    alt="Opponent Hand"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
+        {/* 2. OPPONENT STATUS PILL BAR */}
+        <div className="flex items-center justify-between w-full px-1 py-1 shrink-0 z-10">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setShowOpponentSelector(true)}
+              className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#131d31] border border-blue-500/30 text-white text-[9px] font-bold shadow-xs hover:bg-[#1a263f] transition cursor-pointer"
+              title="Click to change opponent deck"
+            >
+              <span className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.8)]" />
+              <span>OPPONENT</span>
+            </button>
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8.5px]">
+              <Clock className="w-2.5 h-2.5 text-gray-400" />
+              <span>17:30</span>
             </div>
-          )}
+          </div>
 
-          {/* Opponent Status Pill Bar */}
-          <div className="flex items-center justify-between w-full px-1">
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setShowOpponentSelector(true)}
-                className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#131d31] border border-blue-500/30 text-white text-[9px] font-bold shadow-xs hover:bg-[#1a263f] transition"
-              >
-                <span className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.8)]" />
-                <span>OPPONENT</span>
-              </button>
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8.5px]">
-                <Clock className="w-2.5 h-2.5 text-gray-400" />
-                <span>17:30</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1">
-              <div className="px-2 py-0.5 rounded-md bg-[#131d31] border border-white/10 text-white font-mono text-[9px] font-bold shadow-xs">
-                {gameState.opponent.handCount}
-              </div>
-              <button
-                type="button"
-                onClick={() => setOppHandExpanded(!oppHandExpanded)}
-                className="px-2 py-0.5 rounded-md bg-[#1a253d] hover:bg-[#24324f] text-gray-200 border border-white/10 text-[8.5px] font-semibold shadow-xs flex items-center gap-0.5 transition"
-              >
-                <span>⇅ Original</span>
-              </button>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[8.5px] text-gray-400 font-bold uppercase tracking-wider">Hand</span>
+            <div
+              className="px-2.5 py-0.5 rounded-md bg-[#131d31] border border-white/10 text-white font-mono text-[9.5px] font-bold shadow-xs flex items-center gap-1"
+              title={`Opponent has ${gameState.opponent.handCount} cards in hand`}
+            >
+              <span>{gameState.opponent.handCount}</span>
+              <span className="text-[7.5px] text-gray-400 uppercase font-sans">Cards</span>
             </div>
           </div>
         </div>
