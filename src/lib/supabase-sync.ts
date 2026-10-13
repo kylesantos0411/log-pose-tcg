@@ -46,10 +46,15 @@ export function checkIsChiefAdmin(
 
   return (
     email === 'kylesantos0411@gmail.com' ||
+    email === 'shalltear106@gmail.com' ||
     tag === '@kaipuccino' ||
     tag === 'kaipuccino' ||
     username === 'kaipuccino' ||
-    name === 'kaipuccino'
+    name === 'kaipuccino' ||
+    tag === '@kaidump' ||
+    tag === 'kaidump' ||
+    username === 'kaidump' ||
+    name === 'kaidump'
   );
 }
 
