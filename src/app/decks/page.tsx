@@ -177,30 +177,30 @@ export default function RecommendedDecksPage() {
   return (
     <div className="min-h-screen pb-24 font-sans text-gray-100 max-w-lg md:max-w-5xl lg:max-w-7xl mx-auto w-full">
       {/* Top App Bar */}
-      <header className="sticky top-0 z-30 bg-[#0e1017]/95 backdrop-blur-md px-3 sm:px-4 py-2.5 sm:py-3 border-b border-[#1f2330] flex items-center justify-between">
-        <div className="flex items-center gap-2.5 sm:gap-3">
+      <header className="sticky top-0 z-30 bg-[#0e1017]/95 backdrop-blur-md px-2.5 sm:px-4 py-2 sm:py-3 border-b border-[#1f2330] flex items-center justify-between gap-1.5 w-full overflow-hidden">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <Link
             href="/"
             className="w-8 h-8 sm:w-9 sm:h-9 rounded-full hover:bg-white/10 flex items-center justify-center text-white transition active:scale-95 shrink-0"
             aria-label="Back to Home"
           >
-            <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
           </Link>
-          <div className="min-w-0">
-            <h1 className="text-sm sm:text-lg font-bold text-white tracking-wide truncate">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xs sm:text-lg font-bold text-white tracking-wide truncate">
               One Piece Decks
             </h1>
-            <p className="text-[10px] text-slate-400 font-medium leading-none mt-0.5 truncate">
+            <p className="text-[10px] text-slate-400 font-medium leading-none mt-0.5 truncate hidden xs:block sm:block">
               Build Custom Decks &amp; Meta Tournaments
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 shrink-0">
           {/* Create Custom Deck Button */}
           <button
             onClick={() => setIsCustomDeckModalOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-blue-600 hover:bg-blue-500 text-white text-[10px] sm:text-[11px] font-bold uppercase tracking-wider shrink-0 transition shadow-sm active:scale-95 cursor-pointer"
+            className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-full bg-blue-600 hover:bg-blue-500 text-white text-[10px] sm:text-[11px] font-bold uppercase tracking-wider shrink-0 transition shadow-sm active:scale-95 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span className="hidden sm:inline">Create Deck</span>
@@ -211,10 +211,11 @@ export default function RecommendedDecksPage() {
           <Link
             href="/sim"
             title="Open TCG Simulator"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/35 text-amber-300 hover:bg-amber-500/25 text-[10px] sm:text-[11px] font-black uppercase tracking-wider shrink-0 transition shadow-sm active:scale-95"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/35 text-amber-300 hover:bg-amber-500/25 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider shrink-0 transition shadow-sm active:scale-95"
           >
             <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
-            <span>PLAYTEST</span>
+            <span className="hidden sm:inline">PLAYTEST</span>
+            <span className="sm:hidden">SIM</span>
           </Link>
         </div>
       </header>
@@ -238,7 +239,7 @@ export default function RecommendedDecksPage() {
           </div>
           <button
             onClick={() => setIsCustomDeckModalOpen(true)}
-            className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white shadow-sm flex items-center justify-center gap-1.5 transition self-start sm:self-auto cursor-pointer"
+            className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white shadow-sm flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0"
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>Create Custom Deck</span>
