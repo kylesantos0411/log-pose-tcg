@@ -47,95 +47,95 @@ export function getLeaderBaseLife(leaderId: string, colors: string[]): number {
 /**
  * Helper to construct an authentic SimCard from card item
  */
+import cardRulesDbRaw from './card-rules-db.json';
+
+const cardRulesDb: Record<string, {
+  counter: number | null;
+  effect: string | null;
+  trigger: string | null;
+  types: string | null;
+  attributes: string | null;
+}> = cardRulesDbRaw as any;
+
+/**
+ * Universal Card Effect & Keyword Engine:
+ * Intelligently recognizes Bandai rules from card text or database for ANY custom card.
+ */
 function createSimCard(
   item: DeckCardItem,
   instanceId: string,
   defaultColor = 'Red'
 ): SimCard {
-  const isBlocker = item.name.toLowerCase().includes('chopper') ||
+  const baseCardCode = item.cardId.split('_')[0].trim();
+  const dbData = cardRulesDb[baseCardCode] || null;
+
+  // 1. Determine Effect Text
+  const rawEffect = (dbData?.effect || '').trim();
+  const rawTrigger = (dbData?.trigger || '').trim();
+
+  // 2. Universal Blocker Detection
+  const hasBlockerKeyword = (
+    rawEffect.toLowerCase().includes('[blocker]') ||
+    rawEffect.toLowerCase().includes('blocker') ||
+    item.name.toLowerCase().includes('chopper') ||
     item.name.toLowerCase().includes('queen') ||
     item.name.toLowerCase().includes('killer') ||
-    item.cardId === 'ST01-006' ||
-    item.cardId === 'ST04-005';
+    item.cardId.startsWith('ST01-006') ||
+    item.cardId.startsWith('ST04-005')
+  );
 
-  const isRush = item.cardId === 'ST01-012' ||
-    (item.name.toLowerCase().includes('zoro') && (item.cost || 0) <= 3) ||
-    item.cardId === 'ST04-003';
+  // 3. Universal Rush Detection
+  const hasRushKeyword = (
+    rawEffect.toLowerCase().includes('[rush]') ||
+    item.name.toLowerCase().includes('zoro') && (item.cost || 0) <= 3 ||
+    item.cardId.startsWith('ST01-013') ||
+    item.cardId.startsWith('ST04-003')
+  );
 
-  // Extract counter value (+1000 or +2000)
-  let counterVal: number | null = null;
-  if (item.category === 'Character') {
-    if (item.power && item.power <= 2000) counterVal = 1000;
-    else if (item.cost === 1 || item.cost === 2) counterVal = 1000;
+  // 4. Universal Counter Value Detection
+  let counterVal: number | null = dbData?.counter ?? null;
+  if (counterVal === null && item.category === 'Character') {
+    if (rawEffect.includes('+2000 Counter') || rawEffect.includes('+2000 counter') || rawEffect.includes('Counter +2000')) {
+      counterVal = 2000;
+    } else if (rawEffect.includes('+1000 Counter') || rawEffect.includes('+1000 counter') || rawEffect.includes('Counter +1000')) {
+      counterVal = 1000;
+    } else if ((item.power && item.power <= 2000) || item.cost === 1 || item.cost === 2) {
+      counterVal = 1000;
+    }
   }
-  if (item.cardId === 'ST01-002' || item.cardId === 'ST01-003' || item.cardId === 'ST01-007' || item.cardId === 'ST01-008' || item.cardId === 'ST01-009' || item.cardId === 'ST01-010') {
-    counterVal = 1000;
-  }
-  if (item.cardId === 'ST04-002') counterVal = 2000;
-  if (item.cardId === 'ST04-005' || item.cardId === 'ST04-006' || item.cardId === 'ST04-007' || item.cardId === 'ST04-008' || item.cardId === 'ST04-011') {
-    counterVal = 1000;
+
+  // Fallback for specific starter cards if missing
+  if (counterVal === null) {
+    if (['ST01-002', 'ST01-003', 'ST01-007', 'ST01-008', 'ST01-009', 'ST01-010', 'ST04-005', 'ST04-006', 'ST04-007', 'ST04-008', 'ST04-011'].includes(baseCardCode)) {
+      counterVal = 1000;
+    } else if (['ST04-002', 'OP01-029', 'OP02-005'].includes(baseCardCode)) {
+      counterVal = 2000;
+    }
   }
 
-  // Specific Card Effects & Triggers from Bandai Official database:
-  let cardEffect: string | null = isBlocker ? '[Blocker]' : isRush ? '[Rush]' : null;
-  let cardTrigger: string | null = null;
-  let englishName: string | null = null;
-  let englishEffect: string | null = null;
-  let englishTrigger: string | null = null;
+  // 5. Trigger extraction
+  let finalTrigger: string | null = rawTrigger || null;
+  if (!finalTrigger && rawEffect.toLowerCase().includes('[trigger]')) {
+    const triggerMatch = rawEffect.match(/\[Trigger\][\s\S]+/i);
+    if (triggerMatch) {
+      finalTrigger = triggerMatch[0].trim();
+    }
+  }
+  if (!finalTrigger) {
+    if (baseCardCode === 'ST01-015') {
+      finalTrigger = '[Trigger] K.O. up to 1 of your opponent\'s Characters with 5000 power or less.';
+    } else if (baseCardCode === 'ST01-003') {
+      finalTrigger = '[Trigger] Play this card.';
+    } else if (baseCardCode === 'ST01-014') {
+      finalTrigger = '[Trigger] Up to 1 of your Leader or Character cards gains +1000 power until the end of this turn.';
+    }
+  }
 
-  switch (item.cardId) {
-    case 'ST01-011': // Brook
-      cardEffect = '[On Play] Give up to 2 of your rested DON!! cards to your Leader or 1 of your Characters.';
-      englishName = 'Brook';
-      englishEffect = cardEffect;
-      break;
-    case 'ST01-003': // Karoo
-      cardEffect = null;
-      cardTrigger = '[Trigger] Play this card.';
-      englishName = 'Karoo';
-      englishTrigger = cardTrigger;
-      break;
-    case 'ST01-014': // Guard Point
-      cardEffect = '[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle.';
-      cardTrigger = '[Trigger] Up to 1 of your Leader or Character cards gains +1000 power until the end of this turn.';
-      englishName = 'Guard Point';
-      englishEffect = cardEffect;
-      englishTrigger = cardTrigger;
-      break;
-    case 'ST01-015': // Gum-Gum Pistol
-      cardEffect = '[Main] K.O. up to 1 of your opponent\'s Characters with 6000 power or less.';
-      cardTrigger = '[Trigger] K.O. up to 1 of your opponent\'s Characters with 5000 power or less.';
-      englishName = 'Gum-Gum Pistol';
-      englishEffect = cardEffect;
-      englishTrigger = cardTrigger;
-      break;
-    case 'ST01-016': // Diable Jambe
-      cardEffect = '[Main] Select 1 of your Straw Hat Crew Leader or Characters; it cannot be blocked this turn.';
-      cardTrigger = '[Trigger] Return 1 Character with 5000 power or less to its owner\'s hand.';
-      englishName = 'Diable Jambe';
-      englishEffect = cardEffect;
-      englishTrigger = cardTrigger;
-      break;
-    case 'ST01-006': // Chopper
-      cardEffect = '[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)';
-      englishName = 'Tony Tony Chopper';
-      englishEffect = cardEffect;
-      break;
-    case 'ST01-013': // Zoro
-      cardEffect = '[Rush] (This card can attack on the turn in which it is played.)';
-      englishName = 'Roronoa Zoro';
-      englishEffect = cardEffect;
-      break;
-    case 'ST04-002': // Page One
-      cardEffect = '[On Play] If you have a [Ulti] Character, set up to 1 of your DON!! cards as active.';
-      englishName = 'Page One';
-      englishEffect = cardEffect;
-      break;
-    case 'ST04-005': // Queen
-      cardEffect = '[Blocker] [On Play] DON!! -1: Draw 2 cards and trash 1 card from your hand.';
-      englishName = 'Queen';
-      englishEffect = cardEffect;
-      break;
+  // 6. Effect text extraction
+  let finalEffect: string | null = rawEffect || null;
+  if (!finalEffect) {
+    if (hasBlockerKeyword) finalEffect = '[Blocker]';
+    else if (hasRushKeyword) finalEffect = '[Rush]';
   }
 
   return {
@@ -150,18 +150,18 @@ function createSimCard(
     power: item.power ?? 0,
     counter: counterVal,
     imageUrl: getEditionCardImageUrl(item.cardId, 'jp', item.imageUrl),
-    effect: cardEffect,
-    trigger: cardTrigger,
-    englishName,
-    englishEffect,
-    englishTrigger,
-    types: null,
-    attributes: null,
+    effect: finalEffect,
+    trigger: finalTrigger,
+    englishName: item.name,
+    englishEffect: finalEffect,
+    englishTrigger: finalTrigger,
+    types: dbData?.types || null,
+    attributes: dbData?.attributes || null,
     rested: false,
     attachedDon: 0,
     customPowerModifier: 0,
-    hasBlocker: isBlocker,
-    hasRush: isRush,
+    hasBlocker: hasBlockerKeyword,
+    hasRush: hasRushKeyword,
     canAttackThisTurn: false,
   };
 }
@@ -231,6 +231,9 @@ export function initializeGame(
   let instanceCounter = 1;
 
   // 1. Prepare Leader Card
+  const leaderBaseCode = playerDeck.leaderId.split('_')[0].trim();
+  const leaderDb = cardRulesDb[leaderBaseCode] || null;
+
   const leaderCard: SimCard = {
     instanceId: `leader-${instanceCounter++}`,
     cardId: playerDeck.leaderId,
@@ -241,10 +244,12 @@ export function initializeGame(
     power: 5000,
     counter: null,
     imageUrl: getEditionCardImageUrl(playerDeck.leaderId, 'jp', playerDeck.leaderImage),
-    effect: 'Official Leader Card',
+    effect: leaderDb?.effect || 'Official Leader Card',
     trigger: null,
-    types: playerDeck.subname,
-    attributes: null,
+    types: leaderDb?.types || playerDeck.subname || null,
+    attributes: leaderDb?.attributes || null,
+    englishName: playerDeck.leaderName,
+    englishEffect: leaderDb?.effect || null,
     rested: false,
     attachedDon: 0,
     customPowerModifier: 0,
@@ -1536,11 +1541,12 @@ export function attackOpponentCharacter(
     );
 
     if (attackerPower >= oppBlockerPower) {
+      const returnedDon = oppBlocker.attachedDon || 0;
       updatedOppChars.splice(activeBlockerIdx, 1);
       updatedOppTrash += 1;
       combatLogs.push(
         createLog(
-          `💥 [K.O.] ${attacker.name} (${attackerPower} Power) K.O.'d opponent's Blocker ${oppBlocker.name}!`,
+          `💥 [K.O.] ${attacker.name} (${attackerPower} Power) K.O.'d opponent's Blocker ${oppBlocker.name}!${returnedDon ? ` (${returnedDon} DON returned to cost area)` : ''}`,
           'combat'
         )
       );
@@ -1555,11 +1561,12 @@ export function attackOpponentCharacter(
   } else {
     const hitSuccess = attackerPower >= defenderPower;
     if (hitSuccess) {
+      const returnedDon = target.attachedDon || 0;
       updatedOppChars = updatedOppChars.filter((c) => c.instanceId !== targetCharInstanceId);
       updatedOppTrash += 1;
       combatLogs.push(
         createLog(
-          `💥 K.O.! ${attacker.name} (${attackerPower} Power) attacked and destroyed ${target.name} (${defenderPower} Power)!`,
+          `💥 K.O.! ${attacker.name} (${attackerPower} Power) attacked and destroyed ${target.name} (${defenderPower} Power)!${returnedDon ? ` (${returnedDon} DON returned to cost area)` : ''}`,
           'combat'
         )
       );

@@ -148,17 +148,15 @@ export default function DeckDetailPage({ params }: { params: Promise<{ id: strin
             <Maximize2 className="w-4 h-4" />
           </button>
 
-          {/* Admin Playtest Simulator Link */}
-          {isAdmin && (
-            <Link
-              href={`/sim?deckId=${deck.id}`}
-              title="Playtest in TCG Simulator"
-              className="px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-[#222738] hover:bg-[#2c3349] text-slate-200 hover:text-white border border-[#343b52] text-[10px] sm:text-xs font-bold tracking-wider uppercase flex items-center gap-1.5 shadow-sm active:scale-95 transition shrink-0"
-            >
-              <Gamepad2 className="w-3.5 h-3.5 text-slate-400" />
-              <span>PLAYTEST</span>
-            </Link>
-          )}
+          {/* Playtest Simulator Link */}
+          <Link
+            href={`/sim?deckId=${deck.id}`}
+            title="Playtest in TCG Simulator"
+            className="px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 text-amber-300 hover:text-white border border-amber-500/40 text-[10px] sm:text-xs font-bold tracking-wider uppercase flex items-center gap-1.5 shadow-sm active:scale-95 transition shrink-0"
+          >
+            <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
+            <span>PLAYTEST</span>
+          </Link>
 
           {/* COPY DECK Button matching Screenshot 2 */}
           <button

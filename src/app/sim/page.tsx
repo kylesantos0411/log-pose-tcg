@@ -38,46 +38,8 @@ function SimulatorContent() {
 
   const [deckSearch, setDeckSearch] = useState('');
 
-  // 1. ADMIN LOCKDOWN GUARD:
-  // If user is not authenticated as an admin, strictly lock the page
-  if (!isAdmin) {
-    return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 text-center max-w-md mx-auto">
-        <div className="w-16 h-16 rounded-3xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mb-4 shadow-xl">
-          <Lock className="w-8 h-8" />
-        </div>
-
-        <span className="px-3 py-1 rounded-full bg-red-500/20 text-red-300 border border-red-500/30 text-[11px] font-black uppercase tracking-wider mb-2">
-          Admiral Eyes Only • Private Preview
-        </span>
-
-        <h2 className="text-xl sm:text-2xl font-black text-white mb-2">
-          TCG Simulator Closed Beta
-        </h2>
-
-        <p className="text-xs text-gray-300 leading-relaxed mb-6">
-          The One Piece Card Game Solitaire Simulator is currently in closed development and testing for Administrators. Stay tuned for the public release!
-        </p>
-
-        <div className="flex items-center gap-3 w-full">
-          <Link
-            href="/decks"
-            className="flex-1 py-2.5 px-4 rounded-xl bg-[#2e3344] hover:bg-[#3d445a] text-white text-xs font-bold transition flex items-center justify-center gap-2 border border-white/10"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Browse Decks</span>
-          </Link>
-
-          <Link
-            href="/"
-            className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#f4727d] to-[#e76d78] text-white text-xs font-black transition flex items-center justify-center shadow-lg"
-          >
-            <span>Return Home</span>
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  // 1. PUBLIC PLAYTEST ACCESS:
+  // All players can practice their decks and access the simulator freely.
 
   // 2. IF A DECK IS SELECTED -> RENDER PLAYMAT
   if (selectedDeck) {
@@ -85,13 +47,14 @@ function SimulatorContent() {
       <SimPlaymat
         initialDeck={selectedDeck}
         onExit={() => {
-          router.push('/');
+          setSelectedDeck(null);
+          router.push('/sim');
         }}
       />
     );
   }
 
-  // 3. IF NO DECK SELECTED -> SHOW DECK SELECTOR (ADMIN HUBS)
+  // 3. IF NO DECK SELECTED -> SHOW DECK SELECTOR & CUSTOM DECK IMPORT
   const filteredDecks = RECOMMENDED_DECKS.filter((d) => {
     if (!deckSearch.trim()) return true;
     const q = deckSearch.toLowerCase().trim();
@@ -114,14 +77,14 @@ function SimulatorContent() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-black text-white">
-                  TCG Simulator (Solitaire Sandbox)
+                  TCG Simulator (Practice & Solitaire Sandbox)
                 </h1>
-                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-black border border-amber-500/30">
-                  ADMIN BETA
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black border border-emerald-500/30">
+                  PUBLIC PLAYTEST
                 </span>
               </div>
               <p className="text-xs text-gray-400 mt-0.5">
-                Choose any tournament deck to test mulligans, curves, field control, and DON!! turns.
+                Practice custom decks, tournament meta lists, curves, mulligans, DON!! attachment, and combat.
               </p>
             </div>
           </div>
@@ -172,6 +135,22 @@ function SimulatorContent() {
           <span>START TUTORIAL</span>
           <ChevronRight className="w-4 h-4" />
         </button>
+      </div>
+
+      {/* Custom Deck Fast Importer (OPTCS / Bandai text code) */}
+      <div className="p-4 rounded-2xl bg-[#171b26] border border-amber-500/30 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">
+              Import & Practice Custom Deck
+            </h3>
+          </div>
+          <span className="text-[10px] text-gray-400 font-medium">OPTCS / GumGum / Text list</span>
+        </div>
+        <p className="text-[11px] text-gray-300">
+          Want to practice your own deck? Paste any card list (e.g. <code className="text-amber-300">1xST01-001, 4xST01-013</code>) or pick from the 100+ championship winning lists below:
+        </p>
       </div>
 
       {/* Search Input */}
