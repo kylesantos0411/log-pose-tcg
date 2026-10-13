@@ -419,10 +419,12 @@ export async function GET(req: NextRequest) {
           for (const v of nameVariants) {
             orFilters.push({ name: { contains: v } });
             orFilters.push({ id: { contains: v } });
+            orFilters.push({ cardNumber: { contains: v } });
           }
         }
 
         orFilters.push(
+          { cardNumber: { contains: searchTerm } },
           { promoSource: { contains: searchTerm } },
           { displaySet: { contains: searchTerm } },
           { printedSetCode: { contains: searchTerm } },
@@ -432,6 +434,25 @@ export async function GET(req: NextRequest) {
           { vintagePart: { contains: searchTerm } },
         );
 
+        // Match partial card numbers like "02-014", "2-14", "01-001" across all sets (PRB, OP, ST, EB)
+        const shortNumMatch = searchTerm.match(/^0?(\d{1,2})[-_\s]0?(\d{1,3})(?:_p\d+)?$/i);
+        if (shortNumMatch) {
+          const sNum = String(parseInt(shortNumMatch[1], 10)).padStart(2, '0');
+          const cNum = String(parseInt(shortNumMatch[2], 10)).padStart(3, '0');
+          orFilters.push(
+            { id: { contains: `${sNum}-${cNum}` } },
+            { id: { contains: `PRB${sNum}-${cNum}` } },
+            { id: { contains: `OP${sNum}-${cNum}` } },
+            { id: { contains: `ST${sNum}-${cNum}` } },
+            { id: { contains: `EB${sNum}-${cNum}` } },
+            { cardNumber: { contains: `${sNum}-${cNum}` } },
+            { cardNumber: { contains: `PRB${sNum}-${cNum}` } },
+            { cardNumber: { contains: `OP${sNum}-${cNum}` } },
+            { cardNumber: { contains: `ST${sNum}-${cNum}` } },
+            { cardNumber: { contains: `EB${sNum}-${cNum}` } },
+          );
+        }
+
         const isCharacterQuery = Boolean(CHARACTER_ALIASES[sLower] || dMatch || isExactAce);
 
         // Only match pack.name if it's not a character query and length >= 5 to prevent deck names like "Luffy & Ace" matching all cards for Ace
@@ -440,11 +461,53 @@ export async function GET(req: NextRequest) {
         }
         orFilters.push({ pack: { is: { code: { contains: searchTerm } } } });
 
-        // Set Code & PRB Alias expansion (e.g. PRB01, PRB-01, OP01, PRB, THE BEST)
+        // Set Code & PRB Alias expansion (e.g. PRB01, PRB-01, OP01, PRB, THE BEST, PRB cards)
         const cleanUpperTerm = searchTerm.trim().toUpperCase();
         const setCodeMatch = cleanUpperTerm.match(/^([A-Z]{2,4})[-_\s]?0?(\d{1,2})$/);
 
-        if (setCodeMatch) {
+        const isPrbGeneric = /^(?:PRB|PRB\s*CARDS?|THE\s*BEST|PREMIUM\s*BOOSTER)$/i.test(cleanUpperTerm);
+        const isPrb1 = /^(?:PRB[-_\s]?0?1(?:\s*CARDS?)?|THE\s*BEST\s*(?:VOL\.?\s*)?0?1)$/i.test(cleanUpperTerm);
+        const isPrb2 = /^(?:PRB[-_\s]?0?2(?:\s*CARDS?)?|THE\s*BEST\s*(?:VOL\.?\s*)?0?2)$/i.test(cleanUpperTerm);
+
+        if (isPrb1) {
+          orFilters.push(
+            { packId: '569301' },
+            { displaySet: 'PRB-01' },
+            { displaySet: 'PRB01' },
+            { printedSetCode: 'PRB01' },
+            { pack: { is: { code: 'PRB-01' } } },
+            { pack: { is: { code: 'PRB01' } } },
+            { pack: { is: { name: { contains: '[PRB-01]' } } } },
+            { id: { startsWith: 'PRB01' } },
+            { id: { startsWith: 'PRB-01' } },
+            { cardNumber: { startsWith: 'PRB01' } },
+            { cardNumber: { startsWith: 'PRB-01' } }
+          );
+        } else if (isPrb2) {
+          orFilters.push(
+            { packId: '569302' },
+            { displaySet: 'PRB-02' },
+            { displaySet: 'PRB02' },
+            { printedSetCode: 'PRB02' },
+            { pack: { is: { code: 'PRB-02' } } },
+            { pack: { is: { code: 'PRB02' } } },
+            { pack: { is: { name: { contains: '[PRB-02]' } } } },
+            { id: { startsWith: 'PRB02' } },
+            { id: { startsWith: 'PRB-02' } },
+            { cardNumber: { startsWith: 'PRB02' } },
+            { cardNumber: { startsWith: 'PRB-02' } }
+          );
+        } else if (isPrbGeneric) {
+          orFilters.push(
+            { packId: { in: ['569301', '569302'] } },
+            { displaySet: { contains: 'PRB' } },
+            { printedSetCode: { contains: 'PRB' } },
+            { pack: { is: { code: { contains: 'PRB' } } } },
+            { pack: { is: { name: { contains: 'THE BEST' } } } },
+            { id: { contains: 'PRB' } },
+            { cardNumber: { contains: 'PRB' } }
+          );
+        } else if (setCodeMatch) {
           const prefix = setCodeMatch[1];
           const num = parseInt(setCodeMatch[2], 10);
           const formattedNum = String(num).padStart(2, '0');
@@ -464,37 +527,13 @@ export async function GET(req: NextRequest) {
             { cardNumber: { startsWith: dashCode } },
             { cardNumber: { startsWith: noDashCode } }
           );
-        } else if (cleanUpperTerm === 'PRB') {
-          orFilters.push(
-            { displaySet: { contains: 'PRB' } },
-            { pack: { is: { code: { contains: 'PRB' } } } },
-            { id: { contains: 'PRB' } },
-            { cardNumber: { contains: 'PRB' } }
-          );
-        } else if (cleanUpperTerm === 'THE BEST' || cleanUpperTerm === 'THEBEST') {
-          orFilters.push(
-            { pack: { is: { name: { contains: 'THE BEST' } } } },
-            { displaySet: { contains: 'PRB' } }
-          );
-        } else if (/^THE\s*BEST\s*(?:VOL\.?\s*)?0?1$/i.test(cleanUpperTerm)) {
-          orFilters.push(
-            { displaySet: 'PRB-01' },
-            { pack: { is: { code: 'PRB-01' } } },
-            { pack: { is: { name: { contains: '[PRB-01]' } } } }
-          );
-        } else if (/^THE\s*BEST\s*(?:VOL\.?\s*)?0?2$/i.test(cleanUpperTerm)) {
-          orFilters.push(
-            { displaySet: 'PRB-02' },
-            { pack: { is: { code: 'PRB-02' } } },
-            { pack: { is: { name: { contains: '[PRB-02]' } } } }
-          );
         }
 
-        // Detect Set + Number compound queries like "PRB01-013", "PRB-01-013", "PRB01 013", etc.
-        const compoundMatch = searchTerm.match(/^([A-Za-z]{2,4}[-_]?\d{1,2})[-\s]+(\d{2,3}(?:_p\d+)?)$/i);
+        // Detect Set + Number compound queries like "PRB01-013", "PRB-01-013", "PRB01 013", "PRB 02 014", etc.
+        const compoundMatch = searchTerm.match(/^([A-Za-z]{2,4}[-_ ]?\d{1,2})[-_\s]+(\d{2,3}(?:_p\d+)?)$/i);
         if (compoundMatch) {
-          const rawSet = compoundMatch[1];
-          const cardNum = compoundMatch[2];
+          const rawSet = compoundMatch[1].trim();
+          const cardNum = compoundMatch[2].trim();
           const cleanSet = rawSet.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
           
           let dashSet = rawSet;
@@ -519,8 +558,12 @@ export async function GET(req: NextRequest) {
                   { pack: { is: { name: { contains: `[${dashSet}]` } } } },
                   { id: { startsWith: dashSet } },
                   { id: { startsWith: compactSet } },
+                  { cardNumber: { startsWith: dashSet } },
+                  { cardNumber: { startsWith: compactSet } },
                   { printedSetCode: dashSet },
                   { printedSetCode: compactSet },
+                  ...(dashSet === 'PRB-01' ? [{ packId: '569301' }] : []),
+                  ...(dashSet === 'PRB-02' ? [{ packId: '569302' }] : []),
                 ]
               },
               {
@@ -659,8 +702,9 @@ export async function GET(req: NextRequest) {
     if (set && set !== 'All') {
       const clean = set.trim();
       const noDash = clean.replace(/[^A-Za-z0-9]/g, '');
-      const withDashMatch = clean.match(/^([A-Za-z]+)-?(\d+)$/i);
-      const withDash = withDashMatch ? `${withDashMatch[1].toUpperCase()}-${withDashMatch[2]}` : clean;
+      const withDashMatch = clean.match(/^([A-Za-z]+)-?0?(\d+)$/i);
+      const paddedNum = withDashMatch ? withDashMatch[2].padStart(2, '0') : '';
+      const withDash = withDashMatch ? `${withDashMatch[1].toUpperCase()}-${paddedNum}` : clean;
 
       const setOrs: any[] = [
         { pack: { code: { equals: clean } } },
@@ -678,7 +722,47 @@ export async function GET(req: NextRequest) {
         { printedSetCode: { equals: noDash } },
       ];
 
-      if (/^promo|p$/i.test(clean)) {
+      if (/^prb$/i.test(clean)) {
+        setOrs.push(
+          { packId: { in: ['569301', '569302'] } },
+          { pack: { code: { contains: 'PRB' } } },
+          { displaySet: { contains: 'PRB' } },
+          { yuyuteiSet: { contains: 'PRB' } },
+          { printedSetCode: { contains: 'PRB' } },
+          { id: { startsWith: 'PRB' } },
+          { cardNumber: { startsWith: 'PRB' } }
+        );
+      } else if (/^prb[-_\s]?0?1$/i.test(clean)) {
+        setOrs.push(
+          { packId: '569301' },
+          { pack: { code: 'PRB-01' } },
+          { pack: { code: 'PRB01' } },
+          { displaySet: 'PRB-01' },
+          { displaySet: 'PRB01' },
+          { printedSetCode: 'PRB01' },
+          { id: { startsWith: 'PRB01' } },
+          { id: { startsWith: 'PRB-01' } },
+          { cardNumber: { startsWith: 'PRB01' } },
+          { cardNumber: { startsWith: 'PRB-01' } },
+          { yuyuteiSet: 'PRB-01' },
+          { yuyuteiSet: 'prb01' }
+        );
+      } else if (/^prb[-_\s]?0?2$/i.test(clean)) {
+        setOrs.push(
+          { packId: '569302' },
+          { pack: { code: 'PRB-02' } },
+          { pack: { code: 'PRB02' } },
+          { displaySet: 'PRB-02' },
+          { displaySet: 'PRB02' },
+          { printedSetCode: 'PRB02' },
+          { id: { startsWith: 'PRB02' } },
+          { id: { startsWith: 'PRB-02' } },
+          { cardNumber: { startsWith: 'PRB02' } },
+          { cardNumber: { startsWith: 'PRB-02' } },
+          { yuyuteiSet: 'PRB-02' },
+          { yuyuteiSet: 'prb02' }
+        );
+      } else if (/^promo|p$/i.test(clean)) {
         setOrs.push({ packId: '569901' });
         setOrs.push({ pack: { code: 'PROMO' } });
         setOrs.push({ displaySet: 'PROMO' });

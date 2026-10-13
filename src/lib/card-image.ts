@@ -127,6 +127,10 @@ export const JP_CARD_IMAGE_MAP: Record<string, string> = {
   'EB04-061_p1': 'https://asia-en.onepiece-cardgame.com/images/cardlist/card/EB04-061_p1.png',    // Parallel Alt Art (Lightning/Stars)
   'EB04-061_p2': 'https://asia-en.onepiece-cardgame.com/images/cardlist/card/EB04-061_p3.png',    // Manga Rare Super Parallel (Straw Hat Crew Medallion - ¥1,480,000)
   'EB04-061_p3': 'https://asia-en.onepiece-cardgame.com/images/cardlist/card/EB04-061_p3.png',    // Manga Rare Super Parallel (Bandai Series 556117)
+
+  // PRB-02 Special Rare Parallels (SP)
+  'PRB02-014_p2': 'https://card.yuyu-tei.jp/opc/front/eb04/10087.jpg', // Sabo SP (¥17,800)
+  'PRB02-006_p2': 'https://card.yuyu-tei.jp/opc/front/eb04/10086.jpg', // Roronoa Zoro SP (¥79,800)
 };
 
 /**
