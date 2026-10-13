@@ -159,8 +159,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // In /preview or /sim mode, render dedicated studio/game canvas
-  if (isPreview || isSim) {
+  // In /sim mode, render full-bleed non-scrollable game canvas with dynamic viewport height
+  if (isSim) {
+    return <div className="fixed inset-0 w-full h-[100dvh] overflow-hidden bg-[#0a0e17]">{children}</div>;
+  }
+
+  // In /preview mode, render dedicated studio canvas
+  if (isPreview) {
     return <div className="fixed inset-0 w-screen h-screen overflow-y-auto overflow-x-hidden bg-[#0a0e17]">{children}</div>;
   }
 

@@ -1281,19 +1281,19 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
           {/* Trash Slot */}
           <div className="flex flex-col items-center shrink-0">
             <span className="text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">TRASH</span>
-            <div className="w-10 sm:w-12 md:w-13 aspect-[2.5/3.5] rounded-xl border border-dashed border-blue-900/60 bg-[#070e1a]/60 flex items-center justify-center text-gray-400">
-              <span className="text-[10px] sm:text-xs font-mono font-bold">{gameState.opponent.trashCount}</span>
+            <div className="w-9 sm:w-10 md:w-11 aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/60 bg-[#070e1a]/60 flex items-center justify-center text-gray-400">
+              <span className="text-[9px] sm:text-xs font-mono font-bold">{gameState.opponent.trashCount}</span>
             </div>
           </div>
 
           {/* Cost Area with upright DON cards */}
-          <div className="flex-1 rounded-2xl border border-blue-900/60 bg-[#070e1a]/85 p-1.5 flex flex-col justify-between shadow-inner h-full min-h-[56px] sm:min-h-[64px]">
+          <div className="flex-1 rounded-xl border border-blue-900/60 bg-[#070e1a]/85 p-1 sm:p-1.5 flex flex-col justify-between shadow-inner min-h-[46px] sm:min-h-[52px]">
             <div className="flex items-center justify-between text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider text-gray-400">
               <span>COST AREA</span>
             </div>
-            <div className="flex items-center justify-center gap-1 sm:gap-1.5 my-0.5">
+            <div className="flex items-center justify-center gap-1 sm:gap-1.5 my-0.5 overflow-x-auto max-w-full px-0.5 scrollbar-none">
               {Array.from({ length: Math.min(5, gameState.opponent.activeDon) }).map((_, idx) => (
-                <div key={`opp-don-${idx}`} className="h-10 sm:h-12 md:h-13 aspect-[2.5/3.5] rounded-xs overflow-hidden border border-black/80 shadow-md">
+                <div key={`opp-don-${idx}`} className="h-7 sm:h-8 md:h-9 aspect-[2.5/3.5] rounded-xs overflow-hidden border border-black/80 shadow-md shrink-0">
                   <img src={OPCG_DON_CARD_DATA_URL} alt="DON" className="w-full h-full object-cover" />
                 </div>
               ))}
@@ -1310,18 +1310,18 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         <div className="flex items-center justify-between gap-1.5 w-full my-auto shrink-0">
           {/* Deck & Stage */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            <div className="w-10 sm:w-12 md:w-13 aspect-[2.5/3.5] rounded-xl border border-blue-900/60 bg-[#070e1a]/60 overflow-hidden relative shadow-md">
+            <div className="w-9 sm:w-10 md:w-11 aspect-[2.5/3.5] rounded-lg border border-blue-900/60 bg-[#070e1a]/60 overflow-hidden relative shadow-md">
               <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Opponent Deck" className="w-full h-full object-cover" />
-              <div className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded-full bg-black/85 text-white font-mono text-[8px] sm:text-[9px] font-bold flex items-center justify-center border border-white/20">
+              <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/85 text-white font-mono text-[7.5px] sm:text-[8.5px] font-bold flex items-center justify-center border border-white/20">
                 {gameState.opponent.deckCount}
               </div>
             </div>
-            <div className="w-10 sm:w-12 md:w-13 aspect-[2.5/3.5] rounded-xl border border-dashed border-blue-900/40 bg-[#070e1a]/40 flex items-center justify-center text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider text-gray-500">
+            <div className="w-9 sm:w-10 md:w-11 aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/40 bg-[#070e1a]/40 flex items-center justify-center text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-500">
               STAGE
             </div>
           </div>
 
-          {/* Opponent Leader Card - Large and Commanding */}
+          {/* Opponent Leader Card - Responsive & Command Center */}
           {(() => {
             const oppLeaderCard: SimCard = {
               instanceId: 'opp-leader-inspect',
@@ -1357,11 +1357,11 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                     handleAttackOpponent(gameState.leader.instanceId);
                   }
                 }}
-                className={`sim-card-interactive select-none w-16 sm:w-20 md:w-22 aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-lg cursor-pointer transition group mx-auto ${
+                className={`sim-card-interactive select-none w-13 sm:w-15 md:w-17 aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-lg cursor-pointer transition group mx-auto ${
                   selectedAttacker
                     ? 'border-rose-500 ring-4 ring-rose-500 ring-offset-2 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(244,63,94,0.95)] scale-105 z-20'
                     : 'border-red-500/80 hover:scale-102'
-                } ${highlightTarget === 'opponent' ? spotlightClass : ''}`}
+                } ${oppLeaderCard.rested ? 'rotate-90 scale-[0.714] opacity-80' : ''} ${highlightTarget === 'opponent' ? spotlightClass : ''}`}
                 title={`Hold / Long-press to inspect. ${gameState.opponent.leaderName} (${gameState.opponent.leaderPower} Power)`}
               >
                 <img
@@ -1433,7 +1433,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                         : selectedAttacker && !oppChar.rested
                         ? 'opacity-40 border border-white/10'
                         : oppChar.rested
-                        ? 'rotate-90 scale-95 opacity-80 border-2 border-amber-500'
+                        ? 'rotate-90 scale-[0.714] opacity-80 border-2 border-amber-500'
                         : 'border border-white/20 hover:border-white/40'
                     }`}
                     title={
@@ -1473,7 +1473,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
               return (
                 <div
                   key={`opp-char-slot-${slotIdx}`}
-                  className="w-full aspect-[2.5/3.5] rounded-xl border border-dashed border-blue-900/40 bg-[#070e1a]/40"
+                  className="w-full aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/40 bg-[#070e1a]/40"
                 />
               );
             })}
@@ -1482,20 +1482,20 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
       </div>
 
       {/* RIGHT COLUMN: DON!! DECK (Top) & LIFE STACK (Bottom) */}
-      <div className="w-12 sm:w-14 md:w-16 shrink-0 flex flex-col justify-between items-center gap-1 py-0.5">
+      <div className="w-10 sm:w-12 md:w-13 shrink-0 flex flex-col justify-between items-center gap-1 py-0.5">
         {/* DON!! Deck Slot */}
         <div className="flex flex-col items-center">
           <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-400 mb-0.5 text-center leading-tight">DON!!</span>
-          <div className="w-10 sm:w-12 md:w-13 aspect-[2.5/3.5] rounded-xl overflow-hidden border border-blue-900/60 relative shadow-md bg-black/30">
+          <div className="w-9 sm:w-10 md:w-11 aspect-[2.5/3.5] rounded-lg overflow-hidden border border-blue-900/60 relative shadow-md bg-black/30">
             <img src={OPCG_DON_DECK_DATA_URL} alt="DON Deck" className="w-full h-full object-cover" />
-            <div className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded-full bg-black/85 text-white font-mono text-[8px] sm:text-[9px] font-bold flex items-center justify-center border border-white/20">
+            <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/85 text-white font-mono text-[7.5px] sm:text-[8.5px] font-bold flex items-center justify-center border border-white/20">
               {gameState.opponent.donDeckCount}
             </div>
           </div>
         </div>
 
         {/* Opponent Life Stack Container */}
-        <div className="rounded-xl border border-rose-900/80 bg-rose-950/25 px-1 py-1.5 flex flex-col items-center w-full shadow-inner">
+        <div className="rounded-xl border border-rose-900/80 bg-rose-950/25 px-1 py-1 sm:py-1.5 flex flex-col items-center w-full shadow-inner select-none">
           <span className="text-[7.5px] sm:text-[8.5px] font-bold text-rose-400 tracking-wider mb-0.5 text-center whitespace-nowrap">
             LIFE · {gameState.opponent.life}
           </span>
@@ -1503,13 +1503,13 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
             {Array.from({ length: Math.min(5, gameState.opponent.life) }).map((_, idx) => (
               <div
                 key={`opp-life-${idx}`}
-                className="w-9 sm:w-11 md:w-12 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-md"
+                className="w-8 sm:w-9 md:w-10 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-md"
               >
                 <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Life" className="w-full h-full object-cover" />
               </div>
             ))}
             {gameState.opponent.life === 0 && (
-              <div className="w-9 sm:w-11 md:w-12 aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/50 flex items-center justify-center text-[8px] text-red-400 font-black text-center">
+              <div className="w-8 sm:w-9 md:w-10 aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/50 flex items-center justify-center text-[8px] text-red-400 font-black text-center">
                 0
               </div>
             )}
@@ -1521,17 +1521,16 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
 
   const renderPlayerPlaymat = () => (
     <div
-      className={`w-full rounded-2xl border-2 border-[#153424] bg-[#091812] p-1.5 sm:p-2 shadow-xl flex flex-row items-stretch justify-between gap-1.5 flex-1 min-h-0 transition-all`}
+      className={`w-full rounded-2xl border-2 border-[#153424] bg-[#091812] p-1 sm:p-1.5 shadow-xl flex flex-row items-stretch justify-between gap-1 flex-1 min-h-0 transition-all`}
     >
       {/* LEFT COLUMN: LIFE STACK (Top) & DON!! DECK (Bottom) */}
-      <div className="w-12 sm:w-14 md:w-16 shrink-0 flex flex-col justify-between items-center gap-1 py-0.5">
+      <div className="w-10 sm:w-12 md:w-14 shrink-0 flex flex-col justify-between items-center gap-1 py-0.5">
         {/* Player Life Stack Container */}
         <div
-          onClick={handleTakeLifeDamage}
-          className={`rounded-xl border border-rose-900/80 bg-rose-950/25 px-1 py-1.5 flex flex-col items-center w-full cursor-pointer transition shadow-inner ${
+          className={`rounded-xl border border-rose-900/80 bg-rose-950/25 px-1 py-1 flex flex-col items-center w-full transition shadow-inner ${
             highlightTarget === 'life' ? spotlightClass : ''
           }`}
-          title="Click to take 1 Life damage to hand"
+          title={`Player Life: ${gameState.life.length} cards remaining`}
         >
           <span className="text-[7.5px] sm:text-[8.5px] font-bold text-rose-400 tracking-wider mb-0.5 text-center whitespace-nowrap">
             LIFE · {gameState.life.length}
@@ -1540,13 +1539,13 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
             {gameState.life.map((card, idx) => (
               <div
                 key={`player-life-${card.instanceId}-${idx}`}
-                className="w-9 sm:w-11 md:w-12 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-md"
+                className="w-8 sm:w-9 md:w-10 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-md"
               >
                 <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Life" className="w-full h-full object-cover" />
               </div>
             ))}
             {gameState.life.length === 0 && (
-              <div className="w-9 sm:w-11 md:w-12 aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/50 flex items-center justify-center text-[8px] text-red-400 font-black text-center">
+              <div className="w-8 sm:w-9 md:w-10 aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/50 flex items-center justify-center text-[8px] text-red-400 font-black text-center">
                 0
               </div>
             )}
@@ -1556,9 +1555,9 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         {/* DON!! Deck Slot */}
         <div className="flex flex-col items-center">
           <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-emerald-400/80 mb-0.5 text-center leading-tight">DON!!</span>
-          <div className="w-10 sm:w-12 md:w-13 aspect-[2.5/3.5] rounded-xl overflow-hidden border border-emerald-900/60 relative shadow-md bg-black/30">
+          <div className="w-9 sm:w-11 md:w-12 aspect-[2.5/3.5] rounded-xl overflow-hidden border border-emerald-900/60 relative shadow-md bg-black/30">
             <img src={OPCG_DON_DECK_DATA_URL} alt="DON Deck" className="w-full h-full object-cover" />
-            <div className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded-full bg-black/85 text-white font-mono text-[8px] sm:text-[9px] font-bold flex items-center justify-center border border-white/20">
+            <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/85 text-white font-mono text-[7.5px] sm:text-[8.5px] font-bold flex items-center justify-center border border-white/20">
               {gameState.donDeckCount}
             </div>
           </div>
@@ -1573,7 +1572,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
             CHARACTER AREA
           </span>
           <div
-            className={`grid grid-cols-5 gap-1.5 sm:gap-2 w-full rounded-lg p-0.5 transition-all ${
+            className={`grid grid-cols-5 gap-1 sm:gap-1.5 w-full rounded-lg p-0.5 transition-all ${
               highlightTarget === 'characters' ? spotlightClass : ''
             }`}
           >
@@ -1630,7 +1629,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                           gameState.characters.length >= 5
                         ? 'border-2 border-amber-400 ring-2 ring-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.8)] animate-pulse scale-105 z-20'
                         : card.rested
-                        ? 'rotate-90 scale-95 opacity-80 border-2 border-amber-500'
+                        ? 'rotate-90 scale-[0.714] opacity-80 border-2 border-amber-500'
                         : 'border border-cyan-400/80 shadow-[0_0_10px_rgba(34,211,238,0.4)] hover:border-cyan-300'
                     }`}
                     title={
@@ -1740,7 +1739,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
 
         {/* Middle Row: LEADER CARD (Center/Left) | STAGE & DECK (Right) */}
         <div className="flex items-center justify-between gap-1.5 w-full my-auto shrink-0">
-          {/* Player Leader Card - Large, Commanding with Activate pill button */}
+          {/* Player Leader Card - Balanced scale matching opponent leader */}
           <div className="flex flex-col items-center mx-auto">
             {gameState.leader && (
               <div
@@ -1770,14 +1769,14 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                   setSelectedFieldCard(gameState.leader);
                   setSelectedAttacker(null);
                 }}
-                className={`sim-card-interactive select-none w-16 sm:w-20 md:w-22 aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-[0_0_15px_rgba(34,211,238,0.4)] cursor-pointer hover:border-cyan-300 transition ${
+                className={`sim-card-interactive select-none w-13 sm:w-15 md:w-17 aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-[0_0_15px_rgba(34,211,238,0.4)] cursor-pointer hover:border-cyan-300 transition ${
                   selectedDonCount > 0
                     ? 'border-amber-400 ring-4 ring-amber-400 ring-offset-2 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(251,191,36,0.9)] scale-105 z-20'
                     : liveAttackerCard?.instanceId === gameState.leader.instanceId
                     ? 'border-rose-500 ring-4 ring-rose-500 ring-offset-2 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(244,63,94,0.95)] scale-105 z-20'
                     : 'border-cyan-400'
                 } ${
-                  gameState.leader.rested ? 'rotate-90 scale-95 opacity-80' : ''
+                  gameState.leader.rested ? 'rotate-90 scale-[0.714] opacity-80' : ''
                 } ${highlightTarget === 'leader' ? spotlightClass : ''}`}
                 title={
                   selectedDonCount > 0
@@ -1838,7 +1837,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
               onClick={() => {
                 if (gameState.leader) setSelectedFieldCard(gameState.leader);
               }}
-              className="mt-1 px-3.5 py-0.5 rounded-full bg-[#f59e0b] hover:bg-[#d97706] text-black font-black text-[8px] sm:text-[9.5px] tracking-wide flex items-center gap-0.5 shadow-md transition active:scale-95"
+              className="mt-0.5 px-3 py-0.5 rounded-full bg-[#f59e0b] hover:bg-[#d97706] text-black font-black text-[7.5px] sm:text-[9px] tracking-wide flex items-center gap-0.5 shadow-md transition active:scale-95"
             >
               <span>✦ Activate</span>
             </button>
@@ -1869,7 +1868,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                     }
                     if (gameState.stage) setSelectedFieldCard(gameState.stage);
                   }}
-                  className={`sim-card-interactive select-none w-10 sm:w-12 md:w-13 aspect-[2.5/3.5] rounded-xl flex items-center justify-center text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider overflow-hidden relative cursor-pointer transition ${
+                  className={`sim-card-interactive select-none w-9 sm:w-11 md:w-12 aspect-[2.5/3.5] rounded-xl flex items-center justify-center text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider overflow-hidden relative cursor-pointer transition ${
                     canPlayStage
                       ? 'border-2 border-dashed border-emerald-400 bg-emerald-500/25 shadow-[0_0_15px_rgba(52,211,153,0.6)] animate-pulse text-emerald-300'
                       : 'border border-dashed border-emerald-900/40 bg-[#05110d]/40 text-gray-500'
@@ -1899,11 +1898,11 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
               );
             })()}
             <div
-              className="w-10 sm:w-12 md:w-13 aspect-[2.5/3.5] rounded-xl border border-emerald-900/50 bg-[#05110d]/70 overflow-hidden relative shadow-md select-none"
+              className="w-9 sm:w-11 md:w-12 aspect-[2.5/3.5] rounded-xl border border-emerald-900/50 bg-[#05110d]/70 overflow-hidden relative shadow-md select-none"
               title={`Main Deck (${gameState.deck.length} cards remaining)`}
             >
               <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Main Deck" className="w-full h-full object-cover" />
-              <div className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded-full bg-black/85 text-white font-mono text-[8px] sm:text-[9px] font-bold flex items-center justify-center border border-white/20">
+              <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/85 text-white font-mono text-[7.5px] sm:text-[8.5px] font-bold flex items-center justify-center border border-white/20">
                 {gameState.deck.length}
               </div>
             </div>
@@ -1914,15 +1913,15 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         <div className="flex items-center gap-1.5 w-full shrink-0">
           {/* Cost Area with upright DON cards matching reference screenshot */}
           <div
-            className={`flex-1 rounded-2xl border border-emerald-900/60 bg-[#05110d]/85 p-1.5 flex flex-col justify-between shadow-inner h-full min-h-[56px] sm:min-h-[64px] transition-all ${
+            className={`flex-1 rounded-2xl border border-emerald-900/60 bg-[#05110d]/85 p-1 sm:p-1.5 flex flex-col justify-between shadow-inner h-full min-h-[46px] sm:min-h-[52px] transition-all ${
               highlightTarget === 'costArea' ? 'border-2 border-amber-400 ring-2 ring-amber-400/40 shadow-[0_0_20px_rgba(251,191,36,0.65)]' : ''
             }`}
           >
-            <div className="flex items-center justify-between text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider text-emerald-400/80">
+            <div className="flex items-center justify-between text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-emerald-400/80">
               <span className="flex items-center gap-1">
                 <span>COST AREA</span>
                 {selectedDonCount > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-black font-extrabold text-[7px] sm:text-[8px] animate-pulse">
+                  <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-black font-extrabold text-[6.5px] sm:text-[7.5px] animate-pulse">
                     {selectedDonCount} DON (+{selectedDonCount * 1000})
                   </span>
                 )}
@@ -1934,12 +1933,12 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                     e.stopPropagation();
                     setSelectedDonCount(0);
                   }}
-                  className="text-amber-400 hover:text-white text-[7.5px] sm:text-[8.5px] font-bold underline"
+                  className="text-amber-400 hover:text-white text-[7px] sm:text-[8px] font-bold underline"
                 >
-                  Clear Selection
+                  Clear
                 </button>
               ) : (
-                <span className="text-[6.5px] sm:text-[7.5px] text-gray-400 normal-case">
+                <span className="text-[6.5px] sm:text-[7px] text-gray-400 normal-case">
                   Tap Nth DON to attach
                 </span>
               )}
@@ -1965,16 +1964,16 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                       }
                       setSelectedDonCount((prev) => (prev === donNumber ? 0 : donNumber));
                     }}
-                    className={`h-10 sm:h-12 md:h-13 aspect-[2.5/3.5] rounded-xs overflow-hidden border shadow-md cursor-pointer transition-all duration-150 relative select-none shrink-0 ${
+                    className={`h-8 sm:h-9 md:h-10 aspect-[2.5/3.5] rounded-xs overflow-hidden border shadow-md cursor-pointer transition-all duration-150 relative select-none shrink-0 ${
                       isSelected
-                        ? 'border-amber-400 ring-2 ring-amber-400 ring-offset-1 ring-offset-black -translate-y-1 scale-105 shadow-[0_0_12px_rgba(251,191,36,0.8)] z-10 brightness-110'
+                        ? 'border-amber-400 ring-2 ring-amber-400 ring-offset-1 ring-offset-black -translate-y-0.5 scale-105 shadow-[0_0_12px_rgba(251,191,36,0.8)] z-10 brightness-110'
                         : 'border-black/80 hover:scale-102 hover:border-amber-300/60'
                     }`}
                     title={`Click to select ${donNumber} DON (+${donNumber * 1000} Power)`}
                   >
                     <img src={OPCG_DON_CARD_DATA_URL} alt="DON" className="w-full h-full object-cover" />
                     <div
-                      className={`absolute top-0.5 left-0.5 px-1 py-0.2 rounded-xs font-mono text-[7px] sm:text-[8px] font-black leading-none ${
+                      className={`absolute top-0.5 left-0.5 px-0.5 py-0.2 rounded-xs font-mono text-[6.5px] sm:text-[7.5px] font-black leading-none ${
                         isSelected
                           ? 'bg-amber-400 text-black shadow-xs'
                           : 'bg-black/85 text-gray-300 border border-white/10'
@@ -1986,20 +1985,20 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                 );
               })}
               {gameState.activeDon === 0 && (
-                <div className="h-10 sm:h-12 md:h-13 aspect-[2.5/3.5] rounded-xs border border-dashed border-gray-600/50 flex items-center justify-center text-[8px] text-gray-500 font-mono">
+                <div className="h-8 sm:h-9 md:h-10 aspect-[2.5/3.5] rounded-xs border border-dashed border-gray-600/50 flex items-center justify-center text-[7.5px] text-gray-500 font-mono">
                   0
                 </div>
               )}
             </div>
 
             <div className="flex items-center justify-between w-full">
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-black/80 border border-white/10 w-fit text-[7.5px] sm:text-[8.5px] font-mono text-gray-200">
+              <div className="flex items-center gap-1.5 px-1.5 py-0.2 rounded-md bg-black/80 border border-white/10 w-fit text-[7px] sm:text-[8px] font-mono text-gray-200">
                 <span className="flex items-center gap-0.5 text-amber-300 font-bold">🪙 {gameState.activeDon}</span>
                 <span className="text-gray-500">|</span>
                 <span className="flex items-center gap-0.5 text-gray-400 font-bold">🎴 {gameState.restedDon}</span>
               </div>
               {selectedDonCount > 0 && (
-                <span className="text-[7.5px] sm:text-[8.5px] text-amber-300 font-bold animate-pulse">
+                <span className="text-[7px] sm:text-[8px] text-amber-300 font-bold animate-pulse">
                   Tap Leader/Char to attach ➜
                 </span>
               )}
@@ -2008,12 +2007,12 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
 
           {/* Trash Slot */}
           <div className="flex flex-col items-center shrink-0">
-            <span className="text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">TRASH</span>
+            <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">TRASH</span>
             <div
               onClick={() => setShowTrashModal(true)}
-              className="w-10 sm:w-12 md:w-13 aspect-[2.5/3.5] rounded-xl border border-dashed border-emerald-900/60 bg-[#05110d]/50 flex items-center justify-center text-gray-400 cursor-pointer hover:border-gray-400 transition"
+              className="w-9 sm:w-11 md:w-12 aspect-[2.5/3.5] rounded-xl border border-dashed border-emerald-900/60 bg-[#05110d]/50 flex items-center justify-center text-gray-400 cursor-pointer hover:border-gray-400 transition"
             >
-              <span className="text-[10px] sm:text-xs font-mono font-bold">{gameState.trash.length}</span>
+              <span className="text-[9.5px] sm:text-xs font-mono font-bold">{gameState.trash.length}</span>
             </div>
           </div>
         </div>
@@ -2023,15 +2022,10 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
 
   return (
     <div
-      className={`h-screen w-screen overflow-hidden bg-[#0a0e17] text-gray-200 flex flex-col justify-between p-1 sm:p-2 font-sans select-none relative transition-all ${
+      className={`h-[100dvh] max-h-[100dvh] w-screen overflow-hidden bg-[#0a0e17] text-gray-200 flex flex-col justify-between p-1 sm:p-2 font-sans select-none relative transition-all ${
         isVirtualLandscape ? 'rotate-90 origin-top-left w-[100vh] h-[100vw] translate-x-[100vw] fixed inset-0 z-50' : ''
       }`}
     >
-      {/* =======================================================================
-          EXACT OPLAYTCG REFERENCE SINGLE-COLUMN MOBILE BATTLEFIELD ARCHITECTURE
-          Header -> Opponent Hand & Pill -> Opponent Mat -> Midline ->
-          Player Mat -> Player Pill & Hand -> Bottom Action Bar
-         ======================================================================= */}
       {/* =======================================================================
           EXACT OPLAYTCG REFERENCE SINGLE-COLUMN MOBILE BATTLEFIELD ARCHITECTURE
           Header -> Opponent Hand & Pill -> Opponent Mat -> Midline ->
@@ -2077,7 +2071,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
 
             {activeMultiplayerRoom && (
               <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-indigo-950/80 border border-indigo-700/60 text-indigo-300 font-mono text-[10px] shadow-xs">
-                <Radio className="w-3 h-3 text-indigo-400" />
+                <Radio className="w-3.5 h-3.5 text-indigo-400" />
                 <span className="font-bold tracking-wide">ROOM: {activeMultiplayerRoom}</span>
                 <button
                   type="button"
@@ -2108,6 +2102,20 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
             </button>
           </div>
         </div>
+
+        {/* Opponent Hand Card Peeking */}
+        {gameState.opponent.handCount > 0 && (
+          <div className="flex items-center justify-center -space-x-2.5 w-full shrink-0 overflow-hidden h-4.5 sm:h-5.5 -mb-0.5 opacity-85 pointer-events-none">
+            {Array.from({ length: Math.min(10, gameState.opponent.handCount) }).map((_, idx) => (
+              <div
+                key={`opp-hand-peek-${idx}`}
+                className="w-6 sm:w-7 aspect-[2.5/3.5] rounded-xs overflow-hidden border border-white/15 shadow-sm transform -translate-y-2"
+              >
+                <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Opponent Card" className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* 2. OPPONENT STATUS PILL BAR */}
         <div className="flex items-center justify-between w-full px-1 py-0.5 shrink-0 z-10">
@@ -2146,7 +2154,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         {/* 3. OPPONENT PLAYMAT */}
         {renderOpponentPlaymat()}
 
-        {/* 4. MIDLINE & FLOATING COMBAT TARGETING BANNER / TUTORIAL BADGE */}
+        {/* 4. MIDLINE & FLOATING COMBAT TARGETING BANNER / DON NOTIFICATION / TUTORIAL BADGE */}
         <div className="relative w-full flex items-center justify-center shrink-0 my-0.5 z-30">
           <div className="h-0.5 w-full bg-white/10" />
           {liveAttackerCard ? (
@@ -2178,6 +2186,19 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                 }}
                 className="w-4 h-4 rounded-full bg-black/60 hover:bg-black text-gray-300 hover:text-white flex items-center justify-center text-[9px] shrink-0 active:scale-95 transition"
                 title="Cancel attack"
+              >
+                ✕
+              </button>
+            </div>
+          ) : selectedDonCount > 0 ? (
+            <div className="absolute px-3 py-1 rounded-full bg-amber-500 text-black text-[9.5px] sm:text-xs font-black shadow-xl flex items-center gap-1.5 pointer-events-auto animate-bounce z-40">
+              <span>🪙 {selectedDonCount} DON!! SELECTED</span>
+              <span className="font-semibold text-gray-900">• Tap Leader or Char to attach (+{selectedDonCount * 1000} Power)</span>
+              <button
+                type="button"
+                onClick={() => setSelectedDonCount(0)}
+                className="w-4 h-4 rounded-full bg-black/30 hover:bg-black/60 text-white flex items-center justify-center text-[9px] ml-1"
+                title="Cancel DON selection"
               >
                 ✕
               </button>
@@ -2283,10 +2304,10 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
             </div>
           )}
 
-          {/* Player Hand (Overlapping cards - nice and large like Image 1) */}
+          {/* Player Hand (Proportionally scaled to viewport height, never overlaps bottom bar) */}
           {playerHandExpanded && (
             <div
-              className={`flex items-center justify-center -space-x-3 sm:-space-x-4 animate-fadeIn my-0.5 pb-1.5 transition-all overflow-x-auto max-w-full px-2 py-0.5 ${
+              className={`flex items-center justify-center -space-x-3 sm:-space-x-4 animate-fadeIn my-0.5 pb-0.5 transition-all overflow-x-auto max-w-full px-2 scrollbar-none ${
                 highlightTarget === 'hand' ? spotlightClass : ''
               }`}
             >
@@ -2313,12 +2334,12 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                         setSelectedAttacker(null);
                       }
                     }}
-                    className={`sim-card-interactive select-none relative w-16 sm:w-20 md:w-24 aspect-[2.5/3.5] rounded-xl overflow-hidden border shadow-xl cursor-pointer transform transition duration-150 shrink-0 ${
+                    className={`sim-card-interactive select-none relative h-[clamp(56px,10vh,82px)] aspect-[2.5/3.5] rounded-xl overflow-hidden border shadow-xl cursor-pointer transform transition duration-150 shrink-0 ${
                       isSelected
-                        ? '-translate-y-3 ring-3 ring-amber-400 border-amber-300 shadow-[0_0_20px_rgba(251,191,36,0.8)] z-30 scale-105'
+                        ? '-translate-y-2 ring-3 ring-amber-400 border-amber-300 shadow-[0_0_20px_rgba(251,191,36,0.8)] z-30 scale-105'
                         : canAfford
-                        ? 'opacity-100 hover:-translate-y-2 hover:border-amber-400 hover:z-20 border-white/20 bg-[#151926]'
-                        : 'opacity-70 border-white/10 hover:-translate-y-1 bg-[#10131d]'
+                        ? 'opacity-100 hover:-translate-y-1.5 hover:border-amber-400 hover:z-20 border-white/20 bg-[#151926]'
+                        : 'opacity-70 border-white/10 hover:-translate-y-0.5 bg-[#10131d]'
                     }`}
                     title={`Hold / Long-press to inspect. ${card.name} (Cost: ${card.cost})`}
                   >
@@ -2367,13 +2388,13 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                     />
 
                     {/* Top-left Cost overlay badge so player can always see curve at a glance */}
-                    <div className="absolute top-1 left-1 z-20 w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-full bg-amber-500 text-black font-black text-[8.5px] sm:text-[9.5px] flex items-center justify-center shadow-md border border-amber-300 pointer-events-none select-none">
+                    <div className="absolute top-1 left-1 z-20 w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full bg-amber-500 text-black font-black text-[8px] sm:text-[9px] flex items-center justify-center shadow-md border border-amber-300 pointer-events-none select-none">
                       {card.cost ?? 0}
                     </div>
 
                     {/* Top-right Counter overlay badge if card has counter */}
                     {card.counter && card.counter > 0 && (
-                      <div className="absolute top-1 right-1 z-20 px-1 py-0.2 rounded-md bg-black/80 backdrop-blur-xs text-cyan-300 font-mono text-[7px] sm:text-[8px] font-bold border border-cyan-400/40 pointer-events-none select-none">
+                      <div className="absolute top-1 right-1 z-20 px-1 py-0.2 rounded-md bg-black/80 backdrop-blur-xs text-cyan-300 font-mono text-[6.5px] sm:text-[7.5px] font-bold border border-cyan-400/40 pointer-events-none select-none">
                         +{card.counter}
                       </div>
                     )}
@@ -2384,13 +2405,13 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
           )}
         </div>
 
-        {/* 7. BOTTOM ACTION BAR - Exact match of Image 1 */}
-        <div className="flex items-center justify-between w-full shrink-0 px-1 py-1 z-20">
+        {/* 7. BOTTOM ACTION BAR - Clean & unified */}
+        <div className="flex items-center justify-between w-full shrink-0 px-1 py-1 z-20 h-10 sm:h-11">
           {/* Turn Menu Pill (Left) */}
           <button
             type="button"
             onClick={() => setShowTurnMenu(true)}
-            className="px-4 py-2 rounded-xl bg-white hover:bg-gray-100 text-black font-extrabold text-xs sm:text-sm flex items-center gap-1.5 shadow-lg active:scale-95 transition"
+            className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-gray-100 text-black font-extrabold text-xs sm:text-sm flex items-center gap-1.5 shadow-md active:scale-95 transition"
           >
             <Menu className="w-3.5 h-3.5 stroke-[3]" />
             <span>TURN {gameState.turn}</span>
@@ -2401,17 +2422,17 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
             <button
               type="button"
               onClick={() => alert('Bug report submitted. Thank you for testing the simulator!')}
-              className="w-8 h-8 rounded-full bg-[#141a29] text-amber-500 hover:text-amber-400 border border-white/10 shadow-xs flex items-center justify-center transition active:scale-95"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#141a29] text-amber-500 hover:text-amber-400 border border-white/10 shadow-xs flex items-center justify-center transition active:scale-95"
               title="Report bug"
             >
-              <Bug className="w-4 h-4 text-amber-500" />
+              <Bug className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500" />
             </button>
 
             <button
               type="button"
               onClick={handleNextTurn}
               disabled={isAiThinking || (Boolean(activeMultiplayerRoom) && gameState.isOpponentTurn)}
-              className={`px-5 py-2.5 rounded-xl text-black font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-lg active:scale-95 transition select-none ${
+              className={`px-4 sm:px-5 py-1.5 sm:py-2 rounded-xl text-black font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-md active:scale-95 transition select-none ${
                 isAiThinking || (Boolean(activeMultiplayerRoom) && gameState.isOpponentTurn)
                   ? 'bg-amber-600/70 cursor-not-allowed opacity-80 text-white'
                   : 'bg-[#f59e0b] hover:bg-[#d97706] cursor-pointer'
