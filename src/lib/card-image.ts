@@ -1,11 +1,22 @@
+import cardRulesDbRaw from './sim/card-rules-db.json';
+
+const cardRulesDb: Record<string, any> = cardRulesDbRaw as any;
+
 export function getSvgPlaceholderDataUrl(cardCode: string): string {
-  const displayCode = (cardCode || 'OPTCG').toUpperCase();
+  const cleanId = (cardCode || 'OPTCG').toUpperCase().split('_')[0].trim();
+  const info = cardRulesDb[cleanId] || null;
+  const name = info?.name || cleanId;
+  const cost = info?.cost !== undefined && info?.cost !== null ? info.cost : '';
+  const power = info?.power ? `${info.power}` : '';
+  const category = (info?.category || 'CHARACTER').toUpperCase();
+  const color = info?.colors || 'Slate';
+
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 350 490" width="100%" height="100%">
   <defs>
     <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#141724"/>
       <stop offset="50%" stop-color="#1b2030"/>
-      <stop offset="100%" stop-color="#11131c"/>
+      <stop offset="100%" stop-color="#0f1118"/>
     </linearGradient>
     <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#fbbf24"/>
@@ -14,12 +25,17 @@ export function getSvgPlaceholderDataUrl(cardCode: string): string {
   </defs>
   <rect x="3" y="3" width="344" height="484" rx="20" fill="url(#g1)" stroke="url(#gold)" stroke-width="2.5"/>
   <rect x="15" y="15" width="320" height="460" rx="14" fill="none" stroke="#2e354a" stroke-width="1.5" stroke-dasharray="5 3"/>
-  <circle cx="175" cy="210" r="46" fill="#202536" stroke="#fbbf24" stroke-width="2"/>
-  <polygon points="175,178 185,210 175,242 165,210" fill="#fbbf24"/>
-  <circle cx="175" cy="210" r="6" fill="#141724"/>
-  <text x="175" y="285" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-weight="900" font-size="20" text-anchor="middle" letter-spacing="1">${displayCode}</text>
-  <text x="175" y="310" fill="#9ca3af" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-weight="600" font-size="11" text-anchor="middle" letter-spacing="2">ONE PIECE TCG</text>
-  <text x="175" y="445" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif" font-weight="800" font-size="9" text-anchor="middle" letter-spacing="2">LOG POSE TCG</text>
+  ${cost !== '' ? `<circle cx="45" cy="45" r="22" fill="#f59e0b" stroke="#fbbf24" stroke-width="2"/>
+  <text x="45" y="53" fill="#000000" font-family="-apple-system, sans-serif" font-weight="900" font-size="22" text-anchor="middle">${cost}</text>` : ''}
+  <circle cx="175" cy="200" r="42" fill="#202536" stroke="#fbbf24" stroke-width="2"/>
+  <polygon points="175,170 184,200 175,230 166,200" fill="#fbbf24"/>
+  <circle cx="175" cy="200" r="5" fill="#141724"/>
+  <text x="175" y="275" fill="#ffffff" font-family="-apple-system, sans-serif" font-weight="900" font-size="18" text-anchor="middle" letter-spacing="1">${cleanId}</text>
+  <text x="175" y="305" fill="#e2e8f0" font-family="-apple-system, sans-serif" font-weight="700" font-size="15" text-anchor="middle">${name.replace(/&/g, '&amp;')}</text>
+  <text x="175" y="332" fill="#94a3b8" font-family="-apple-system, sans-serif" font-weight="600" font-size="11" text-anchor="middle" letter-spacing="1">${category} • ${color}</text>
+  ${power ? `<rect x="230" y="420" width="90" height="34" rx="10" fill="#1e293b" stroke="#10b981" stroke-width="1.5"/>
+  <text x="275" y="443" fill="#10b981" font-family="-apple-system, sans-serif" font-weight="900" font-size="16" text-anchor="middle">${power}</text>` : ''}
+  <text x="60" y="443" fill="#64748b" font-family="-apple-system, sans-serif" font-weight="800" font-size="10" text-anchor="middle" letter-spacing="1">LOG POSE</text>
 </svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }

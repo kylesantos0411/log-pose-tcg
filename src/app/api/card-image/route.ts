@@ -70,7 +70,6 @@ function fetchUrlBuffer(
       const req = client.get(
         targetUrl,
         {
-          family: 4,
           timeout: timeoutMs,
           headers: {
             'User-Agent':

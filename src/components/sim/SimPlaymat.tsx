@@ -514,6 +514,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                   alt={gameState.opponent.leaderName}
                   className="w-full h-full object-cover pointer-events-none select-none"
                   draggable={false}
+                  referrerPolicy="no-referrer"
                   onError={(e) => handleCardImageError(e, gameState.opponent.leaderId, gameState.opponent.leaderImage)}
                 />
                 {selectedAttacker && (
@@ -591,6 +592,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                       alt={oppChar.name}
                       className="w-full h-full object-cover pointer-events-none select-none"
                       draggable={false}
+                      referrerPolicy="no-referrer"
                       onError={(e) => handleCardImageError(e, oppChar.cardId, oppChar.imageUrl)}
                     />
                     {canAttackThisChar && selectedAttacker && (
@@ -796,6 +798,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                       alt={card.name}
                       className="w-full h-full object-cover pointer-events-none select-none"
                       draggable={false}
+                      referrerPolicy="no-referrer"
                       onError={(e) => handleCardImageError(e, card.cardId, card.imageUrl)}
                     />
                     {selectedDonCount > 0 && (
@@ -936,6 +939,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                   alt={gameState.leader.name}
                   className="w-full h-full object-cover pointer-events-none select-none"
                   draggable={false}
+                  referrerPolicy="no-referrer"
                   onError={(e) => handleCardImageError(e, gameState.leader?.cardId, gameState.leader?.imageUrl)}
                 />
                 {selectedDonCount > 0 && (
@@ -1029,6 +1033,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                       alt={gameState.stage.name}
                       className="w-full h-full object-cover pointer-events-none select-none"
                       draggable={false}
+                      referrerPolicy="no-referrer"
                     />
                   ) : canPlayStage ? (
                     <span className="text-emerald-300 font-black text-[7px] leading-tight text-center">+ PLAY STAGE</span>
@@ -1450,22 +1455,70 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                         setSelectedAttacker(null);
                       }
                     }}
-                    className={`sim-card-interactive select-none w-13 sm:w-16 md:w-18 aspect-[2.5/3.5] rounded-lg overflow-hidden border shadow-xl cursor-pointer transform transition duration-150 shrink-0 ${
+                    className={`sim-card-interactive select-none relative w-16 sm:w-20 md:w-24 aspect-[2.5/3.5] rounded-xl overflow-hidden border shadow-xl cursor-pointer transform transition duration-150 shrink-0 ${
                       isSelected
                         ? '-translate-y-3 ring-3 ring-amber-400 border-amber-300 shadow-[0_0_20px_rgba(251,191,36,0.8)] z-30 scale-105'
                         : canAfford
-                        ? 'opacity-100 hover:-translate-y-2 hover:border-amber-400 hover:z-20 border-white/20 bg-black/40'
-                        : 'opacity-60 border-white/10 hover:-translate-y-1 bg-black/50'
+                        ? 'opacity-100 hover:-translate-y-2 hover:border-amber-400 hover:z-20 border-white/20 bg-[#151926]'
+                        : 'opacity-70 border-white/10 hover:-translate-y-1 bg-[#10131d]'
                     }`}
                     title={`Hold / Long-press to inspect. ${card.name} (Cost: ${card.cost})`}
                   >
+                    {/* Underlying stylized card frame (visible while image loads or as fallback) */}
+                    <div className="absolute inset-0 flex flex-col justify-between p-1.5 bg-gradient-to-b from-[#1c2234] via-[#141824] to-[#0c0f17] text-white pointer-events-none select-none">
+                      <div className="flex items-center justify-between">
+                        <span className="w-5 h-5 rounded-full bg-amber-500 text-black font-black text-[9px] flex items-center justify-center shadow-xs">
+                          {card.cost ?? 0}
+                        </span>
+                        {card.counter && card.counter > 0 && (
+                          <span className="px-1 py-0.2 rounded bg-cyan-950/80 border border-cyan-500/50 text-cyan-300 font-mono text-[7px] font-bold">
+                            +{card.counter}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="text-center px-0.5 my-auto">
+                        <div className="font-mono text-[7.5px] text-slate-400 truncate">
+                          {card.cardId}
+                        </div>
+                        <div className="font-bold text-[9px] text-white truncate leading-tight mt-0.5">
+                          {card.name}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[7.5px] font-semibold text-slate-300">
+                        <span className="px-1 py-0.2 rounded bg-slate-800 text-[6.5px]">
+                          {card.category.substring(0, 4).toUpperCase()}
+                        </span>
+                        {card.power > 0 && (
+                          <span className="font-mono text-emerald-400 font-bold">
+                            {card.power}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Actual Card Artwork on top */}
                     <img
                       src={card.imageUrl}
                       alt={card.name}
-                      className="w-full h-full object-cover pointer-events-none select-none"
+                      className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none z-10"
                       draggable={false}
+                      referrerPolicy="no-referrer"
                       onError={(e) => handleCardImageError(e, card.cardId, card.imageUrl)}
                     />
+
+                    {/* Top-left Cost overlay badge so player can always see curve at a glance */}
+                    <div className="absolute top-1 left-1 z-20 w-4.5 h-4.5 sm:w-5 sm:h-5 rounded-full bg-amber-500 text-black font-black text-[8.5px] sm:text-[9.5px] flex items-center justify-center shadow-md border border-amber-300 pointer-events-none select-none">
+                      {card.cost ?? 0}
+                    </div>
+
+                    {/* Top-right Counter overlay badge if card has counter */}
+                    {card.counter && card.counter > 0 && (
+                      <div className="absolute top-1 right-1 z-20 px-1 py-0.2 rounded-md bg-black/80 backdrop-blur-xs text-cyan-300 font-mono text-[7px] sm:text-[8px] font-bold border border-cyan-400/40 pointer-events-none select-none">
+                        +{card.counter}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -1671,6 +1724,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                     src={gameState.pendingCombat.attackerImageUrl}
                     alt={gameState.pendingCombat.attackerName}
                     className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
                   />
                 </div>
               )}
@@ -1707,6 +1761,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                     src={gameState.pendingCombat.targetImageUrl}
                     alt={gameState.pendingCombat.targetName}
                     className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
                   />
                 </div>
               )}
@@ -1820,6 +1875,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                   src={liveFieldCard.imageUrl}
                   alt={liveFieldCard.name}
                   className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
                 />
               </div>
               <div className="min-w-0 flex-1">
@@ -2053,6 +2109,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit }: SimPlay
                         src={d.leaderImage}
                         alt={d.leaderName}
                         className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
                         onError={(e) => handleCardImageError(e, d.leaderId, d.leaderImage)}
                       />
                     </div>
