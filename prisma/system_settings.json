@@ -12,7 +12,7 @@
   "features": {
     "sim": {
       "locked": true,
-      "message": "The TCG Battle Simulator is temporarily paused for updates and balancing.",
+      "message": "The TCG Battle Simulator is temporarily paused for bug fix, and optimization.",
       "lockedAt": "2026-10-14T14:58:30.819Z"
     }
   }

@@ -1531,61 +1531,69 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
   const renderOpponentPlaymat = (isLandscapeMode: boolean = false) => (
     <div
       className={`w-full rounded-2xl border-2 border-[#1c2d4a] bg-[#0b1628] ${
-        isLandscapeMode ? 'p-1 gap-1' : 'p-1 sm:p-1.5 gap-1'
-      } shadow-xl flex flex-row items-stretch justify-between flex-1 min-h-0 overflow-hidden transition-all ${
+        isLandscapeMode ? 'p-0.5 sm:p-1' : 'p-1 sm:p-1.5'
+      } shadow-xl flex flex-col justify-between flex-1 min-h-0 overflow-hidden transition-all ${
         highlightTarget === 'opponent' ? spotlightClass : ''
       }`}
     >
-      {/* LEFT / MAIN BATTLEFIELD SECTION */}
-      <div className="flex-1 min-w-0 flex flex-col justify-between gap-0.5 sm:gap-1 py-0.5">
-        {/* Top Row: TRASH (Left) & COST AREA (Center/Right) */}
-        <div className="flex items-center gap-1 sm:gap-1.5 w-full shrink-0">
-          {/* Trash Slot */}
-          <div className="flex flex-col items-center shrink-0">
-            <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">TRASH</span>
-            <div className={`${isLandscapeMode ? 'h-[clamp(36px,9.5vh,48px)] w-auto' : 'h-[clamp(28px,4.2vh,36px)] w-auto'} aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/60 bg-[#070e1a]/60 flex items-center justify-center text-gray-400`}>
-              <span className="text-[9px] sm:text-xs font-mono font-bold">{gameState.opponent.trashCount}</span>
-            </div>
-          </div>
-
-          {/* Cost Area with upright DON cards */}
-          <div className={`flex-1 rounded-xl border border-blue-900/60 bg-[#070e1a]/85 ${
-            isLandscapeMode ? 'p-0.5 sm:p-1 min-h-0' : 'p-0.5 sm:p-1 min-h-0'
-          } flex flex-col justify-between shadow-inner`}>
-            <div className="flex items-center justify-between text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-400">
-              <span>COST AREA</span>
-              <div className="flex items-center gap-1.5 px-1.5 py-0.2 rounded-md bg-black/80 border border-white/10 w-fit text-[7px] sm:text-[8px] font-mono text-gray-300">
-                <span className="flex items-center gap-0.5 text-amber-300 font-bold">🪙 {gameState.opponent.activeDon}</span>
-                <span className="text-gray-500">|</span>
-                <span className="flex items-center gap-0.5 text-gray-400 font-bold">🎴 {gameState.opponent.restedDon}</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-center gap-1 sm:gap-1.5 my-0.5 overflow-x-auto max-w-full px-0.5 scrollbar-none">
-              {Array.from({ length: gameState.opponent.activeDon }).map((_, idx) => (
-                <div key={`opp-don-${idx}`} className={`${isLandscapeMode ? 'h-[clamp(28px,7.5vh,38px)]' : 'h-[clamp(22px,3.4vh,28px)]'} aspect-[2.5/3.5] rounded-xs overflow-hidden border border-black/80 shadow-md shrink-0`}>
-                  <img src={OPCG_DON_CARD_DATA_URL} alt="DON" className="w-full h-full object-cover" />
-                </div>
-              ))}
-            </div>
+      {/* ROW 1: TRASH (Left) | COST AREA (Center) | DON!! DECK (Right) */}
+      <div className="flex items-center justify-between gap-1 w-full shrink-0">
+        {/* Trash Slot */}
+        <div className="flex flex-col items-center shrink-0 w-7 sm:w-8">
+          <span className="text-[6.5px] sm:text-[7px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">TRASH</span>
+          <div className={`${isLandscapeMode ? 'h-[clamp(26px,6.5vh,34px)]' : 'h-[clamp(26px,3.8vh,32px)]'} aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/60 bg-[#070e1a]/60 flex items-center justify-center text-gray-400`}>
+            <span className="text-[8.5px] sm:text-xs font-mono font-bold">{gameState.opponent.trashCount}</span>
           </div>
         </div>
 
-        {/* Middle Row: DECK & STAGE (Left) | LEADER CARD (Center/Right) */}
-        <div className="flex items-center justify-between gap-1.5 w-full my-0.5 sm:my-1 shrink-0">
-          {/* Deck & Stage */}
-          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            <div className={`${isLandscapeMode ? 'h-[clamp(42px,11vh,54px)] w-auto' : 'h-[clamp(34px,5vh,44px)] w-auto'} aspect-[2.5/3.5] rounded-lg border border-blue-900/60 bg-[#070e1a]/60 overflow-hidden relative shadow-md`}>
-              <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Opponent Deck" className="w-full h-full object-cover" />
-              <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/85 text-white font-mono text-[7.5px] sm:text-[8.5px] font-bold flex items-center justify-center border border-white/20">
-                {gameState.opponent.deckCount}
-              </div>
-            </div>
-            <div className={`${isLandscapeMode ? 'h-[clamp(42px,11vh,54px)] w-auto' : 'h-[clamp(34px,5vh,44px)] w-auto'} aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/40 bg-[#070e1a]/40 flex items-center justify-center text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-500`}>
-              STAGE
+        {/* Cost Area with upright DON cards */}
+        <div className="flex-1 rounded-xl border border-blue-900/60 bg-[#070e1a]/85 p-0.5 min-h-0 flex flex-col justify-between shadow-inner mx-0.5">
+          <div className="flex items-center justify-between text-[6.5px] sm:text-[7px] font-bold uppercase tracking-wider text-gray-400">
+            <span>COST AREA</span>
+            <div className="flex items-center gap-1 px-1.5 py-0.2 rounded-md bg-black/80 border border-white/10 text-[6.5px] sm:text-[7px] font-mono text-gray-300">
+              <span className="flex items-center gap-0.5 text-amber-300 font-bold">🪙 {gameState.opponent.activeDon}</span>
+              <span className="text-gray-500">|</span>
+              <span className="flex items-center gap-0.5 text-gray-400 font-bold">🎴 {gameState.opponent.restedDon}</span>
             </div>
           </div>
+          <div className="flex items-center justify-center gap-1 sm:gap-1.5 my-0.5 overflow-x-auto max-w-full px-0.5 scrollbar-none">
+            {Array.from({ length: gameState.opponent.activeDon }).map((_, idx) => (
+              <div key={`opp-don-${idx}`} className={`${isLandscapeMode ? 'h-[clamp(18px,4.6vh,24px)]' : 'h-[clamp(18px,2.8vh,24px)]'} aspect-[2.5/3.5] rounded-xs overflow-hidden border border-black/80 shadow-md shrink-0`}>
+                <img src={OPCG_DON_CARD_DATA_URL} alt="DON" className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+        </div>
 
-          {/* Opponent Leader Card - Responsive & Command Center */}
+        {/* DON!! Deck Slot */}
+        <div className="flex flex-col items-center shrink-0 w-7 sm:w-8">
+          <span className="text-[6.5px] sm:text-[7px] font-bold uppercase tracking-wider text-gray-400 mb-0.5 text-center leading-tight">DON!!</span>
+          <div className={`${isLandscapeMode ? 'h-[clamp(26px,6.5vh,34px)]' : 'h-[clamp(26px,3.8vh,32px)]'} aspect-[2.5/3.5] rounded-lg overflow-hidden border border-blue-900/60 relative shadow-md bg-black/30`}>
+            <img src={OPCG_DON_DECK_DATA_URL} alt="DON Deck" className="w-full h-full object-cover" />
+            <div className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full bg-black/85 text-white font-mono text-[7px] font-bold flex items-center justify-center border border-white/20">
+              {gameState.opponent.donDeckCount}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ROW 2: DECK & STAGE (Left) | LEADER CARD (Center) | LIFE STACK (Right) */}
+      <div className="flex items-center justify-between gap-1 w-full my-auto shrink-0 px-0.5">
+        {/* Left: Deck & Stage */}
+        <div className="flex items-center gap-1 shrink-0 w-[60px] sm:w-[70px]">
+          <div className={`${isLandscapeMode ? 'h-[clamp(34px,8.5vh,44px)]' : 'h-[clamp(32px,4.8vh,42px)]'} aspect-[2.5/3.5] rounded-lg border border-blue-900/60 bg-[#070e1a]/60 overflow-hidden relative shadow-md`}>
+            <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Opponent Deck" className="w-full h-full object-cover" />
+            <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/85 text-white font-mono text-[7px] sm:text-[8px] font-bold flex items-center justify-center border border-white/20">
+              {gameState.opponent.deckCount}
+            </div>
+          </div>
+          <div className={`${isLandscapeMode ? 'h-[clamp(34px,8.5vh,44px)]' : 'h-[clamp(32px,4.8vh,42px)]'} aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/40 bg-[#070e1a]/40 flex items-center justify-center text-[6.5px] sm:text-[7.5px] font-bold uppercase tracking-wider text-gray-500`}>
+            STAGE
+          </div>
+        </div>
+
+        {/* Center: Opponent Leader Card */}
+        <div className="flex items-center justify-center flex-1">
           {(() => {
             const oppLeaderCard: SimCard = {
               instanceId: 'opp-leader-inspect',
@@ -1623,8 +1631,8 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                 }}
                 className={`sim-card-interactive select-none ${
                   isLandscapeMode
-                    ? 'h-[clamp(54px,14vh,68px)] w-auto'
-                    : 'h-[clamp(50px,7.5vh,64px)] w-auto'
+                    ? 'h-[clamp(46px,11.5vh,58px)] w-auto'
+                    : 'h-[clamp(50px,7.5vh,66px)] w-auto'
                 } aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-lg cursor-pointer transition group mx-auto ${
                   selectedAttacker
                     ? 'border-rose-500 ring-4 ring-rose-500 ring-offset-2 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(244,63,94,0.95)] scale-105 z-20'
@@ -1665,133 +1673,121 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
           })()}
         </div>
 
-        {/* Bottom Row: CHARACTER AREA (5 card slots across) */}
-        <div className="w-full shrink-0">
-          <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-400 block mb-0.5">
-            CHARACTER AREA
-          </span>
-          <div className="grid grid-cols-5 gap-1 sm:gap-1.5 w-full items-center justify-items-center">
-            {[0, 1, 2, 3, 4].map((slotIdx) => {
-              const oppChar = gameState.opponent.characters[slotIdx];
-              if (oppChar) {
-                const canAttackThisChar = Boolean(selectedAttacker && oppChar.rested);
-                return (
-                  <div
-                    key={`opp-char-${oppChar.instanceId}`}
-                    onTouchStart={() => startLongPress(oppChar)}
-                    onTouchEnd={cancelLongPress}
-                    onTouchMove={cancelLongPress}
-                    onMouseDown={() => startLongPress(oppChar)}
-                    onMouseUp={cancelLongPress}
-                    onMouseLeave={cancelLongPress}
-                    onContextMenu={(e) => handleContextMenu(e, oppChar)}
-                    onClick={() => {
-                      if (isLongPressTriggeredRef.current) return;
-                      if (selectedAttacker && oppChar.rested) {
-                        handleAttackOpponentChar(selectedAttacker.instanceId, oppChar.instanceId);
-                      } else if (selectedFieldCard && oppChar.rested) {
-                        handleAttackOpponentChar(selectedFieldCard.instanceId, oppChar.instanceId);
-                      } else {
-                        setInspectedCard(oppChar);
-                      }
-                    }}
-                    className={`sim-card-interactive select-none ${
-                      isLandscapeMode
-                        ? 'h-[clamp(48px,12.5vh,62px)] w-auto'
-                        : 'h-[clamp(44px,6.8vh,58px)] w-auto'
-                    } aspect-[2.5/3.5] rounded-lg sm:rounded-xl overflow-hidden relative shadow-md cursor-pointer transition ${
-                      canAttackThisChar
-                        ? 'border-2 border-rose-500 ring-3 ring-rose-500 ring-offset-1 ring-offset-black animate-pulse shadow-[0_0_20px_rgba(244,63,94,0.9)] scale-105 z-20'
-                        : selectedAttacker && !oppChar.rested
-                        ? 'opacity-40 border border-white/10'
-                        : oppChar.rested
-                        ? 'rotate-90 scale-[0.714] opacity-80 border-2 border-amber-500'
-                        : 'border border-white/20 hover:border-white/40'
-                    }`}
-                    title={
-                      canAttackThisChar
-                        ? `Click to attack rested ${oppChar.name} (${oppChar.power} Power)`
-                        : `Hold / Long-press to inspect. ${oppChar.name}`
-                    }
-                  >
-                    <img
-                      src={oppChar.imageUrl}
-                      alt={oppChar.name}
-                      className="w-full h-full object-cover pointer-events-none select-none"
-                      draggable={false}
-                      referrerPolicy="no-referrer"
-                      onError={(e) => handleCardImageError(e, oppChar.cardId, oppChar.imageUrl)}
-                    />
-                    {canAttackThisChar && selectedAttacker && (
-                      <div className="absolute inset-0 bg-rose-950/75 backdrop-blur-[0.5px] flex flex-col items-center justify-center p-0.5 text-center animate-fadeIn z-10">
-                        <span className="text-[7px] sm:text-[8px] font-black text-rose-200 uppercase drop-shadow">
-                          K.O.
-                        </span>
-                        <span className="text-[6px] sm:text-[7px] font-mono text-amber-300 font-bold">
-                          {(selectedAttacker.power || 0) + (selectedAttacker.attachedDon || 0) * 1000} vs {oppChar.power}
-                        </span>
-                      </div>
-                    )}
-                    {oppChar.rested && !canAttackThisChar && (
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
-                        <span className="text-[7px] font-bold uppercase text-amber-300 bg-black/85 px-1.5 rounded">
-                          RESTED
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-              return (
+        {/* Right: Opponent Life Stack Container */}
+        <div className="flex justify-end shrink-0 w-[60px] sm:w-[70px]">
+          <div className={`rounded-xl border border-rose-900/80 bg-rose-950/25 px-1 py-0.5 flex flex-col items-center shadow-inner select-none ${
+            isLandscapeMode ? 'w-8.5 sm:w-9.5 max-h-[56px] sm:max-h-[62px]' : 'w-8.5 sm:w-9.5 max-h-[58px] sm:max-h-[68px]'
+          } overflow-hidden`}>
+            <span className="text-[6.5px] sm:text-[7px] font-bold text-rose-400 tracking-wider mb-0.5 text-center whitespace-nowrap">
+              LIFE · {gameState.opponent.life}
+            </span>
+            <div className={`relative flex flex-col ${isLandscapeMode ? '-space-y-5 sm:-space-y-5.5' : '-space-y-6 sm:-space-y-7'} pt-0.5 items-center`}>
+              {Array.from({ length: Math.min(5, gameState.opponent.life) }).map((_, idx) => (
                 <div
-                  key={`opp-char-slot-${slotIdx}`}
-                  className={`${
-                    isLandscapeMode
-                      ? 'h-[clamp(48px,12.5vh,62px)] w-auto'
-                      : 'h-[clamp(44px,6.8vh,58px)] w-auto'
-                  } aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/40 bg-[#070e1a]/40`}
-                />
-              );
-            })}
+                  key={`opp-life-${idx}`}
+                  className={`${isLandscapeMode ? 'w-5.5 sm:w-6' : 'w-5.5 sm:w-6'} aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-md shrink-0`}
+                >
+                  <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Life" className="w-full h-full object-cover" />
+                </div>
+              ))}
+              {gameState.opponent.life === 0 && (
+                <div className={`${isLandscapeMode ? 'w-5.5 sm:w-6' : 'w-5.5 sm:w-6'} aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/50 flex items-center justify-center text-[7.5px] text-red-400 font-black text-center`}>
+                  0
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* RIGHT COLUMN: DON!! DECK (Top) & LIFE STACK (Bottom) */}
-      <div className={`${isLandscapeMode ? 'w-9 sm:w-10' : 'w-10 sm:w-11 md:w-12'} shrink-0 flex flex-col justify-between items-center gap-1 py-0.5 overflow-hidden`}>
-        {/* DON!! Deck Slot */}
-        <div className="flex flex-col items-center shrink-0">
-          <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-400 mb-0.5 text-center leading-tight">DON!!</span>
-          <div className={`${isLandscapeMode ? 'w-7 sm:w-7.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-lg overflow-hidden border border-blue-900/60 relative shadow-md bg-black/30`}>
-            <img src={OPCG_DON_DECK_DATA_URL} alt="DON Deck" className="w-full h-full object-cover" />
-            <div className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full bg-black/85 text-white font-mono text-[7px] sm:text-[8px] font-bold flex items-center justify-center border border-white/20">
-              {gameState.opponent.donDeckCount}
-            </div>
-          </div>
-        </div>
-
-        {/* Opponent Life Stack Container */}
-        <div className={`rounded-xl border border-rose-900/80 bg-rose-950/25 px-1 py-0.5 flex flex-col items-center w-full shadow-inner select-none ${
-          isLandscapeMode ? 'max-h-[76px] sm:max-h-[86px]' : 'max-h-[68px] sm:max-h-[80px]'
-        } overflow-hidden shrink-0`}>
-          <span className="text-[7.5px] sm:text-[8.5px] font-bold text-rose-400 tracking-wider mb-0.5 text-center whitespace-nowrap">
-            LIFE · {gameState.opponent.life}
-          </span>
-          <div className={`relative flex flex-col ${isLandscapeMode ? '-space-y-6 sm:-space-y-6.5' : '-space-y-7.5 sm:-space-y-8'} pt-0.5 items-center`}>
-            {Array.from({ length: Math.min(5, gameState.opponent.life) }).map((_, idx) => (
+      {/* ROW 3: CHARACTER AREA (5 card slots across) */}
+      <div className="w-full shrink-0">
+        <span className="text-[6.5px] sm:text-[7px] font-bold uppercase tracking-wider text-gray-400 block mb-0.5 px-0.5">
+          CHARACTER AREA
+        </span>
+        <div className="grid grid-cols-5 gap-1 sm:gap-1.5 w-full items-center justify-items-center">
+          {[0, 1, 2, 3, 4].map((slotIdx) => {
+            const oppChar = gameState.opponent.characters[slotIdx];
+            if (oppChar) {
+              const canAttackThisChar = Boolean(selectedAttacker && oppChar.rested);
+              return (
+                <div
+                  key={`opp-char-${oppChar.instanceId}`}
+                  onTouchStart={() => startLongPress(oppChar)}
+                  onTouchEnd={cancelLongPress}
+                  onTouchMove={cancelLongPress}
+                  onMouseDown={() => startLongPress(oppChar)}
+                  onMouseUp={cancelLongPress}
+                  onMouseLeave={cancelLongPress}
+                  onContextMenu={(e) => handleContextMenu(e, oppChar)}
+                  onClick={() => {
+                    if (isLongPressTriggeredRef.current) return;
+                    if (selectedAttacker && oppChar.rested) {
+                      handleAttackOpponentChar(selectedAttacker.instanceId, oppChar.instanceId);
+                    } else if (selectedFieldCard && oppChar.rested) {
+                      handleAttackOpponentChar(selectedFieldCard.instanceId, oppChar.instanceId);
+                    } else {
+                      setInspectedCard(oppChar);
+                    }
+                  }}
+                  className={`sim-card-interactive select-none ${
+                    isLandscapeMode
+                      ? 'h-[clamp(38px,9.8vh,48px)] w-auto'
+                      : 'h-[clamp(42px,6.2vh,56px)] w-auto'
+                  } aspect-[2.5/3.5] rounded-lg sm:rounded-xl overflow-hidden relative shadow-md cursor-pointer transition ${
+                    canAttackThisChar
+                      ? 'border-2 border-rose-500 ring-3 ring-rose-500 ring-offset-1 ring-offset-black animate-pulse shadow-[0_0_20px_rgba(244,63,94,0.9)] scale-105 z-20'
+                      : selectedAttacker && !oppChar.rested
+                      ? 'opacity-40 border border-white/10'
+                      : oppChar.rested
+                      ? 'rotate-90 scale-[0.714] opacity-80 border-2 border-amber-500'
+                      : 'border border-white/20 hover:border-white/40'
+                  }`}
+                  title={
+                    canAttackThisChar
+                      ? `Click to attack rested ${oppChar.name} (${oppChar.power} Power)`
+                      : `Hold / Long-press to inspect. ${oppChar.name}`
+                  }
+                >
+                  <img
+                    src={oppChar.imageUrl}
+                    alt={oppChar.name}
+                    className="w-full h-full object-cover pointer-events-none select-none"
+                    draggable={false}
+                    referrerPolicy="no-referrer"
+                    onError={(e) => handleCardImageError(e, oppChar.cardId, oppChar.imageUrl)}
+                  />
+                  {canAttackThisChar && selectedAttacker && (
+                    <div className="absolute inset-0 bg-rose-950/75 backdrop-blur-[0.5px] flex flex-col items-center justify-center p-0.5 text-center animate-fadeIn z-10">
+                      <span className="text-[7px] sm:text-[8px] font-black text-rose-200 uppercase drop-shadow">
+                        K.O.
+                      </span>
+                      <span className="text-[6px] sm:text-[7px] font-mono text-amber-300 font-bold">
+                        {(selectedAttacker.power || 0) + (selectedAttacker.attachedDon || 0) * 1000} vs {oppChar.power}
+                      </span>
+                    </div>
+                  )}
+                  {oppChar.rested && !canAttackThisChar && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
+                      <span className="text-[7px] font-bold uppercase text-amber-300 bg-black/85 px-1.5 rounded">
+                        RESTED
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            return (
               <div
-                key={`opp-life-${idx}`}
-                className={`${isLandscapeMode ? 'w-7 sm:w-7.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-md shrink-0`}
-              >
-                <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Life" className="w-full h-full object-cover" />
-              </div>
-            ))}
-            {gameState.opponent.life === 0 && (
-              <div className={`${isLandscapeMode ? 'w-7 sm:w-7.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/50 flex items-center justify-center text-[8px] text-red-400 font-black text-center`}>
-                0
-              </div>
-            )}
-          </div>
+                key={`opp-char-slot-${slotIdx}`}
+                className={`${
+                  isLandscapeMode
+                    ? 'h-[clamp(38px,9.8vh,48px)] w-auto'
+                    : 'h-[clamp(42px,6.2vh,56px)] w-auto'
+                } aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/40 bg-[#070e1a]/40`}
+              />
+            );
+          })}
         </div>
       </div>
     </div>
@@ -1800,61 +1796,49 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
   const renderPlayerPlaymat = (isLandscapeMode: boolean = false) => (
     <div
       className={`w-full rounded-2xl border-2 border-[#153424] bg-[#091812] ${
-        isLandscapeMode ? 'p-1 gap-1' : 'p-1 sm:p-1.5 gap-1'
-      } shadow-xl flex flex-row items-stretch justify-between flex-1 min-h-0 overflow-hidden transition-all`}
+        isLandscapeMode ? 'p-0.5 sm:p-1' : 'p-1 sm:p-1.5'
+      } shadow-xl flex flex-col justify-between flex-1 min-h-0 overflow-hidden transition-all`}
     >
-      {/* LEFT COLUMN: LIFE STACK (Top) & DON!! DECK (Bottom) */}
-      <div className={`${isLandscapeMode ? 'w-9 sm:w-10' : 'w-9 sm:w-10 md:w-11'} shrink-0 flex flex-col justify-between items-center gap-1 py-0.5 overflow-hidden`}>
-        {/* Player Life Stack Container */}
-        <div
-          className={`rounded-xl border border-rose-900/80 bg-rose-950/25 px-1 py-0.5 flex flex-col items-center w-full transition shadow-inner select-none ${
-            isLandscapeMode ? 'max-h-[76px] sm:max-h-[86px]' : 'max-h-[68px] sm:max-h-[80px]'
-          } overflow-hidden shrink-0 ${
-            highlightTarget === 'life' ? spotlightClass : ''
-          }`}
-          title={`Player Life: ${gameState.life.length} cards remaining`}
-        >
-          <span className="text-[7.5px] sm:text-[8.5px] font-bold text-rose-400 tracking-wider mb-0.5 text-center whitespace-nowrap">
-            LIFE · {gameState.life.length}
-          </span>
-          <div className={`relative flex flex-col ${isLandscapeMode ? '-space-y-6 sm:-space-y-6.5' : '-space-y-7.5 sm:-space-y-8'} pt-0.5 items-center`}>
-            {gameState.life.map((card, idx) => (
-              <div
-                key={`player-life-${card.instanceId}-${idx}`}
-                className={`${isLandscapeMode ? 'w-7 sm:w-7.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-md shrink-0`}
-              >
-                <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Life" className="w-full h-full object-cover" />
-              </div>
-            ))}
-            {gameState.life.length === 0 && (
-              <div className={`${isLandscapeMode ? 'w-7 sm:w-7.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/50 flex items-center justify-center text-[8px] text-red-400 font-black text-center`}>
-                0
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* DON!! Deck Slot */}
-        <div className="flex flex-col items-center shrink-0">
-          <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-emerald-400/80 mb-0.5 text-center leading-tight">DON!!</span>
-          <div className={`${isLandscapeMode ? 'w-7 sm:w-7.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-xl overflow-hidden border border-emerald-900/60 relative shadow-md bg-black/30`}>
-            <img src={OPCG_DON_DECK_DATA_URL} alt="DON Deck" className="w-full h-full object-cover" />
-            <div className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full bg-black/85 text-white font-mono text-[7px] sm:text-[8px] font-bold flex items-center justify-center border border-white/20">
-              {gameState.donDeckCount}
+      {/* ROW 1: LIFE STACK (Left) | CHARACTER AREA (Center/Right) */}
+      <div className="flex items-center justify-between gap-1 w-full shrink-0 px-0.5">
+        {/* Left: Player Life Stack */}
+        <div className="shrink-0 w-[48px] sm:w-[56px]">
+          <div
+            className={`rounded-xl border border-rose-900/80 bg-rose-950/25 px-1 py-0.5 flex flex-col items-center w-full transition shadow-inner select-none ${
+              isLandscapeMode ? 'max-h-[56px] sm:max-h-[62px]' : 'max-h-[58px] sm:max-h-[68px]'
+            } overflow-hidden ${
+              highlightTarget === 'life' ? spotlightClass : ''
+            }`}
+            title={`Player Life: ${gameState.life.length} cards remaining`}
+          >
+            <span className="text-[6.5px] sm:text-[7px] font-bold text-rose-400 tracking-wider mb-0.5 text-center whitespace-nowrap">
+              LIFE · {gameState.life.length}
+            </span>
+            <div className={`relative flex flex-col ${isLandscapeMode ? '-space-y-5 sm:-space-y-5.5' : '-space-y-6 sm:-space-y-7'} pt-0.5 items-center`}>
+              {gameState.life.map((card, idx) => (
+                <div
+                  key={`player-life-${card.instanceId}-${idx}`}
+                  className={`${isLandscapeMode ? 'w-5.5 sm:w-6' : 'w-5.5 sm:w-6'} aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-md shrink-0`}
+                >
+                  <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Life" className="w-full h-full object-cover" />
+                </div>
+              ))}
+              {gameState.life.length === 0 && (
+                <div className={`${isLandscapeMode ? 'w-5.5 sm:w-6' : 'w-5.5 sm:w-6'} aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/50 flex items-center justify-center text-[7.5px] text-red-400 font-black text-center`}>
+                  0
+                </div>
+              )}
             </div>
           </div>
         </div>
-      </div>
 
-      {/* RIGHT / MAIN BATTLEFIELD SECTION */}
-      <div className="flex-1 min-w-0 flex flex-col justify-between gap-0.5 sm:gap-1 py-0.5">
-        {/* Top Row: CHARACTER AREA (5 card slots across) */}
-        <div className="w-full shrink-0">
-          <span className="text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider text-emerald-400/80 block mb-0.5">
+        {/* Center/Right: CHARACTER AREA (5 card slots across) */}
+        <div className="flex-1 min-w-0">
+          <span className="text-[6.5px] sm:text-[7px] font-bold uppercase tracking-wider text-emerald-400/80 block mb-0.5 px-0.5">
             CHARACTER AREA
           </span>
           <div
-            className={`grid grid-cols-5 gap-1 sm:gap-1.5 w-full items-center justify-items-center rounded-lg p-0.5 transition-all ${
+            className={`grid grid-cols-5 gap-1 sm:gap-1.5 w-full items-center justify-items-center rounded-lg transition-all ${
               highlightTarget === 'characters' ? spotlightClass : ''
             }`}
           >
@@ -1875,7 +1859,6 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                     onContextMenu={(e) => handleContextMenu(e, card)}
                     onClick={() => {
                       if (isLongPressTriggeredRef.current) return;
-                      // If a hand card is selected and can afford to summon/replace:
                       if (
                         selectedHandCard &&
                         selectedHandCard.category === 'Character' &&
@@ -1902,8 +1885,8 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                     }}
                     className={`sim-card-interactive select-none ${
                       isLandscapeMode
-                        ? 'h-[clamp(48px,12.5vh,62px)] w-auto'
-                        : 'w-full max-w-[62px] sm:max-w-[72px] md:max-w-[84px] aspect-[2.5/3.5] h-auto max-h-[86px] sm:max-h-[98px]'
+                        ? 'h-[clamp(38px,9.8vh,48px)] w-auto'
+                        : 'h-[clamp(42px,6.2vh,56px)] w-auto'
                     } aspect-[2.5/3.5] rounded-lg sm:rounded-xl overflow-hidden relative shadow-md cursor-pointer transition ${
                       selectedDonCount > 0
                         ? 'border-2 border-amber-400 ring-3 ring-amber-400 ring-offset-1 ring-offset-black animate-pulse shadow-[0_0_20px_rgba(251,191,36,0.9)] scale-105 z-20'
@@ -1969,7 +1952,6 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                         </span>
                       </div>
                     )}
-
                     {card.attachedDon > 0 && (
                       <div className="absolute bottom-0.5 inset-x-0.5 py-0.2 bg-[#d97706] text-white text-[6.5px] font-bold rounded-sm text-center shadow flex items-center justify-center gap-0.5 z-10">
                         <span>DON ×{card.attachedDon}</span>
@@ -2002,8 +1984,8 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                   }}
                   className={`${
                     isLandscapeMode
-                      ? 'h-[clamp(48px,12.5vh,62px)] w-auto'
-                      : 'w-full max-w-[62px] sm:max-w-[72px] md:max-w-[84px] aspect-[2.5/3.5] h-auto max-h-[86px] sm:max-h-[98px]'
+                      ? 'h-[clamp(38px,9.8vh,48px)] w-auto'
+                      : 'h-[clamp(42px,6.2vh,56px)] w-auto'
                   } aspect-[2.5/3.5] rounded-lg sm:rounded-xl transition flex flex-col items-center justify-center p-0.5 text-center ${
                     canSummonHere
                       ? 'border-2 border-dashed border-emerald-400 bg-emerald-500/25 shadow-[0_0_20px_rgba(52,211,153,0.6)] animate-pulse cursor-pointer hover:bg-emerald-500/35 active:scale-95 z-20'
@@ -2013,10 +1995,10 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                 >
                   {canSummonHere && (
                     <div className="flex flex-col items-center gap-0.5 pointer-events-none animate-fadeIn">
-                      <span className="text-[7.5px] sm:text-[8.5px] font-black text-emerald-300 uppercase tracking-wider">
+                      <span className="text-[7px] sm:text-[8px] font-black text-emerald-300 uppercase tracking-wider">
                         + PLAY
                       </span>
-                      <span className="text-[6px] sm:text-[7px] font-mono font-bold text-emerald-200">
+                      <span className="text-[6px] sm:text-[6.5px] font-mono font-bold text-emerald-200">
                         {selectedHandCard?.cost} DON
                       </span>
                     </div>
@@ -2026,298 +2008,310 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
             })}
           </div>
         </div>
+      </div>
 
-        {/* Middle Row: LEADER CARD (Center/Left) | STAGE & DECK (Right) */}
-        <div className="flex items-center justify-between gap-1.5 w-full my-0.5 sm:my-1 shrink-0">
-          {/* Player Leader Card - Balanced scale matching opponent leader */}
-          <div className="flex flex-col items-center mx-auto">
-            {gameState.leader && (
+      {/* ROW 2: LEADER CARD (Center) & STAGE & DECK (Right) */}
+      <div className="flex items-center justify-between gap-1 w-full my-auto shrink-0 px-0.5">
+        {/* Left balance spacer */}
+        <div className="shrink-0 w-[60px] sm:w-[70px]" />
+
+        {/* Center: Player Leader Card */}
+        <div className="flex flex-col items-center mx-auto">
+          {gameState.leader && (
+            <div
+              onTouchStart={() => gameState.leader && startLongPress(gameState.leader)}
+              onTouchEnd={cancelLongPress}
+              onTouchMove={cancelLongPress}
+              onMouseDown={() => gameState.leader && startLongPress(gameState.leader)}
+              onMouseUp={cancelLongPress}
+              onMouseLeave={cancelLongPress}
+              onContextMenu={(e) => gameState.leader && handleContextMenu(e, gameState.leader)}
+              onClick={() => {
+                if (isLongPressTriggeredRef.current) return;
+                if (!gameState.leader) return;
+                if (selectedDonCount > 0) {
+                  handleAttachDon(gameState.leader.instanceId, selectedDonCount);
+                  return;
+                }
+                if (liveAttackerCard?.instanceId === gameState.leader.instanceId) {
+                  setSelectedAttacker(null);
+                  return;
+                }
+                if (canCardAttack(gameState.leader)) {
+                  setSelectedAttacker(gameState.leader);
+                  setSelectedFieldCard(null);
+                  return;
+                }
+                setSelectedFieldCard(gameState.leader);
+                setSelectedAttacker(null);
+              }}
+              className={`sim-card-interactive select-none ${
+                isLandscapeMode
+                  ? 'h-[clamp(46px,11.5vh,58px)] w-auto'
+                  : 'h-[clamp(50px,7.5vh,66px)] w-auto'
+              } aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-[0_0_15px_rgba(34,211,238,0.4)] cursor-pointer hover:border-cyan-300 transition ${
+                selectedDonCount > 0
+                  ? 'border-amber-400 ring-4 ring-amber-400 ring-offset-2 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(251,191,36,0.9)] scale-105 z-20'
+                  : liveAttackerCard?.instanceId === gameState.leader.instanceId
+                  ? 'border-rose-500 ring-4 ring-rose-500 ring-offset-2 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(244,63,94,0.95)] scale-105 z-20'
+                  : 'border-cyan-400'
+              } ${
+                gameState.leader.rested ? 'rotate-90 scale-[0.714] opacity-80' : ''
+              } ${highlightTarget === 'leader' ? spotlightClass : ''}`}
+              title={
+                selectedDonCount > 0
+                  ? `Click to attach ${selectedDonCount} DON (+${selectedDonCount * 1000} Power)`
+                  : liveAttackerCard?.instanceId === gameState.leader.instanceId
+                  ? 'Attacker selected - Click enemy target or click here to cancel'
+                  : canCardAttack(gameState.leader)
+                  ? `Click to declare attack with Leader ${gameState.leader.name} (${(gameState.leader.power || 5000) + gameState.leader.attachedDon * 1000} Power)`
+                  : `Hold / Long-press to inspect. ${gameState.leader.name}`
+              }
+            >
+              <img
+                src={gameState.leader.imageUrl}
+                alt={gameState.leader.name}
+                className="w-full h-full object-cover pointer-events-none select-none"
+                draggable={false}
+                referrerPolicy="no-referrer"
+                onError={(e) => handleCardImageError(e, gameState.leader?.cardId, gameState.leader?.imageUrl)}
+              />
+              {selectedDonCount > 0 && (
+                <div className="absolute inset-0 bg-amber-500/20 backdrop-blur-[1px] flex flex-col items-center justify-center p-1 pointer-events-none z-10">
+                  <span className="px-1.5 py-0.5 rounded-full bg-amber-400 text-black font-black text-[7.5px] sm:text-[8.5px] shadow-lg animate-bounce">
+                    +{selectedDonCount * 1000} ATK
+                  </span>
+                  <span className="text-[6px] font-bold text-amber-200 mt-0.5 drop-shadow">
+                    Tap to attach
+                  </span>
+                </div>
+              )}
+              {liveAttackerCard?.instanceId === gameState.leader.instanceId && (
+                <div className="absolute inset-0 bg-rose-950/40 backdrop-blur-[0.5px] flex flex-col items-center justify-between p-1 pointer-events-none z-10 animate-fadeIn">
+                  <span className="px-1.5 py-0.5 rounded-full bg-rose-600 text-white font-black text-[7.5px] sm:text-[8.5px] shadow-lg animate-bounce flex items-center gap-0.5">
+                    <Swords className="w-2.5 h-2.5" />
+                    <span>ATTACKING</span>
+                  </span>
+                  <span className="text-[6.5px] font-bold text-amber-200 drop-shadow">
+                    {(gameState.leader.power || 5000) + gameState.leader.attachedDon * 1000} ATK
+                  </span>
+                </div>
+              )}
+
+              {gameState.leader.attachedDon > 0 && (
+                <div className="absolute bottom-0.5 inset-x-0.5 py-0.5 bg-[#d97706] text-white text-[7px] font-bold rounded-sm text-center shadow flex items-center justify-center gap-0.5 z-10">
+                  <span>DON ×{gameState.leader.attachedDon}</span>
+                </div>
+              )}
+              {gameState.leader.rested && (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
+                  <span className="text-[7px] font-bold uppercase text-amber-300 bg-black/85 px-1.5 rounded">
+                    RESTED
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              if (gameState.leader) setSelectedFieldCard(gameState.leader);
+            }}
+            className={`${
+              isLandscapeMode
+                ? 'mt-0.5 px-2 py-0 text-[6.5px] leading-tight'
+                : 'mt-0.5 px-2.5 py-0.5 text-[7.5px] sm:text-[8.5px]'
+            } rounded-full bg-[#f59e0b] hover:bg-[#d97706] text-black font-black tracking-wide flex items-center gap-0.5 shadow-md transition active:scale-95 cursor-pointer`}
+          >
+            <span>✦ Activate</span>
+          </button>
+        </div>
+
+        {/* Right: Stage & Deck */}
+        <div className="flex items-center justify-end gap-1 shrink-0 w-[60px] sm:w-[70px]">
+          {(() => {
+            const canPlayStage = Boolean(
+              selectedHandCard &&
+              selectedHandCard.category === 'Stage' &&
+              gameState.activeDon >= (selectedHandCard.cost || 0)
+            );
+            return (
               <div
-                onTouchStart={() => gameState.leader && startLongPress(gameState.leader)}
+                onTouchStart={() => gameState.stage && startLongPress(gameState.stage)}
                 onTouchEnd={cancelLongPress}
                 onTouchMove={cancelLongPress}
-                onMouseDown={() => gameState.leader && startLongPress(gameState.leader)}
+                onMouseDown={() => gameState.stage && startLongPress(gameState.stage)}
                 onMouseUp={cancelLongPress}
                 onMouseLeave={cancelLongPress}
-                onContextMenu={(e) => gameState.leader && handleContextMenu(e, gameState.leader)}
+                onContextMenu={(e) => gameState.stage && handleContextMenu(e, gameState.stage)}
                 onClick={() => {
                   if (isLongPressTriggeredRef.current) return;
-                  if (!gameState.leader) return;
-                  if (selectedDonCount > 0) {
-                    handleAttachDon(gameState.leader.instanceId, selectedDonCount);
+                  if (canPlayStage && selectedHandCard) {
+                    handlePlayCard(selectedHandCard.instanceId);
                     return;
                   }
-                  if (liveAttackerCard?.instanceId === gameState.leader.instanceId) {
-                    setSelectedAttacker(null);
-                    return;
-                  }
-                  if (canCardAttack(gameState.leader)) {
-                    setSelectedAttacker(gameState.leader);
-                    setSelectedFieldCard(null);
-                    return;
-                  }
-                  setSelectedFieldCard(gameState.leader);
-                  setSelectedAttacker(null);
+                  if (gameState.stage) setSelectedFieldCard(gameState.stage);
                 }}
                 className={`sim-card-interactive select-none ${
                   isLandscapeMode
-                    ? 'h-[clamp(54px,14vh,68px)] w-auto'
-                    : 'h-[clamp(50px,7.5vh,64px)] w-auto'
-                } aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-[0_0_15px_rgba(34,211,238,0.4)] cursor-pointer hover:border-cyan-300 transition ${
-                  selectedDonCount > 0
-                    ? 'border-amber-400 ring-4 ring-amber-400 ring-offset-2 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(251,191,36,0.9)] scale-105 z-20'
-                    : liveAttackerCard?.instanceId === gameState.leader.instanceId
-                    ? 'border-rose-500 ring-4 ring-rose-500 ring-offset-2 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(244,63,94,0.95)] scale-105 z-20'
-                    : 'border-cyan-400'
-                } ${
-                  gameState.leader.rested ? 'rotate-90 scale-[0.714] opacity-80' : ''
-                } ${highlightTarget === 'leader' ? spotlightClass : ''}`}
+                    ? 'h-[clamp(34px,8.5vh,44px)] w-auto'
+                    : 'h-[clamp(32px,4.8vh,42px)] w-auto'
+                } aspect-[2.5/3.5] rounded-xl flex items-center justify-center text-[7px] sm:text-[8px] font-bold uppercase tracking-wider overflow-hidden relative cursor-pointer transition ${
+                  canPlayStage
+                    ? 'border-2 border-dashed border-emerald-400 bg-emerald-500/25 shadow-[0_0_15px_rgba(52,211,153,0.6)] animate-pulse text-emerald-300'
+                    : 'border border-dashed border-emerald-900/40 bg-[#05110d]/40 text-gray-500'
+                }`}
                 title={
-                  selectedDonCount > 0
-                    ? `Click to attach ${selectedDonCount} DON (+${selectedDonCount * 1000} Power)`
-                    : liveAttackerCard?.instanceId === gameState.leader.instanceId
-                    ? 'Attacker selected - Click enemy target or click here to cancel'
-                    : canCardAttack(gameState.leader)
-                    ? `Click to declare attack with Leader ${gameState.leader.name} (${(gameState.leader.power || 5000) + gameState.leader.attachedDon * 1000} Power)`
-                    : `Hold / Long-press to inspect. ${gameState.leader.name}`
+                  canPlayStage
+                    ? `Click to play Stage ${selectedHandCard?.name} (${selectedHandCard?.cost} DON)`
+                    : gameState.stage
+                    ? `Hold / Long-press to inspect. ${gameState.stage.name}`
+                    : undefined
                 }
               >
-                <img
-                  src={gameState.leader.imageUrl}
-                  alt={gameState.leader.name}
-                  className="w-full h-full object-cover pointer-events-none select-none"
-                  draggable={false}
-                  referrerPolicy="no-referrer"
-                  onError={(e) => handleCardImageError(e, gameState.leader?.cardId, gameState.leader?.imageUrl)}
-                />
-                {selectedDonCount > 0 && (
-                  <div className="absolute inset-0 bg-amber-500/20 backdrop-blur-[1px] flex flex-col items-center justify-center p-1 pointer-events-none z-10">
-                    <span className="px-1.5 py-0.5 rounded-full bg-amber-400 text-black font-black text-[7.5px] sm:text-[8.5px] shadow-lg animate-bounce">
-                      +{selectedDonCount * 1000} ATK
-                    </span>
-                    <span className="text-[6px] font-bold text-amber-200 mt-0.5 drop-shadow">
-                      Tap to attach
-                    </span>
-                  </div>
-                )}
-                {liveAttackerCard?.instanceId === gameState.leader.instanceId && (
-                  <div className="absolute inset-0 bg-rose-950/40 backdrop-blur-[0.5px] flex flex-col items-center justify-between p-1 pointer-events-none z-10 animate-fadeIn">
-                    <span className="px-1.5 py-0.5 rounded-full bg-rose-600 text-white font-black text-[7.5px] sm:text-[8.5px] shadow-lg animate-bounce flex items-center gap-0.5">
-                      <Swords className="w-2.5 h-2.5" />
-                      <span>ATTACKING</span>
-                    </span>
-                    <span className="text-[6.5px] font-bold text-amber-200 drop-shadow">
-                      {(gameState.leader.power || 5000) + gameState.leader.attachedDon * 1000} ATK
-                    </span>
-                  </div>
-                )}
-
-                {gameState.leader.attachedDon > 0 && (
-                  <div className="absolute bottom-0.5 inset-x-0.5 py-0.5 bg-[#d97706] text-white text-[7px] font-bold rounded-sm text-center shadow flex items-center justify-center gap-0.5 z-10">
-                    <span>DON ×{gameState.leader.attachedDon}</span>
-                  </div>
-                )}
-                {gameState.leader.rested && (
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center pointer-events-none">
-                    <span className="text-[7px] font-bold uppercase text-amber-300 bg-black/85 px-1.5 rounded">
-                      RESTED
-                    </span>
-                  </div>
+                {gameState.stage ? (
+                  <img
+                    src={gameState.stage.imageUrl}
+                    alt={gameState.stage.name}
+                    className="w-full h-full object-cover pointer-events-none select-none"
+                    draggable={false}
+                    referrerPolicy="no-referrer"
+                  />
+                ) : canPlayStage ? (
+                  <span className="text-emerald-300 font-black text-[7px] leading-tight text-center">+ PLAY STAGE</span>
+                ) : (
+                  <span>STAGE</span>
                 )}
               </div>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                if (gameState.leader) setSelectedFieldCard(gameState.leader);
-              }}
-              className={`${
-                isLandscapeMode
-                  ? 'mt-0.2 px-2 py-0 text-[7px] leading-tight'
-                  : 'mt-0.5 px-3 py-0.5 text-[7.5px] sm:text-[9px]'
-              } rounded-full bg-[#f59e0b] hover:bg-[#d97706] text-black font-black tracking-wide flex items-center gap-0.5 shadow-md transition active:scale-95`}
-            >
-              <span>✦ Activate</span>
-            </button>
+            );
+          })()}
+          <div
+            className={`${
+              isLandscapeMode
+                ? 'h-[clamp(34px,8.5vh,44px)] w-auto'
+                : 'h-[clamp(32px,4.8vh,42px)] w-auto'
+            } aspect-[2.5/3.5] rounded-xl border border-emerald-900/50 bg-[#05110d]/70 overflow-hidden relative shadow-md select-none`}
+            title={`Main Deck (${gameState.deck.length} cards remaining)`}
+          >
+            <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Main Deck" className="w-full h-full object-cover" />
+            <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/85 text-white font-mono text-[7.5px] sm:text-[8px] font-bold flex items-center justify-center border border-white/20">
+              {gameState.deck.length}
+            </div>
           </div>
+        </div>
+      </div>
 
-          {/* Stage & Deck */}
-          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            {(() => {
-              const canPlayStage = Boolean(
-                selectedHandCard &&
-                selectedHandCard.category === 'Stage' &&
-                gameState.activeDon >= (selectedHandCard.cost || 0)
-              );
-              return (
-                <div
-                  onTouchStart={() => gameState.stage && startLongPress(gameState.stage)}
-                  onTouchEnd={cancelLongPress}
-                  onTouchMove={cancelLongPress}
-                  onMouseDown={() => gameState.stage && startLongPress(gameState.stage)}
-                  onMouseUp={cancelLongPress}
-                  onMouseLeave={cancelLongPress}
-                  onContextMenu={(e) => gameState.stage && handleContextMenu(e, gameState.stage)}
-                  onClick={() => {
-                    if (isLongPressTriggeredRef.current) return;
-                    if (canPlayStage && selectedHandCard) {
-                      handlePlayCard(selectedHandCard.instanceId);
-                      return;
-                    }
-                    if (gameState.stage) setSelectedFieldCard(gameState.stage);
-                  }}
-                  className={`sim-card-interactive select-none ${
-                    isLandscapeMode
-                      ? 'h-[clamp(42px,11vh,54px)] w-auto'
-                      : 'h-[clamp(34px,5vh,44px)] w-auto'
-                  } aspect-[2.5/3.5] rounded-xl flex items-center justify-center text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider overflow-hidden relative cursor-pointer transition ${
-                    canPlayStage
-                      ? 'border-2 border-dashed border-emerald-400 bg-emerald-500/25 shadow-[0_0_15px_rgba(52,211,153,0.6)] animate-pulse text-emerald-300'
-                      : 'border border-dashed border-emerald-900/40 bg-[#05110d]/40 text-gray-500'
-                  }`}
-                  title={
-                    canPlayStage
-                      ? `Click to play Stage ${selectedHandCard?.name} (${selectedHandCard?.cost} DON)`
-                      : gameState.stage
-                      ? `Hold / Long-press to inspect. ${gameState.stage.name}`
-                      : undefined
-                  }
-                >
-                  {gameState.stage ? (
-                    <img
-                      src={gameState.stage.imageUrl}
-                      alt={gameState.stage.name}
-                      className="w-full h-full object-cover pointer-events-none select-none"
-                      draggable={false}
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : canPlayStage ? (
-                    <span className="text-emerald-300 font-black text-[7px] leading-tight text-center">+ PLAY STAGE</span>
-                  ) : (
-                    <span>STAGE</span>
-                  )}
-                </div>
-              );
-            })()}
-            <div
-              className={`${
-                isLandscapeMode
-                  ? 'h-[clamp(42px,11vh,54px)] w-auto'
-                  : 'h-[clamp(34px,5vh,44px)] w-auto'
-              } aspect-[2.5/3.5] rounded-xl border border-emerald-900/50 bg-[#05110d]/70 overflow-hidden relative shadow-md select-none`}
-              title={`Main Deck (${gameState.deck.length} cards remaining)`}
-            >
-              <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Main Deck" className="w-full h-full object-cover" />
-              <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/85 text-white font-mono text-[7.5px] sm:text-[8.5px] font-bold flex items-center justify-center border border-white/20">
-                {gameState.deck.length}
-              </div>
+      {/* ROW 3: DON!! DECK (Left) | COST AREA (Center) | TRASH (Right) */}
+      <div className="flex items-center justify-between gap-1 w-full shrink-0 pb-0.5">
+        {/* Left: DON!! Deck Slot */}
+        <div className="flex flex-col items-center shrink-0 w-7 sm:w-8">
+          <span className="text-[6.5px] sm:text-[7px] font-bold uppercase tracking-wider text-emerald-400/80 mb-0.5 text-center leading-tight">DON!!</span>
+          <div className={`${isLandscapeMode ? 'h-[clamp(26px,6.5vh,34px)]' : 'h-[clamp(26px,3.8vh,32px)]'} aspect-[2.5/3.5] rounded-lg overflow-hidden border border-emerald-900/60 relative shadow-md bg-black/30`}>
+            <img src={OPCG_DON_DECK_DATA_URL} alt="DON Deck" className="w-full h-full object-cover" />
+            <div className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full bg-black/85 text-white font-mono text-[7px] font-bold flex items-center justify-center border border-white/20">
+              {gameState.donDeckCount}
             </div>
           </div>
         </div>
 
-        {/* Bottom Row: COST AREA (Left/Center) & TRASH (Right) */}
-        <div className="flex items-center gap-1 sm:gap-1.5 w-full shrink-0 pb-0.5">
-          {/* Cost Area with upright DON cards matching reference screenshot */}
-          <div
-            className={`flex-1 rounded-2xl border-2 border-amber-400/85 bg-[#05110d]/90 ${
-              isLandscapeMode ? 'p-1 min-h-0' : 'p-0.5 sm:p-1 min-h-0'
-            } flex flex-col justify-center gap-0.5 shadow-[0_0_12px_rgba(251,191,36,0.25)] transition-all ${
-              highlightTarget === 'costArea' ? 'ring-2 ring-amber-400/40 shadow-[0_0_20px_rgba(251,191,36,0.65)]' : ''
-            }`}
-          >
-            <div className="flex items-center justify-between text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-emerald-400/80">
-              <div className="flex items-center gap-1.5">
-                <span>COST AREA</span>
-                <div className="flex items-center gap-1 px-1.5 py-0.2 rounded-md bg-black/80 border border-white/10 w-fit text-[7px] sm:text-[8px] font-mono text-gray-200">
-                  <span className="flex items-center gap-0.5 text-amber-300 font-bold">🪙 {gameState.activeDon}</span>
-                  <span className="text-gray-500">|</span>
-                  <span className="flex items-center gap-0.5 text-gray-400 font-bold">🎴 {gameState.restedDon}</span>
-                </div>
-                {selectedDonCount > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-black font-extrabold text-[6.5px] sm:text-[7.5px] animate-pulse">
-                    {selectedDonCount} DON (+{selectedDonCount * 1000})
-                  </span>
-                )}
+        {/* Center: Cost Area with upright DON cards */}
+        <div
+          className={`flex-1 rounded-2xl border-2 border-amber-400/85 bg-[#05110d]/90 p-0.5 min-h-0 flex flex-col justify-center gap-0.5 shadow-[0_0_12px_rgba(251,191,36,0.25)] mx-0.5 transition-all ${
+            highlightTarget === 'costArea' ? 'ring-2 ring-amber-400/40 shadow-[0_0_20px_rgba(251,191,36,0.65)]' : ''
+          }`}
+        >
+          <div className="flex items-center justify-between text-[6.5px] sm:text-[7px] font-bold uppercase tracking-wider text-emerald-400/80">
+            <div className="flex items-center gap-1.5">
+              <span>COST AREA</span>
+              <div className="flex items-center gap-1 px-1.5 py-0.2 rounded-md bg-black/80 border border-white/10 w-fit text-[6.5px] sm:text-[7px] font-mono text-gray-200">
+                <span className="flex items-center gap-0.5 text-amber-300 font-bold">🪙 {gameState.activeDon}</span>
+                <span className="text-gray-500">|</span>
+                <span className="flex items-center gap-0.5 text-gray-400 font-bold">🎴 {gameState.restedDon}</span>
               </div>
-              {selectedDonCount > 0 ? (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedDonCount(0);
-                  }}
-                  className="text-amber-400 hover:text-white text-[7px] sm:text-[8px] font-bold underline"
-                >
-                  Clear
-                </button>
-              ) : (
-                <span className="text-[6.5px] sm:text-[7px] text-gray-400 normal-case">
-                  Tap Nth DON to attach
+              {selectedDonCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-black font-extrabold text-[6.5px] sm:text-[7.5px] animate-pulse">
+                  {selectedDonCount} DON
                 </span>
               )}
             </div>
-
-            {/* Upright DON cards row */}
-            <div className="flex items-center justify-center gap-1 sm:gap-1.5 my-0.5 overflow-x-auto max-w-full px-0.5 scrollbar-none">
-              {Array.from({ length: gameState.activeDon }).map((_, idx) => {
-                const donNumber = idx + 1;
-                const isSelected = selectedDonCount >= donNumber;
-                return (
-                  <div
-                    key={`player-don-${idx}`}
-                    onClick={() => {
-                      if (liveAttackerCard) {
-                        handleAttachDon(liveAttackerCard.instanceId, donNumber);
-                        return;
-                      }
-                      if (selectedFieldCard) {
-                        handleAttachDon(selectedFieldCard.instanceId, donNumber);
-                        setSelectedFieldCard(null);
-                        return;
-                      }
-                      setSelectedDonCount((prev) => (prev === donNumber ? 0 : donNumber));
-                    }}
-                    className={`${
-                      isLandscapeMode ? 'h-[clamp(24px,6.2vh,30px)]' : 'h-[clamp(22px,3.4vh,28px)]'
-                    } aspect-[2.5/3.5] rounded-xs overflow-hidden border shadow-md cursor-pointer transition-all duration-150 relative select-none shrink-0 ${
-                      isSelected
-                        ? 'border-amber-400 ring-2 ring-amber-400 ring-offset-1 ring-offset-black -translate-y-0.5 scale-105 shadow-[0_0_12px_rgba(251,191,36,0.8)] z-10 brightness-110'
-                        : 'border-black/80 hover:scale-102 hover:border-amber-300/60'
-                    }`}
-                    title={`Click to select ${donNumber} DON (+${donNumber * 1000} Power)`}
-                  >
-                    <img src={OPCG_DON_CARD_DATA_URL} alt="DON" className="w-full h-full object-cover" />
-                    <div
-                      className={`absolute top-0.5 left-0.5 px-0.5 py-0.2 rounded-xs font-mono text-[6.5px] sm:text-[7.5px] font-black leading-none ${
-                        isSelected
-                          ? 'bg-amber-400 text-black shadow-xs'
-                          : 'bg-black/85 text-gray-300 border border-white/10'
-                      }`}
-                    >
-                      {donNumber}
-                    </div>
-                  </div>
-                );
-              })}
-              {gameState.activeDon === 0 && (
-                <div className={`${isLandscapeMode ? 'h-7 sm:h-8' : 'h-7 sm:h-8'} aspect-[2.5/3.5] rounded-xs border border-dashed border-gray-600/50 flex items-center justify-center text-[7.5px] text-gray-500 font-mono`}>
-                  0
-                </div>
-              )}
-            </div>
+            {selectedDonCount > 0 ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedDonCount(0);
+                }}
+                className="text-amber-400 hover:text-white text-[7px] sm:text-[7.5px] font-bold underline"
+              >
+                Clear
+              </button>
+            ) : (
+              <span className="text-[6.5px] sm:text-[7px] text-gray-400 normal-case hidden xs:inline">
+                Tap Nth DON to attach
+              </span>
+            )}
           </div>
 
-          {/* Trash Slot */}
-          <div className="flex flex-col items-center shrink-0">
-            <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">TRASH</span>
-            <div
-              onClick={() => setShowTrashModal(true)}
-              className={`${
-                isLandscapeMode ? 'h-[clamp(36px,9.5vh,48px)] w-auto' : 'h-[clamp(28px,4.2vh,36px)] w-auto'
-              } aspect-[2.5/3.5] rounded-xl border border-dashed border-emerald-900/60 bg-[#05110d]/50 flex items-center justify-center text-gray-400 cursor-pointer hover:border-gray-400 transition`}
-            >
-              <span className="text-[9.5px] sm:text-xs font-mono font-bold">{gameState.trash.length}</span>
-            </div>
+          {/* Upright DON cards row */}
+          <div className="flex items-center justify-center gap-1 sm:gap-1.5 my-0.5 overflow-x-auto max-w-full px-0.5 scrollbar-none">
+            {Array.from({ length: gameState.activeDon }).map((_, idx) => {
+              const donNumber = idx + 1;
+              const isSelected = selectedDonCount >= donNumber;
+              return (
+                <div
+                  key={`player-don-${idx}`}
+                  onClick={() => {
+                    if (liveAttackerCard) {
+                      handleAttachDon(liveAttackerCard.instanceId, donNumber);
+                      return;
+                    }
+                    if (selectedFieldCard) {
+                      handleAttachDon(selectedFieldCard.instanceId, donNumber);
+                      setSelectedFieldCard(null);
+                      return;
+                    }
+                    setSelectedDonCount((prev) => (prev === donNumber ? 0 : donNumber));
+                  }}
+                  className={`${
+                    isLandscapeMode ? 'h-[clamp(18px,4.6vh,24px)]' : 'h-[clamp(18px,2.8vh,24px)]'
+                  } aspect-[2.5/3.5] rounded-xs overflow-hidden border shadow-md cursor-pointer transition-all duration-150 relative select-none shrink-0 ${
+                    isSelected
+                      ? 'border-amber-400 ring-2 ring-amber-400 ring-offset-1 ring-offset-black -translate-y-0.5 scale-105 shadow-[0_0_12px_rgba(251,191,36,0.8)] z-10 brightness-110'
+                      : 'border-black/80 hover:scale-102 hover:border-amber-300/60'
+                  }`}
+                  title={`Click to select ${donNumber} DON (+${donNumber * 1000} Power)`}
+                >
+                  <img src={OPCG_DON_CARD_DATA_URL} alt="DON" className="w-full h-full object-cover" />
+                  <div
+                    className={`absolute top-0.5 left-0.5 px-0.5 py-0.2 rounded-xs font-mono text-[6.5px] sm:text-[7px] font-black leading-none ${
+                      isSelected
+                        ? 'bg-amber-400 text-black shadow-xs'
+                        : 'bg-black/85 text-gray-300 border border-white/10'
+                    }`}
+                  >
+                    {donNumber}
+                  </div>
+                </div>
+              );
+            })}
+            {gameState.activeDon === 0 && (
+              <div className={`${isLandscapeMode ? 'h-5 sm:h-6' : 'h-5 sm:h-6'} aspect-[2.5/3.5] rounded-xs border border-dashed border-gray-600/50 flex items-center justify-center text-[7px] text-gray-500 font-mono`}>
+                0
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right: Trash Slot */}
+        <div className="flex flex-col items-center shrink-0 w-7 sm:w-8">
+          <span className="text-[6.5px] sm:text-[7px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">TRASH</span>
+          <div
+            onClick={() => setShowTrashModal(true)}
+            className={`${
+              isLandscapeMode ? 'h-[clamp(26px,6.5vh,34px)]' : 'h-[clamp(26px,3.8vh,32px)]'
+            } aspect-[2.5/3.5] rounded-lg border border-dashed border-emerald-900/60 bg-[#05110d]/50 flex items-center justify-center text-gray-400 cursor-pointer hover:border-gray-400 transition`}
+          >
+            <span className="text-[9px] sm:text-xs font-mono font-bold">{gameState.trash.length}</span>
           </div>
         </div>
       </div>
@@ -2347,12 +2341,25 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
             customPowerModifier: 0,
           }));
 
+    // In portrait, show compact cards peeking from top edge matching reference screenshot
+    if (!isLandscapeMode) {
+      return (
+        <div className="flex items-center justify-center -space-x-1.5 overflow-hidden shrink-0 pt-0.5">
+          {oppCards.map((card, idx) => (
+            <div
+              key={card.instanceId || `opp-card-${idx}`}
+              className="w-5 sm:w-6 h-4 sm:h-5 rounded-t-sm overflow-hidden border border-white/20 bg-purple-950/80 shadow-xs shrink-0"
+              title={`Opponent card (${gameState.opponent.handCount} cards in hand)`}
+            >
+              <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Opponent Card" className="w-full h-full object-cover" />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
     return (
-      <div
-        className={`flex items-center justify-center -space-x-2 sm:-space-x-3 overflow-x-auto max-w-full px-1 scrollbar-none animate-fadeIn ${
-          isLandscapeMode ? 'my-1' : 'mb-0.5'
-        }`}
-      >
+      <div className="flex items-center justify-center -space-x-2.5 sm:-space-x-3.5 overflow-x-auto max-w-full px-1 scrollbar-none animate-fadeIn my-0.5">
         {oppCards.map((card, idx) => (
           <div
             key={card.instanceId || `opp-card-${idx}`}
@@ -2367,9 +2374,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
               if (isLongPressTriggeredRef.current) return;
               setInspectedCard(card);
             }}
-            className={`sim-card-interactive select-none relative rounded-xl overflow-hidden border border-white/20 shadow-md cursor-pointer transition hover:-translate-y-1 hover:border-white/40 shrink-0 ${
-              isLandscapeMode ? 'h-[clamp(54px,14vh,72px)]' : 'h-[clamp(44px,6.5vh,58px)]'
-            } aspect-[2.5/3.5]`}
+            className="sim-card-interactive select-none relative rounded-xl overflow-hidden border border-white/20 shadow-md cursor-pointer transition hover:-translate-y-1 hover:border-white/40 shrink-0 h-[clamp(52px,13vh,70px)] aspect-[2.5/3.5]"
             title={`Hold / Long-press to inspect. ${card.name}`}
           >
             <img
@@ -2418,8 +2423,8 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
               }}
               className={`sim-card-interactive select-none relative ${
                 isLandscapeMode
-                  ? 'h-[clamp(72px,18vh,96px)]'
-                  : 'h-[clamp(58px,8.8vh,74px)]'
+                  ? 'h-[clamp(62px,16vh,82px)]'
+                  : 'h-[clamp(56px,8.5vh,72px)]'
               } aspect-[2.5/3.5] rounded-xl overflow-hidden border shadow-xl cursor-pointer transform transition duration-150 shrink-0 ${
                 isSelected
                   ? '-translate-y-2 ring-3 ring-amber-400 border-amber-300 shadow-[0_0_20px_rgba(251,191,36,0.8)] z-30 scale-105'
@@ -2537,7 +2542,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
   };
 
   const renderMidlineBanner = (isLandscapeMode: boolean = false) => (
-    <div className={`relative w-full flex items-center justify-center shrink-0 ${isLandscapeMode ? 'my-0 py-0.5' : 'my-0.5'} z-30`}>
+    <div className={`relative w-full flex items-center justify-center shrink-0 ${isLandscapeMode ? 'my-0 py-0 h-4 sm:h-4.5' : 'my-0.5'} z-30`}>
       <div className="h-0.5 w-full bg-white/10" />
       {liveAttackerCard ? (
         <div className={`absolute px-3 py-0.5 sm:py-1 rounded-full bg-[#3b0d18] border-2 border-rose-500 text-white ${isLandscapeMode ? 'text-[8.5px]' : 'text-[9.5px] sm:text-xs'} font-bold shadow-2xl flex items-center gap-1.5 pointer-events-auto animate-pulse z-40 max-w-[95%]`}>
@@ -2685,39 +2690,38 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         </div>
       </div>
 
-      {/* 2. OPPONENT HAND (Upright Cards Above Battlefield) */}
+      {/* 2. OPPONENT HAND (Small card backs peeking at top edge) */}
       {renderOpponentHand(false)}
 
       {/* 3. OPPONENT STATUS PILL BAR */}
-      <div className="flex items-center justify-center gap-1.5 w-full px-1 py-0.5 shrink-0 z-10">
-        <button
-          type="button"
-          onClick={() => {
-            if (!activeMultiplayerRoom) setShowOpponentSelector(true);
-          }}
-          className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#131d31] border border-blue-500/30 text-white text-[9px] font-bold shadow-xs hover:bg-[#1a263f] transition cursor-pointer"
-          title={activeMultiplayerRoom ? `Playing against ${gameState.opponent.name}` : 'Click to change opponent deck'}
-        >
-          <span className={`w-2 h-2 rounded-full ${activeMultiplayerRoom ? (isMultiplayerOpponentConnected ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]' : 'bg-amber-400 animate-pulse') : 'bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.8)]'}`} />
-          <span>{activeMultiplayerRoom ? (isMultiplayerOpponentConnected ? gameState.opponent.name : 'Waiting for Opponent...') : 'OPPONENT'}</span>
-        </button>
-        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8.5px]">
-          <Clock className="w-2.5 h-2.5 text-gray-400" />
-          <span>17:30</span>
+      <div className="flex items-center justify-between w-full px-1 py-0.5 shrink-0 z-10">
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => {
+              if (!activeMultiplayerRoom) setShowOpponentSelector(true);
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#131d31] border border-blue-500/30 text-white text-[9px] font-bold shadow-xs hover:bg-[#1a263f] transition cursor-pointer"
+            title={activeMultiplayerRoom ? `Playing against ${gameState.opponent.name}` : 'Click to change opponent deck'}
+          >
+            <span className={`w-2 h-2 rounded-full ${activeMultiplayerRoom ? (isMultiplayerOpponentConnected ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]' : 'bg-amber-400 animate-pulse') : 'bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.8)]'}`} />
+            <span>{activeMultiplayerRoom ? (isMultiplayerOpponentConnected ? gameState.opponent.name : 'Waiting for Opponent...') : 'OPPONENT'}</span>
+          </button>
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8.5px]">
+            <Clock className="w-2.5 h-2.5 text-gray-400" />
+            <span>17:30</span>
+          </div>
         </div>
-        <div
-          className="px-2 py-0.5 rounded-md bg-[#131d31] border border-white/10 text-white font-mono text-[9px] font-bold shadow-xs flex items-center gap-1"
-          title={`Opponent has ${gameState.opponent.handCount} cards in hand`}
-        >
-          <span>{gameState.opponent.handCount}</span>
+        <div className="flex items-center gap-1">
+          <span className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">HAND</span>
+          <div
+            className="px-2 py-0.5 rounded-md bg-[#131d31] border border-white/10 text-white font-mono text-[9px] font-bold shadow-xs flex items-center gap-1"
+            title={`Opponent has ${gameState.opponent.handCount} cards in hand`}
+          >
+            <span>{gameState.opponent.handCount}</span>
+          </div>
+          <span className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">CARDS</span>
         </div>
-        <button
-          type="button"
-          onClick={() => setPlayerHandExpanded(!playerHandExpanded)}
-          className="px-2 py-0.5 rounded-md bg-[#1a253d] hover:bg-[#24324f] text-gray-200 border border-white/10 text-[8.5px] font-semibold shadow-xs flex items-center gap-0.5 transition cursor-pointer"
-        >
-          <span>⇅ Original</span>
-        </button>
       </div>
 
       {/* 4. OPPONENT PLAYMAT */}
@@ -2730,28 +2734,32 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
       {renderPlayerPlaymat(false)}
 
       {/* 7. PLAYER STATUS PILL BAR */}
-      <div className="flex items-center justify-center gap-1.5 w-full px-1 py-0.5 shrink-0 z-10">
-        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#131d31] border border-emerald-500/30 text-white text-[9px] font-bold shadow-xs">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-          <span>{activeMultiplayerRoom ? (isMultiplayerHost ? 'HOST' : 'GUEST') : 'GUEST'}</span>
-          {!gameState.isOpponentTurn && (
-            <span className="px-1 py-0.2 rounded bg-amber-600 text-[6.5px] font-bold text-white uppercase">TURN</span>
-          )}
+      <div className="flex items-center justify-between w-full px-1 py-0.5 shrink-0 z-10">
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#131d31] border border-emerald-500/30 text-white text-[9px] font-bold shadow-xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+            <span>{activeMultiplayerRoom ? (isMultiplayerHost ? 'HOST' : 'GUEST') : 'YOU'}</span>
+            {!gameState.isOpponentTurn && (
+              <span className="px-1 py-0.2 rounded bg-amber-600 text-[6.5px] font-bold text-white uppercase">YOUR TURN</span>
+            )}
+          </div>
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8.5px]">
+            <Clock className="w-2.5 h-2.5 text-gray-400" />
+            <span>17:30</span>
+          </div>
         </div>
-        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8.5px]">
-          <Clock className="w-2.5 h-2.5 text-gray-400" />
-          <span>17:30</span>
+        <div className="flex items-center gap-1">
+          <div className="px-2 py-0.5 rounded-md bg-[#131d31] border border-white/10 text-white font-mono text-[9px] font-bold shadow-xs">
+            {gameState.hand.length}
+          </div>
+          <button
+            type="button"
+            onClick={() => setPlayerHandExpanded(!playerHandExpanded)}
+            className="px-2 py-0.5 rounded-md bg-[#1a253d] hover:bg-[#24324f] text-gray-200 border border-white/10 text-[8.5px] font-semibold shadow-xs flex items-center gap-0.5 transition cursor-pointer"
+          >
+            <span>⇅ Original</span>
+          </button>
         </div>
-        <div className="px-2 py-0.5 rounded-md bg-[#131d31] border border-white/10 text-white font-mono text-[9px] font-bold shadow-xs">
-          {gameState.hand.length}
-        </div>
-        <button
-          type="button"
-          onClick={() => setPlayerHandExpanded(!playerHandExpanded)}
-          className="px-2 py-0.5 rounded-md bg-[#1a253d] hover:bg-[#24324f] text-gray-200 border border-white/10 text-[8.5px] font-semibold shadow-xs flex items-center gap-0.5 transition cursor-pointer"
-        >
-          <span>⇅ Original</span>
-        </button>
       </div>
 
       {/* 8. FLOATING SUMMON BANNER (if card selected) */}
@@ -2761,7 +2769,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
       {playerHandExpanded && renderPlayerHand(false)}
 
       {/* 10. BOTTOM ACTION BAR */}
-      <div className="flex items-center justify-between w-full shrink-0 px-1 py-0.5 sm:py-1 z-20 h-9 sm:h-10 md:h-11">
+      <div className="flex items-center justify-between w-full shrink-0 px-1 py-0.5 sm:py-1 z-20 h-9 sm:h-10">
         {/* Turn Menu Pill (Left) */}
         <button
           type="button"
@@ -2796,12 +2804,12 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
             {isAiThinking ? (
               <>
                 <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                <span>Opponent Turn...</span>
+                <span>Opponent...</span>
               </>
             ) : activeMultiplayerRoom && gameState.isOpponentTurn ? (
               <>
                 <Clock className="w-3.5 h-3.5 text-white" />
-                <span>Opponent&apos;s Turn</span>
+                <span>Opponent's Turn</span>
               </>
             ) : (
               <>
@@ -2820,7 +2828,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
       {/* =======================================================================
           LEFT COLUMN: Opponent & Player Status Pills, Player Hand
          ======================================================================= */}
-      <div className="w-[125px] sm:w-[145px] md:w-[170px] shrink-0 flex flex-col justify-between py-0.5 px-0.5 h-full z-20 overflow-hidden">
+      <div className="w-[130px] sm:w-[155px] md:w-[175px] shrink-0 flex flex-col justify-between py-0.5 px-0.5 h-full z-20 overflow-hidden">
         {/* Top Controls & Opponent Status */}
         <div className="space-y-1">
           <div className="flex items-center gap-1">
@@ -2870,12 +2878,12 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
               onClick={() => {
                 if (!activeMultiplayerRoom) setShowOpponentSelector(true);
               }}
-              className="flex items-center gap-1 px-2 py-0.2 rounded-full bg-[#131d31] border border-blue-500/30 text-white text-[8.5px] font-bold shadow-xs hover:bg-[#1a263f] transition cursor-pointer truncate max-w-[85px]"
+              className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#131d31] border border-blue-500/30 text-white text-[8.5px] font-bold shadow-xs hover:bg-[#1a263f] transition cursor-pointer truncate max-w-[90px]"
             >
               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${activeMultiplayerRoom ? (isMultiplayerOpponentConnected ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse') : 'bg-blue-400'}`} />
               <span className="truncate">{activeMultiplayerRoom ? (isMultiplayerOpponentConnected ? gameState.opponent.name : 'Waiting...') : 'OPPONENT'}</span>
             </button>
-            <div className="flex items-center gap-0.5 px-1.5 py-0.2 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8px] shrink-0">
+            <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8px] shrink-0">
               <Clock className="w-2 h-2 text-gray-400" />
               <span>17:30</span>
             </div>
@@ -2885,21 +2893,21 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         {/* Player Status Pill & Hand */}
         <div className="space-y-1 mt-auto">
           <div className="flex items-center gap-1">
-            <div className="flex items-center gap-1 px-2 py-0.2 rounded-full bg-[#131d31] border border-emerald-500/30 text-white text-[8.5px] font-bold shadow-xs truncate max-w-[85px]">
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#131d31] border border-emerald-500/30 text-white text-[8.5px] font-bold shadow-xs truncate max-w-[90px]">
               <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
               <span className="truncate">{activeMultiplayerRoom ? (isMultiplayerHost ? 'HOST' : 'GUEST') : 'GUEST'}</span>
               {!gameState.isOpponentTurn && (
                 <span className="px-1 py-0.2 rounded bg-amber-600 text-[6px] font-bold text-white uppercase shrink-0">TURN</span>
               )}
             </div>
-            <div className="flex items-center gap-0.5 px-1.5 py-0.2 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8px] shrink-0">
+            <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8px] shrink-0">
               <Clock className="w-2 h-2 text-gray-400" />
               <span>17:30</span>
             </div>
           </div>
 
           <div className="flex items-center justify-between px-0.5">
-            <div className="flex items-center gap-1 px-2 py-0.2 rounded-md bg-[#131d31] border border-white/10 text-white font-mono text-[8.5px] font-bold">
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#131d31] border border-white/10 text-white font-mono text-[8.5px] font-bold">
               <span>{gameState.hand.length}</span>
               <span className="text-gray-500 font-normal">|</span>
               <button
@@ -2929,9 +2937,9 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
       </div>
 
       {/* =======================================================================
-          CENTER COLUMN: Opponent Playmat, Midline Prompt, Player Playmat
+          CENTER COLUMN: Compact Battlefield Bounding Box matching reference
          ======================================================================= */}
-      <div className="flex-1 min-w-0 max-w-[860px] mx-auto flex flex-col justify-between gap-0.5 sm:gap-1 h-full py-0.5 overflow-hidden">
+      <div className="flex-1 min-w-0 max-w-[clamp(440px,58vw,530px)] mx-auto flex flex-col justify-between gap-0 sm:gap-0.5 h-full py-0.5 overflow-hidden">
         {renderOpponentPlaymat(true)}
         {renderMidlineBanner(true)}
         {renderPlayerPlaymat(true)}
@@ -2940,12 +2948,12 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
       {/* =======================================================================
           RIGHT COLUMN: Opponent Hand, Turn Indicator, End Turn & Bug Report
          ======================================================================= */}
-      <div className="w-[125px] sm:w-[145px] md:w-[170px] shrink-0 flex flex-col justify-between py-0.5 px-0.5 h-full z-20 overflow-hidden">
+      <div className="w-[130px] sm:w-[155px] md:w-[175px] shrink-0 flex flex-col justify-between py-0.5 px-0.5 h-full z-20 overflow-hidden">
         {/* Top: Opponent Hand */}
         <div className="space-y-0.5">
           {renderOpponentHand(true)}
           <div className="flex items-center justify-center px-0.5">
-            <div className="flex items-center gap-1 px-2 py-0.2 rounded-md bg-[#131d31] border border-white/10 text-white font-mono text-[8.5px] font-bold">
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#131d31] border border-white/10 text-white font-mono text-[8.5px] font-bold">
               <span>{gameState.opponent.handCount}</span>
               <span className="text-gray-500 font-normal">|</span>
               <span className="text-gray-300 text-[8px] font-semibold">
@@ -3000,7 +3008,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
           <button
             type="button"
             onClick={() => alert('Bug report submitted. Thank you for testing the simulator!')}
-            className="w-full py-1 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 text-[10.5px] sm:text-xs font-semibold flex items-center justify-center gap-1 transition active:scale-95 cursor-pointer shadow-xs"
+            className="w-full py-1 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 text-[10px] sm:text-[11px] font-semibold flex items-center justify-center gap-1 transition active:scale-95 cursor-pointer shadow-xs"
           >
             <Bug className="w-3 h-3 text-amber-500" />
             <span>Report a bug</span>
