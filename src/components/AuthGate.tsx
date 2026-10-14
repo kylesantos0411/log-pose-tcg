@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { useSettings } from '@/context/SettingsContext';
 import { AccountModal } from '@/components/AccountModal';
 import { ShieldAlert, Compass } from 'lucide-react';
@@ -8,6 +9,7 @@ import { ShieldAlert, Compass } from 'lucide-react';
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { user } = useSettings();
   const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     setMounted(true);
@@ -23,6 +25,11 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         </div>
       </div>
     );
+  }
+
+  // Simulator route exemption: Allow public access to TCG simulator without requiring account login
+  if (pathname?.startsWith('/sim')) {
+    return <>{children}</>;
   }
 
   // If the user is not authenticated, block access completely

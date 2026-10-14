@@ -35,7 +35,8 @@ import {
   RotateCw,
   Ticket,
   Copy,
-  Plus
+  Plus,
+  Gamepad2
 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
 import {
@@ -1215,12 +1216,14 @@ export default function AdminPage() {
                 Users,
                 Flame,
                 ShoppingBag,
+                Gamepad2,
               };
               const Icon = iconMap[def.iconName] || SlidersHorizontal;
 
               return (
                 <div
                   key={def.key}
+                  data-feature-key={def.key}
                   className={`rounded-2xl border transition-all duration-200 p-5 sm:p-6 space-y-4 shadow-sm ${
                     isLocked
                       ? 'bg-[#181518] border-amber-500/30'
@@ -1261,6 +1264,7 @@ export default function AdminPage() {
                     {/* Toggle Button */}
                     <button
                       type="button"
+                      data-toggle-feature={def.key}
                       onClick={() => toggleFeatureLock(def.key)}
                       className={`py-1.5 px-3 rounded-xl font-bold text-xs flex items-center gap-1.5 transition active:scale-95 cursor-pointer border flex-shrink-0 ${
                         isLocked

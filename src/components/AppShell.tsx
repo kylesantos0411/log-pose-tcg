@@ -176,6 +176,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     '/cards': 'cards',
     '/favorites': 'favorites',
     '/friends': 'friends',
+    '/sim': 'sim',
   };
 
   const matchingRoutePrefix = Object.keys(ROUTE_FEATURE_MAP).find(
@@ -300,27 +301,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
 
+          <Link href="/sim" className={navItemClass('/sim')}>
+            <Gamepad2 className={`w-4 h-4 ${isActive('/sim') ? 'text-amber-400' : 'text-amber-400/80'}`} />
+            <span>TCG Simulator</span>
+            {systemSettings.features?.sim?.locked ? (
+              <span className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                PAUSED
+              </span>
+            ) : (
+              <span className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                PLAY
+              </span>
+            )}
+          </Link>
+
           {/* Admin Command Center Link (Admins Only) */}
           {isAdmin && (
-            <>
-              <Link href="/admin" className={navItemClass('/admin')}>
-                <ShieldAlert className={`w-4 h-4 ${isActive('/admin') ? 'text-red-400' : 'text-red-400/80'}`} />
-                <span>Admin Controls</span>
-                <span className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded bg-red-500/10 text-red-300 border border-red-500/20">
-                  ADMIN
-                </span>
-              </Link>
-
-              {canAccessSim && (
-                <Link href="/sim" className={navItemClass('/sim')}>
-                  <Gamepad2 className={`w-4 h-4 ${isActive('/sim') ? 'text-amber-400' : 'text-amber-400/80'}`} />
-                  <span>TCG Simulator</span>
-                  <span className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
-                    BETA
-                  </span>
-                </Link>
-              )}
-            </>
+            <Link href="/admin" className={navItemClass('/admin')}>
+              <ShieldAlert className={`w-4 h-4 ${isActive('/admin') ? 'text-red-400' : 'text-red-400/80'}`} />
+              <span>Admin Controls</span>
+              <span className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded bg-red-500/10 text-red-300 border border-red-500/20">
+                ADMIN
+              </span>
+            </Link>
           )}
 
           {/* Settings Trigger Button in Sidebar */}

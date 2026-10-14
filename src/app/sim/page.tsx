@@ -18,7 +18,13 @@ import {
   Radio,
   Lock
 } from 'lucide-react';
-import { checkCanAccessSim } from '@/lib/supabase-sync';
+import { 
+  checkCanAccessSim, 
+  checkIsAdmin, 
+  fetchSystemSettings, 
+  DEFAULT_SYSTEM_SETTINGS, 
+  type SystemSettingsState 
+} from '@/lib/supabase-sync';
 import { getActiveSession } from '@/lib/user-accounts';
 import { getEditionCardImageUrl, handleCardImageError } from '@/lib/card-image';
 import { ST01_STRAW_HAT_DECK } from '@/lib/sim/starter-decks';
@@ -28,13 +34,20 @@ function SimulatorContent() {
   const searchParams = useSearchParams();
   const { user } = useSettings();
   const [mounted, setMounted] = useState(false);
+  const [systemSettings, setSystemSettings] = useState<SystemSettingsState>(DEFAULT_SYSTEM_SETTINGS);
 
   useEffect(() => {
     setMounted(true);
+    fetchSystemSettings().then(setSystemSettings);
+    const handleUpdate = () => fetchSystemSettings().then(setSystemSettings);
+    window.addEventListener('logpose_settings_updated', handleUpdate);
+    return () => window.removeEventListener('logpose_settings_updated', handleUpdate);
   }, []);
 
   const sessionUser = user || (typeof window !== 'undefined' ? getActiveSession() : null);
-  const canAccessSim = checkCanAccessSim(sessionUser);
+  const isAdmin = checkIsAdmin(sessionUser);
+  const isSimLocked = Boolean(systemSettings.features?.sim?.locked);
+  const canAccessSim = !isSimLocked || isAdmin;
 
   const deckId = searchParams.get('deckId');
   const tutorialParam = searchParams.get('tutorial');
@@ -94,9 +107,10 @@ function SimulatorContent() {
             <Lock className="w-7 h-7" />
           </div>
           <div className="space-y-1.5">
-            <h1 className="text-xl font-bold text-white">Closed Beta • Restricted</h1>
+            <h1 className="text-xl font-bold text-white">Simulator Temporarily Paused</h1>
             <p className="text-xs text-slate-400 leading-relaxed">
-              The One Piece TCG Simulator is currently undergoing private closed testing for authorized test accounts only (@kaipuccino and @kaidump).
+              {systemSettings.features?.sim?.message ||
+                'The One Piece TCG Simulator is temporarily paused for updates, balancing, or scheduled maintenance.'}
             </p>
           </div>
           <div className="pt-2 flex flex-col sm:flex-row gap-2 justify-center">
@@ -163,6 +177,19 @@ function SimulatorContent() {
 
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6 pb-20 space-y-5 min-h-screen">
+      {/* Admin Bypass Notice when Sim is Locked */}
+      {isSimLocked && isAdmin && (
+        <div className="p-3 px-4 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <span>⚠️ <b>SIMULATOR PAUSED FOR VISITORS:</b> Public access is locked in Admin Switchboard. Admin test bypass is active.</span>
+          </div>
+          <Link href="/admin" className="underline font-bold hover:text-white shrink-0 ml-2">
+            Admin Switchboard &rarr;
+          </Link>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#222736]">
         <div>

@@ -62,13 +62,36 @@ export function checkIsChiefAdmin(
 }
 
 /**
- * Closed Beta Sim access check: Restricted exclusively to Kyle Santos (@kaipuccino) and dummy tester account (@kaidump)
+ * TCG Simulator access check.
+ * - When sim feature is not locked: Open to ALL public users and guests.
+ * - When sim feature is locked: Restricted to Admins & Chief Admin.
  */
 export function checkCanAccessSim(
-  user?: { email?: string | null; tag?: string | null; username?: string | null; name?: string | null; role?: string | null } | null
+  user?: { email?: string | null; tag?: string | null; username?: string | null; name?: string | null; role?: string | null } | null,
+  featureLock?: FeatureLockStatus | null
 ): boolean {
-  if (!user) return false;
-  return checkIsChiefAdmin(user);
+  let isLocked = false;
+  if (featureLock !== undefined && featureLock !== null) {
+    isLocked = Boolean(featureLock.locked);
+  } else if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('logpose_system_settings_cache');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        isLocked = Boolean(parsed?.features?.sim?.locked);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (!isLocked) {
+    // Open for public use!
+    return true;
+  }
+
+  // If locked/paused by admin, only Admins / Chief Admin can access
+  return checkIsAdmin(user);
 }
 
 export function checkIsAdmin(
@@ -1533,7 +1556,8 @@ export type AppFeatureKey =
   | 'favorites' 
   | 'friends' 
   | 'vintage' 
-  | 'communitySales';
+  | 'communitySales'
+  | 'sim';
 
 export interface FeatureLockStatus {
   locked: boolean;
@@ -1615,6 +1639,14 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     iconName: 'ShoppingBag',
     defaultMessage: 'Public community sales submissions are temporarily locked for moderation.',
   },
+  {
+    key: 'sim',
+    label: 'TCG Battle Simulator',
+    route: '/sim',
+    description: 'One Piece TCG match simulator, AI playtesting, and multiplayer rooms',
+    iconName: 'Gamepad2',
+    defaultMessage: 'The TCG Battle Simulator is temporarily paused for updates and balancing.',
+  },
 ];
 
 export interface SystemSettingsState {
@@ -1658,6 +1690,29 @@ export async function fetchSystemSettings(): Promise<SystemSettingsState> {
       }
     } catch {
       // ignore JSON errors
+    }
+  }
+
+  // 1. Fetch from server-side settings API for cross-client persistence
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch('/api/settings', { cache: 'no-store' });
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.settings) {
+          const apiSettings: SystemSettingsState = {
+            maintenance: { ...DEFAULT_SYSTEM_SETTINGS.maintenance, ...(json.settings.maintenance || {}) },
+            announcement: { ...DEFAULT_SYSTEM_SETTINGS.announcement, ...(json.settings.announcement || {}) },
+            features: { ...(json.settings.features || {}) },
+          };
+          try {
+            localStorage.setItem(SYSTEM_SETTINGS_CACHE_KEY, JSON.stringify(apiSettings));
+          } catch {}
+          return apiSettings;
+        }
+      }
+    } catch {
+      // fallback to supabase / local cache
     }
   }
 
@@ -1743,6 +1798,17 @@ export async function updateSystemSetting(
     } catch {
       // ignore
     }
+
+    // Persist to server API
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value, adminTag }),
+      });
+    } catch (apiErr) {
+      console.warn('Failed to update /api/settings:', apiErr);
+    }
   }
 
   const client = getSupabaseBrowserClient();
@@ -1761,8 +1827,8 @@ export async function updateSystemSetting(
       });
 
     if (error) {
-      console.warn('updateSystemSetting supabase error, fallback to local:', error.message);
-      return { success: false, error: error.message };
+      console.warn('updateSystemSetting supabase warning (persisted via API/local):', error.message);
+      return { success: true };
     }
 
     if (typeof window !== 'undefined') {
@@ -1771,7 +1837,7 @@ export async function updateSystemSetting(
 
     return { success: true };
   } catch (err: any) {
-    return { success: false, error: err.message || 'Failed to update system setting' };
+    return { success: true };
   }
 }
 

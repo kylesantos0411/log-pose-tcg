@@ -25,7 +25,14 @@ import { useSettings } from '@/context/SettingsContext';
 
 import { SupportModal } from '@/components/SupportModal';
 import { AccountModal } from '@/components/AccountModal';
-import { checkIsAdmin, checkIsChiefAdmin, checkCanAccessSim } from '@/lib/supabase-sync';
+import { 
+  checkIsAdmin, 
+  checkIsChiefAdmin, 
+  checkCanAccessSim,
+  fetchSystemSettings,
+  DEFAULT_SYSTEM_SETTINGS,
+  type SystemSettingsState,
+} from '@/lib/supabase-sync';
 
 interface CleanHomeViewProps {
   totalCards: number;
@@ -43,10 +50,20 @@ export function CleanHomeView({
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [homeSearch, setHomeSearch] = useState('');
+  const [systemSettings, setSystemSettings] = useState<SystemSettingsState>(DEFAULT_SYSTEM_SETTINGS);
 
   const isChiefAdmin = checkIsChiefAdmin(user);
   const isAdmin = checkIsAdmin(user);
-  const canAccessSim = checkCanAccessSim(user);
+
+  React.useEffect(() => {
+    fetchSystemSettings().then(setSystemSettings);
+    const handleUpdate = () => fetchSystemSettings().then(setSystemSettings);
+    window.addEventListener('logpose_settings_updated', handleUpdate);
+    return () => window.removeEventListener('logpose_settings_updated', handleUpdate);
+  }, []);
+
+  const isSimLocked = Boolean(systemSettings.features?.sim?.locked);
+  const canAccessSim = !isSimLocked || isAdmin;
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -343,14 +360,19 @@ export function CleanHomeView({
           </div>
         </Link>
 
-        {/* Tile 7: TCG Simulator (Active for Kyle / kaidump, locked & disabled for others) */}
+        {/* Tile 7: TCG Simulator (Open for public use, toggleable by admin) */}
         {canAccessSim ? (
           <Link
             href="/sim"
             className="group rounded-2xl bg-[#141620] hover:bg-[#181b26] border border-[#222533] hover:border-amber-500/50 p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer col-span-2 sm:col-span-1"
           >
             <div className="flex items-start justify-between">
-              <Gamepad2 className="w-7 h-7 text-amber-400 group-hover:scale-105 transition-transform" />
+              <div className="flex items-center gap-2">
+                <Gamepad2 className="w-7 h-7 text-amber-400 group-hover:scale-105 transition-transform" />
+                <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-extrabold uppercase">
+                  OPEN
+                </span>
+              </div>
               <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 group-hover:translate-x-0.5 transition" />
             </div>
             <div className="mt-2">
@@ -365,18 +387,18 @@ export function CleanHomeView({
         ) : (
           <div
             className="rounded-2xl bg-[#141620]/60 border border-[#222533] p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] opacity-60 cursor-not-allowed col-span-2 sm:col-span-1 select-none"
-            title="Closed Beta • Restricted to authorized test accounts (@kaipuccino and @kaidump)"
+            title={systemSettings.features?.sim?.message || 'The TCG Battle Simulator is temporarily paused for updates.'}
           >
             <div className="flex items-start justify-between">
               <Gamepad2 className="w-7 h-7 text-slate-500 stroke-[1.8]" />
-              <Lock className="w-4 h-4 text-slate-500" />
+              <Lock className="w-4 h-4 text-amber-400" />
             </div>
             <div className="mt-2">
               <h3 className="font-bold text-sm sm:text-base text-slate-400 tracking-wide leading-tight">
                 TCG Sim
               </h3>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Locked • Closed Beta
+              <p className="text-xs text-amber-400/70 font-medium mt-0.5">
+                Temporarily Paused
               </p>
             </div>
           </div>
