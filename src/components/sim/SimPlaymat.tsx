@@ -230,8 +230,26 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
   const [playerHandExpanded, setPlayerHandExpanded] = useState(true);
   const [showTurnMenu, setShowTurnMenu] = useState(false);
 
-  // Virtual landscape mode toggle for mobile devices
-  const [isVirtualLandscape, setIsVirtualLandscape] = useState(false);
+  // Responsive orientation detection (automatically adapts to device orientation and viewport aspect ratio)
+  const [isLandscape, setIsLandscape] = useState(false);
+  const [forceVirtualLandscape, setForceVirtualLandscape] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const isWide = typeof window !== 'undefined' ? window.innerWidth > window.innerHeight : false;
+      setIsLandscape(isWide);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
+  }, []);
+
+  const activeIsLandscape = isLandscape || forceVirtualLandscape;
 
   // Derive live field card from current gameState so attached DON, power, and rested state stay reactive
   const liveFieldCard: SimCard | null = selectedFieldCard
@@ -275,18 +293,14 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         await document.documentElement.requestFullscreen().catch(() => {});
       }
       if (screen.orientation && 'lock' in screen.orientation) {
-        if (screen.orientation.type.includes('portrait')) {
-          await (screen.orientation as any).lock('landscape').catch(() => {});
-          return;
-        } else {
-          await (screen.orientation as any).lock('portrait').catch(() => {});
-          return;
-        }
+        const nextType = window.innerWidth > window.innerHeight ? 'portrait' : 'landscape';
+        await (screen.orientation as any).lock(nextType).catch(() => {});
+        return;
       }
     } catch {
       // Fallback
     }
-    setIsVirtualLandscape((prev) => !prev);
+    setForceVirtualLandscape((prev) => !prev);
   };
 
   // Restart match
@@ -1516,29 +1530,29 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
   // ---------------------------------------------------------------------------
   const renderOpponentPlaymat = () => (
     <div
-      className={`w-full rounded-2xl border-2 border-[#1c2d4a] bg-[#0b1628] p-1.5 sm:p-2 shadow-xl flex flex-row items-stretch justify-between gap-1.5 flex-1 min-h-0 transition-all ${
+      className={`w-full rounded-2xl border-2 border-[#1c2d4a] bg-[#0b1628] p-1 sm:p-1.5 md:p-2 shadow-xl flex flex-row items-stretch justify-between gap-1 sm:gap-1.5 flex-1 min-h-0 overflow-hidden transition-all ${
         highlightTarget === 'opponent' ? spotlightClass : ''
       }`}
     >
       {/* LEFT / MAIN BATTLEFIELD SECTION */}
-      <div className="flex-1 min-w-0 flex flex-col justify-between gap-1 py-0.5">
+      <div className="flex-1 min-w-0 flex flex-col justify-between gap-0.5 sm:gap-1 py-0.5">
         {/* Top Row: TRASH (Left) & COST AREA (Center/Right) */}
-        <div className="flex items-center gap-1.5 w-full shrink-0">
+        <div className="flex items-center gap-1 sm:gap-1.5 w-full shrink-0">
           {/* Trash Slot */}
           <div className="flex flex-col items-center shrink-0">
-            <span className="text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">TRASH</span>
-            <div className="w-9 sm:w-10 md:w-11 aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/60 bg-[#070e1a]/60 flex items-center justify-center text-gray-400">
+            <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">TRASH</span>
+            <div className="w-8 sm:w-10 md:w-11 aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/60 bg-[#070e1a]/60 flex items-center justify-center text-gray-400">
               <span className="text-[9px] sm:text-xs font-mono font-bold">{gameState.opponent.trashCount}</span>
             </div>
           </div>
 
           {/* Cost Area with upright DON cards */}
-          <div className="flex-1 rounded-xl border border-blue-900/60 bg-[#070e1a]/85 p-1 sm:p-1.5 flex flex-col justify-between shadow-inner min-h-[46px] sm:min-h-[52px]">
+          <div className="flex-1 rounded-xl border border-blue-900/60 bg-[#070e1a]/85 p-1 sm:p-1.5 flex flex-col justify-between shadow-inner min-h-[38px] sm:min-h-[48px]">
             <div className="flex items-center justify-between text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider text-gray-400">
               <span>COST AREA</span>
             </div>
             <div className="flex items-center justify-center gap-1 sm:gap-1.5 my-0.5 overflow-x-auto max-w-full px-0.5 scrollbar-none">
-              {Array.from({ length: Math.min(5, gameState.opponent.activeDon) }).map((_, idx) => (
+              {Array.from({ length: gameState.opponent.activeDon }).map((_, idx) => (
                 <div key={`opp-don-${idx}`} className="h-7 sm:h-8 md:h-9 aspect-[2.5/3.5] rounded-xs overflow-hidden border border-black/80 shadow-md shrink-0">
                   <img src={OPCG_DON_CARD_DATA_URL} alt="DON" className="w-full h-full object-cover" />
                 </div>
@@ -1556,13 +1570,13 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         <div className="flex items-center justify-between gap-1.5 w-full my-auto shrink-0">
           {/* Deck & Stage */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            <div className="w-9 sm:w-10 md:w-11 aspect-[2.5/3.5] rounded-lg border border-blue-900/60 bg-[#070e1a]/60 overflow-hidden relative shadow-md">
+            <div className="w-8 sm:w-10 md:w-11 aspect-[2.5/3.5] rounded-lg border border-blue-900/60 bg-[#070e1a]/60 overflow-hidden relative shadow-md">
               <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Opponent Deck" className="w-full h-full object-cover" />
               <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/85 text-white font-mono text-[7.5px] sm:text-[8.5px] font-bold flex items-center justify-center border border-white/20">
                 {gameState.opponent.deckCount}
               </div>
             </div>
-            <div className="w-9 sm:w-10 md:w-11 aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/40 bg-[#070e1a]/40 flex items-center justify-center text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-500">
+            <div className="w-8 sm:w-10 md:w-11 aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/40 bg-[#070e1a]/40 flex items-center justify-center text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-500">
               STAGE
             </div>
           </div>
@@ -1603,7 +1617,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                     handleAttackOpponent(gameState.leader.instanceId);
                   }
                 }}
-                className={`sim-card-interactive select-none w-13 sm:w-15 md:w-17 aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-lg cursor-pointer transition group mx-auto ${
+                className={`sim-card-interactive select-none w-10 sm:w-13 md:w-16 aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-lg cursor-pointer transition group mx-auto ${
                   selectedAttacker
                     ? 'border-rose-500 ring-4 ring-rose-500 ring-offset-2 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(244,63,94,0.95)] scale-105 z-20'
                     : 'border-red-500/80 hover:scale-102'
@@ -1645,10 +1659,10 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
 
         {/* Bottom Row: CHARACTER AREA (5 card slots across) */}
         <div className="w-full shrink-0">
-          <span className="text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider text-gray-400 block mb-0.5">
+          <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-400 block mb-0.5">
             CHARACTER AREA
           </span>
-          <div className="grid grid-cols-5 gap-1.5 sm:gap-2 w-full">
+          <div className="grid grid-cols-5 gap-1 sm:gap-1.5 w-full items-center justify-items-center">
             {[0, 1, 2, 3, 4].map((slotIdx) => {
               const oppChar = gameState.opponent.characters[slotIdx];
               if (oppChar) {
@@ -1673,7 +1687,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                         setInspectedCard(oppChar);
                       }
                     }}
-                    className={`sim-card-interactive select-none w-full aspect-[2.5/3.5] rounded-xl overflow-hidden relative shadow-md cursor-pointer transition ${
+                    className={`sim-card-interactive select-none max-h-[46px] sm:max-h-[60px] md:max-h-[72px] aspect-[2.5/3.5] w-auto h-full rounded-lg sm:rounded-xl overflow-hidden relative shadow-md cursor-pointer transition ${
                       canAttackThisChar
                         ? 'border-2 border-rose-500 ring-3 ring-rose-500 ring-offset-1 ring-offset-black animate-pulse shadow-[0_0_20px_rgba(244,63,94,0.9)] scale-105 z-20'
                         : selectedAttacker && !oppChar.rested
@@ -1719,7 +1733,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
               return (
                 <div
                   key={`opp-char-slot-${slotIdx}`}
-                  className="w-full aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/40 bg-[#070e1a]/40"
+                  className="max-h-[46px] sm:max-h-[60px] md:max-h-[72px] aspect-[2.5/3.5] w-full rounded-lg border border-dashed border-blue-900/40 bg-[#070e1a]/40"
                 />
               );
             })}
@@ -1728,34 +1742,34 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
       </div>
 
       {/* RIGHT COLUMN: DON!! DECK (Top) & LIFE STACK (Bottom) */}
-      <div className="w-10 sm:w-12 md:w-13 shrink-0 flex flex-col justify-between items-center gap-1 py-0.5">
+      <div className="w-9 sm:w-10 md:w-11 shrink-0 flex flex-col justify-between items-center gap-1 py-0.5 overflow-hidden">
         {/* DON!! Deck Slot */}
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center shrink-0">
           <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-400 mb-0.5 text-center leading-tight">DON!!</span>
-          <div className="w-9 sm:w-10 md:w-11 aspect-[2.5/3.5] rounded-lg overflow-hidden border border-blue-900/60 relative shadow-md bg-black/30">
+          <div className="w-7 sm:w-8 aspect-[2.5/3.5] rounded-lg overflow-hidden border border-blue-900/60 relative shadow-md bg-black/30">
             <img src={OPCG_DON_DECK_DATA_URL} alt="DON Deck" className="w-full h-full object-cover" />
-            <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/85 text-white font-mono text-[7.5px] sm:text-[8.5px] font-bold flex items-center justify-center border border-white/20">
+            <div className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full bg-black/85 text-white font-mono text-[7px] sm:text-[8px] font-bold flex items-center justify-center border border-white/20">
               {gameState.opponent.donDeckCount}
             </div>
           </div>
         </div>
 
         {/* Opponent Life Stack Container */}
-        <div className="rounded-xl border border-rose-900/80 bg-rose-950/25 px-1 py-1 sm:py-1.5 flex flex-col items-center w-full shadow-inner select-none">
+        <div className="rounded-xl border border-rose-900/80 bg-rose-950/25 px-1 py-0.5 sm:py-1 flex flex-col items-center w-full shadow-inner select-none max-h-[82px] sm:max-h-[96px] overflow-hidden shrink-0">
           <span className="text-[7.5px] sm:text-[8.5px] font-bold text-rose-400 tracking-wider mb-0.5 text-center whitespace-nowrap">
             LIFE · {gameState.opponent.life}
           </span>
-          <div className="relative flex flex-col -space-y-6 sm:-space-y-7 pt-0.5 items-center">
+          <div className="relative flex flex-col -space-y-7 sm:-space-y-7.5 pt-0.5 items-center">
             {Array.from({ length: Math.min(5, gameState.opponent.life) }).map((_, idx) => (
               <div
                 key={`opp-life-${idx}`}
-                className="w-8 sm:w-9 md:w-10 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-md"
+                className="w-6.5 sm:w-7.5 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-md shrink-0"
               >
                 <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Life" className="w-full h-full object-cover" />
               </div>
             ))}
             {gameState.opponent.life === 0 && (
-              <div className="w-8 sm:w-9 md:w-10 aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/50 flex items-center justify-center text-[8px] text-red-400 font-black text-center">
+              <div className="w-6.5 sm:w-7.5 aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/50 flex items-center justify-center text-[8px] text-red-400 font-black text-center">
                 0
               </div>
             )}
@@ -1767,13 +1781,13 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
 
   const renderPlayerPlaymat = () => (
     <div
-      className={`w-full rounded-2xl border-2 border-[#153424] bg-[#091812] p-1 sm:p-1.5 shadow-xl flex flex-row items-stretch justify-between gap-1 flex-1 min-h-0 transition-all`}
+      className={`w-full rounded-2xl border-2 border-[#153424] bg-[#091812] p-1 sm:p-1.5 md:p-2 shadow-xl flex flex-row items-stretch justify-between gap-1 sm:gap-1.5 flex-1 min-h-0 overflow-hidden transition-all`}
     >
       {/* LEFT COLUMN: LIFE STACK (Top) & DON!! DECK (Bottom) */}
-      <div className="w-10 sm:w-12 md:w-14 shrink-0 flex flex-col justify-between items-center gap-1 py-0.5">
+      <div className="w-9 sm:w-10 md:w-11 shrink-0 flex flex-col justify-between items-center gap-1 py-0.5 overflow-hidden">
         {/* Player Life Stack Container */}
         <div
-          className={`rounded-xl border border-rose-900/80 bg-rose-950/25 px-1 py-1 flex flex-col items-center w-full transition shadow-inner ${
+          className={`rounded-xl border border-rose-900/80 bg-rose-950/25 px-1 py-0.5 sm:py-1 flex flex-col items-center w-full transition shadow-inner select-none max-h-[82px] sm:max-h-[96px] overflow-hidden shrink-0 ${
             highlightTarget === 'life' ? spotlightClass : ''
           }`}
           title={`Player Life: ${gameState.life.length} cards remaining`}
@@ -1781,17 +1795,17 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
           <span className="text-[7.5px] sm:text-[8.5px] font-bold text-rose-400 tracking-wider mb-0.5 text-center whitespace-nowrap">
             LIFE · {gameState.life.length}
           </span>
-          <div className="relative flex flex-col -space-y-6 sm:-space-y-7 pt-0.5 items-center">
+          <div className="relative flex flex-col -space-y-7 sm:-space-y-7.5 pt-0.5 items-center">
             {gameState.life.map((card, idx) => (
               <div
                 key={`player-life-${card.instanceId}-${idx}`}
-                className="w-8 sm:w-9 md:w-10 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-md"
+                className="w-6.5 sm:w-7.5 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-md shrink-0"
               >
                 <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Life" className="w-full h-full object-cover" />
               </div>
             ))}
             {gameState.life.length === 0 && (
-              <div className="w-8 sm:w-9 md:w-10 aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/50 flex items-center justify-center text-[8px] text-red-400 font-black text-center">
+              <div className="w-6.5 sm:w-7.5 aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/50 flex items-center justify-center text-[8px] text-red-400 font-black text-center">
                 0
               </div>
             )}
@@ -1799,11 +1813,11 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         </div>
 
         {/* DON!! Deck Slot */}
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center shrink-0">
           <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-emerald-400/80 mb-0.5 text-center leading-tight">DON!!</span>
-          <div className="w-9 sm:w-11 md:w-12 aspect-[2.5/3.5] rounded-xl overflow-hidden border border-emerald-900/60 relative shadow-md bg-black/30">
+          <div className="w-7 sm:w-8 aspect-[2.5/3.5] rounded-xl overflow-hidden border border-emerald-900/60 relative shadow-md bg-black/30">
             <img src={OPCG_DON_DECK_DATA_URL} alt="DON Deck" className="w-full h-full object-cover" />
-            <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/85 text-white font-mono text-[7.5px] sm:text-[8.5px] font-bold flex items-center justify-center border border-white/20">
+            <div className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full bg-black/85 text-white font-mono text-[7px] sm:text-[8px] font-bold flex items-center justify-center border border-white/20">
               {gameState.donDeckCount}
             </div>
           </div>
@@ -1818,7 +1832,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
             CHARACTER AREA
           </span>
           <div
-            className={`grid grid-cols-5 gap-1 sm:gap-1.5 w-full rounded-lg p-0.5 transition-all ${
+            className={`grid grid-cols-5 gap-1 sm:gap-1.5 w-full items-center justify-items-center rounded-lg p-0.5 transition-all ${
               highlightTarget === 'characters' ? spotlightClass : ''
             }`}
           >
@@ -1864,7 +1878,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                       setSelectedFieldCard(card);
                       setSelectedAttacker(null);
                     }}
-                    className={`sim-card-interactive select-none w-full aspect-[2.5/3.5] rounded-xl overflow-hidden relative shadow-md cursor-pointer transition ${
+                    className={`sim-card-interactive select-none max-h-[46px] sm:max-h-[60px] md:max-h-[72px] aspect-[2.5/3.5] w-auto h-full rounded-lg sm:rounded-xl overflow-hidden relative shadow-md cursor-pointer transition ${
                       selectedDonCount > 0
                         ? 'border-2 border-amber-400 ring-3 ring-amber-400 ring-offset-1 ring-offset-black animate-pulse shadow-[0_0_20px_rgba(251,191,36,0.9)] scale-105 z-20'
                         : isThisAttacking
@@ -1960,7 +1974,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                       handlePlayCard(selectedHandCard.instanceId, slotIdx);
                     }
                   }}
-                  className={`w-full aspect-[2.5/3.5] rounded-xl transition flex flex-col items-center justify-center p-1 text-center ${
+                  className={`max-h-[46px] sm:max-h-[60px] md:max-h-[72px] aspect-[2.5/3.5] w-full rounded-lg sm:rounded-xl transition flex flex-col items-center justify-center p-0.5 text-center ${
                     canSummonHere
                       ? 'border-2 border-dashed border-emerald-400 bg-emerald-500/25 shadow-[0_0_20px_rgba(52,211,153,0.6)] animate-pulse cursor-pointer hover:bg-emerald-500/35 active:scale-95 z-20'
                       : 'border border-dashed border-emerald-900/40 bg-[#05110d]/40'
@@ -2015,7 +2029,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                   setSelectedFieldCard(gameState.leader);
                   setSelectedAttacker(null);
                 }}
-                className={`sim-card-interactive select-none w-13 sm:w-15 md:w-17 aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-[0_0_15px_rgba(34,211,238,0.4)] cursor-pointer hover:border-cyan-300 transition ${
+                className={`sim-card-interactive select-none w-10 sm:w-13 md:w-16 aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-[0_0_15px_rgba(34,211,238,0.4)] cursor-pointer hover:border-cyan-300 transition ${
                   selectedDonCount > 0
                     ? 'border-amber-400 ring-4 ring-amber-400 ring-offset-2 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(251,191,36,0.9)] scale-105 z-20'
                     : liveAttackerCard?.instanceId === gameState.leader.instanceId
@@ -2114,7 +2128,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                     }
                     if (gameState.stage) setSelectedFieldCard(gameState.stage);
                   }}
-                  className={`sim-card-interactive select-none w-9 sm:w-11 md:w-12 aspect-[2.5/3.5] rounded-xl flex items-center justify-center text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider overflow-hidden relative cursor-pointer transition ${
+                  className={`sim-card-interactive select-none w-8 sm:w-10 md:w-12 aspect-[2.5/3.5] rounded-xl flex items-center justify-center text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider overflow-hidden relative cursor-pointer transition ${
                     canPlayStage
                       ? 'border-2 border-dashed border-emerald-400 bg-emerald-500/25 shadow-[0_0_15px_rgba(52,211,153,0.6)] animate-pulse text-emerald-300'
                       : 'border border-dashed border-emerald-900/40 bg-[#05110d]/40 text-gray-500'
@@ -2144,7 +2158,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
               );
             })()}
             <div
-              className="w-9 sm:w-11 md:w-12 aspect-[2.5/3.5] rounded-xl border border-emerald-900/50 bg-[#05110d]/70 overflow-hidden relative shadow-md select-none"
+              className="w-8 sm:w-10 md:w-12 aspect-[2.5/3.5] rounded-xl border border-emerald-900/50 bg-[#05110d]/70 overflow-hidden relative shadow-md select-none"
               title={`Main Deck (${gameState.deck.length} cards remaining)`}
             >
               <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Main Deck" className="w-full h-full object-cover" />
@@ -2159,8 +2173,8 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         <div className="flex items-center gap-1.5 w-full shrink-0">
           {/* Cost Area with upright DON cards matching reference screenshot */}
           <div
-            className={`flex-1 rounded-2xl border border-emerald-900/60 bg-[#05110d]/85 p-1 sm:p-1.5 flex flex-col justify-between shadow-inner h-full min-h-[46px] sm:min-h-[52px] transition-all ${
-              highlightTarget === 'costArea' ? 'border-2 border-amber-400 ring-2 ring-amber-400/40 shadow-[0_0_20px_rgba(251,191,36,0.65)]' : ''
+            className={`flex-1 rounded-2xl border-2 border-amber-400/85 bg-[#05110d]/90 p-1 sm:p-1.5 flex flex-col justify-between shadow-[0_0_12px_rgba(251,191,36,0.25)] h-full min-h-[38px] sm:min-h-[48px] transition-all ${
+              highlightTarget === 'costArea' ? 'ring-2 ring-amber-400/40 shadow-[0_0_20px_rgba(251,191,36,0.65)]' : ''
             }`}
           >
             <div className="flex items-center justify-between text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-emerald-400/80">
@@ -2210,7 +2224,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                       }
                       setSelectedDonCount((prev) => (prev === donNumber ? 0 : donNumber));
                     }}
-                    className={`h-8 sm:h-9 md:h-10 aspect-[2.5/3.5] rounded-xs overflow-hidden border shadow-md cursor-pointer transition-all duration-150 relative select-none shrink-0 ${
+                    className={`h-7 sm:h-8 md:h-10 aspect-[2.5/3.5] rounded-xs overflow-hidden border shadow-md cursor-pointer transition-all duration-150 relative select-none shrink-0 ${
                       isSelected
                         ? 'border-amber-400 ring-2 ring-amber-400 ring-offset-1 ring-offset-black -translate-y-0.5 scale-105 shadow-[0_0_12px_rgba(251,191,36,0.8)] z-10 brightness-110'
                         : 'border-black/80 hover:scale-102 hover:border-amber-300/60'
@@ -2266,78 +2280,529 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
     </div>
   );
 
-  return (
-    <div
-      className={`h-[100dvh] max-h-[100dvh] w-screen overflow-hidden bg-[#0a0e17] text-gray-200 flex flex-col justify-between p-1 sm:p-2 font-sans select-none relative transition-all ${
-        isVirtualLandscape ? 'rotate-90 origin-top-left w-[100vh] h-[100vw] translate-x-[100vw] fixed inset-0 z-50' : ''
-      }`}
-    >
+  // ---------------------------------------------------------------------------
+  // Sub-renderers matching the exact OPlayTCG reference layouts
+  // ---------------------------------------------------------------------------
+
+  const renderOpponentHand = (isLandscapeMode: boolean = false) => {
+    const oppCards =
+      gameState.opponent.handCards && gameState.opponent.handCards.length > 0
+        ? gameState.opponent.handCards
+        : Array.from({ length: gameState.opponent.handCount }).map((_, idx) => ({
+            instanceId: `opp-hand-${idx}`,
+            cardId: `OP01-${idx}`,
+            name: 'Opponent Card',
+            category: 'Character' as const,
+            colors: ['Purple'],
+            cost: 0,
+            power: 0,
+            counter: null,
+            imageUrl: OPCG_PURPLE_BACK_DATA_URL,
+            rested: false,
+            attachedDon: 0,
+            customPowerModifier: 0,
+          }));
+
+    return (
+      <div
+        className={`flex items-center justify-center -space-x-2 sm:-space-x-3 overflow-x-auto max-w-full px-1 scrollbar-none animate-fadeIn ${
+          isLandscapeMode ? 'my-1' : 'mb-0.5'
+        }`}
+      >
+        {oppCards.map((card, idx) => (
+          <div
+            key={card.instanceId || `opp-card-${idx}`}
+            onTouchStart={() => startLongPress(card)}
+            onTouchEnd={cancelLongPress}
+            onTouchMove={cancelLongPress}
+            onMouseDown={() => startLongPress(card)}
+            onMouseUp={cancelLongPress}
+            onMouseLeave={cancelLongPress}
+            onContextMenu={(e) => handleContextMenu(e, card)}
+            onClick={() => {
+              if (isLongPressTriggeredRef.current) return;
+              setInspectedCard(card);
+            }}
+            className={`sim-card-interactive select-none relative rounded-xl overflow-hidden border border-white/20 shadow-md cursor-pointer transition hover:-translate-y-1 hover:border-white/40 shrink-0 ${
+              isLandscapeMode ? 'h-[clamp(65px,13vh,95px)]' : 'h-[clamp(36px,6vh,54px)] sm:h-[clamp(44px,7.5vh,64px)]'
+            } aspect-[2.5/3.5]`}
+            title={`Hold / Long-press to inspect. ${card.name}`}
+          >
+            <img
+              src={card.imageUrl}
+              alt={card.name}
+              className="w-full h-full object-cover pointer-events-none select-none"
+              draggable={false}
+              referrerPolicy="no-referrer"
+              onError={(e) => handleCardImageError(e, card.cardId, card.imageUrl)}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderPlayerHand = (isLandscapeMode: boolean = false) => {
+    return (
+      <div
+        className={`flex items-center justify-center -space-x-2.5 sm:-space-x-3.5 animate-fadeIn my-0.5 pb-0.5 transition-all overflow-x-auto max-w-full px-1 scrollbar-none ${
+          highlightTarget === 'hand' ? spotlightClass : ''
+        }`}
+      >
+        {gameState.hand.map((card) => {
+          const isSelected = selectedHandCard?.instanceId === card.instanceId;
+          const canAfford = gameState.activeDon >= (card.cost || 0);
+          return (
+            <div
+              key={card.instanceId}
+              onTouchStart={() => startLongPress(card)}
+              onTouchEnd={cancelLongPress}
+              onTouchMove={cancelLongPress}
+              onMouseDown={() => startLongPress(card)}
+              onMouseUp={cancelLongPress}
+              onMouseLeave={cancelLongPress}
+              onContextMenu={(e) => handleContextMenu(e, card)}
+              onClick={() => {
+                if (isLongPressTriggeredRef.current) return;
+                if (isSelected) {
+                  setSelectedHandCard(null);
+                } else {
+                  setSelectedHandCard(card);
+                  setSelectedDonCount(0);
+                  setSelectedAttacker(null);
+                }
+              }}
+              className={`sim-card-interactive select-none relative ${
+                isLandscapeMode ? 'h-[clamp(68px,14vh,98px)]' : 'h-[clamp(44px,7.2vh,68px)] sm:h-[clamp(54px,9.2vh,78px)]'
+              } aspect-[2.5/3.5] rounded-xl overflow-hidden border shadow-xl cursor-pointer transform transition duration-150 shrink-0 ${
+                isSelected
+                  ? '-translate-y-2 ring-3 ring-amber-400 border-amber-300 shadow-[0_0_20px_rgba(251,191,36,0.8)] z-30 scale-105'
+                  : canAfford
+                  ? 'opacity-100 hover:-translate-y-1.5 hover:border-amber-400 hover:z-20 border-white/20 bg-[#151926]'
+                  : 'opacity-70 border-white/10 hover:-translate-y-0.5 bg-[#10131d]'
+              }`}
+              title={`Hold / Long-press to inspect. ${card.name} (Cost: ${card.cost})`}
+            >
+              {/* Underlying stylized frame */}
+              <div className="absolute inset-0 flex flex-col justify-between p-1 bg-gradient-to-b from-[#1c2234] via-[#141824] to-[#0c0f17] text-white pointer-events-none select-none">
+                <div className="flex items-center justify-between">
+                  <span className="w-4 h-4 rounded-full bg-amber-500 text-black font-black text-[8px] flex items-center justify-center">
+                    {card.cost ?? 0}
+                  </span>
+                  {card.counter && card.counter > 0 && (
+                    <span className="px-1 py-0.2 rounded bg-cyan-950/80 border border-cyan-500/50 text-cyan-300 font-mono text-[6.5px] font-bold">
+                      +{card.counter}
+                    </span>
+                  )}
+                </div>
+                <div className="text-center px-0.5 my-auto">
+                  <div className="font-mono text-[7px] text-slate-400 truncate">{card.cardId}</div>
+                  <div className="font-bold text-[8.5px] text-white truncate leading-tight mt-0.5">{card.name}</div>
+                </div>
+                <div className="flex items-center justify-between text-[7px] font-semibold text-slate-300">
+                  <span className="px-1 py-0.2 rounded bg-slate-800 text-[6px]">
+                    {card.category.substring(0, 4).toUpperCase()}
+                  </span>
+                  {card.power > 0 && (
+                    <span className="font-mono text-emerald-400 font-bold">{card.power}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Artwork */}
+              <img
+                src={card.imageUrl}
+                alt={card.name}
+                className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none z-10"
+                draggable={false}
+                referrerPolicy="no-referrer"
+                onError={(e) => handleCardImageError(e, card.cardId, card.imageUrl)}
+              />
+
+              {/* Top-left Cost overlay badge */}
+              <div className="absolute top-0.5 left-0.5 z-20 w-4 h-4 rounded-full bg-amber-500 text-black font-black text-[8px] flex items-center justify-center shadow-md border border-amber-300 pointer-events-none select-none">
+                {card.cost ?? 0}
+              </div>
+
+              {/* Top-right Counter overlay badge */}
+              {card.counter && card.counter > 0 && (
+                <div className="absolute top-0.5 right-0.5 z-20 px-1 py-0.2 rounded-md bg-black/85 backdrop-blur-xs text-cyan-300 font-mono text-[6.5px] font-bold border border-cyan-400/40 pointer-events-none select-none">
+                  +{card.counter}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderSelectedHandCardBanner = () => {
+    if (!selectedHandCard) return null;
+    return (
+      <div className="w-full px-2.5 py-1.5 flex items-center justify-between gap-2 bg-[#101626]/95 border border-emerald-500/50 shadow-2xl backdrop-blur-md rounded-xl text-xs text-white animate-fadeIn my-0.5 z-30">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
+          <span className="font-black text-emerald-300 truncate">{selectedHandCard.name}</span>
+          <span className="text-[10.5px] text-gray-300 shrink-0">
+            Cost: <b className="text-amber-300 font-bold">{selectedHandCard.cost} DON</b>
+          </span>
+          {gameState.activeDon >= (selectedHandCard.cost || 0) ? (
+            <span className="text-[9.5px] text-emerald-400 font-semibold hidden sm:inline">
+              ➔ Tap field to summon
+            </span>
+          ) : (
+            <span className="text-[9.5px] text-rose-400 font-semibold hidden sm:inline">
+              (Need {selectedHandCard.cost} Active DON!!)
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {selectedHandCard.category === 'Event' && gameState.activeDon >= (selectedHandCard.cost || 0) && (
+            <button
+              type="button"
+              onClick={() => handlePlayCard(selectedHandCard.instanceId)}
+              className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[9.5px] font-bold flex items-center gap-0.5 transition active:scale-95 cursor-pointer shadow-md"
+            >
+              <Play className="w-2.5 h-2.5" />
+              <span>Activate</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => handleDiscardCard(selectedHandCard.instanceId)}
+            className="px-2 py-0.5 rounded bg-rose-950/70 hover:bg-rose-900/80 text-rose-300 border border-rose-700/50 text-[9.5px] font-bold flex items-center gap-0.5 transition active:scale-95 cursor-pointer"
+            title="Discard to Trash"
+          >
+            <Trash2 className="w-2.5 h-2.5 text-rose-400" />
+            <span>Trash</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedHandCard(null)}
+            className="p-1 rounded text-gray-400 hover:text-white transition cursor-pointer"
+            title="Cancel"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderMidlineBanner = () => (
+    <div className="relative w-full flex items-center justify-center shrink-0 my-0.5 z-30">
+      <div className="h-0.5 w-full bg-white/10" />
+      {liveAttackerCard ? (
+        <div className="absolute px-3.5 py-1 rounded-full bg-[#3b0d18] border-2 border-rose-500 text-white text-[9.5px] sm:text-xs font-bold shadow-2xl flex items-center gap-2 pointer-events-auto animate-pulse z-40 max-w-[95%]">
+          <span className="flex items-center gap-1 text-rose-300 truncate">
+            <Swords className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+            <span className="truncate">
+              {liveAttackerCard.name} ({(liveAttackerCard.power || 0) + liveAttackerCard.attachedDon * 1000} ATK)
+            </span>
+          </span>
+          <span className="text-gray-400">|</span>
+          <span className="text-amber-300 font-semibold whitespace-nowrap">Tap target 🎯</span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedFieldCard(liveAttackerCard);
+            }}
+            className="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-[8.5px] text-gray-200 shrink-0 active:scale-95 transition"
+            title="Card details and manual controls"
+          >
+            Menu
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedAttacker(null);
+            }}
+            className="w-4 h-4 rounded-full bg-black/60 hover:bg-black text-gray-300 hover:text-white flex items-center justify-center text-[9px] shrink-0 active:scale-95 transition"
+            title="Cancel attack"
+          >
+            ✕
+          </button>
+        </div>
+      ) : selectedDonCount > 0 ? (
+        <div className="absolute px-3 py-1 rounded-full bg-amber-500 text-black text-[9.5px] sm:text-xs font-black shadow-xl flex items-center gap-1.5 pointer-events-auto animate-bounce z-40">
+          <span>🪙 {selectedDonCount} DON!! SELECTED</span>
+          <span className="font-semibold text-gray-900">• Tap Leader or Char to attach (+{selectedDonCount * 1000} Power)</span>
+          <button
+            type="button"
+            onClick={() => setSelectedDonCount(0)}
+            className="w-4 h-4 rounded-full bg-black/30 hover:bg-black/60 text-white flex items-center justify-center text-[9px] ml-1"
+            title="Cancel DON selection"
+          >
+            ✕
+          </button>
+        </div>
+      ) : currentStep ? (
+        <button
+          type="button"
+          onClick={() => {
+            const nextIdx = (gameState.tutorialStepIndex + 1) % OPTCG_TUTORIAL_STEPS.length;
+            setGameState((prev) => setTutorialStep(prev, nextIdx));
+          }}
+          className="absolute px-5 py-1.5 rounded-full bg-[#181a24]/95 border-2 border-amber-400 text-amber-300 text-xs sm:text-sm font-bold shadow-2xl flex items-center gap-1.5 pointer-events-auto cursor-pointer animate-pulse active:scale-95 transition"
+        >
+          <span className="text-amber-400">✦</span>
+          <span>{currentStep.title}</span>
+        </button>
+      ) : (
+        <div className="absolute px-4 py-1 rounded-full bg-[#181a24]/95 border-2 border-amber-400/90 text-amber-300 text-[9.5px] sm:text-xs font-bold shadow-[0_0_15px_rgba(251,191,36,0.3)] flex items-center gap-1.5 pointer-events-auto animate-pulse">
+          <span className="text-amber-400 text-xs">✦</span>
+          <span>Attach a DON!!</span>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderPortraitLayout = () => (
+    <div className="w-full h-full max-w-[440px] sm:max-w-[500px] md:max-w-[560px] mx-auto flex flex-col justify-between gap-0.5 sm:gap-1 overflow-hidden px-1">
+      {/* 1. TOP HEADER NAVIGATION */}
+      <div className="flex items-center justify-between w-full shrink-0 px-1 py-0.5 z-20">
+        <div className="flex items-center gap-1.5">
+          {onExit ? (
+            <button
+              type="button"
+              onClick={onExit}
+              className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 shadow-xs transition"
+              title="Return to App"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <Link
+              href="/"
+              className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 shadow-xs transition"
+              title="Return to Dashboard"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+            </Link>
+          )}
+
+          <button
+            type="button"
+            onClick={handleToggleOrientation}
+            className="w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 flex items-center justify-center shadow-xs transition cursor-pointer"
+            title="Toggle Fullscreen / Landscape"
+          >
+            <Maximize2 className="w-3.5 h-3.5" />
+          </button>
+
+          {activeMultiplayerRoom && (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-indigo-950/80 border border-indigo-700/60 text-indigo-300 font-mono text-[9px] shadow-xs">
+              <Radio className="w-3 h-3 text-indigo-400" />
+              <span className="font-bold tracking-wide">ROOM: {activeMultiplayerRoom}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(activeMultiplayerRoom);
+                  setCopiedRoomCode(true);
+                  setTimeout(() => setCopiedRoomCode(false), 2000);
+                }}
+                className="ml-0.5 px-1 py-0.2 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[8.5px] flex items-center gap-0.5 cursor-pointer transition font-sans"
+              >
+                {copiedRoomCode ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5" />}
+                <span>{copiedRoomCode ? 'Copied' : 'Copy'}</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Speed Toggle & Menu Button */}
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => {
+              const nextSpeed: AnimationSpeed =
+                animSpeed === 'normal' ? 'fast' : animSpeed === 'fast' ? 'instant' : 'normal';
+              handleSpeedChange(nextSpeed);
+            }}
+            className="px-2 py-0.5 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-amber-300 hover:text-amber-200 border border-amber-500/30 text-[9.5px] font-mono font-bold flex items-center gap-1 transition shadow-xs cursor-pointer"
+            title="Toggle Animation Speed (Normal / Fast / Instant)"
+          >
+            <Zap className="w-3 h-3 text-amber-400" />
+            <span>{animSpeed === 'normal' ? '1x' : animSpeed === 'fast' ? '2x' : 'INST'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowTurnMenu(true)}
+            className="px-2.5 py-0.5 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 text-[9.5px] font-semibold flex items-center gap-1 transition cursor-pointer"
+          >
+            <Menu className="w-3 h-3 text-amber-400" />
+            <span>Menu</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 2. OPPONENT HAND (Upright Cards Above Battlefield) */}
+      {renderOpponentHand(false)}
+
+      {/* 3. OPPONENT STATUS PILL BAR */}
+      <div className="flex items-center justify-center gap-1.5 w-full px-1 py-0.5 shrink-0 z-10">
+        <button
+          type="button"
+          onClick={() => {
+            if (!activeMultiplayerRoom) setShowOpponentSelector(true);
+          }}
+          className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#131d31] border border-blue-500/30 text-white text-[9px] font-bold shadow-xs hover:bg-[#1a263f] transition cursor-pointer"
+          title={activeMultiplayerRoom ? `Playing against ${gameState.opponent.name}` : 'Click to change opponent deck'}
+        >
+          <span className={`w-2 h-2 rounded-full ${activeMultiplayerRoom ? (isMultiplayerOpponentConnected ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]' : 'bg-amber-400 animate-pulse') : 'bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.8)]'}`} />
+          <span>{activeMultiplayerRoom ? (isMultiplayerOpponentConnected ? gameState.opponent.name : 'Waiting for Opponent...') : 'OPPONENT'}</span>
+        </button>
+        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8.5px]">
+          <Clock className="w-2.5 h-2.5 text-gray-400" />
+          <span>17:30</span>
+        </div>
+        <div
+          className="px-2 py-0.5 rounded-md bg-[#131d31] border border-white/10 text-white font-mono text-[9px] font-bold shadow-xs flex items-center gap-1"
+          title={`Opponent has ${gameState.opponent.handCount} cards in hand`}
+        >
+          <span>{gameState.opponent.handCount}</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setPlayerHandExpanded(!playerHandExpanded)}
+          className="px-2 py-0.5 rounded-md bg-[#1a253d] hover:bg-[#24324f] text-gray-200 border border-white/10 text-[8.5px] font-semibold shadow-xs flex items-center gap-0.5 transition cursor-pointer"
+        >
+          <span>⇅ Original</span>
+        </button>
+      </div>
+
+      {/* 4. OPPONENT PLAYMAT */}
+      {renderOpponentPlaymat()}
+
+      {/* 5. MIDLINE & ACTION PROMPT BANNER */}
+      {renderMidlineBanner()}
+
+      {/* 6. PLAYER PLAYMAT */}
+      {renderPlayerPlaymat()}
+
+      {/* 7. PLAYER STATUS PILL BAR */}
+      <div className="flex items-center justify-center gap-1.5 w-full px-1 py-0.5 shrink-0 z-10">
+        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#131d31] border border-emerald-500/30 text-white text-[9px] font-bold shadow-xs">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+          <span>{activeMultiplayerRoom ? (isMultiplayerHost ? 'HOST' : 'GUEST') : 'GUEST'}</span>
+          {!gameState.isOpponentTurn && (
+            <span className="px-1 py-0.2 rounded bg-amber-600 text-[6.5px] font-bold text-white uppercase">TURN</span>
+          )}
+        </div>
+        <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8.5px]">
+          <Clock className="w-2.5 h-2.5 text-gray-400" />
+          <span>17:30</span>
+        </div>
+        <div className="px-2 py-0.5 rounded-md bg-[#131d31] border border-white/10 text-white font-mono text-[9px] font-bold shadow-xs">
+          {gameState.hand.length}
+        </div>
+        <button
+          type="button"
+          onClick={() => setPlayerHandExpanded(!playerHandExpanded)}
+          className="px-2 py-0.5 rounded-md bg-[#1a253d] hover:bg-[#24324f] text-gray-200 border border-white/10 text-[8.5px] font-semibold shadow-xs flex items-center gap-0.5 transition cursor-pointer"
+        >
+          <span>⇅ Original</span>
+        </button>
+      </div>
+
+      {/* 8. FLOATING SUMMON BANNER (if card selected) */}
+      {selectedHandCard && renderSelectedHandCardBanner()}
+
+      {/* 9. PLAYER HAND (Upright Cards Below Battlefield) */}
+      {playerHandExpanded && renderPlayerHand(false)}
+
+      {/* 10. BOTTOM ACTION BAR */}
+      <div className="flex items-center justify-between w-full shrink-0 px-1 py-0.5 sm:py-1 z-20 h-9 sm:h-10 md:h-11">
+        {/* Turn Menu Pill (Left) */}
+        <button
+          type="button"
+          onClick={() => setShowTurnMenu(true)}
+          className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-gray-100 text-black font-extrabold text-xs sm:text-sm flex items-center gap-1.5 shadow-md active:scale-95 transition cursor-pointer"
+        >
+          <Menu className="w-3.5 h-3.5 stroke-[3]" />
+          <span>TURN {gameState.turn}</span>
+        </button>
+
+        {/* Action Controls (Right) */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => alert('Bug report submitted. Thank you for testing the simulator!')}
+            className="w-8 h-8 rounded-full bg-[#141a29] text-amber-500 hover:text-amber-400 border border-white/10 shadow-xs flex items-center justify-center transition active:scale-95 cursor-pointer"
+            title="Report bug"
+          >
+            <Bug className="w-4 h-4 text-amber-500" />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleNextTurn}
+            disabled={isAiThinking || (Boolean(activeMultiplayerRoom) && gameState.isOpponentTurn)}
+            className={`px-4 sm:px-5 py-1.5 sm:py-2 rounded-xl text-black font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-md active:scale-95 transition select-none ${
+              isAiThinking || (Boolean(activeMultiplayerRoom) && gameState.isOpponentTurn)
+                ? 'bg-amber-600/70 cursor-not-allowed opacity-80 text-white'
+                : 'bg-[#f59e0b] hover:bg-[#d97706] cursor-pointer'
+            } ${highlightTarget === 'endTurn' ? spotlightClass : ''}`}
+          >
+            {isAiThinking ? (
+              <>
+                <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                <span>Opponent Turn...</span>
+              </>
+            ) : activeMultiplayerRoom && gameState.isOpponentTurn ? (
+              <>
+                <Clock className="w-3.5 h-3.5 text-white" />
+                <span>Opponent&apos;s Turn</span>
+              </>
+            ) : (
+              <>
+                <span>End turn</span>
+                <span className="text-xs">▷</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderLandscapeLayout = () => (
+    <div className="w-full h-full max-w-[1440px] mx-auto flex flex-row items-stretch justify-between gap-2 p-1 sm:p-2 overflow-hidden select-none">
       {/* =======================================================================
-          EXACT OPLAYTCG REFERENCE SINGLE-COLUMN MOBILE BATTLEFIELD ARCHITECTURE
-          Header -> Opponent Hand & Pill -> Opponent Mat -> Midline ->
-          Player Mat -> Player Pill & Hand -> Bottom Action Bar
+          LEFT COLUMN: Opponent & Player Status Pills, Player Hand
          ======================================================================= */}
-      <div className="w-full h-full max-w-[480px] sm:max-w-[540px] md:max-w-[600px] mx-auto flex flex-col justify-between gap-1 overflow-hidden">
-        {/* 1. TOP HEADER NAVIGATION - Ultra-clean & unified */}
-        <div className="flex items-center justify-between w-full shrink-0 px-1 py-0.5 z-20">
+      <div className="w-[170px] sm:w-[200px] md:w-[230px] shrink-0 flex flex-col justify-between py-1 px-0.5 h-full z-20">
+        {/* Top Controls & Opponent Status */}
+        <div className="space-y-1.5">
           <div className="flex items-center gap-1.5">
             {onExit ? (
               <button
                 type="button"
                 onClick={onExit}
-                className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 shadow-xs transition"
-                title="Return to App"
+                className="w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 flex items-center justify-center transition"
+                title="Return"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
               </button>
             ) : (
               <Link
                 href="/"
-                className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 shadow-xs transition"
-                title="Return to Dashboard"
+                className="w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 flex items-center justify-center transition"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
               </Link>
             )}
-
             <button
               type="button"
-              onClick={() => {
-                if (!document.fullscreenElement) {
-                  document.documentElement.requestFullscreen().catch(() => {});
-                } else {
-                  document.exitFullscreen().catch(() => {});
-                }
-              }}
-              className="w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 flex items-center justify-center shadow-xs transition"
+              onClick={handleToggleOrientation}
+              className="w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 flex items-center justify-center transition cursor-pointer"
               title="Toggle Fullscreen"
             >
               <Maximize2 className="w-3.5 h-3.5" />
             </button>
-
-            {activeMultiplayerRoom && (
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-indigo-950/80 border border-indigo-700/60 text-indigo-300 font-mono text-[10px] shadow-xs">
-                <Radio className="w-3.5 h-3.5 text-indigo-400" />
-                <span className="font-bold tracking-wide">ROOM: {activeMultiplayerRoom}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(activeMultiplayerRoom);
-                    setCopiedRoomCode(true);
-                    setTimeout(() => setCopiedRoomCode(false), 2000);
-                  }}
-                  className="ml-0.5 px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[9px] flex items-center gap-0.5 cursor-pointer transition font-sans"
-                  title="Copy room code"
-                >
-                  {copiedRoomCode ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5" />}
-                  <span>{copiedRoomCode ? 'Copied' : 'Copy'}</span>
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Quick Menu Button & Speed Toggle */}
-          <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => {
@@ -2345,378 +2810,158 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                   animSpeed === 'normal' ? 'fast' : animSpeed === 'fast' ? 'instant' : 'normal';
                 handleSpeedChange(nextSpeed);
               }}
-              className="px-2 py-1 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-amber-300 hover:text-amber-200 border border-amber-500/30 text-[10px] font-mono font-bold flex items-center gap-1 transition shadow-xs cursor-pointer"
-              title="Toggle Animation Speed (Normal / Fast / Instant)"
+              className="px-2 py-1 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-amber-300 border border-amber-500/30 text-[9.5px] font-mono font-bold flex items-center gap-1 transition cursor-pointer"
             >
               <Zap className="w-3 h-3 text-amber-400" />
               <span>{animSpeed === 'normal' ? '1x' : animSpeed === 'fast' ? '2x' : 'INST'}</span>
             </button>
-            <button
-              type="button"
-              onClick={() => setShowTurnMenu(true)}
-              className="px-2.5 py-1 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 text-[10px] font-semibold flex items-center gap-1 transition"
-            >
-              <Menu className="w-3 h-3 text-amber-400" />
-              <span>Menu</span>
-            </button>
           </div>
-        </div>
 
-        {/* Opponent Hand Card Peeking */}
-        {gameState.opponent.handCount > 0 && (
-          <div className="flex items-center justify-center -space-x-2.5 w-full shrink-0 overflow-hidden h-4.5 sm:h-5.5 -mb-0.5 opacity-85 pointer-events-none">
-            {Array.from({ length: Math.min(10, gameState.opponent.handCount) }).map((_, idx) => (
-              <div
-                key={`opp-hand-peek-${idx}`}
-                className="w-6 sm:w-7 aspect-[2.5/3.5] rounded-xs overflow-hidden border border-white/15 shadow-sm transform -translate-y-2"
-              >
-                <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Opponent Card" className="w-full h-full object-cover" />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* 2. OPPONENT STATUS PILL BAR */}
-        <div className="flex items-center justify-between w-full px-1 py-0.5 shrink-0 z-10">
+          {/* Opponent Status Pill */}
           <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => {
-                if (!activeMultiplayerRoom) {
-                  setShowOpponentSelector(true);
-                }
+                if (!activeMultiplayerRoom) setShowOpponentSelector(true);
               }}
               className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#131d31] border border-blue-500/30 text-white text-[9px] font-bold shadow-xs hover:bg-[#1a263f] transition cursor-pointer"
-              title={activeMultiplayerRoom ? `Playing against ${gameState.opponent.name}` : 'Click to change opponent deck'}
             >
-              <span className={`w-2 h-2 rounded-full ${activeMultiplayerRoom ? (isMultiplayerOpponentConnected ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]' : 'bg-amber-400 animate-pulse') : 'bg-blue-400 shadow-[0_0_6px_rgba(96,165,250,0.8)]'}`} />
-              <span>{activeMultiplayerRoom ? (isMultiplayerOpponentConnected ? gameState.opponent.name : 'Waiting for Opponent...') : 'OPPONENT'}</span>
+              <span className={`w-2 h-2 rounded-full ${activeMultiplayerRoom ? (isMultiplayerOpponentConnected ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse') : 'bg-blue-400'}`} />
+              <span className="truncate max-w-[85px]">{activeMultiplayerRoom ? (isMultiplayerOpponentConnected ? gameState.opponent.name : 'Waiting...') : 'OPPONENT'}</span>
             </button>
             <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8.5px]">
               <Clock className="w-2.5 h-2.5 text-gray-400" />
               <span>17:30</span>
             </div>
           </div>
+        </div>
 
+        {/* Player Status Pill & Hand */}
+        <div className="space-y-1 mt-auto">
           <div className="flex items-center gap-1.5">
-            <span className="text-[8.5px] text-gray-400 font-bold uppercase tracking-wider">Hand</span>
-            <div
-              className="px-2.5 py-0.5 rounded-md bg-[#131d31] border border-white/10 text-white font-mono text-[9.5px] font-bold shadow-xs flex items-center gap-1"
-              title={`Opponent has ${gameState.opponent.handCount} cards in hand`}
-            >
-              <span>{gameState.opponent.handCount}</span>
-              <span className="text-[7.5px] text-gray-400 uppercase font-sans">Cards</span>
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#131d31] border border-emerald-500/30 text-white text-[9px] font-bold shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+              <span>{activeMultiplayerRoom ? (isMultiplayerHost ? 'HOST' : 'GUEST') : 'GUEST'}</span>
+              {!gameState.isOpponentTurn && (
+                <span className="px-1 py-0.2 rounded bg-amber-600 text-[6.5px] font-bold text-white uppercase">TURN</span>
+              )}
+            </div>
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8.5px]">
+              <Clock className="w-2.5 h-2.5 text-gray-400" />
+              <span>17:30</span>
             </div>
           </div>
-        </div>
 
-        {/* 3. OPPONENT PLAYMAT */}
-        {renderOpponentPlaymat()}
-
-        {/* 4. MIDLINE & FLOATING COMBAT TARGETING BANNER / DON NOTIFICATION / TUTORIAL BADGE */}
-        <div className="relative w-full flex items-center justify-center shrink-0 my-0.5 z-30">
-          <div className="h-0.5 w-full bg-white/10" />
-          {liveAttackerCard ? (
-            <div className="absolute px-3.5 py-1 rounded-full bg-[#3b0d18] border-2 border-rose-500 text-white text-[9.5px] sm:text-xs font-bold shadow-2xl flex items-center gap-2 pointer-events-auto animate-pulse z-40 max-w-[95%]">
-              <span className="flex items-center gap-1 text-rose-300 truncate">
-                <Swords className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                <span className="truncate">
-                  {liveAttackerCard.name} ({(liveAttackerCard.power || 0) + liveAttackerCard.attachedDon * 1000} ATK)
-                </span>
-              </span>
-              <span className="text-gray-400">|</span>
-              <span className="text-amber-300 font-semibold whitespace-nowrap">Tap target 🎯</span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedFieldCard(liveAttackerCard);
-                }}
-                className="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-[8.5px] text-gray-200 shrink-0 active:scale-95 transition"
-                title="Card details and manual controls"
-              >
-                Menu
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedAttacker(null);
-                }}
-                className="w-4 h-4 rounded-full bg-black/60 hover:bg-black text-gray-300 hover:text-white flex items-center justify-center text-[9px] shrink-0 active:scale-95 transition"
-                title="Cancel attack"
-              >
-                ✕
-              </button>
-            </div>
-          ) : selectedDonCount > 0 ? (
-            <div className="absolute px-3 py-1 rounded-full bg-amber-500 text-black text-[9.5px] sm:text-xs font-black shadow-xl flex items-center gap-1.5 pointer-events-auto animate-bounce z-40">
-              <span>🪙 {selectedDonCount} DON!! SELECTED</span>
-              <span className="font-semibold text-gray-900">• Tap Leader or Char to attach (+{selectedDonCount * 1000} Power)</span>
-              <button
-                type="button"
-                onClick={() => setSelectedDonCount(0)}
-                className="w-4 h-4 rounded-full bg-black/30 hover:bg-black/60 text-white flex items-center justify-center text-[9px] ml-1"
-                title="Cancel DON selection"
-              >
-                ✕
-              </button>
-            </div>
-          ) : currentStep ? (
-            <button
-              type="button"
-              onClick={() => {
-                const nextIdx = (gameState.tutorialStepIndex + 1) % OPTCG_TUTORIAL_STEPS.length;
-                setGameState((prev) => setTutorialStep(prev, nextIdx));
-              }}
-              className="absolute px-5 py-1.5 rounded-full bg-[#181a24]/95 border-2 border-amber-400 text-amber-300 text-xs sm:text-sm font-bold shadow-2xl flex items-center gap-1.5 pointer-events-auto cursor-pointer animate-pulse active:scale-95 transition"
-            >
-              <span className="text-amber-400">✦</span>
-              <span>{currentStep.title}</span>
-            </button>
-          ) : null}
-        </div>
-
-        {/* 5. PLAYER PLAYMAT */}
-        {renderPlayerPlaymat()}
-
-        {/* 6. PLAYER STATUS PILL & HAND */}
-        <div className="flex flex-col items-center w-full shrink-0 z-10 gap-0.5">
-          {/* Player Status Pill Bar */}
-          <div className="flex items-center justify-between w-full px-1">
-            <div className="flex items-center gap-1.5">
-              <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#131d31] border border-emerald-500/30 text-white text-[9px] font-bold shadow-xs">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-                <span>{activeMultiplayerRoom ? (isMultiplayerHost ? 'HOST' : 'GUEST') : 'YOU'}</span>
-                {!gameState.isOpponentTurn && (
-                  <span className="px-1 py-0.2 rounded bg-amber-600 text-[6.5px] font-bold text-white uppercase">YOUR TURN</span>
-                )}
-              </div>
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8.5px]">
-                <Clock className="w-2.5 h-2.5 text-gray-400" />
-                <span>17:30</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1">
-              <div className="px-2 py-0.5 rounded-md bg-[#131d31] border border-white/10 text-white font-mono text-[9px] font-bold shadow-xs">
-                {gameState.hand.length}
-              </div>
+          <div className="flex items-center justify-center px-1">
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#131d31] border border-white/10 text-white font-mono text-[9px] font-bold">
+              <span>{gameState.hand.length}</span>
+              <span className="text-gray-500 font-normal">|</span>
               <button
                 type="button"
                 onClick={() => setPlayerHandExpanded(!playerHandExpanded)}
-                className="px-2 py-0.5 rounded-md bg-[#1a253d] hover:bg-[#24324f] text-gray-200 border border-white/10 text-[8.5px] font-semibold shadow-xs flex items-center gap-0.5 transition"
+                className="text-gray-200 hover:text-white text-[8.5px] font-semibold cursor-pointer"
               >
-                <span>⇅ Original</span>
+                ⇅ Original
               </button>
             </div>
           </div>
 
-          {/* Floating Hand Card Action Banner - Seamless One-Tap Summon */}
-          {selectedHandCard && (
-            <div className="w-full px-2.5 py-1.5 flex items-center justify-between gap-2 bg-[#101626]/95 border border-emerald-500/50 shadow-2xl backdrop-blur-md rounded-xl text-xs text-white animate-fadeIn my-0.5">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
-                <span className="font-black text-emerald-300 truncate">{selectedHandCard.name}</span>
-                <span className="text-[11px] text-gray-300 shrink-0">
-                  Cost: <b className="text-amber-300 font-bold">{selectedHandCard.cost} DON</b>
-                </span>
-                {gameState.activeDon >= (selectedHandCard.cost || 0) ? (
-                  <span className="text-[10px] text-emerald-400 font-semibold hidden sm:inline">
-                    ➔ Tap any green slot on field to summon
-                  </span>
-                ) : (
-                  <span className="text-[10px] text-rose-400 font-semibold hidden sm:inline">
-                    (Need {selectedHandCard.cost} Active DON!!, have {gameState.activeDon})
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                {selectedHandCard.category === 'Event' && gameState.activeDon >= (selectedHandCard.cost || 0) && (
-                  <button
-                    type="button"
-                    onClick={() => handlePlayCard(selectedHandCard.instanceId)}
-                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold flex items-center gap-1 transition active:scale-95 cursor-pointer shadow-md"
-                  >
-                    <Play className="w-3 h-3" />
-                    <span>Activate</span>
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleDiscardCard(selectedHandCard.instanceId)}
-                  className="px-2.5 py-1 rounded-lg bg-rose-950/70 hover:bg-rose-900/80 text-rose-300 border border-rose-700/50 text-[10px] font-bold flex items-center gap-1 transition active:scale-95 cursor-pointer"
-                  title="Discard to Trash"
-                >
-                  <Trash2 className="w-3 h-3 text-rose-400" />
-                  <span>Trash</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedHandCard(null)}
-                  className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
-                  title="Cancel"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
+          {selectedHandCard && renderSelectedHandCardBanner()}
+          {playerHandExpanded && renderPlayerHand(true)}
+        </div>
+      </div>
+
+      {/* =======================================================================
+          CENTER COLUMN: Opponent Playmat, Midline Prompt, Player Playmat
+         ======================================================================= */}
+      <div className="flex-1 min-w-0 max-w-[760px] mx-auto flex flex-col justify-between gap-1 h-full py-0.5 overflow-hidden">
+        {renderOpponentPlaymat()}
+        {renderMidlineBanner()}
+        {renderPlayerPlaymat()}
+      </div>
+
+      {/* =======================================================================
+          RIGHT COLUMN: Opponent Hand, Turn Indicator, End Turn & Bug Report
+         ======================================================================= */}
+      <div className="w-[170px] sm:w-[200px] md:w-[230px] shrink-0 flex flex-col justify-between py-1 px-0.5 h-full z-20">
+        {/* Top: Opponent Hand */}
+        <div className="space-y-1">
+          {renderOpponentHand(true)}
+          <div className="flex items-center justify-center px-1">
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#131d31] border border-white/10 text-white font-mono text-[9px] font-bold">
+              <span>{gameState.opponent.handCount}</span>
+              <span className="text-gray-500 font-normal">|</span>
+              <span className="text-gray-300 text-[8.5px] font-semibold">
+                ⇅ Original
+              </span>
             </div>
-          )}
-
-          {/* Player Hand (Proportionally scaled to viewport height, never overlaps bottom bar) */}
-          {playerHandExpanded && (
-            <div
-              className={`flex items-center justify-center -space-x-3 sm:-space-x-4 animate-fadeIn my-0.5 pb-0.5 transition-all overflow-x-auto max-w-full px-2 scrollbar-none ${
-                highlightTarget === 'hand' ? spotlightClass : ''
-              }`}
-            >
-              {gameState.hand.map((card) => {
-                const isSelected = selectedHandCard?.instanceId === card.instanceId;
-                const canAfford = gameState.activeDon >= (card.cost || 0);
-                return (
-                  <div
-                    key={card.instanceId}
-                    onTouchStart={() => startLongPress(card)}
-                    onTouchEnd={cancelLongPress}
-                    onTouchMove={cancelLongPress}
-                    onMouseDown={() => startLongPress(card)}
-                    onMouseUp={cancelLongPress}
-                    onMouseLeave={cancelLongPress}
-                    onContextMenu={(e) => handleContextMenu(e, card)}
-                    onClick={() => {
-                      if (isLongPressTriggeredRef.current) return;
-                      if (isSelected) {
-                        setSelectedHandCard(null);
-                      } else {
-                        setSelectedHandCard(card);
-                        setSelectedDonCount(0);
-                        setSelectedAttacker(null);
-                      }
-                    }}
-                    className={`sim-card-interactive select-none relative h-[clamp(56px,10vh,82px)] aspect-[2.5/3.5] rounded-xl overflow-hidden border shadow-xl cursor-pointer transform transition duration-150 shrink-0 ${
-                      isSelected
-                        ? '-translate-y-2 ring-3 ring-amber-400 border-amber-300 shadow-[0_0_20px_rgba(251,191,36,0.8)] z-30 scale-105'
-                        : canAfford
-                        ? 'opacity-100 hover:-translate-y-1.5 hover:border-amber-400 hover:z-20 border-white/20 bg-[#151926]'
-                        : 'opacity-70 border-white/10 hover:-translate-y-0.5 bg-[#10131d]'
-                    }`}
-                    title={`Hold / Long-press to inspect. ${card.name} (Cost: ${card.cost})`}
-                  >
-                    {/* Underlying stylized card frame (visible while image loads or as fallback) */}
-                    <div className="absolute inset-0 flex flex-col justify-between p-1.5 bg-gradient-to-b from-[#1c2234] via-[#141824] to-[#0c0f17] text-white pointer-events-none select-none">
-                      <div className="flex items-center justify-between">
-                        <span className="w-5 h-5 rounded-full bg-amber-500 text-black font-black text-[9px] flex items-center justify-center shadow-xs">
-                          {card.cost ?? 0}
-                        </span>
-                        {card.counter && card.counter > 0 && (
-                          <span className="px-1 py-0.2 rounded bg-cyan-950/80 border border-cyan-500/50 text-cyan-300 font-mono text-[7px] font-bold">
-                            +{card.counter}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="text-center px-0.5 my-auto">
-                        <div className="font-mono text-[7.5px] text-slate-400 truncate">
-                          {card.cardId}
-                        </div>
-                        <div className="font-bold text-[9px] text-white truncate leading-tight mt-0.5">
-                          {card.name}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between text-[7.5px] font-semibold text-slate-300">
-                        <span className="px-1 py-0.2 rounded bg-slate-800 text-[6.5px]">
-                          {card.category.substring(0, 4).toUpperCase()}
-                        </span>
-                        {card.power > 0 && (
-                          <span className="font-mono text-emerald-400 font-bold">
-                            {card.power}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Actual Card Artwork on top */}
-                    <img
-                      src={card.imageUrl}
-                      alt={card.name}
-                      className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none z-10"
-                      draggable={false}
-                      referrerPolicy="no-referrer"
-                      onError={(e) => handleCardImageError(e, card.cardId, card.imageUrl)}
-                    />
-
-                    {/* Top-left Cost overlay badge so player can always see curve at a glance */}
-                    <div className="absolute top-1 left-1 z-20 w-4 h-4 sm:w-4.5 sm:h-4.5 rounded-full bg-amber-500 text-black font-black text-[8px] sm:text-[9px] flex items-center justify-center shadow-md border border-amber-300 pointer-events-none select-none">
-                      {card.cost ?? 0}
-                    </div>
-
-                    {/* Top-right Counter overlay badge if card has counter */}
-                    {card.counter && card.counter > 0 && (
-                      <div className="absolute top-1 right-1 z-20 px-1 py-0.2 rounded-md bg-black/80 backdrop-blur-xs text-cyan-300 font-mono text-[6.5px] sm:text-[7.5px] font-bold border border-cyan-400/40 pointer-events-none select-none">
-                        +{card.counter}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          </div>
         </div>
 
-        {/* 7. BOTTOM ACTION BAR - Clean & unified */}
-        <div className="flex items-center justify-between w-full shrink-0 px-1 py-1 z-20 h-10 sm:h-11">
-          {/* Turn Menu Pill (Left) */}
+        {/* Middle: Turn Indicator */}
+        <div className="my-auto flex justify-end pr-1">
           <button
             type="button"
             onClick={() => setShowTurnMenu(true)}
-            className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-gray-100 text-black font-extrabold text-xs sm:text-sm flex items-center gap-1.5 shadow-md active:scale-95 transition"
+            className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-gray-100 text-black font-extrabold text-xs sm:text-sm flex items-center gap-1.5 shadow-md active:scale-95 transition cursor-pointer"
           >
             <Menu className="w-3.5 h-3.5 stroke-[3]" />
             <span>TURN {gameState.turn}</span>
           </button>
+        </div>
 
-          {/* Action Controls (Right) */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => alert('Bug report submitted. Thank you for testing the simulator!')}
-              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#141a29] text-amber-500 hover:text-amber-400 border border-white/10 shadow-xs flex items-center justify-center transition active:scale-95"
-              title="Report bug"
-            >
-              <Bug className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500" />
-            </button>
+        {/* Bottom: Action Buttons */}
+        <div className="space-y-2 pt-2">
+          <button
+            type="button"
+            onClick={handleNextTurn}
+            disabled={isAiThinking || (Boolean(activeMultiplayerRoom) && gameState.isOpponentTurn)}
+            className={`w-full py-2.5 sm:py-3 rounded-xl text-black font-black text-sm flex items-center justify-center gap-2 shadow-lg transition active:scale-95 select-none ${
+              isAiThinking || (Boolean(activeMultiplayerRoom) && gameState.isOpponentTurn)
+                ? 'bg-amber-600/70 cursor-not-allowed opacity-80 text-white'
+                : 'bg-[#f59e0b] hover:bg-[#d97706] cursor-pointer'
+            } ${highlightTarget === 'endTurn' ? spotlightClass : ''}`}
+          >
+            {isAiThinking ? (
+              <>
+                <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                <span>Opponent Turn...</span>
+              </>
+            ) : activeMultiplayerRoom && gameState.isOpponentTurn ? (
+              <>
+                <Clock className="w-3.5 h-3.5 text-white" />
+                <span>Opponent&apos;s Turn</span>
+              </>
+            ) : (
+              <>
+                <span>End turn</span>
+                <span className="text-xs">▷</span>
+              </>
+            )}
+          </button>
 
-            <button
-              type="button"
-              onClick={handleNextTurn}
-              disabled={isAiThinking || (Boolean(activeMultiplayerRoom) && gameState.isOpponentTurn)}
-              className={`px-4 sm:px-5 py-1.5 sm:py-2 rounded-xl text-black font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-md active:scale-95 transition select-none ${
-                isAiThinking || (Boolean(activeMultiplayerRoom) && gameState.isOpponentTurn)
-                  ? 'bg-amber-600/70 cursor-not-allowed opacity-80 text-white'
-                  : 'bg-[#f59e0b] hover:bg-[#d97706] cursor-pointer'
-              } ${highlightTarget === 'endTurn' ? spotlightClass : ''}`}
-            >
-              {isAiThinking ? (
-                <>
-                  <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                  <span>Opponent Turn...</span>
-                </>
-              ) : activeMultiplayerRoom && gameState.isOpponentTurn ? (
-                <>
-                  <Clock className="w-3.5 h-3.5 text-white" />
-                  <span>Opponent&apos;s Turn</span>
-                </>
-              ) : (
-                <>
-                  <span>End turn</span>
-                  <span className="text-xs">▷</span>
-                </>
-              )}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => alert('Bug report submitted. Thank you for testing the simulator!')}
+            className="w-full py-1.5 rounded-xl bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs"
+          >
+            <Bug className="w-3.5 h-3.5 text-amber-500" />
+            <span>Report a bug</span>
+          </button>
         </div>
       </div>
+    </div>
+  );
+
+  return (
+    <div
+      className={`h-[100dvh] max-h-[100dvh] w-screen overflow-hidden bg-[#0a0e17] text-gray-200 flex flex-col justify-between font-sans select-none relative transition-all ${
+        forceVirtualLandscape && !isLandscape
+          ? 'rotate-90 origin-top-left w-[100dvh] h-[100dvw] translate-x-[100dvw] fixed inset-0 z-50'
+          : ''
+      }`}
+    >
+      {activeIsLandscape ? renderLandscapeLayout() : renderPortraitLayout()}
 
       {/* TURN MENU MODAL */}
       {showTurnMenu && (

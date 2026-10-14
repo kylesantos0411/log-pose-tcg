@@ -245,6 +245,10 @@ export function createDefaultOpponent(
     }
   }
 
+  const oppHandCards: SimCard[] = (chosenDeck.cards || []).slice(0, 5).map((item, idx) =>
+    createSimCard(item, `opp-hand-${idx}`, chosenDeck.color || 'Purple')
+  );
+
   return {
     deckId: chosenDeck.id,
     name: chosenDeck.name,
@@ -259,10 +263,11 @@ export function createDefaultOpponent(
     activeDon: 3, // Matches OPlayTCG tutorial screenshot (3 active DON)
     restedDon: 0,
     donDeckCount: 7, // Matches OPlayTCG tutorial screenshot (7 remaining)
-    handCount: 5,
+    handCount: oppHandCards.length || 5,
     deckCount: 42,
     characters: [initialOpponentChar],
     trashCount: 0,
+    handCards: oppHandCards,
   };
 }
 
@@ -873,6 +878,13 @@ export function executeOpponentRefreshAndDraw(state: SimGameState): {
   const oppHandCount = (state.opponent.handCount || 5) + 1;
   const oppDeckCount = Math.max(0, (state.opponent.deckCount || 40) - 1);
 
+  const oppHandCards = state.opponent.handCards ? [...state.opponent.handCards] : [];
+  const oppDeckDef = RECOMMENDED_DECKS.find((d) => d.id === state.opponent.deckId) || ST04_ANIMAL_KINGDOM_DECK;
+  if (oppDeckDef.cards.length > 0) {
+    const randomCard = oppDeckDef.cards[Math.floor(Math.random() * oppDeckDef.cards.length)];
+    oppHandCards.push(createSimCard(randomCard, `opp-hand-${Date.now()}`, oppDeckDef.color || 'Purple'));
+  }
+
   const oppChars: SimCard[] = state.opponent.characters.map((c) => ({
     ...c,
     rested: false,
@@ -898,6 +910,7 @@ export function executeOpponentRefreshAndDraw(state: SimGameState): {
       characters: oppChars,
       handCount: oppHandCount,
       deckCount: oppDeckCount,
+      handCards: oppHandCards,
     },
     logs: [...state.logs, log],
   };
@@ -919,6 +932,7 @@ export function executeOpponentSummon(state: SimGameState): {
   let oppActiveDon = state.opponent.activeDon;
   let oppRestedDon = state.opponent.restedDon;
   let oppHandCount = state.opponent.handCount;
+  let oppHandCards = state.opponent.handCards ? [...state.opponent.handCards] : [];
 
   if (oppChars.length < 5 && oppActiveDon >= 2 && oppDeckChars.length > 0) {
     const affordable = oppDeckChars
@@ -931,6 +945,9 @@ export function executeOpponentSummon(state: SimGameState): {
       oppActiveDon -= cost;
       oppRestedDon += cost;
       oppHandCount = Math.max(0, oppHandCount - 1);
+      if (oppHandCards.length > 0) {
+        oppHandCards = oppHandCards.slice(1);
+      }
 
       const newChar = createSimCard(
         chosenCard,
@@ -954,6 +971,7 @@ export function executeOpponentSummon(state: SimGameState): {
           restedDon: oppRestedDon,
           handCount: oppHandCount,
           characters: oppChars,
+          handCards: oppHandCards,
         },
         logs: [...state.logs, log],
       };
