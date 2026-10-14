@@ -1543,44 +1543,44 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
           {/* Trash Slot */}
           <div className="flex flex-col items-center shrink-0">
             <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">TRASH</span>
-            <div className={`${isLandscapeMode ? 'h-[clamp(28px,7.5vh,36px)] w-auto' : 'h-[clamp(28px,4.2vh,36px)] w-auto'} aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/60 bg-[#070e1a]/60 flex items-center justify-center text-gray-400`}>
+            <div className={`${isLandscapeMode ? 'h-[clamp(36px,9.5vh,48px)] w-auto' : 'h-[clamp(28px,4.2vh,36px)] w-auto'} aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/60 bg-[#070e1a]/60 flex items-center justify-center text-gray-400`}>
               <span className="text-[9px] sm:text-xs font-mono font-bold">{gameState.opponent.trashCount}</span>
             </div>
           </div>
 
           {/* Cost Area with upright DON cards */}
           <div className={`flex-1 rounded-xl border border-blue-900/60 bg-[#070e1a]/85 ${
-            isLandscapeMode ? 'p-0.5 min-h-0' : 'p-0.5 sm:p-1 min-h-0'
+            isLandscapeMode ? 'p-0.5 sm:p-1 min-h-0' : 'p-0.5 sm:p-1 min-h-0'
           } flex flex-col justify-between shadow-inner`}>
             <div className="flex items-center justify-between text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-400">
               <span>COST AREA</span>
+              <div className="flex items-center gap-1.5 px-1.5 py-0.2 rounded-md bg-black/80 border border-white/10 w-fit text-[7px] sm:text-[8px] font-mono text-gray-300">
+                <span className="flex items-center gap-0.5 text-amber-300 font-bold">🪙 {gameState.opponent.activeDon}</span>
+                <span className="text-gray-500">|</span>
+                <span className="flex items-center gap-0.5 text-gray-400 font-bold">🎴 {gameState.opponent.restedDon}</span>
+              </div>
             </div>
             <div className="flex items-center justify-center gap-1 sm:gap-1.5 my-0.5 overflow-x-auto max-w-full px-0.5 scrollbar-none">
               {Array.from({ length: gameState.opponent.activeDon }).map((_, idx) => (
-                <div key={`opp-don-${idx}`} className={`${isLandscapeMode ? 'h-[clamp(18px,4.8vh,24px)]' : 'h-[clamp(22px,3.4vh,28px)]'} aspect-[2.5/3.5] rounded-xs overflow-hidden border border-black/80 shadow-md shrink-0`}>
+                <div key={`opp-don-${idx}`} className={`${isLandscapeMode ? 'h-[clamp(28px,7.5vh,38px)]' : 'h-[clamp(22px,3.4vh,28px)]'} aspect-[2.5/3.5] rounded-xs overflow-hidden border border-black/80 shadow-md shrink-0`}>
                   <img src={OPCG_DON_CARD_DATA_URL} alt="DON" className="w-full h-full object-cover" />
                 </div>
               ))}
-            </div>
-            <div className="flex items-center gap-1.5 px-1.5 py-0.2 rounded-md bg-black/80 border border-white/10 w-fit text-[7px] sm:text-[8px] font-mono text-gray-300">
-              <span className="flex items-center gap-0.5 text-amber-300 font-bold">🪙 {gameState.opponent.activeDon}</span>
-              <span className="text-gray-500">|</span>
-              <span className="flex items-center gap-0.5 text-gray-400 font-bold">🎴 {gameState.opponent.restedDon}</span>
             </div>
           </div>
         </div>
 
         {/* Middle Row: DECK & STAGE (Left) | LEADER CARD (Center/Right) */}
-        <div className="flex items-center justify-between gap-1.5 w-full my-auto shrink-0">
+        <div className="flex items-center justify-between gap-1.5 w-full my-0.5 sm:my-1 shrink-0">
           {/* Deck & Stage */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            <div className={`${isLandscapeMode ? 'h-[clamp(32px,8.5vh,42px)] w-auto' : 'h-[clamp(34px,5vh,44px)] w-auto'} aspect-[2.5/3.5] rounded-lg border border-blue-900/60 bg-[#070e1a]/60 overflow-hidden relative shadow-md`}>
+            <div className={`${isLandscapeMode ? 'h-[clamp(42px,11vh,54px)] w-auto' : 'h-[clamp(34px,5vh,44px)] w-auto'} aspect-[2.5/3.5] rounded-lg border border-blue-900/60 bg-[#070e1a]/60 overflow-hidden relative shadow-md`}>
               <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Opponent Deck" className="w-full h-full object-cover" />
               <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/85 text-white font-mono text-[7.5px] sm:text-[8.5px] font-bold flex items-center justify-center border border-white/20">
                 {gameState.opponent.deckCount}
               </div>
             </div>
-            <div className={`${isLandscapeMode ? 'h-[clamp(32px,8.5vh,42px)] w-auto' : 'h-[clamp(34px,5vh,44px)] w-auto'} aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/40 bg-[#070e1a]/40 flex items-center justify-center text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-500`}>
+            <div className={`${isLandscapeMode ? 'h-[clamp(42px,11vh,54px)] w-auto' : 'h-[clamp(34px,5vh,44px)] w-auto'} aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/40 bg-[#070e1a]/40 flex items-center justify-center text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-500`}>
               STAGE
             </div>
           </div>
@@ -1623,7 +1623,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                 }}
                 className={`sim-card-interactive select-none ${
                   isLandscapeMode
-                    ? 'h-[clamp(38px,9.8vh,48px)] w-auto'
+                    ? 'h-[clamp(54px,14vh,68px)] w-auto'
                     : 'h-[clamp(50px,7.5vh,64px)] w-auto'
                 } aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-lg cursor-pointer transition group mx-auto ${
                   selectedAttacker
@@ -1697,7 +1697,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                     }}
                     className={`sim-card-interactive select-none ${
                       isLandscapeMode
-                        ? 'h-[clamp(36px,9.2vh,46px)] w-auto'
+                        ? 'h-[clamp(48px,12.5vh,62px)] w-auto'
                         : 'h-[clamp(44px,6.8vh,58px)] w-auto'
                     } aspect-[2.5/3.5] rounded-lg sm:rounded-xl overflow-hidden relative shadow-md cursor-pointer transition ${
                       canAttackThisChar
@@ -1747,7 +1747,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                   key={`opp-char-slot-${slotIdx}`}
                   className={`${
                     isLandscapeMode
-                      ? 'h-[clamp(36px,9.2vh,46px)] w-auto'
+                      ? 'h-[clamp(48px,12.5vh,62px)] w-auto'
                       : 'h-[clamp(44px,6.8vh,58px)] w-auto'
                   } aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/40 bg-[#070e1a]/40`}
                 />
@@ -1758,11 +1758,11 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
       </div>
 
       {/* RIGHT COLUMN: DON!! DECK (Top) & LIFE STACK (Bottom) */}
-      <div className={`${isLandscapeMode ? 'w-8 sm:w-9' : 'w-10 sm:w-11 md:w-12'} shrink-0 flex flex-col justify-between items-center gap-1 py-0.5 overflow-hidden`}>
+      <div className={`${isLandscapeMode ? 'w-9 sm:w-10' : 'w-10 sm:w-11 md:w-12'} shrink-0 flex flex-col justify-between items-center gap-1 py-0.5 overflow-hidden`}>
         {/* DON!! Deck Slot */}
         <div className="flex flex-col items-center shrink-0">
           <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-400 mb-0.5 text-center leading-tight">DON!!</span>
-          <div className={`${isLandscapeMode ? 'w-6 sm:w-6.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-lg overflow-hidden border border-blue-900/60 relative shadow-md bg-black/30`}>
+          <div className={`${isLandscapeMode ? 'w-7 sm:w-7.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-lg overflow-hidden border border-blue-900/60 relative shadow-md bg-black/30`}>
             <img src={OPCG_DON_DECK_DATA_URL} alt="DON Deck" className="w-full h-full object-cover" />
             <div className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full bg-black/85 text-white font-mono text-[7px] sm:text-[8px] font-bold flex items-center justify-center border border-white/20">
               {gameState.opponent.donDeckCount}
@@ -1772,7 +1772,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
 
         {/* Opponent Life Stack Container */}
         <div className={`rounded-xl border border-rose-900/80 bg-rose-950/25 px-1 py-0.5 flex flex-col items-center w-full shadow-inner select-none ${
-          isLandscapeMode ? 'max-h-[64px] sm:max-h-[74px]' : 'max-h-[68px] sm:max-h-[80px]'
+          isLandscapeMode ? 'max-h-[76px] sm:max-h-[86px]' : 'max-h-[68px] sm:max-h-[80px]'
         } overflow-hidden shrink-0`}>
           <span className="text-[7.5px] sm:text-[8.5px] font-bold text-rose-400 tracking-wider mb-0.5 text-center whitespace-nowrap">
             LIFE · {gameState.opponent.life}
@@ -1781,13 +1781,13 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
             {Array.from({ length: Math.min(5, gameState.opponent.life) }).map((_, idx) => (
               <div
                 key={`opp-life-${idx}`}
-                className={`${isLandscapeMode ? 'w-6 sm:w-6.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-md shrink-0`}
+                className={`${isLandscapeMode ? 'w-7 sm:w-7.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-md shrink-0`}
               >
                 <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Life" className="w-full h-full object-cover" />
               </div>
             ))}
             {gameState.opponent.life === 0 && (
-              <div className={`${isLandscapeMode ? 'w-6 sm:w-6.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/50 flex items-center justify-center text-[8px] text-red-400 font-black text-center`}>
+              <div className={`${isLandscapeMode ? 'w-7 sm:w-7.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/50 flex items-center justify-center text-[8px] text-red-400 font-black text-center`}>
                 0
               </div>
             )}
@@ -1804,11 +1804,11 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
       } shadow-xl flex flex-row items-stretch justify-between flex-1 min-h-0 overflow-hidden transition-all`}
     >
       {/* LEFT COLUMN: LIFE STACK (Top) & DON!! DECK (Bottom) */}
-      <div className={`${isLandscapeMode ? 'w-8 sm:w-9' : 'w-9 sm:w-10 md:w-11'} shrink-0 flex flex-col justify-between items-center gap-1 py-0.5 overflow-hidden`}>
+      <div className={`${isLandscapeMode ? 'w-9 sm:w-10' : 'w-9 sm:w-10 md:w-11'} shrink-0 flex flex-col justify-between items-center gap-1 py-0.5 overflow-hidden`}>
         {/* Player Life Stack Container */}
         <div
           className={`rounded-xl border border-rose-900/80 bg-rose-950/25 px-1 py-0.5 flex flex-col items-center w-full transition shadow-inner select-none ${
-            isLandscapeMode ? 'max-h-[64px] sm:max-h-[74px]' : 'max-h-[68px] sm:max-h-[80px]'
+            isLandscapeMode ? 'max-h-[76px] sm:max-h-[86px]' : 'max-h-[68px] sm:max-h-[80px]'
           } overflow-hidden shrink-0 ${
             highlightTarget === 'life' ? spotlightClass : ''
           }`}
@@ -1821,13 +1821,13 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
             {gameState.life.map((card, idx) => (
               <div
                 key={`player-life-${card.instanceId}-${idx}`}
-                className={`${isLandscapeMode ? 'w-6 sm:w-6.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-md shrink-0`}
+                className={`${isLandscapeMode ? 'w-7 sm:w-7.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-md shrink-0`}
               >
                 <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Life" className="w-full h-full object-cover" />
               </div>
             ))}
             {gameState.life.length === 0 && (
-              <div className={`${isLandscapeMode ? 'w-6 sm:w-6.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/50 flex items-center justify-center text-[8px] text-red-400 font-black text-center`}>
+              <div className={`${isLandscapeMode ? 'w-7 sm:w-7.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/50 flex items-center justify-center text-[8px] text-red-400 font-black text-center`}>
                 0
               </div>
             )}
@@ -1837,7 +1837,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         {/* DON!! Deck Slot */}
         <div className="flex flex-col items-center shrink-0">
           <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-emerald-400/80 mb-0.5 text-center leading-tight">DON!!</span>
-          <div className={`${isLandscapeMode ? 'w-6 sm:w-6.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-xl overflow-hidden border border-emerald-900/60 relative shadow-md bg-black/30`}>
+          <div className={`${isLandscapeMode ? 'w-7 sm:w-7.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-xl overflow-hidden border border-emerald-900/60 relative shadow-md bg-black/30`}>
             <img src={OPCG_DON_DECK_DATA_URL} alt="DON Deck" className="w-full h-full object-cover" />
             <div className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full bg-black/85 text-white font-mono text-[7px] sm:text-[8px] font-bold flex items-center justify-center border border-white/20">
               {gameState.donDeckCount}
@@ -1902,7 +1902,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                     }}
                     className={`sim-card-interactive select-none ${
                       isLandscapeMode
-                        ? 'h-[clamp(36px,9.2vh,46px)] w-auto'
+                        ? 'h-[clamp(48px,12.5vh,62px)] w-auto'
                         : 'w-full max-w-[62px] sm:max-w-[72px] md:max-w-[84px] aspect-[2.5/3.5] h-auto max-h-[86px] sm:max-h-[98px]'
                     } aspect-[2.5/3.5] rounded-lg sm:rounded-xl overflow-hidden relative shadow-md cursor-pointer transition ${
                       selectedDonCount > 0
@@ -2002,7 +2002,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                   }}
                   className={`${
                     isLandscapeMode
-                      ? 'h-[clamp(36px,9.2vh,46px)] w-auto'
+                      ? 'h-[clamp(48px,12.5vh,62px)] w-auto'
                       : 'w-full max-w-[62px] sm:max-w-[72px] md:max-w-[84px] aspect-[2.5/3.5] h-auto max-h-[86px] sm:max-h-[98px]'
                   } aspect-[2.5/3.5] rounded-lg sm:rounded-xl transition flex flex-col items-center justify-center p-0.5 text-center ${
                     canSummonHere
@@ -2028,7 +2028,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         </div>
 
         {/* Middle Row: LEADER CARD (Center/Left) | STAGE & DECK (Right) */}
-        <div className="flex items-center justify-between gap-1.5 w-full my-auto shrink-0">
+        <div className="flex items-center justify-between gap-1.5 w-full my-0.5 sm:my-1 shrink-0">
           {/* Player Leader Card - Balanced scale matching opponent leader */}
           <div className="flex flex-col items-center mx-auto">
             {gameState.leader && (
@@ -2061,7 +2061,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                 }}
                 className={`sim-card-interactive select-none ${
                   isLandscapeMode
-                    ? 'h-[clamp(38px,9.8vh,48px)] w-auto'
+                    ? 'h-[clamp(54px,14vh,68px)] w-auto'
                     : 'h-[clamp(50px,7.5vh,64px)] w-auto'
                 } aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-[0_0_15px_rgba(34,211,238,0.4)] cursor-pointer hover:border-cyan-300 transition ${
                   selectedDonCount > 0
@@ -2168,7 +2168,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                   }}
                   className={`sim-card-interactive select-none ${
                     isLandscapeMode
-                      ? 'h-[clamp(32px,8.5vh,42px)] w-auto'
+                      ? 'h-[clamp(42px,11vh,54px)] w-auto'
                       : 'h-[clamp(34px,5vh,44px)] w-auto'
                   } aspect-[2.5/3.5] rounded-xl flex items-center justify-center text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider overflow-hidden relative cursor-pointer transition ${
                     canPlayStage
@@ -2202,7 +2202,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
             <div
               className={`${
                 isLandscapeMode
-                  ? 'h-[clamp(32px,8.5vh,42px)] w-auto'
+                  ? 'h-[clamp(42px,11vh,54px)] w-auto'
                   : 'h-[clamp(34px,5vh,44px)] w-auto'
               } aspect-[2.5/3.5] rounded-xl border border-emerald-900/50 bg-[#05110d]/70 overflow-hidden relative shadow-md select-none`}
               title={`Main Deck (${gameState.deck.length} cards remaining)`}
@@ -2220,20 +2220,25 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
           {/* Cost Area with upright DON cards matching reference screenshot */}
           <div
             className={`flex-1 rounded-2xl border-2 border-amber-400/85 bg-[#05110d]/90 ${
-              isLandscapeMode ? 'p-0.5 min-h-0' : 'p-0.5 sm:p-1 min-h-0'
-            } flex flex-col justify-between shadow-[0_0_12px_rgba(251,191,36,0.25)] transition-all ${
+              isLandscapeMode ? 'p-1 min-h-0' : 'p-0.5 sm:p-1 min-h-0'
+            } flex flex-col justify-center gap-0.5 shadow-[0_0_12px_rgba(251,191,36,0.25)] transition-all ${
               highlightTarget === 'costArea' ? 'ring-2 ring-amber-400/40 shadow-[0_0_20px_rgba(251,191,36,0.65)]' : ''
             }`}
           >
             <div className="flex items-center justify-between text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-emerald-400/80">
-              <span className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 <span>COST AREA</span>
+                <div className="flex items-center gap-1 px-1.5 py-0.2 rounded-md bg-black/80 border border-white/10 w-fit text-[7px] sm:text-[8px] font-mono text-gray-200">
+                  <span className="flex items-center gap-0.5 text-amber-300 font-bold">🪙 {gameState.activeDon}</span>
+                  <span className="text-gray-500">|</span>
+                  <span className="flex items-center gap-0.5 text-gray-400 font-bold">🎴 {gameState.restedDon}</span>
+                </div>
                 {selectedDonCount > 0 && (
                   <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-black font-extrabold text-[6.5px] sm:text-[7.5px] animate-pulse">
                     {selectedDonCount} DON (+{selectedDonCount * 1000})
                   </span>
                 )}
-              </span>
+              </div>
               {selectedDonCount > 0 ? (
                 <button
                   type="button"
@@ -2273,7 +2278,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                       setSelectedDonCount((prev) => (prev === donNumber ? 0 : donNumber));
                     }}
                     className={`${
-                      isLandscapeMode ? 'h-[clamp(18px,4.8vh,24px)]' : 'h-[clamp(22px,3.4vh,28px)]'
+                      isLandscapeMode ? 'h-[clamp(24px,6.2vh,30px)]' : 'h-[clamp(22px,3.4vh,28px)]'
                     } aspect-[2.5/3.5] rounded-xs overflow-hidden border shadow-md cursor-pointer transition-all duration-150 relative select-none shrink-0 ${
                       isSelected
                         ? 'border-amber-400 ring-2 ring-amber-400 ring-offset-1 ring-offset-black -translate-y-0.5 scale-105 shadow-[0_0_12px_rgba(251,191,36,0.8)] z-10 brightness-110'
@@ -2295,22 +2300,9 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                 );
               })}
               {gameState.activeDon === 0 && (
-                <div className={`${isLandscapeMode ? 'h-6' : 'h-7 sm:h-8'} aspect-[2.5/3.5] rounded-xs border border-dashed border-gray-600/50 flex items-center justify-center text-[7.5px] text-gray-500 font-mono`}>
+                <div className={`${isLandscapeMode ? 'h-7 sm:h-8' : 'h-7 sm:h-8'} aspect-[2.5/3.5] rounded-xs border border-dashed border-gray-600/50 flex items-center justify-center text-[7.5px] text-gray-500 font-mono`}>
                   0
                 </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between w-full">
-              <div className="flex items-center gap-1.5 px-1.5 py-0.2 rounded-md bg-black/80 border border-white/10 w-fit text-[7px] sm:text-[8px] font-mono text-gray-200">
-                <span className="flex items-center gap-0.5 text-amber-300 font-bold">🪙 {gameState.activeDon}</span>
-                <span className="text-gray-500">|</span>
-                <span className="flex items-center gap-0.5 text-gray-400 font-bold">🎴 {gameState.restedDon}</span>
-              </div>
-              {selectedDonCount > 0 && (
-                <span className="text-[7px] sm:text-[8px] text-amber-300 font-bold animate-pulse">
-                  Tap Leader/Char to attach ➜
-                </span>
               )}
             </div>
           </div>
@@ -2321,7 +2313,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
             <div
               onClick={() => setShowTrashModal(true)}
               className={`${
-                isLandscapeMode ? 'h-[clamp(28px,7.5vh,36px)] w-auto' : 'h-[clamp(28px,4.2vh,36px)] w-auto'
+                isLandscapeMode ? 'h-[clamp(36px,9.5vh,48px)] w-auto' : 'h-[clamp(28px,4.2vh,36px)] w-auto'
               } aspect-[2.5/3.5] rounded-xl border border-dashed border-emerald-900/60 bg-[#05110d]/50 flex items-center justify-center text-gray-400 cursor-pointer hover:border-gray-400 transition`}
             >
               <span className="text-[9.5px] sm:text-xs font-mono font-bold">{gameState.trash.length}</span>
@@ -2376,7 +2368,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
               setInspectedCard(card);
             }}
             className={`sim-card-interactive select-none relative rounded-xl overflow-hidden border border-white/20 shadow-md cursor-pointer transition hover:-translate-y-1 hover:border-white/40 shrink-0 ${
-              isLandscapeMode ? 'h-[clamp(48px,11.5vh,68px)]' : 'h-[clamp(44px,6.5vh,58px)]'
+              isLandscapeMode ? 'h-[clamp(54px,14vh,72px)]' : 'h-[clamp(44px,6.5vh,58px)]'
             } aspect-[2.5/3.5]`}
             title={`Hold / Long-press to inspect. ${card.name}`}
           >
@@ -2426,7 +2418,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
               }}
               className={`sim-card-interactive select-none relative ${
                 isLandscapeMode
-                  ? 'h-[clamp(62px,15vh,84px)]'
+                  ? 'h-[clamp(72px,18vh,96px)]'
                   : 'h-[clamp(58px,8.8vh,74px)]'
               } aspect-[2.5/3.5] rounded-xl overflow-hidden border shadow-xl cursor-pointer transform transition duration-150 shrink-0 ${
                 isSelected
@@ -2939,7 +2931,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
       {/* =======================================================================
           CENTER COLUMN: Opponent Playmat, Midline Prompt, Player Playmat
          ======================================================================= */}
-      <div className="flex-1 min-w-0 max-w-[720px] mx-auto flex flex-col justify-between gap-0.5 sm:gap-1 h-full py-0.5 overflow-hidden">
+      <div className="flex-1 min-w-0 max-w-[860px] mx-auto flex flex-col justify-between gap-0.5 sm:gap-1 h-full py-0.5 overflow-hidden">
         {renderOpponentPlaymat(true)}
         {renderMidlineBanner(true)}
         {renderPlayerPlaymat(true)}
