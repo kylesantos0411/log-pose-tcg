@@ -1693,7 +1693,59 @@ export async function fetchSystemSettings(): Promise<SystemSettingsState> {
     }
   }
 
-  // 1. Fetch from server-side settings API for cross-client persistence
+  // 1. Primary Cloud Query: Supabase is the live authoritative source of truth
+  const client = getSupabaseBrowserClient();
+  if (client && isSupabaseConfigured()) {
+    try {
+      const { data, error } = await client
+        .from('system_settings')
+        .select('key, value');
+
+      if (!error && data && data.length > 0) {
+        const res: SystemSettingsState = {
+          maintenance: { ...DEFAULT_SYSTEM_SETTINGS.maintenance },
+          announcement: { ...DEFAULT_SYSTEM_SETTINGS.announcement },
+          features: {},
+        };
+
+        data.forEach((row) => {
+          let val = row.value;
+          if (typeof val === 'string') {
+            try {
+              val = JSON.parse(val);
+            } catch {
+              // ignore
+            }
+          }
+          if (row.key === 'maintenance' && val) {
+            res.maintenance = { ...DEFAULT_SYSTEM_SETTINGS.maintenance, ...val };
+          } else if (row.key === 'announcement' && val) {
+            res.announcement = {
+              ...DEFAULT_SYSTEM_SETTINGS.announcement,
+              ...val,
+              enabled: Boolean(val?.enabled),
+            };
+          } else if (row.key === 'features' && val) {
+            res.features = { ...val };
+          }
+        });
+
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem(SYSTEM_SETTINGS_CACHE_KEY, JSON.stringify(res));
+          } catch {
+            // ignore
+          }
+        }
+
+        return res;
+      }
+    } catch (err) {
+      console.warn('fetchSystemSettings Supabase error:', err);
+    }
+  }
+
+  // 2. Secondary fallback: Fetch from server-side settings API
   if (typeof window !== 'undefined') {
     try {
       const res = await fetch('/api/settings', { cache: 'no-store' });
@@ -1712,65 +1764,11 @@ export async function fetchSystemSettings(): Promise<SystemSettingsState> {
         }
       }
     } catch {
-      // fallback to supabase / local cache
+      // fallback to local cache
     }
   }
 
-  const client = getSupabaseBrowserClient();
-  if (!client || !isSupabaseConfigured()) {
-    return cachedSettings;
-  }
-
-  try {
-    const { data, error } = await client
-      .from('system_settings')
-      .select('key, value');
-
-    if (error || !data || data.length === 0) {
-      return cachedSettings;
-    }
-
-    const res: SystemSettingsState = {
-      maintenance: { ...DEFAULT_SYSTEM_SETTINGS.maintenance },
-      announcement: { ...DEFAULT_SYSTEM_SETTINGS.announcement },
-      features: {},
-    };
-
-    data.forEach((row) => {
-      let val = row.value;
-      if (typeof val === 'string') {
-        try {
-          val = JSON.parse(val);
-        } catch {
-          // ignore
-        }
-      }
-      if (row.key === 'maintenance' && val) {
-        res.maintenance = { ...DEFAULT_SYSTEM_SETTINGS.maintenance, ...val };
-      } else if (row.key === 'announcement' && val) {
-        res.announcement = {
-          ...DEFAULT_SYSTEM_SETTINGS.announcement,
-          ...val,
-          enabled: Boolean(val?.enabled),
-        };
-      } else if (row.key === 'features' && val) {
-        res.features = { ...val };
-      }
-    });
-
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem(SYSTEM_SETTINGS_CACHE_KEY, JSON.stringify(res));
-      } catch {
-        // ignore
-      }
-    }
-
-    return res;
-  } catch (err) {
-    console.warn('fetchSystemSettings error:', err);
-    return cachedSettings;
-  }
+  return cachedSettings;
 }
 
 /**
@@ -1827,8 +1825,18 @@ export async function updateSystemSetting(
       });
 
     if (error) {
-      console.warn('updateSystemSetting supabase warning (persisted via API/local):', error.message);
-      return { success: true };
+      console.warn('updateSystemSetting supabase upsert warning (trying update):', error.message);
+      const { error: updateError } = await client
+        .from('system_settings')
+        .update({
+          value,
+          updated_at: new Date().toISOString(),
+          updated_by: adminTag || 'admin',
+        })
+        .eq('key', key);
+      if (updateError) {
+        console.warn('updateSystemSetting supabase update fallback warning:', updateError.message);
+      }
     }
 
     if (typeof window !== 'undefined') {

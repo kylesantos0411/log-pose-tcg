@@ -52,7 +52,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [loadingSettings, setLoadingSettings] = useState(true);
 
   const isAdmin = checkIsAdmin(user);
-  const canAccessSim = checkCanAccessSim(user);
+  const canAccessSim = checkCanAccessSim(user, systemSettings.features?.sim);
 
   const loadSettings = async () => {
     try {

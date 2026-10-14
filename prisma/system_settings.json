@@ -1,18 +1,19 @@
 {
   "maintenance": {
     "enabled": false,
-    "message": "System upgrade in progress. Regular maintenance ongoing.",
+    "message": "Log Pose TCG is temporarily docking for scheduled maintenance and upgrades. We will be back online shortly!",
     "estimated_time": null
   },
   "announcement": {
     "enabled": false,
-    "message": "",
-    "type": "info"
+    "message": "📢 We will have a temporary maintenance Today at 5:00PM PHT.",
+    "type": "warning"
   },
   "features": {
     "sim": {
-      "locked": false,
-      "message": "The TCG Battle Simulator is temporarily paused for updates and balancing."
+      "locked": true,
+      "message": "The TCG Battle Simulator is temporarily paused for updates and balancing.",
+      "lockedAt": "2026-10-14T14:58:30.819Z"
     }
   }
 }
