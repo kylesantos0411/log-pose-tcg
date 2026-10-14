@@ -1,0 +1,18 @@
+{
+  "maintenance": {
+    "enabled": false,
+    "message": "System upgrade in progress. Regular maintenance ongoing.",
+    "estimated_time": null
+  },
+  "announcement": {
+    "enabled": false,
+    "message": "",
+    "type": "info"
+  },
+  "features": {
+    "sim": {
+      "locked": false,
+      "message": "The TCG Battle Simulator is temporarily paused for updates and balancing."
+    }
+  }
+}

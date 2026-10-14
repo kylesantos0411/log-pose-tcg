@@ -1528,9 +1528,11 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
   // ---------------------------------------------------------------------------
   // Sub-renderers matching the exact OPlayTCG mobile reference layout (media_1791809778343)
   // ---------------------------------------------------------------------------
-  const renderOpponentPlaymat = () => (
+  const renderOpponentPlaymat = (isLandscapeMode: boolean = false) => (
     <div
-      className={`w-full rounded-2xl border-2 border-[#1c2d4a] bg-[#0b1628] p-1 sm:p-1.5 md:p-2 shadow-xl flex flex-row items-stretch justify-between gap-1 sm:gap-1.5 flex-1 min-h-0 overflow-hidden transition-all ${
+      className={`w-full rounded-2xl border-2 border-[#1c2d4a] bg-[#0b1628] ${
+        isLandscapeMode ? 'p-1 gap-1' : 'p-1 sm:p-1.5 md:p-2 gap-1 sm:gap-1.5'
+      } shadow-xl flex flex-row items-stretch justify-between flex-1 min-h-0 overflow-hidden transition-all ${
         highlightTarget === 'opponent' ? spotlightClass : ''
       }`}
     >
@@ -1541,24 +1543,26 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
           {/* Trash Slot */}
           <div className="flex flex-col items-center shrink-0">
             <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">TRASH</span>
-            <div className="w-8 sm:w-10 md:w-11 aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/60 bg-[#070e1a]/60 flex items-center justify-center text-gray-400">
+            <div className={`${isLandscapeMode ? 'h-[clamp(28px,7.5vh,36px)] w-auto' : 'w-8 sm:w-10 md:w-11'} aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/60 bg-[#070e1a]/60 flex items-center justify-center text-gray-400`}>
               <span className="text-[9px] sm:text-xs font-mono font-bold">{gameState.opponent.trashCount}</span>
             </div>
           </div>
 
           {/* Cost Area with upright DON cards */}
-          <div className="flex-1 rounded-xl border border-blue-900/60 bg-[#070e1a]/85 p-1 sm:p-1.5 flex flex-col justify-between shadow-inner min-h-[38px] sm:min-h-[48px]">
-            <div className="flex items-center justify-between text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider text-gray-400">
+          <div className={`flex-1 rounded-xl border border-blue-900/60 bg-[#070e1a]/85 ${
+            isLandscapeMode ? 'p-0.5 min-h-0' : 'p-1 sm:p-1.5 min-h-[38px] sm:min-h-[48px]'
+          } flex flex-col justify-between shadow-inner`}>
+            <div className="flex items-center justify-between text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-400">
               <span>COST AREA</span>
             </div>
             <div className="flex items-center justify-center gap-1 sm:gap-1.5 my-0.5 overflow-x-auto max-w-full px-0.5 scrollbar-none">
               {Array.from({ length: gameState.opponent.activeDon }).map((_, idx) => (
-                <div key={`opp-don-${idx}`} className="h-7 sm:h-8 md:h-9 aspect-[2.5/3.5] rounded-xs overflow-hidden border border-black/80 shadow-md shrink-0">
+                <div key={`opp-don-${idx}`} className={`${isLandscapeMode ? 'h-[clamp(18px,4.8vh,24px)]' : 'h-7 sm:h-8 md:h-9'} aspect-[2.5/3.5] rounded-xs overflow-hidden border border-black/80 shadow-md shrink-0`}>
                   <img src={OPCG_DON_CARD_DATA_URL} alt="DON" className="w-full h-full object-cover" />
                 </div>
               ))}
             </div>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-black/80 border border-white/10 w-fit text-[7.5px] sm:text-[8.5px] font-mono text-gray-300">
+            <div className="flex items-center gap-1.5 px-1.5 py-0.2 rounded-md bg-black/80 border border-white/10 w-fit text-[7px] sm:text-[8px] font-mono text-gray-300">
               <span className="flex items-center gap-0.5 text-amber-300 font-bold">🪙 {gameState.opponent.activeDon}</span>
               <span className="text-gray-500">|</span>
               <span className="flex items-center gap-0.5 text-gray-400 font-bold">🎴 {gameState.opponent.restedDon}</span>
@@ -1570,13 +1574,13 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         <div className="flex items-center justify-between gap-1.5 w-full my-auto shrink-0">
           {/* Deck & Stage */}
           <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            <div className="w-8 sm:w-10 md:w-11 aspect-[2.5/3.5] rounded-lg border border-blue-900/60 bg-[#070e1a]/60 overflow-hidden relative shadow-md">
+            <div className={`${isLandscapeMode ? 'h-[clamp(32px,8.5vh,42px)] w-auto' : 'w-8 sm:w-10 md:w-11'} aspect-[2.5/3.5] rounded-lg border border-blue-900/60 bg-[#070e1a]/60 overflow-hidden relative shadow-md`}>
               <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Opponent Deck" className="w-full h-full object-cover" />
               <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-black/85 text-white font-mono text-[7.5px] sm:text-[8.5px] font-bold flex items-center justify-center border border-white/20">
                 {gameState.opponent.deckCount}
               </div>
             </div>
-            <div className="w-8 sm:w-10 md:w-11 aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/40 bg-[#070e1a]/40 flex items-center justify-center text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-500">
+            <div className={`${isLandscapeMode ? 'h-[clamp(32px,8.5vh,42px)] w-auto' : 'w-8 sm:w-10 md:w-11'} aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/40 bg-[#070e1a]/40 flex items-center justify-center text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-500`}>
               STAGE
             </div>
           </div>
@@ -1617,7 +1621,11 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                     handleAttackOpponent(gameState.leader.instanceId);
                   }
                 }}
-                className={`sim-card-interactive select-none w-10 sm:w-13 md:w-16 aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-lg cursor-pointer transition group mx-auto ${
+                className={`sim-card-interactive select-none ${
+                  isLandscapeMode
+                    ? 'h-[clamp(38px,9.8vh,48px)] w-auto'
+                    : 'w-14 sm:w-16 md:w-20'
+                } aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-lg cursor-pointer transition group mx-auto ${
                   selectedAttacker
                     ? 'border-rose-500 ring-4 ring-rose-500 ring-offset-2 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(244,63,94,0.95)] scale-105 z-20'
                     : 'border-red-500/80 hover:scale-102'
@@ -1687,7 +1695,11 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                         setInspectedCard(oppChar);
                       }
                     }}
-                    className={`sim-card-interactive select-none max-h-[46px] sm:max-h-[60px] md:max-h-[72px] aspect-[2.5/3.5] w-auto h-full rounded-lg sm:rounded-xl overflow-hidden relative shadow-md cursor-pointer transition ${
+                    className={`sim-card-interactive select-none ${
+                      isLandscapeMode
+                        ? 'h-[clamp(36px,9.2vh,46px)] w-auto'
+                        : 'w-full max-w-[62px] sm:max-w-[72px] md:max-w-[84px] aspect-[2.5/3.5] h-auto max-h-[86px] sm:max-h-[98px]'
+                    } aspect-[2.5/3.5] rounded-lg sm:rounded-xl overflow-hidden relative shadow-md cursor-pointer transition ${
                       canAttackThisChar
                         ? 'border-2 border-rose-500 ring-3 ring-rose-500 ring-offset-1 ring-offset-black animate-pulse shadow-[0_0_20px_rgba(244,63,94,0.9)] scale-105 z-20'
                         : selectedAttacker && !oppChar.rested
@@ -1733,7 +1745,11 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
               return (
                 <div
                   key={`opp-char-slot-${slotIdx}`}
-                  className="max-h-[46px] sm:max-h-[60px] md:max-h-[72px] aspect-[2.5/3.5] w-full rounded-lg border border-dashed border-blue-900/40 bg-[#070e1a]/40"
+                  className={`${
+                    isLandscapeMode
+                      ? 'h-[clamp(36px,9.2vh,46px)] w-auto'
+                      : 'w-full max-w-[62px] sm:max-w-[72px] md:max-w-[84px] aspect-[2.5/3.5] h-auto max-h-[86px] sm:max-h-[98px]'
+                  } aspect-[2.5/3.5] rounded-lg border border-dashed border-blue-900/40 bg-[#070e1a]/40`}
                 />
               );
             })}
@@ -1742,11 +1758,11 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
       </div>
 
       {/* RIGHT COLUMN: DON!! DECK (Top) & LIFE STACK (Bottom) */}
-      <div className="w-9 sm:w-10 md:w-11 shrink-0 flex flex-col justify-between items-center gap-1 py-0.5 overflow-hidden">
+      <div className={`${isLandscapeMode ? 'w-8 sm:w-9' : 'w-10 sm:w-11 md:w-12'} shrink-0 flex flex-col justify-between items-center gap-1 py-0.5 overflow-hidden`}>
         {/* DON!! Deck Slot */}
         <div className="flex flex-col items-center shrink-0">
           <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-400 mb-0.5 text-center leading-tight">DON!!</span>
-          <div className="w-7 sm:w-8 aspect-[2.5/3.5] rounded-lg overflow-hidden border border-blue-900/60 relative shadow-md bg-black/30">
+          <div className={`${isLandscapeMode ? 'w-6 sm:w-6.5' : 'w-8 sm:w-9'} aspect-[2.5/3.5] rounded-lg overflow-hidden border border-blue-900/60 relative shadow-md bg-black/30`}>
             <img src={OPCG_DON_DECK_DATA_URL} alt="DON Deck" className="w-full h-full object-cover" />
             <div className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full bg-black/85 text-white font-mono text-[7px] sm:text-[8px] font-bold flex items-center justify-center border border-white/20">
               {gameState.opponent.donDeckCount}
@@ -1755,21 +1771,23 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         </div>
 
         {/* Opponent Life Stack Container */}
-        <div className="rounded-xl border border-rose-900/80 bg-rose-950/25 px-1 py-0.5 sm:py-1 flex flex-col items-center w-full shadow-inner select-none max-h-[82px] sm:max-h-[96px] overflow-hidden shrink-0">
+        <div className={`rounded-xl border border-rose-900/80 bg-rose-950/25 px-1 py-0.5 flex flex-col items-center w-full shadow-inner select-none ${
+          isLandscapeMode ? 'max-h-[64px] sm:max-h-[74px]' : 'max-h-[88px] sm:max-h-[102px]'
+        } overflow-hidden shrink-0`}>
           <span className="text-[7.5px] sm:text-[8.5px] font-bold text-rose-400 tracking-wider mb-0.5 text-center whitespace-nowrap">
             LIFE · {gameState.opponent.life}
           </span>
-          <div className="relative flex flex-col -space-y-7 sm:-space-y-7.5 pt-0.5 items-center">
+          <div className={`relative flex flex-col ${isLandscapeMode ? '-space-y-6 sm:-space-y-6.5' : '-space-y-7.5 sm:-space-y-8'} pt-0.5 items-center`}>
             {Array.from({ length: Math.min(5, gameState.opponent.life) }).map((_, idx) => (
               <div
                 key={`opp-life-${idx}`}
-                className="w-6.5 sm:w-7.5 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-md shrink-0"
+                className={`${isLandscapeMode ? 'w-6 sm:w-6.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-md shrink-0`}
               >
                 <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Life" className="w-full h-full object-cover" />
               </div>
             ))}
             {gameState.opponent.life === 0 && (
-              <div className="w-6.5 sm:w-7.5 aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/50 flex items-center justify-center text-[8px] text-red-400 font-black text-center">
+              <div className={`${isLandscapeMode ? 'w-6 sm:w-6.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/50 flex items-center justify-center text-[8px] text-red-400 font-black text-center`}>
                 0
               </div>
             )}
@@ -1779,15 +1797,19 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
     </div>
   );
 
-  const renderPlayerPlaymat = () => (
+  const renderPlayerPlaymat = (isLandscapeMode: boolean = false) => (
     <div
-      className={`w-full rounded-2xl border-2 border-[#153424] bg-[#091812] p-1 sm:p-1.5 md:p-2 shadow-xl flex flex-row items-stretch justify-between gap-1 sm:gap-1.5 flex-1 min-h-0 overflow-hidden transition-all`}
+      className={`w-full rounded-2xl border-2 border-[#153424] bg-[#091812] ${
+        isLandscapeMode ? 'p-1 gap-1' : 'p-1 sm:p-1.5 md:p-2 gap-1 sm:gap-1.5'
+      } shadow-xl flex flex-row items-stretch justify-between flex-1 min-h-0 overflow-hidden transition-all`}
     >
       {/* LEFT COLUMN: LIFE STACK (Top) & DON!! DECK (Bottom) */}
-      <div className="w-9 sm:w-10 md:w-11 shrink-0 flex flex-col justify-between items-center gap-1 py-0.5 overflow-hidden">
+      <div className={`${isLandscapeMode ? 'w-8 sm:w-9' : 'w-10 sm:w-11 md:w-12'} shrink-0 flex flex-col justify-between items-center gap-1 py-0.5 overflow-hidden`}>
         {/* Player Life Stack Container */}
         <div
-          className={`rounded-xl border border-rose-900/80 bg-rose-950/25 px-1 py-0.5 sm:py-1 flex flex-col items-center w-full transition shadow-inner select-none max-h-[82px] sm:max-h-[96px] overflow-hidden shrink-0 ${
+          className={`rounded-xl border border-rose-900/80 bg-rose-950/25 px-1 py-0.5 flex flex-col items-center w-full transition shadow-inner select-none ${
+            isLandscapeMode ? 'max-h-[64px] sm:max-h-[74px]' : 'max-h-[88px] sm:max-h-[102px]'
+          } overflow-hidden shrink-0 ${
             highlightTarget === 'life' ? spotlightClass : ''
           }`}
           title={`Player Life: ${gameState.life.length} cards remaining`}
@@ -1795,17 +1817,17 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
           <span className="text-[7.5px] sm:text-[8.5px] font-bold text-rose-400 tracking-wider mb-0.5 text-center whitespace-nowrap">
             LIFE · {gameState.life.length}
           </span>
-          <div className="relative flex flex-col -space-y-7 sm:-space-y-7.5 pt-0.5 items-center">
+          <div className={`relative flex flex-col ${isLandscapeMode ? '-space-y-6 sm:-space-y-6.5' : '-space-y-7.5 sm:-space-y-8'} pt-0.5 items-center`}>
             {gameState.life.map((card, idx) => (
               <div
                 key={`player-life-${card.instanceId}-${idx}`}
-                className="w-6.5 sm:w-7.5 aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-md shrink-0"
+                className={`${isLandscapeMode ? 'w-6 sm:w-6.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-md overflow-hidden border border-white/10 shadow-md shrink-0`}
               >
                 <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Life" className="w-full h-full object-cover" />
               </div>
             ))}
             {gameState.life.length === 0 && (
-              <div className="w-6.5 sm:w-7.5 aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/50 flex items-center justify-center text-[8px] text-red-400 font-black text-center">
+              <div className={`${isLandscapeMode ? 'w-6 sm:w-6.5' : 'w-7 sm:w-8'} aspect-[2.5/3.5] rounded-md border border-dashed border-red-500/50 flex items-center justify-center text-[8px] text-red-400 font-black text-center`}>
                 0
               </div>
             )}
@@ -1815,7 +1837,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         {/* DON!! Deck Slot */}
         <div className="flex flex-col items-center shrink-0">
           <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-emerald-400/80 mb-0.5 text-center leading-tight">DON!!</span>
-          <div className="w-7 sm:w-8 aspect-[2.5/3.5] rounded-xl overflow-hidden border border-emerald-900/60 relative shadow-md bg-black/30">
+          <div className={`${isLandscapeMode ? 'w-6 sm:w-6.5' : 'w-8 sm:w-9'} aspect-[2.5/3.5] rounded-xl overflow-hidden border border-emerald-900/60 relative shadow-md bg-black/30`}>
             <img src={OPCG_DON_DECK_DATA_URL} alt="DON Deck" className="w-full h-full object-cover" />
             <div className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full bg-black/85 text-white font-mono text-[7px] sm:text-[8px] font-bold flex items-center justify-center border border-white/20">
               {gameState.donDeckCount}
@@ -1878,7 +1900,11 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                       setSelectedFieldCard(card);
                       setSelectedAttacker(null);
                     }}
-                    className={`sim-card-interactive select-none max-h-[46px] sm:max-h-[60px] md:max-h-[72px] aspect-[2.5/3.5] w-auto h-full rounded-lg sm:rounded-xl overflow-hidden relative shadow-md cursor-pointer transition ${
+                    className={`sim-card-interactive select-none ${
+                      isLandscapeMode
+                        ? 'h-[clamp(36px,9.2vh,46px)] w-auto'
+                        : 'w-full max-w-[62px] sm:max-w-[72px] md:max-w-[84px] aspect-[2.5/3.5] h-auto max-h-[86px] sm:max-h-[98px]'
+                    } aspect-[2.5/3.5] rounded-lg sm:rounded-xl overflow-hidden relative shadow-md cursor-pointer transition ${
                       selectedDonCount > 0
                         ? 'border-2 border-amber-400 ring-3 ring-amber-400 ring-offset-1 ring-offset-black animate-pulse shadow-[0_0_20px_rgba(251,191,36,0.9)] scale-105 z-20'
                         : isThisAttacking
@@ -1974,7 +2000,11 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                       handlePlayCard(selectedHandCard.instanceId, slotIdx);
                     }
                   }}
-                  className={`max-h-[46px] sm:max-h-[60px] md:max-h-[72px] aspect-[2.5/3.5] w-full rounded-lg sm:rounded-xl transition flex flex-col items-center justify-center p-0.5 text-center ${
+                  className={`${
+                    isLandscapeMode
+                      ? 'h-[clamp(36px,9.2vh,46px)] w-auto'
+                      : 'w-full max-w-[62px] sm:max-w-[72px] md:max-w-[84px] aspect-[2.5/3.5] h-auto max-h-[86px] sm:max-h-[98px]'
+                  } aspect-[2.5/3.5] rounded-lg sm:rounded-xl transition flex flex-col items-center justify-center p-0.5 text-center ${
                     canSummonHere
                       ? 'border-2 border-dashed border-emerald-400 bg-emerald-500/25 shadow-[0_0_20px_rgba(52,211,153,0.6)] animate-pulse cursor-pointer hover:bg-emerald-500/35 active:scale-95 z-20'
                       : 'border border-dashed border-emerald-900/40 bg-[#05110d]/40'
@@ -2029,7 +2059,11 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                   setSelectedFieldCard(gameState.leader);
                   setSelectedAttacker(null);
                 }}
-                className={`sim-card-interactive select-none w-10 sm:w-13 md:w-16 aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-[0_0_15px_rgba(34,211,238,0.4)] cursor-pointer hover:border-cyan-300 transition ${
+                className={`sim-card-interactive select-none ${
+                  isLandscapeMode
+                    ? 'h-[clamp(38px,9.8vh,48px)] w-auto'
+                    : 'w-14 sm:w-16 md:w-20'
+                } aspect-[2.5/3.5] rounded-xl border-2 overflow-hidden relative shadow-[0_0_15px_rgba(34,211,238,0.4)] cursor-pointer hover:border-cyan-300 transition ${
                   selectedDonCount > 0
                     ? 'border-amber-400 ring-4 ring-amber-400 ring-offset-2 ring-offset-black animate-pulse shadow-[0_0_25px_rgba(251,191,36,0.9)] scale-105 z-20'
                     : liveAttackerCard?.instanceId === gameState.leader.instanceId
@@ -2097,7 +2131,11 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
               onClick={() => {
                 if (gameState.leader) setSelectedFieldCard(gameState.leader);
               }}
-              className="mt-0.5 px-3 py-0.5 rounded-full bg-[#f59e0b] hover:bg-[#d97706] text-black font-black text-[7.5px] sm:text-[9px] tracking-wide flex items-center gap-0.5 shadow-md transition active:scale-95"
+              className={`${
+                isLandscapeMode
+                  ? 'mt-0.2 px-2 py-0 text-[7px] leading-tight'
+                  : 'mt-0.5 px-3 py-0.5 text-[7.5px] sm:text-[9px]'
+              } rounded-full bg-[#f59e0b] hover:bg-[#d97706] text-black font-black tracking-wide flex items-center gap-0.5 shadow-md transition active:scale-95`}
             >
               <span>✦ Activate</span>
             </button>
@@ -2128,7 +2166,11 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                     }
                     if (gameState.stage) setSelectedFieldCard(gameState.stage);
                   }}
-                  className={`sim-card-interactive select-none w-8 sm:w-10 md:w-12 aspect-[2.5/3.5] rounded-xl flex items-center justify-center text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider overflow-hidden relative cursor-pointer transition ${
+                  className={`sim-card-interactive select-none ${
+                    isLandscapeMode
+                      ? 'h-[clamp(36px,9.5vh,46px)] w-auto'
+                      : 'w-8 sm:w-10 md:w-12'
+                  } aspect-[2.5/3.5] rounded-xl flex items-center justify-center text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wider overflow-hidden relative cursor-pointer transition ${
                     canPlayStage
                       ? 'border-2 border-dashed border-emerald-400 bg-emerald-500/25 shadow-[0_0_15px_rgba(52,211,153,0.6)] animate-pulse text-emerald-300'
                       : 'border border-dashed border-emerald-900/40 bg-[#05110d]/40 text-gray-500'
@@ -2158,7 +2200,11 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
               );
             })()}
             <div
-              className="w-8 sm:w-10 md:w-12 aspect-[2.5/3.5] rounded-xl border border-emerald-900/50 bg-[#05110d]/70 overflow-hidden relative shadow-md select-none"
+              className={`${
+                isLandscapeMode
+                  ? 'h-[clamp(32px,8.5vh,42px)] w-auto'
+                  : 'w-8 sm:w-10 md:w-12'
+              } aspect-[2.5/3.5] rounded-xl border border-emerald-900/50 bg-[#05110d]/70 overflow-hidden relative shadow-md select-none`}
               title={`Main Deck (${gameState.deck.length} cards remaining)`}
             >
               <img src={OPCG_PURPLE_BACK_DATA_URL} alt="Main Deck" className="w-full h-full object-cover" />
@@ -2170,10 +2216,12 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         </div>
 
         {/* Bottom Row: COST AREA (Left/Center) & TRASH (Right) */}
-        <div className="flex items-center gap-1.5 w-full shrink-0">
+        <div className={`flex items-center gap-1.5 w-full shrink-0 ${isLandscapeMode ? 'pb-1' : ''}`}>
           {/* Cost Area with upright DON cards matching reference screenshot */}
           <div
-            className={`flex-1 rounded-2xl border-2 border-amber-400/85 bg-[#05110d]/90 p-1 sm:p-1.5 flex flex-col justify-between shadow-[0_0_12px_rgba(251,191,36,0.25)] h-full min-h-[38px] sm:min-h-[48px] transition-all ${
+            className={`flex-1 rounded-2xl border-2 border-amber-400/85 bg-[#05110d]/90 ${
+              isLandscapeMode ? 'p-0.5 min-h-0' : 'p-1 sm:p-1.5 min-h-[38px] sm:min-h-[48px]'
+            } flex flex-col justify-between shadow-[0_0_12px_rgba(251,191,36,0.25)] transition-all ${
               highlightTarget === 'costArea' ? 'ring-2 ring-amber-400/40 shadow-[0_0_20px_rgba(251,191,36,0.65)]' : ''
             }`}
           >
@@ -2224,7 +2272,9 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                       }
                       setSelectedDonCount((prev) => (prev === donNumber ? 0 : donNumber));
                     }}
-                    className={`h-7 sm:h-8 md:h-10 aspect-[2.5/3.5] rounded-xs overflow-hidden border shadow-md cursor-pointer transition-all duration-150 relative select-none shrink-0 ${
+                    className={`${
+                      isLandscapeMode ? 'h-[clamp(18px,4.8vh,24px)]' : 'h-7 sm:h-8 md:h-10'
+                    } aspect-[2.5/3.5] rounded-xs overflow-hidden border shadow-md cursor-pointer transition-all duration-150 relative select-none shrink-0 ${
                       isSelected
                         ? 'border-amber-400 ring-2 ring-amber-400 ring-offset-1 ring-offset-black -translate-y-0.5 scale-105 shadow-[0_0_12px_rgba(251,191,36,0.8)] z-10 brightness-110'
                         : 'border-black/80 hover:scale-102 hover:border-amber-300/60'
@@ -2245,7 +2295,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                 );
               })}
               {gameState.activeDon === 0 && (
-                <div className="h-8 sm:h-9 md:h-10 aspect-[2.5/3.5] rounded-xs border border-dashed border-gray-600/50 flex items-center justify-center text-[7.5px] text-gray-500 font-mono">
+                <div className={`${isLandscapeMode ? 'h-6' : 'h-8 sm:h-9 md:h-10'} aspect-[2.5/3.5] rounded-xs border border-dashed border-gray-600/50 flex items-center justify-center text-[7.5px] text-gray-500 font-mono`}>
                   0
                 </div>
               )}
@@ -2270,7 +2320,9 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
             <span className="text-[7px] sm:text-[8px] font-bold uppercase tracking-wider text-gray-400 mb-0.5">TRASH</span>
             <div
               onClick={() => setShowTrashModal(true)}
-              className="w-9 sm:w-11 md:w-12 aspect-[2.5/3.5] rounded-xl border border-dashed border-emerald-900/60 bg-[#05110d]/50 flex items-center justify-center text-gray-400 cursor-pointer hover:border-gray-400 transition"
+              className={`${
+                isLandscapeMode ? 'h-[clamp(28px,7.5vh,36px)] w-auto' : 'w-9 sm:w-11 md:w-12'
+              } aspect-[2.5/3.5] rounded-xl border border-dashed border-emerald-900/60 bg-[#05110d]/50 flex items-center justify-center text-gray-400 cursor-pointer hover:border-gray-400 transition`}
             >
               <span className="text-[9.5px] sm:text-xs font-mono font-bold">{gameState.trash.length}</span>
             </div>
@@ -2324,7 +2376,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
               setInspectedCard(card);
             }}
             className={`sim-card-interactive select-none relative rounded-xl overflow-hidden border border-white/20 shadow-md cursor-pointer transition hover:-translate-y-1 hover:border-white/40 shrink-0 ${
-              isLandscapeMode ? 'h-[clamp(65px,13vh,95px)]' : 'h-[clamp(36px,6vh,54px)] sm:h-[clamp(44px,7.5vh,64px)]'
+              isLandscapeMode ? 'h-[clamp(48px,11.5vh,68px)]' : 'h-[clamp(56px,8.5vh,76px)] sm:h-[clamp(65px,10vh,86px)]'
             } aspect-[2.5/3.5]`}
             title={`Hold / Long-press to inspect. ${card.name}`}
           >
@@ -2373,7 +2425,9 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                 }
               }}
               className={`sim-card-interactive select-none relative ${
-                isLandscapeMode ? 'h-[clamp(68px,14vh,98px)]' : 'h-[clamp(44px,7.2vh,68px)] sm:h-[clamp(54px,9.2vh,78px)]'
+                isLandscapeMode
+                  ? 'h-[clamp(62px,15vh,84px)]'
+                  : 'h-[clamp(76px,11.5vh,102px)] sm:h-[clamp(88px,13vh,115px)]'
               } aspect-[2.5/3.5] rounded-xl overflow-hidden border shadow-xl cursor-pointer transform transition duration-150 shrink-0 ${
                 isSelected
                   ? '-translate-y-2 ring-3 ring-amber-400 border-amber-300 shadow-[0_0_20px_rgba(251,191,36,0.8)] z-30 scale-105'
@@ -2490,13 +2544,13 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
     );
   };
 
-  const renderMidlineBanner = () => (
-    <div className="relative w-full flex items-center justify-center shrink-0 my-0.5 z-30">
+  const renderMidlineBanner = (isLandscapeMode: boolean = false) => (
+    <div className={`relative w-full flex items-center justify-center shrink-0 ${isLandscapeMode ? 'my-0 py-0.5' : 'my-0.5'} z-30`}>
       <div className="h-0.5 w-full bg-white/10" />
       {liveAttackerCard ? (
-        <div className="absolute px-3.5 py-1 rounded-full bg-[#3b0d18] border-2 border-rose-500 text-white text-[9.5px] sm:text-xs font-bold shadow-2xl flex items-center gap-2 pointer-events-auto animate-pulse z-40 max-w-[95%]">
+        <div className={`absolute px-3 py-0.5 sm:py-1 rounded-full bg-[#3b0d18] border-2 border-rose-500 text-white ${isLandscapeMode ? 'text-[8.5px]' : 'text-[9.5px] sm:text-xs'} font-bold shadow-2xl flex items-center gap-1.5 pointer-events-auto animate-pulse z-40 max-w-[95%]`}>
           <span className="flex items-center gap-1 text-rose-300 truncate">
-            <Swords className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+            <Swords className="w-3 h-3 text-rose-400 shrink-0" />
             <span className="truncate">
               {liveAttackerCard.name} ({(liveAttackerCard.power || 0) + liveAttackerCard.attachedDon * 1000} ATK)
             </span>
@@ -2509,7 +2563,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
               e.stopPropagation();
               setSelectedFieldCard(liveAttackerCard);
             }}
-            className="px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-[8.5px] text-gray-200 shrink-0 active:scale-95 transition"
+            className="px-1.5 py-0.2 rounded bg-white/10 hover:bg-white/20 text-[8px] text-gray-200 shrink-0 active:scale-95 transition"
             title="Card details and manual controls"
           >
             Menu
@@ -2520,20 +2574,20 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
               e.stopPropagation();
               setSelectedAttacker(null);
             }}
-            className="w-4 h-4 rounded-full bg-black/60 hover:bg-black text-gray-300 hover:text-white flex items-center justify-center text-[9px] shrink-0 active:scale-95 transition"
+            className="w-3.5 h-3.5 rounded-full bg-black/60 hover:bg-black text-gray-300 hover:text-white flex items-center justify-center text-[8.5px] shrink-0 active:scale-95 transition"
             title="Cancel attack"
           >
             ✕
           </button>
         </div>
       ) : selectedDonCount > 0 ? (
-        <div className="absolute px-3 py-1 rounded-full bg-amber-500 text-black text-[9.5px] sm:text-xs font-black shadow-xl flex items-center gap-1.5 pointer-events-auto animate-bounce z-40">
+        <div className={`absolute px-3 py-0.5 sm:py-1 rounded-full bg-amber-500 text-black ${isLandscapeMode ? 'text-[8.5px]' : 'text-[9.5px] sm:text-xs'} font-black shadow-xl flex items-center gap-1.5 pointer-events-auto animate-bounce z-40`}>
           <span>🪙 {selectedDonCount} DON!! SELECTED</span>
           <span className="font-semibold text-gray-900">• Tap Leader or Char to attach (+{selectedDonCount * 1000} Power)</span>
           <button
             type="button"
             onClick={() => setSelectedDonCount(0)}
-            className="w-4 h-4 rounded-full bg-black/30 hover:bg-black/60 text-white flex items-center justify-center text-[9px] ml-1"
+            className="w-3.5 h-3.5 rounded-full bg-black/30 hover:bg-black/60 text-white flex items-center justify-center text-[8.5px] ml-1"
             title="Cancel DON selection"
           >
             ✕
@@ -2546,13 +2600,13 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
             const nextIdx = (gameState.tutorialStepIndex + 1) % OPTCG_TUTORIAL_STEPS.length;
             setGameState((prev) => setTutorialStep(prev, nextIdx));
           }}
-          className="absolute px-5 py-1.5 rounded-full bg-[#181a24]/95 border-2 border-amber-400 text-amber-300 text-xs sm:text-sm font-bold shadow-2xl flex items-center gap-1.5 pointer-events-auto cursor-pointer animate-pulse active:scale-95 transition"
+          className={`absolute px-4 py-0.5 sm:py-1 rounded-full bg-[#181a24]/95 border-2 border-amber-400 text-amber-300 ${isLandscapeMode ? 'text-[9px]' : 'text-xs sm:text-sm'} font-bold shadow-2xl flex items-center gap-1.5 pointer-events-auto cursor-pointer animate-pulse active:scale-95 transition`}
         >
           <span className="text-amber-400">✦</span>
           <span>{currentStep.title}</span>
         </button>
       ) : (
-        <div className="absolute px-4 py-1 rounded-full bg-[#181a24]/95 border-2 border-amber-400/90 text-amber-300 text-[9.5px] sm:text-xs font-bold shadow-[0_0_15px_rgba(251,191,36,0.3)] flex items-center gap-1.5 pointer-events-auto animate-pulse">
+        <div className={`absolute px-3.5 py-0.5 sm:py-1 rounded-full bg-[#181a24]/95 border-2 border-amber-400/90 text-amber-300 ${isLandscapeMode ? 'text-[8.5px]' : 'text-[9.5px] sm:text-xs'} font-bold shadow-[0_0_15px_rgba(251,191,36,0.3)] flex items-center gap-1.5 pointer-events-auto animate-pulse`}>
           <span className="text-amber-400 text-xs">✦</span>
           <span>Attach a DON!!</span>
         </div>
@@ -2675,13 +2729,13 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
       </div>
 
       {/* 4. OPPONENT PLAYMAT */}
-      {renderOpponentPlaymat()}
+      {renderOpponentPlaymat(false)}
 
       {/* 5. MIDLINE & ACTION PROMPT BANNER */}
-      {renderMidlineBanner()}
+      {renderMidlineBanner(false)}
 
       {/* 6. PLAYER PLAYMAT */}
-      {renderPlayerPlaymat()}
+      {renderPlayerPlaymat(false)}
 
       {/* 7. PLAYER STATUS PILL BAR */}
       <div className="flex items-center justify-center gap-1.5 w-full px-1 py-0.5 shrink-0 z-10">
@@ -2770,38 +2824,38 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
   );
 
   const renderLandscapeLayout = () => (
-    <div className="w-full h-full max-w-[1440px] mx-auto flex flex-row items-stretch justify-between gap-2 p-1 sm:p-2 overflow-hidden select-none">
+    <div className="w-full h-full max-w-[100dvw] max-h-[100dvh] mx-auto flex flex-row items-stretch justify-between gap-1 sm:gap-2 p-1 overflow-hidden select-none box-border">
       {/* =======================================================================
           LEFT COLUMN: Opponent & Player Status Pills, Player Hand
          ======================================================================= */}
-      <div className="w-[170px] sm:w-[200px] md:w-[230px] shrink-0 flex flex-col justify-between py-1 px-0.5 h-full z-20">
+      <div className="w-[125px] sm:w-[145px] md:w-[170px] shrink-0 flex flex-col justify-between py-0.5 px-0.5 h-full z-20 overflow-hidden">
         {/* Top Controls & Opponent Status */}
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-1.5">
+        <div className="space-y-1">
+          <div className="flex items-center gap-1">
             {onExit ? (
               <button
                 type="button"
                 onClick={onExit}
-                className="w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 flex items-center justify-center transition"
+                className="w-6.5 h-6.5 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 flex items-center justify-center transition shrink-0"
                 title="Return"
               >
-                <ArrowLeft className="w-3.5 h-3.5" />
+                <ArrowLeft className="w-3 h-3" />
               </button>
             ) : (
               <Link
                 href="/"
-                className="w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 flex items-center justify-center transition"
+                className="w-6.5 h-6.5 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 flex items-center justify-center transition shrink-0"
               >
-                <ArrowLeft className="w-3.5 h-3.5" />
+                <ArrowLeft className="w-3 h-3" />
               </Link>
             )}
             <button
               type="button"
               onClick={handleToggleOrientation}
-              className="w-7 h-7 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 flex items-center justify-center transition cursor-pointer"
+              className="w-6.5 h-6.5 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 flex items-center justify-center transition cursor-pointer shrink-0"
               title="Toggle Fullscreen"
             >
-              <Maximize2 className="w-3.5 h-3.5" />
+              <Maximize2 className="w-3 h-3" />
             </button>
             <button
               type="button"
@@ -2810,27 +2864,27 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
                   animSpeed === 'normal' ? 'fast' : animSpeed === 'fast' ? 'instant' : 'normal';
                 handleSpeedChange(nextSpeed);
               }}
-              className="px-2 py-1 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-amber-300 border border-amber-500/30 text-[9.5px] font-mono font-bold flex items-center gap-1 transition cursor-pointer"
+              className="px-1.5 py-0.5 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-amber-300 border border-amber-500/30 text-[8.5px] font-mono font-bold flex items-center gap-0.5 transition cursor-pointer shrink-0"
             >
-              <Zap className="w-3 h-3 text-amber-400" />
+              <Zap className="w-2.5 h-2.5 text-amber-400" />
               <span>{animSpeed === 'normal' ? '1x' : animSpeed === 'fast' ? '2x' : 'INST'}</span>
             </button>
           </div>
 
           {/* Opponent Status Pill */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => {
                 if (!activeMultiplayerRoom) setShowOpponentSelector(true);
               }}
-              className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#131d31] border border-blue-500/30 text-white text-[9px] font-bold shadow-xs hover:bg-[#1a263f] transition cursor-pointer"
+              className="flex items-center gap-1 px-2 py-0.2 rounded-full bg-[#131d31] border border-blue-500/30 text-white text-[8.5px] font-bold shadow-xs hover:bg-[#1a263f] transition cursor-pointer truncate max-w-[85px]"
             >
-              <span className={`w-2 h-2 rounded-full ${activeMultiplayerRoom ? (isMultiplayerOpponentConnected ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse') : 'bg-blue-400'}`} />
-              <span className="truncate max-w-[85px]">{activeMultiplayerRoom ? (isMultiplayerOpponentConnected ? gameState.opponent.name : 'Waiting...') : 'OPPONENT'}</span>
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${activeMultiplayerRoom ? (isMultiplayerOpponentConnected ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse') : 'bg-blue-400'}`} />
+              <span className="truncate">{activeMultiplayerRoom ? (isMultiplayerOpponentConnected ? gameState.opponent.name : 'Waiting...') : 'OPPONENT'}</span>
             </button>
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8.5px]">
-              <Clock className="w-2.5 h-2.5 text-gray-400" />
+            <div className="flex items-center gap-0.5 px-1.5 py-0.2 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8px] shrink-0">
+              <Clock className="w-2 h-2 text-gray-400" />
               <span>17:30</span>
             </div>
           </div>
@@ -2838,35 +2892,46 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
 
         {/* Player Status Pill & Hand */}
         <div className="space-y-1 mt-auto">
-          <div className="flex items-center gap-1.5">
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#131d31] border border-emerald-500/30 text-white text-[9px] font-bold shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
-              <span>{activeMultiplayerRoom ? (isMultiplayerHost ? 'HOST' : 'GUEST') : 'GUEST'}</span>
+          <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 px-2 py-0.2 rounded-full bg-[#131d31] border border-emerald-500/30 text-white text-[8.5px] font-bold shadow-xs truncate max-w-[85px]">
+              <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+              <span className="truncate">{activeMultiplayerRoom ? (isMultiplayerHost ? 'HOST' : 'GUEST') : 'GUEST'}</span>
               {!gameState.isOpponentTurn && (
-                <span className="px-1 py-0.2 rounded bg-amber-600 text-[6.5px] font-bold text-white uppercase">TURN</span>
+                <span className="px-1 py-0.2 rounded bg-amber-600 text-[6px] font-bold text-white uppercase shrink-0">TURN</span>
               )}
             </div>
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8.5px]">
-              <Clock className="w-2.5 h-2.5 text-gray-400" />
+            <div className="flex items-center gap-0.5 px-1.5 py-0.2 rounded-full bg-[#131d31] border border-white/10 text-gray-300 font-mono text-[8px] shrink-0">
+              <Clock className="w-2 h-2 text-gray-400" />
               <span>17:30</span>
             </div>
           </div>
 
-          <div className="flex items-center justify-center px-1">
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#131d31] border border-white/10 text-white font-mono text-[9px] font-bold">
+          <div className="flex items-center justify-between px-0.5">
+            <div className="flex items-center gap-1 px-2 py-0.2 rounded-md bg-[#131d31] border border-white/10 text-white font-mono text-[8.5px] font-bold">
               <span>{gameState.hand.length}</span>
               <span className="text-gray-500 font-normal">|</span>
               <button
                 type="button"
                 onClick={() => setPlayerHandExpanded(!playerHandExpanded)}
-                className="text-gray-200 hover:text-white text-[8.5px] font-semibold cursor-pointer"
+                className="text-gray-200 hover:text-white text-[8px] font-semibold cursor-pointer"
               >
                 ⇅ Original
               </button>
             </div>
           </div>
 
-          {selectedHandCard && renderSelectedHandCardBanner()}
+          {selectedHandCard && (
+            <div className="w-full px-1.5 py-0.5 bg-emerald-950/80 border border-emerald-500/50 rounded-lg text-[8px] text-white flex items-center justify-between gap-1">
+              <span className="font-bold text-emerald-300 truncate">{selectedHandCard.name}</span>
+              <button
+                type="button"
+                onClick={() => setSelectedHandCard(null)}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           {playerHandExpanded && renderPlayerHand(true)}
         </div>
       </div>
@@ -2874,24 +2939,24 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
       {/* =======================================================================
           CENTER COLUMN: Opponent Playmat, Midline Prompt, Player Playmat
          ======================================================================= */}
-      <div className="flex-1 min-w-0 max-w-[760px] mx-auto flex flex-col justify-between gap-1 h-full py-0.5 overflow-hidden">
-        {renderOpponentPlaymat()}
-        {renderMidlineBanner()}
-        {renderPlayerPlaymat()}
+      <div className="flex-1 min-w-0 max-w-[720px] mx-auto flex flex-col justify-between gap-0.5 sm:gap-1 h-full py-0.5 overflow-hidden">
+        {renderOpponentPlaymat(true)}
+        {renderMidlineBanner(true)}
+        {renderPlayerPlaymat(true)}
       </div>
 
       {/* =======================================================================
           RIGHT COLUMN: Opponent Hand, Turn Indicator, End Turn & Bug Report
          ======================================================================= */}
-      <div className="w-[170px] sm:w-[200px] md:w-[230px] shrink-0 flex flex-col justify-between py-1 px-0.5 h-full z-20">
+      <div className="w-[125px] sm:w-[145px] md:w-[170px] shrink-0 flex flex-col justify-between py-0.5 px-0.5 h-full z-20 overflow-hidden">
         {/* Top: Opponent Hand */}
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           {renderOpponentHand(true)}
-          <div className="flex items-center justify-center px-1">
-            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-[#131d31] border border-white/10 text-white font-mono text-[9px] font-bold">
+          <div className="flex items-center justify-center px-0.5">
+            <div className="flex items-center gap-1 px-2 py-0.2 rounded-md bg-[#131d31] border border-white/10 text-white font-mono text-[8.5px] font-bold">
               <span>{gameState.opponent.handCount}</span>
               <span className="text-gray-500 font-normal">|</span>
-              <span className="text-gray-300 text-[8.5px] font-semibold">
+              <span className="text-gray-300 text-[8px] font-semibold">
                 ⇅ Original
               </span>
             </div>
@@ -2899,24 +2964,24 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
         </div>
 
         {/* Middle: Turn Indicator */}
-        <div className="my-auto flex justify-end pr-1">
+        <div className="my-auto flex justify-end pr-0.5">
           <button
             type="button"
             onClick={() => setShowTurnMenu(true)}
-            className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-gray-100 text-black font-extrabold text-xs sm:text-sm flex items-center gap-1.5 shadow-md active:scale-95 transition cursor-pointer"
+            className="px-3 py-1 rounded-xl bg-white hover:bg-gray-100 text-black font-extrabold text-[11px] sm:text-xs flex items-center gap-1 shadow-md active:scale-95 transition cursor-pointer"
           >
-            <Menu className="w-3.5 h-3.5 stroke-[3]" />
+            <Menu className="w-3 h-3 stroke-[3]" />
             <span>TURN {gameState.turn}</span>
           </button>
         </div>
 
         {/* Bottom: Action Buttons */}
-        <div className="space-y-2 pt-2">
+        <div className="space-y-1.5 pt-1">
           <button
             type="button"
             onClick={handleNextTurn}
             disabled={isAiThinking || (Boolean(activeMultiplayerRoom) && gameState.isOpponentTurn)}
-            className={`w-full py-2.5 sm:py-3 rounded-xl text-black font-black text-sm flex items-center justify-center gap-2 shadow-lg transition active:scale-95 select-none ${
+            className={`w-full py-2 sm:py-2.5 rounded-xl text-black font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg transition active:scale-95 select-none ${
               isAiThinking || (Boolean(activeMultiplayerRoom) && gameState.isOpponentTurn)
                 ? 'bg-amber-600/70 cursor-not-allowed opacity-80 text-white'
                 : 'bg-[#f59e0b] hover:bg-[#d97706] cursor-pointer'
@@ -2924,13 +2989,13 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
           >
             {isAiThinking ? (
               <>
-                <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                <span>Opponent Turn...</span>
+                <span className="w-3 h-3 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                <span className="truncate">Opponent...</span>
               </>
             ) : activeMultiplayerRoom && gameState.isOpponentTurn ? (
               <>
-                <Clock className="w-3.5 h-3.5 text-white" />
-                <span>Opponent&apos;s Turn</span>
+                <Clock className="w-3 h-3 text-white" />
+                <span className="truncate">Opponent Turn</span>
               </>
             ) : (
               <>
@@ -2943,9 +3008,9 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
           <button
             type="button"
             onClick={() => alert('Bug report submitted. Thank you for testing the simulator!')}
-            className="w-full py-1.5 rounded-xl bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 text-xs font-semibold flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs"
+            className="w-full py-1 rounded-lg bg-[#141a29] hover:bg-[#1e2638] text-gray-300 hover:text-white border border-white/10 text-[10.5px] sm:text-xs font-semibold flex items-center justify-center gap-1 transition active:scale-95 cursor-pointer shadow-xs"
           >
-            <Bug className="w-3.5 h-3.5 text-amber-500" />
+            <Bug className="w-3 h-3 text-amber-500" />
             <span>Report a bug</span>
           </button>
         </div>
@@ -2955,7 +3020,7 @@ export function SimPlaymat({ initialDeck, initialTutorialMode, onExit, initialMu
 
   return (
     <div
-      className={`h-[100dvh] max-h-[100dvh] w-screen overflow-hidden bg-[#0a0e17] text-gray-200 flex flex-col justify-between font-sans select-none relative transition-all ${
+      className={`h-[100dvh] max-h-[100dvh] w-full max-w-[100dvw] overflow-hidden bg-[#0a0e17] text-gray-200 flex flex-col justify-between font-sans select-none relative transition-all ${
         forceVirtualLandscape && !isLandscape
           ? 'rotate-90 origin-top-left w-[100dvh] h-[100dvw] translate-x-[100dvw] fixed inset-0 z-50'
           : ''
