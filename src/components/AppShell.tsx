@@ -40,7 +40,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isPreview = pathname === '/preview';
   const isSim = pathname === '/sim' || pathname?.startsWith('/sim');
 
-  const [systemSettings, setSystemSettings] = useState<SystemSettingsState>(DEFAULT_SYSTEM_SETTINGS);
+  const [systemSettings, setSystemSettings] = useState<SystemSettingsState>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('logpose_system_settings_cache');
+        if (stored) return JSON.parse(stored);
+      } catch {}
+    }
+    return DEFAULT_SYSTEM_SETTINGS;
+  });
   const [loadingSettings, setLoadingSettings] = useState(true);
 
   const isAdmin = checkIsAdmin(user);

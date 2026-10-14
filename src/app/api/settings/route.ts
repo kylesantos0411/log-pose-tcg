@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     } else if (key === 'announcement') {
       current.announcement = { ...current.announcement, ...(value || {}) };
     } else if (key === 'features') {
-      current.features = { ...(value || {}) };
+      current.features = { ...(current.features || {}), ...(value || {}) };
     }
 
     writeSettings(current);

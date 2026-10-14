@@ -22,6 +22,7 @@ import {
   checkCanAccessSim, 
   checkIsAdmin, 
   fetchSystemSettings, 
+  updateSystemSetting,
   DEFAULT_SYSTEM_SETTINGS, 
   type SystemSettingsState 
 } from '@/lib/supabase-sync';
@@ -34,20 +35,48 @@ function SimulatorContent() {
   const searchParams = useSearchParams();
   const { user } = useSettings();
   const [mounted, setMounted] = useState(false);
-  const [systemSettings, setSystemSettings] = useState<SystemSettingsState>(DEFAULT_SYSTEM_SETTINGS);
+  const [adminBypass, setAdminBypass] = useState(false);
+  const [systemSettings, setSystemSettings] = useState<SystemSettingsState>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('logpose_system_settings_cache');
+        if (stored) return JSON.parse(stored);
+      } catch {}
+    }
+    return DEFAULT_SYSTEM_SETTINGS;
+  });
 
   useEffect(() => {
     setMounted(true);
     fetchSystemSettings().then(setSystemSettings);
     const handleUpdate = () => fetchSystemSettings().then(setSystemSettings);
     window.addEventListener('logpose_settings_updated', handleUpdate);
-    return () => window.removeEventListener('logpose_settings_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('logpose_settings_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
   }, []);
 
   const sessionUser = user || (typeof window !== 'undefined' ? getActiveSession() : null);
   const isAdmin = checkIsAdmin(sessionUser);
   const isSimLocked = Boolean(systemSettings.features?.sim?.locked);
-  const canAccessSim = !isSimLocked || isAdmin;
+  const isLockedForCurrentUser = isSimLocked && (!isAdmin || !adminBypass);
+
+  const handleUnlockSim = async () => {
+    const updatedFeatures = {
+      ...(systemSettings.features || {}),
+      sim: {
+        locked: false,
+        message: '',
+      },
+    };
+    await updateSystemSetting('features', updatedFeatures, user?.tag);
+    setSystemSettings((prev) => ({
+      ...prev,
+      features: updatedFeatures,
+    }));
+  };
 
   const deckId = searchParams.get('deckId');
   const tutorialParam = searchParams.get('tutorial');
@@ -99,7 +128,7 @@ function SimulatorContent() {
     );
   }
 
-  if (!canAccessSim) {
+  if (isLockedForCurrentUser) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-[#141824] border border-[#252b3d] rounded-3xl p-8 text-center space-y-4 shadow-2xl">
@@ -116,18 +145,43 @@ function SimulatorContent() {
           <div className="pt-2 flex flex-col sm:flex-row gap-2 justify-center">
             <Link
               href="/decks"
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Browse Decks</span>
             </Link>
             <Link
               href="/"
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#1e2332] hover:bg-[#282f44] border border-[#2e374f] text-slate-300 font-bold text-xs transition"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#1e2332] hover:bg-[#282f44] border border-[#2e374f] text-slate-300 font-bold text-xs transition cursor-pointer"
             >
               <span>Dashboard</span>
             </Link>
           </div>
+
+          {/* Admin Command Bypass Controls */}
+          {isAdmin && (
+            <div className="mt-4 pt-4 border-t border-[#252a3b] space-y-2">
+              <span className="text-[10px] uppercase font-bold text-amber-400 tracking-wider">
+                Admin Controls
+              </span>
+              <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                <button
+                  type="button"
+                  onClick={() => setAdminBypass(true)}
+                  className="px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-bold transition cursor-pointer"
+                >
+                  Preview as Admin (Bypass)
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUnlockSim}
+                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-sm cursor-pointer"
+                >
+                  ⚡ Set Simulator LIVE
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -178,15 +232,24 @@ function SimulatorContent() {
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6 pb-20 space-y-5 min-h-screen">
       {/* Admin Bypass Notice when Sim is Locked */}
-      {isSimLocked && isAdmin && (
+      {isSimLocked && isAdmin && adminBypass && (
         <div className="p-3 px-4 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            <span>⚠️ <b>SIMULATOR PAUSED FOR VISITORS:</b> Public access is locked in Admin Switchboard. Admin test bypass is active.</span>
+            <span>⚠️ <b>ADMIN PREVIEW MODE:</b> Simulator is locked for public users. You are previewing in Admin Bypass mode.</span>
           </div>
-          <Link href="/admin" className="underline font-bold hover:text-white shrink-0 ml-2">
-            Admin Switchboard &rarr;
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setAdminBypass(false)}
+              className="text-[11px] px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 font-semibold text-amber-200 transition cursor-pointer"
+            >
+              Exit Preview
+            </button>
+            <Link href="/admin" className="underline font-bold hover:text-white shrink-0 ml-1">
+              Admin Switchboard &rarr;
+            </Link>
+          </div>
         </div>
       )}
 

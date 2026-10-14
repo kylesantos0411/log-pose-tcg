@@ -514,19 +514,24 @@ export default function AdminPage() {
     });
   }, []);
 
-  const toggleFeatureLock = (key: AppFeatureKey) => {
-    setFeatureLocks((prev) => {
-      const current = prev[key] || { locked: false };
-      const def = FEATURE_DEFINITIONS.find((f) => f.key === key);
-      return {
-        ...prev,
-        [key]: {
-          locked: !current.locked,
-          message: current.message || def?.defaultMessage || '',
-          lockedAt: !current.locked ? new Date().toISOString() : undefined,
-        },
-      };
-    });
+  const toggleFeatureLock = async (key: AppFeatureKey) => {
+    const current = featureLocks[key] || { locked: false };
+    const def = FEATURE_DEFINITIONS.find((f) => f.key === key);
+    const nextLocked = !current.locked;
+    const updatedLock = {
+      locked: nextLocked,
+      message: current.message || def?.defaultMessage || '',
+      lockedAt: nextLocked ? new Date().toISOString() : undefined,
+    };
+    const nextLocks: FeaturesLockMap = {
+      ...featureLocks,
+      [key]: updatedLock,
+    };
+    setFeatureLocks(nextLocks);
+
+    // Auto-save immediately so clicking the switch instantly locks/unlocks across the entire app
+    await handleSaveFeatureLocks(nextLocks);
+    showToast(`${def?.label || key} is now ${nextLocked ? '🔒 PAUSED' : '🟢 LIVE'}`);
   };
 
   const updateFeatureMessage = (key: AppFeatureKey, message: string) => {

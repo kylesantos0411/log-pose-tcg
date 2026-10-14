@@ -50,7 +50,15 @@ export function CleanHomeView({
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [homeSearch, setHomeSearch] = useState('');
-  const [systemSettings, setSystemSettings] = useState<SystemSettingsState>(DEFAULT_SYSTEM_SETTINGS);
+  const [systemSettings, setSystemSettings] = useState<SystemSettingsState>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('logpose_system_settings_cache');
+        if (stored) return JSON.parse(stored);
+      } catch {}
+    }
+    return DEFAULT_SYSTEM_SETTINGS;
+  });
 
   const isChiefAdmin = checkIsChiefAdmin(user);
   const isAdmin = checkIsAdmin(user);
@@ -59,11 +67,14 @@ export function CleanHomeView({
     fetchSystemSettings().then(setSystemSettings);
     const handleUpdate = () => fetchSystemSettings().then(setSystemSettings);
     window.addEventListener('logpose_settings_updated', handleUpdate);
-    return () => window.removeEventListener('logpose_settings_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('logpose_settings_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
   }, []);
 
   const isSimLocked = Boolean(systemSettings.features?.sim?.locked);
-  const canAccessSim = !isSimLocked || isAdmin;
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -361,7 +372,7 @@ export function CleanHomeView({
         </Link>
 
         {/* Tile 7: TCG Simulator (Open for public use, toggleable by admin) */}
-        {canAccessSim ? (
+        {!isSimLocked ? (
           <Link
             href="/sim"
             className="group rounded-2xl bg-[#141620] hover:bg-[#181b26] border border-[#222533] hover:border-amber-500/50 p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer col-span-2 sm:col-span-1"
@@ -376,7 +387,7 @@ export function CleanHomeView({
               <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 group-hover:translate-x-0.5 transition" />
             </div>
             <div className="mt-2">
-              <h3 className="font-bold text-sm sm:text-base text-slate-100 tracking-wide leading-tight">
+              <h3 className="font-bold text-sm sm:text-base text-slate-100 tracking-wide leading-tight group-hover:text-amber-400 transition-colors">
                 TCG Sim
               </h3>
               <p className="text-xs text-amber-400/80 font-medium mt-0.5">
@@ -385,23 +396,29 @@ export function CleanHomeView({
             </div>
           </Link>
         ) : (
-          <div
-            className="rounded-2xl bg-[#141620]/60 border border-[#222533] p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] opacity-60 cursor-not-allowed col-span-2 sm:col-span-1 select-none"
+          <Link
+            href="/sim"
+            className="rounded-2xl bg-[#141620]/80 border border-amber-500/30 p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] hover:border-amber-500/50 transition-all duration-200 shadow-sm cursor-pointer col-span-2 sm:col-span-1"
             title={systemSettings.features?.sim?.message || 'The TCG Battle Simulator is temporarily paused for updates.'}
           >
             <div className="flex items-start justify-between">
-              <Gamepad2 className="w-7 h-7 text-slate-500 stroke-[1.8]" />
+              <div className="flex items-center gap-2">
+                <Gamepad2 className="w-7 h-7 text-amber-500/80 stroke-[1.8]" />
+                <span className="px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-extrabold uppercase">
+                  PAUSED
+                </span>
+              </div>
               <Lock className="w-4 h-4 text-amber-400" />
             </div>
             <div className="mt-2">
-              <h3 className="font-bold text-sm sm:text-base text-slate-400 tracking-wide leading-tight">
+              <h3 className="font-bold text-sm sm:text-base text-slate-300 tracking-wide leading-tight">
                 TCG Sim
               </h3>
-              <p className="text-xs text-amber-400/70 font-medium mt-0.5">
+              <p className="text-xs text-amber-400/80 font-medium mt-0.5">
                 Temporarily Paused
               </p>
             </div>
-          </div>
+          </Link>
         )}
       </div>
 
