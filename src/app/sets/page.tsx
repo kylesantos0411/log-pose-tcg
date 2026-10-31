@@ -111,6 +111,7 @@ const STARTER_DECK_SETS: YuyuteiSetDefinition[] = [
 ];
 
 const EXTRA_SETS: YuyuteiSetDefinition[] = [
+  { id: 'eb05', code: 'EB05', title: 'ONE PIECE HEROINES EDITION vol.2', targetSet: 'EB-05' },
   { id: 'eb04', code: 'EB04', title: 'EGGHEAD CRISIS', targetSet: 'EB-04' },
   { id: 'eb03', code: 'EB03', title: 'Heroines Edition', targetSet: 'EB-03' },
   { id: 'eb02', code: 'EB02', title: 'Anime 25th collection', targetSet: 'EB-02' },

@@ -33,7 +33,7 @@ export async function GET() {
       stats: {
         totalCards,
         recentCardsCount: latestCards.length,
-        latestSets: ['OP-18 (Upcoming)', 'OP-17', 'OP-16', 'OP-15'],
+        latestSets: ['EB-05', 'OP-18 (Upcoming)', 'OP-17', 'OP-16', 'OP-15'],
         lastSynced: new Date().toISOString(),
       },
       previewCards: latestCards,
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
       message: `Synchronized ${recentCards.length} cards from newest expansions (${requestedSet})`,
       stats: {
         totalIndexedCards: totalCards,
-        activeSets: ['OP-18 (Upcoming)', 'OP-17', 'OP-16', 'OP-15'],
+        activeSets: ['EB-05', 'OP-18 (Upcoming)', 'OP-17', 'OP-16', 'OP-15'],
         syncTimestamp: new Date().toISOString(),
         pricingEngine: 'Yuyu-tei Japanese Storefront API v2',
         registry: 'Bandai Carddass Official JP Master Index',
