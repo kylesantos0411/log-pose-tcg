@@ -23,6 +23,15 @@ const ACCURATE_CHASE_PRICES: Record<string, { usd: number; yen: number; desc: st
   'OP08-118_p1': { usd: 850.0,  yen: 125000, desc: 'Silvers Rayleigh Manga Rare' },
   'OP09-118_p1': { usd: 1650.0, yen: 245000, desc: 'Gol.D.Roger Manga Rare' },
   'OP10-119_p1': { usd: 1100.0, yen: 160000, desc: 'Trafalgar Law Manga Rare' },
+  'EB05-010_p2': { usd: 712.0,  yen: 99800,  desc: 'Nico Robin Manga Rare Super Parallel Leader' },
+  'EB05-014_p2': { usd: 570.0,  yen: 79800,  desc: 'Shirahoshi Super Parallel' },
+  'EB05-055_p3': { usd: 712.0,  yen: 99800,  desc: 'Nami Super Parallel Gold Foil' },
+  'EB05-016_p2': { usd: 212.0,  yen: 29800,  desc: 'Nico Robin Special Card SP' },
+  'ST17-004_p3': { usd: 570.0,  yen: 79800,  desc: 'Boa Hancock Special Card SP' },
+  'EB05-055_p2': { usd: 91.0,   yen: 12800,  desc: 'Nami Alt Art Drawing Parallel' },
+  'EB05-010_p1': { usd: 49.80,  yen: 6980,   desc: 'Nico Robin Leader Parallel' },
+  'EB05-014_p1': { usd: 10.50,  yen: 1480,   desc: 'Shirahoshi SR Parallel' },
+  'EB05-055_p1': { usd: 14.10,  yen: 1980,   desc: 'Nami SR Parallel' },
 
   // === CHOPPER EB01 VARIANTS ===
   'EB01-006':    { usd: 7.50,   yen: 1000,   desc: 'Tony Tony.Chopper Base SR' },

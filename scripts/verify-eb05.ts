@@ -35,21 +35,22 @@ async function verifyEB05() {
 
   console.log('Sample cards in DB:', JSON.stringify(sampleCards, null, 2));
 
-  // Check top value cards in EB-05
-  const topValued = await prisma.card.findMany({
-    where: { packId: '569205', yuyuPrice: { not: null } },
+  // Check all Robin cards in EB-05
+  const robins = await prisma.card.findMany({
+    where: { packId: '569205', name: { contains: 'Robin' } },
     select: {
       id: true,
       name: true,
       rarity: true,
+      printingType: true,
       yuyuPrice: true,
       marketPrice: true,
-      printingType: true,
+      yuyuteiProductId: true,
+      yuyuteiTitle: true,
     },
-    orderBy: { yuyuPrice: 'desc' },
-    take: 5
+    orderBy: { id: 'asc' }
   });
-  console.log('Top valued cards in EB-05:', JSON.stringify(topValued, null, 2));
+  console.log('\nAll Nico Robin cards in EB-05:\n', JSON.stringify(robins, null, 2));
 }
 
 verifyEB05().catch(console.error).finally(() => prisma.$disconnect());

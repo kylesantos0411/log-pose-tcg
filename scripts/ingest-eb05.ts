@@ -1,8 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { fetchBandaiAsiaCards } from '../src/lib/bandai-asia-scraper';
 import { scrapeYuyuteiSet } from '../src/lib/yuyu-scraper';
-import fs from 'fs';
-import path from 'path';
 
 const prisma = new PrismaClient();
 
@@ -62,8 +60,6 @@ async function ingestEB05() {
 
   // 4. Ingest and upsert each card
   let inserted = 0;
-  let updated = 0;
-  const simRuleEntries: Record<string, any> = {};
 
   for (const bCard of bandaiResult.cards) {
     // Determine card ID format
@@ -74,17 +70,36 @@ async function ingestEB05() {
     const yuyuList = yuyuByCardNumber.get(baseCardNumber) || [];
     let matchedYuyu: (typeof yuyuProducts)[0] | undefined;
 
-    if (bCard.isAltArt) {
-      // Find parallel variant in Yuyu
-      matchedYuyu = yuyuList.find(y => y.isAltArt || y.rarity.startsWith('P-') || y.rarity === 'SP' || y.title.includes('パラレル'));
+    if (bCard.rawRarity === 'SP CARD' || bCard.id.includes('_sp')) {
+      matchedYuyu = yuyuList.find(y => y.rarity === 'SP');
+    } else if (!bCard.isAltArt) {
+      matchedYuyu = yuyuList.find(y => !y.isAltArt && y.rarity !== 'SP');
     } else {
-      // Base non-parallel
-      matchedYuyu = yuyuList.find(y => !y.isAltArt && !y.rarity.startsWith('P-') && !y.rarity.includes('SP') && !y.title.includes('パラレル'));
+      // Parallel variants
+      const parallels = yuyuList.filter(y => y.isAltArt && y.rarity !== 'SP');
+      if (bCard.id.endsWith('_p3')) {
+        matchedYuyu = parallels.find(y => y.title.includes('箔押し') || y.isSuperParallel) || parallels[parallels.length - 1];
+      } else if (bCard.id.endsWith('_p2')) {
+        matchedYuyu = parallels.find(y => y.isSuperParallel || y.title.includes('スーパーパラレル') || y.title.includes('描き下ろし')) || parallels[parallels.length - 1];
+      } else if (bCard.id.endsWith('_p1')) {
+        matchedYuyu = parallels.find(y => !y.isSuperParallel && !y.title.includes('スーパーパラレル') && !y.title.includes('箔押し') && !y.title.includes('描き下ろし')) || parallels[0];
+      } else {
+        matchedYuyu = parallels[0];
+      }
     }
 
     // If still unmatched and there's only 1 item for this card number, use it
     if (!matchedYuyu && yuyuList.length === 1) {
       matchedYuyu = yuyuList[0];
+    }
+
+    let printingType = bCard.printingType;
+    if (cardId === 'EB05-010_p2') {
+      printingType = 'Super Parallel (Manga Rare)';
+    } else if (cardId === 'EB05-014_p2' || cardId === 'EB05-055_p3') {
+      printingType = 'Super Parallel';
+    } else if (matchedYuyu?.isSuperParallel && !printingType.includes('Super Parallel')) {
+      printingType = 'Super Parallel';
     }
 
     const yuyuPrice = matchedYuyu ? matchedYuyu.priceYen : null;
@@ -116,7 +131,7 @@ async function ingestEB05() {
         originalSet: bCard.originalSet,
         displaySet: SET_CODE,
         yuyuteiSet: SET_CODE,
-        printingType: bCard.printingType,
+        printingType,
         ...(matchedYuyu ? {
           yuyuPrice: matchedYuyu.priceYen,
           marketPrice,
@@ -151,7 +166,7 @@ async function ingestEB05() {
         originalSet: bCard.originalSet,
         displaySet: SET_CODE,
         yuyuteiSet: SET_CODE,
-        printingType: bCard.printingType,
+        printingType,
         yuyuPrice,
         marketPrice,
         yuyuteiProductId: matchedYuyu ? matchedYuyu.productId : null,
@@ -163,17 +178,6 @@ async function ingestEB05() {
     });
 
     inserted++;
-
-    // Prepare simulator rules entry
-    if (!simRuleEntries[baseCardNumber]) {
-      simRuleEntries[baseCardNumber] = {
-        counter: bCard.counter,
-        effect: bCard.effect || '-',
-        trigger: bCard.trigger || null,
-        types: bCard.types || null,
-        attributes: bCard.attributes || null,
-      };
-    }
   }
 
   // Update pack cards count
@@ -184,23 +188,6 @@ async function ingestEB05() {
   });
 
   console.log(`✅ Successfully processed ${inserted} cards for ${SET_CODE} (Pack total: ${finalCount})!`);
-
-  // 5. Update card-rules-db.json for the TCG Battle Simulator
-  console.log(`⚔️ Updating card-rules-db.json for simulator support...`);
-  const rulesDbPath = path.join(__dirname, '../src/lib/sim/card-rules-db.json');
-  if (fs.existsSync(rulesDbPath)) {
-    const currentRules = JSON.parse(fs.readFileSync(rulesDbPath, 'utf8'));
-    let addedRules = 0;
-    for (const [code, rule] of Object.entries(simRuleEntries)) {
-      if (!currentRules[code]) {
-        currentRules[code] = rule;
-        addedRules++;
-      }
-    }
-    fs.writeFileSync(rulesDbPath, JSON.stringify(currentRules));
-    console.log(`✓ Added ${addedRules} new card rule definitions to card-rules-db.json.`);
-  }
-
   console.log('🎉 EB-05 Ingestion Complete!');
 }
 
