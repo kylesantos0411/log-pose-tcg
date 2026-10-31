@@ -40,10 +40,12 @@ export const BANDAI_ASIA_SERIES_MAP: Record<string, string> = {
   'PRB01': '556301',
 
   // Extra Boosters
+  'EB-05': '556205',
   'EB-04': '556204',
   'EB-03': '556203',
   'EB-02': '556202',
   'EB-01': '556201',
+  'EB05': '556205',
   'EB04': '556204',
   'EB03': '556203',
   'EB02': '556202',
@@ -147,7 +149,7 @@ export function resolveSeriesId(input: string): { seriesId: string; setCode: str
 
   const seriesId = BANDAI_ASIA_SERIES_MAP[formatted] || BANDAI_ASIA_SERIES_MAP[upper];
   if (!seriesId) {
-    throw new Error(`Unknown set or series: "${input}". Supported sets include OP-01 through OP-17, EB-01 to EB-04, ST-01 to ST-36, etc.`);
+    throw new Error(`Unknown set or series: "${input}". Supported sets include OP-01 through OP-17, EB-01 to EB-05, ST-01 to ST-36, etc.`);
   }
 
   return { seriesId, setCode: formatted };
