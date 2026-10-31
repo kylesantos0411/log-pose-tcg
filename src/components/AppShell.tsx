@@ -15,7 +15,6 @@ import {
   Star,
   ShieldAlert,
   SlidersHorizontal,
-  Gamepad2,
 } from 'lucide-react';
 import { SettingsTriggerButton } from '@/components/SettingsTriggerButton';
 import { useSettings } from '@/context/SettingsContext';
@@ -29,7 +28,6 @@ import {
   type SystemSettingsState,
   type AppFeatureKey,
   checkIsAdmin,
-  checkCanAccessSim,
   touchUserActivity
 } from '@/lib/supabase-sync';
 import { getSupabaseBrowserClient } from '@/lib/supabase/client';
@@ -38,7 +36,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, logout, openSettings } = useSettings();
   const isPreview = pathname === '/preview';
-  const isSim = pathname === '/sim' || pathname?.startsWith('/sim');
 
   const [systemSettings, setSystemSettings] = useState<SystemSettingsState>(() => {
     if (typeof window !== 'undefined') {
@@ -52,7 +49,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [loadingSettings, setLoadingSettings] = useState(true);
 
   const isAdmin = checkIsAdmin(user);
-  const canAccessSim = checkCanAccessSim(user, systemSettings.features?.sim);
 
   const loadSettings = async () => {
     try {
@@ -167,11 +163,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // In /sim mode, render full-bleed non-scrollable game canvas with dynamic viewport height
-  if (isSim) {
-    return <div className="fixed inset-0 w-full h-[100dvh] overflow-hidden bg-[#0a0e17]">{children}</div>;
-  }
-
   // In /preview mode, render dedicated studio canvas
   if (isPreview) {
     return <div className="fixed inset-0 w-screen h-screen overflow-y-auto overflow-x-hidden bg-[#0a0e17]">{children}</div>;
@@ -184,7 +175,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     '/cards': 'cards',
     '/favorites': 'favorites',
     '/friends': 'friends',
-    '/sim': 'sim',
   };
 
   const matchingRoutePrefix = Object.keys(ROUTE_FEATURE_MAP).find(
@@ -303,24 +293,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
           <Link href="/preview" className={navItemClass('/preview')}>
             <Smartphone className="w-4 h-4 text-[#e76d78]" />
-            <span>Phone Simulator</span>
+            <span>Phone Preview</span>
             <span className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#e76d78]/10 text-[#e76d78] border border-[#e76d78]/20">
-              SIM
+              VIEW
             </span>
-          </Link>
-
-          <Link href="/sim" className={navItemClass('/sim')}>
-            <Gamepad2 className={`w-4 h-4 ${isActive('/sim') ? 'text-amber-400' : 'text-amber-400/80'}`} />
-            <span>TCG Simulator</span>
-            {systemSettings.features?.sim?.locked ? (
-              <span className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20">
-                PAUSED
-              </span>
-            ) : (
-              <span className="ml-auto text-[9px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-                PLAY
-              </span>
-            )}
           </Link>
 
           {/* Admin Command Center Link (Admins Only) */}

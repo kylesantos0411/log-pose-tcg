@@ -14,16 +14,15 @@ import {
   Layers,
   ChevronRight,
   User,
-  Gamepad2,
   Plus,
   Trash2,
   Play
 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
-import { checkIsAdmin, checkCanAccessSim } from '@/lib/supabase-sync';
+import { checkIsAdmin } from '@/lib/supabase-sync';
 import { RECOMMENDED_DECKS, RecommendedDeck } from '@/lib/recommended-decks';
 import { getEditionCardImageUrl, handleCardImageError } from '@/lib/card-image';
-import { SimCustomDeckModal } from '@/components/sim/SimCustomDeckModal';
+import { CustomDeckModal } from '@/components/decks/CustomDeckModal';
 import { setActiveCustomDeckId } from '@/lib/custom-decks';
 
 type MetaFilter = 
@@ -58,7 +57,6 @@ export default function RecommendedDecksPage() {
   const router = useRouter();
   const { user } = useSettings();
   const isAdmin = checkIsAdmin(user);
-  const canAccessSim = checkCanAccessSim(user);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeMeta, setActiveMeta] = useState<MetaFilter>('ALL');
@@ -94,12 +92,8 @@ export default function RecommendedDecksPage() {
     setCustomDecks((prev) => [newDeck, ...prev.filter((d) => d.id !== newDeck.id)]);
   };
 
-  const handleSelectDeckForSim = (deck: RecommendedDeck) => {
-    if (canAccessSim) {
-      router.push(`/sim?deckId=${deck.id}`);
-    } else {
-      router.push(`/decks/${deck.id}`);
-    }
+  const handleSelectDeck = (deck: RecommendedDeck) => {
+    router.push(`/decks/${deck.id}`);
   };
 
   // Filter custom decks by search query and color
@@ -212,19 +206,6 @@ export default function RecommendedDecksPage() {
             <span className="hidden sm:inline">Create Deck</span>
             <span className="sm:hidden">Create</span>
           </button>
-
-          {/* PLAYTEST Simulator button available only for authorized testers */}
-          {canAccessSim && (
-            <Link
-              href="/sim"
-              title="Open TCG Simulator"
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/35 text-amber-300 hover:bg-amber-500/25 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider shrink-0 transition shadow-sm active:scale-95"
-            >
-              <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">PLAYTEST</span>
-              <span className="sm:hidden">SIM</span>
-            </Link>
-          )}
         </div>
       </header>
 
@@ -238,10 +219,10 @@ export default function RecommendedDecksPage() {
             </div>
             <div>
               <h2 className="text-xs sm:text-sm font-bold text-white">
-                Practice Your Own Decks in TCG Sim
+                Build & Manage Your Custom Decks
               </h2>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Paste any deck list to test battle mechanics, DON!! allocation, and card effects.
+                Paste any deck list or build from scratch to calculate deck stats and curve.
               </p>
             </div>
           </div>
@@ -463,7 +444,7 @@ export default function RecommendedDecksPage() {
               <div className="bg-[#141620] border border-[#222533] rounded-2xl p-6 text-center">
                 <p className="text-xs font-bold text-slate-300">No custom decks saved yet</p>
                 <p className="text-[11px] text-slate-500 mt-1">
-                  Create or paste your deck list to test it in the TCG Simulator!
+                  Create or paste your deck list to manage your custom builds!
                 </p>
                 <button
                   onClick={() => setIsCustomDeckModalOpen(true)}
@@ -548,16 +529,6 @@ export default function RecommendedDecksPage() {
                           <Plus className="w-3 h-3" />
                           <span>Add Cards</span>
                         </Link>
-
-                        {canAccessSim && (
-                          <Link
-                            href={`/sim?deckId=${deck.id}`}
-                            className="px-2 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 hover:text-white border border-amber-500/40 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition active:scale-95 shadow-sm"
-                          >
-                            <Gamepad2 className="w-3 h-3 text-amber-400" />
-                            <span>PLAYTEST</span>
-                          </Link>
-                        )}
                       </div>
                     </div>
                   </div>
@@ -683,16 +654,6 @@ export default function RecommendedDecksPage() {
                             {deck.date}
                           </span>
                         </div>
-
-                        {canAccessSim && (
-                          <Link
-                            href={`/sim?deckId=${deck.id}`}
-                            className="px-2 py-0.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 hover:text-white border border-amber-500/35 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 transition active:scale-95 shadow-sm"
-                          >
-                            <Gamepad2 className="w-3 h-3 text-amber-400" />
-                            <span>PLAYTEST</span>
-                          </Link>
-                        )}
                       </div>
                     </div>
                   );
@@ -713,10 +674,10 @@ export default function RecommendedDecksPage() {
       </main>
 
       {/* Custom Deck Creation Modal */}
-      <SimCustomDeckModal
+      <CustomDeckModal
         isOpen={isCustomDeckModalOpen}
         onClose={() => setIsCustomDeckModalOpen(false)}
-        onSelectDeck={handleSelectDeckForSim}
+        onSelectDeck={handleSelectDeck}
         onDeckSaved={handleDeckSaved}
       />
     </div>

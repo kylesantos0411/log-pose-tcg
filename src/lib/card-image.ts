@@ -1,4 +1,4 @@
-import cardRulesDbRaw from './sim/card-rules-db.json';
+import cardRulesDbRaw from './card-rules-db.json';
 
 const cardRulesDb: Record<string, any> = cardRulesDbRaw as any;
 

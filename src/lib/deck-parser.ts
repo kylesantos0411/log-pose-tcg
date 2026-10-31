@@ -1,6 +1,6 @@
-import { RecommendedDeck, DeckCardItem } from '../recommended-decks';
+import { RecommendedDeck, DeckCardItem } from './recommended-decks';
 import cardRulesDbRaw from './card-rules-db.json';
-import { getEditionCardImageUrl } from '../card-image';
+import { getEditionCardImageUrl } from './card-image';
 
 const cardRulesDb: Record<
   string,

@@ -18,7 +18,6 @@ import {
   Flame,
   User as UserIcon,
   ShieldAlert,
-  Gamepad2,
   Lock,
 } from 'lucide-react';
 import { useSettings } from '@/context/SettingsContext';
@@ -28,7 +27,6 @@ import { AccountModal } from '@/components/AccountModal';
 import { 
   checkIsAdmin, 
   checkIsChiefAdmin, 
-  checkCanAccessSim,
   fetchSystemSettings,
   DEFAULT_SYSTEM_SETTINGS,
   type SystemSettingsState,
@@ -73,8 +71,6 @@ export function CleanHomeView({
       window.removeEventListener('storage', handleUpdate);
     };
   }, []);
-
-  const isSimLocked = Boolean(systemSettings.features?.sim?.locked);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -370,56 +366,6 @@ export function CleanHomeView({
             </p>
           </div>
         </Link>
-
-        {/* Tile 7: TCG Simulator (Open for public use, toggleable by admin) */}
-        {!isSimLocked ? (
-          <Link
-            href="/sim"
-            className="group rounded-2xl bg-[#141620] hover:bg-[#181b26] border border-[#222533] hover:border-amber-500/50 p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer col-span-2 sm:col-span-1"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2">
-                <Gamepad2 className="w-7 h-7 text-amber-400 group-hover:scale-105 transition-transform" />
-                <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-extrabold uppercase">
-                  OPEN
-                </span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 group-hover:translate-x-0.5 transition" />
-            </div>
-            <div className="mt-2">
-              <h3 className="font-bold text-sm sm:text-base text-slate-100 tracking-wide leading-tight group-hover:text-amber-400 transition-colors">
-                TCG Sim
-              </h3>
-              <p className="text-xs text-amber-400/80 font-medium mt-0.5">
-                Playtest Decks
-              </p>
-            </div>
-          </Link>
-        ) : (
-          <Link
-            href="/sim"
-            className="rounded-2xl bg-[#141620]/80 border border-amber-500/30 p-4 flex flex-col justify-between min-h-[115px] sm:min-h-[125px] hover:border-amber-500/50 transition-all duration-200 shadow-sm cursor-pointer col-span-2 sm:col-span-1"
-            title={systemSettings.features?.sim?.message || 'The TCG Battle Simulator is temporarily paused for updates.'}
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2">
-                <Gamepad2 className="w-7 h-7 text-amber-500/80 stroke-[1.8]" />
-                <span className="px-1.5 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[9px] font-extrabold uppercase">
-                  PAUSED
-                </span>
-              </div>
-              <Lock className="w-4 h-4 text-amber-400" />
-            </div>
-            <div className="mt-2">
-              <h3 className="font-bold text-sm sm:text-base text-slate-300 tracking-wide leading-tight">
-                TCG Sim
-              </h3>
-              <p className="text-xs text-amber-400/80 font-medium mt-0.5">
-                Temporarily Paused
-              </p>
-            </div>
-          </Link>
-        )}
       </div>
 
       {/* =========================================================================

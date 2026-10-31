@@ -17,14 +17,14 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { RecommendedDeck } from '@/lib/recommended-decks';
-import { parseCustomDeckText } from '@/lib/sim/sim-deck-parser';
+import { parseCustomDeckText } from '@/lib/deck-parser';
 import { getEditionCardImageUrl, handleCardImageError } from '@/lib/card-image';
 import { createCustomDeck, setActiveCustomDeckId } from '@/lib/custom-decks';
 
-interface SimCustomDeckModalProps {
+export interface CustomDeckModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectDeck: (deck: RecommendedDeck) => void;
+  onSelectDeck?: (deck: RecommendedDeck) => void;
   onDeckSaved?: (deck: RecommendedDeck) => void;
 }
 
@@ -85,12 +85,12 @@ const SAMPLE_DECKS = [
   },
 ];
 
-export function SimCustomDeckModal({
+export function CustomDeckModal({
   isOpen,
   onClose,
   onSelectDeck,
   onDeckSaved,
-}: SimCustomDeckModalProps) {
+}: CustomDeckModalProps) {
   const router = useRouter();
   const [deckName, setDeckName] = useState('My Custom Deck');
   const [deckText, setDeckText] = useState('');
@@ -158,7 +158,11 @@ export function SimCustomDeckModal({
   const handlePlayNow = () => {
     if (!parsedDeck) return;
     handleSaveToStorage();
-    onSelectDeck(parsedDeck);
+    if (onSelectDeck) {
+      onSelectDeck(parsedDeck);
+    } else {
+      router.push(`/decks/${parsedDeck.id}`);
+    }
     onClose();
   };
 
@@ -419,8 +423,8 @@ export function SimCustomDeckModal({
               disabled={!parsedDeck}
               className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-white shadow-md flex items-center gap-2 transition"
             >
-              <Play className="w-3.5 h-3.5 fill-current" />
-              <span>Test Deck Now</span>
+              <Check className="w-3.5 h-3.5" />
+              <span>Save & View Deck</span>
             </button>
           </div>
         </div>

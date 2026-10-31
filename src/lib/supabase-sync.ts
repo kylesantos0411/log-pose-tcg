@@ -61,39 +61,6 @@ export function checkIsChiefAdmin(
   );
 }
 
-/**
- * TCG Simulator access check.
- * - When sim feature is not locked: Open to ALL public users and guests.
- * - When sim feature is locked: Restricted to Admins & Chief Admin.
- */
-export function checkCanAccessSim(
-  user?: { email?: string | null; tag?: string | null; username?: string | null; name?: string | null; role?: string | null } | null,
-  featureLock?: FeatureLockStatus | null
-): boolean {
-  let isLocked = false;
-  if (featureLock !== undefined && featureLock !== null) {
-    isLocked = Boolean(featureLock.locked);
-  } else if (typeof window !== 'undefined') {
-    try {
-      const stored = localStorage.getItem('logpose_system_settings_cache');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        isLocked = Boolean(parsed?.features?.sim?.locked);
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  if (!isLocked) {
-    // Open for public use!
-    return true;
-  }
-
-  // If locked/paused by admin, only Admins / Chief Admin can access
-  return checkIsAdmin(user);
-}
-
 export function checkIsAdmin(
   user?: { email?: string | null; tag?: string | null; username?: string | null; name?: string | null; role?: string | null } | null
 ): boolean {
@@ -1556,8 +1523,7 @@ export type AppFeatureKey =
   | 'favorites' 
   | 'friends' 
   | 'vintage' 
-  | 'communitySales'
-  | 'sim';
+  | 'communitySales';
 
 export interface FeatureLockStatus {
   locked: boolean;
@@ -1638,14 +1604,6 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     description: 'Marking cards as sold and submitting public transaction prices',
     iconName: 'ShoppingBag',
     defaultMessage: 'Public community sales submissions are temporarily locked for moderation.',
-  },
-  {
-    key: 'sim',
-    label: 'TCG Battle Simulator',
-    route: '/sim',
-    description: 'One Piece TCG match simulator, AI playtesting, and multiplayer rooms',
-    iconName: 'Gamepad2',
-    defaultMessage: 'The TCG Battle Simulator is temporarily paused for updates and balancing.',
   },
 ];
 

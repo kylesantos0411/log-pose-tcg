@@ -27,11 +27,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Simulator route exemption: Allow public access to TCG simulator without requiring account login
-  if (pathname?.startsWith('/sim')) {
-    return <>{children}</>;
-  }
-
   // If the user is not authenticated, block access completely
   if (!user) {
     return (

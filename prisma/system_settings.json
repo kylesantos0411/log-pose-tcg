@@ -9,11 +9,5 @@
     "message": "📢 We will have a temporary maintenance Today at 5:00PM PHT.",
     "type": "warning"
   },
-  "features": {
-    "sim": {
-      "locked": true,
-      "message": "The TCG Battle Simulator is temporarily paused for bug fix, and optimization.",
-      "lockedAt": "2026-10-14T14:58:30.819Z"
-    }
-  }
+  "features": {}
 }
